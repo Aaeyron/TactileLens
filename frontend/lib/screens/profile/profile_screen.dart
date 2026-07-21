@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../styles/profile/profile_styles.dart';
+import '../../styles/screens/profile/profile_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/logout_dialog.dart';
 

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/auth/auth_service.dart';
-import '../../styles/auth/signin_styles.dart';
+import '../../styles/screens/auth/signin_styles.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../styles/main/main_styles.dart';
+import '../../styles/screens/main/main_styles.dart';
 
 import '../home/home_screen.dart';
 import '../history/history_screen.dart';
 import '../profile/profile_screen.dart';
 import '../scan/scan_screen.dart';
-import '../materials/materials_screen.dart';
+import '../materials/material_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

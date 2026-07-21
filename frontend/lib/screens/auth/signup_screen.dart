@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../styles/auth/signup_styles.dart';
+import '../../styles/screens/auth/signup_styles.dart';
 import '../../services/auth/auth_service.dart';
 import 'signin_screen.dart';
 

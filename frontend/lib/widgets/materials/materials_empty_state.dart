@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../styles/materials/materials_styles.dart';
+import '../../styles/screens/materials/material_styles.dart';
 
 class MaterialsEmptyState extends StatelessWidget {
   const MaterialsEmptyState({

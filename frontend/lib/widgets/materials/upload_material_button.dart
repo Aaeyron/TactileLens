@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/materials/material_service.dart';
-import '../../styles/materials/materials_styles.dart';
+import '../../styles/screens/materials/material_styles.dart';
 
 class UploadMaterialButton extends StatefulWidget {
   const UploadMaterialButton({

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/materials/upload_material_button.dart';
 import '../../widgets/materials/materials_empty_state.dart';
-import '../../styles/materials/materials_styles.dart';
+import '../../styles/screens/materials/material_styles.dart';
 
 class MaterialsScreen extends StatelessWidget {
   const MaterialsScreen({super.key});
