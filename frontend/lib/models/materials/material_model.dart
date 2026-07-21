@@ -19,7 +19,9 @@ class MaterialModel {
     required this.uploadDate,
   });
 
-  factory MaterialModel.fromJson(Map<String, dynamic> json) {
+  factory MaterialModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return MaterialModel(
       id: json['id'],
       title: json['title'],
@@ -28,7 +30,9 @@ class MaterialModel {
       fileType: json['file_type'],
       fileSize: json['file_size'],
       filePath: json['file_path'],
-      uploadDate: DateTime.parse(json['upload_date']),
+      uploadDate: DateTime.parse(
+        json['uploaded_at'],
+      ),
     );
   }
 
@@ -41,7 +45,8 @@ class MaterialModel {
       'file_type': fileType,
       'file_size': fileSize,
       'file_path': filePath,
-      'upload_date': uploadDate.toIso8601String(),
+      'uploaded_at':
+          uploadDate.toIso8601String(),
     };
   }
 }
