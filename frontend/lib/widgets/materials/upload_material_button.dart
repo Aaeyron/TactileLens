@@ -7,8 +7,11 @@ import '../../services/materials/material_service.dart';
 import '../../styles/screens/materials/material_styles.dart';
 
 class UploadMaterialButton extends StatefulWidget {
+  final VoidCallback onUploadSuccess;
+
   const UploadMaterialButton({
     super.key,
+    required this.onUploadSuccess,
   });
 
   @override
@@ -267,6 +270,8 @@ final uploadData =
           ),
         ),
       );
+
+  widget.onUploadSuccess();
 
     } catch (error) {
 

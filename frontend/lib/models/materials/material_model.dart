@@ -23,12 +23,14 @@ class MaterialModel {
     Map<String, dynamic> json,
   ) {
     return MaterialModel(
-      id: json['id'],
+      id: json['id'] != null
+          ? int.parse(json['id'].toString())
+          : null,
       title: json['title'],
       subject: json['subject'],
       fileName: json['file_name'],
       fileType: json['file_type'],
-      fileSize: json['file_size'],
+      fileSize: int.parse(json['file_size'].toString()),
       filePath: json['file_path'],
       uploadDate: DateTime.parse(
         json['uploaded_at'],

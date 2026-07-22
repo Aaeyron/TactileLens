@@ -11,7 +11,7 @@ class MaterialService {
   // ==========================
 
   static const String baseUrl =
-      'http://YOUR_IP_ADDRESS:5000/api/materials';
+    'http://127.0.0.1:5000/api/materials';
 
   // ==========================
   // Get All Materials

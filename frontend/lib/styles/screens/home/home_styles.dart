@@ -160,7 +160,7 @@ class HomeStyles {
   // ==========================
 
   // Layout
-  static const double recentCardHeight = 180.0;
+  static const double recentCardHeight = 190.0;
 
   static const EdgeInsets recentCardPadding =
       EdgeInsets.all(18);

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // TODO:
   // Replace this with your computer's local IP address.
- static const String baseUrl = "http://192.168.1.5:5000";
+static const String baseUrl = "http://127.0.0.1:5000";
 
   static Future<http.Response> registerUser({
     required String firstName,
