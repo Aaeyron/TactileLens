@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/materials/material_service.dart';
-import '../../styles/screens/materials/material_styles.dart';
+import '../../styles/widgets/materials/material_widget_styles.dart';
 
 class UploadMaterialButton extends StatefulWidget {
   final VoidCallback onUploadSuccess;
@@ -309,7 +309,7 @@ final uploadData =
     return SizedBox(
       width: double.infinity,
       height:
-          MaterialsStyles.uploadButtonHeight,
+          MaterialWidgetStyles.uploadButtonHeight,
 
       child: ElevatedButton.icon(
         onPressed:
@@ -329,7 +329,7 @@ final uploadData =
             : Icon(
                 Icons
                     .upload_file_outlined,
-                size: MaterialsStyles
+                size: MaterialWidgetStyles
                     .uploadButtonIconSize,
               ),
 
@@ -338,20 +338,20 @@ final uploadData =
               ? 'Uploading...'
               : 'Upload Material',
 
-          style: MaterialsStyles
+          style: MaterialWidgetStyles
               .uploadButtonTextStyle,
         ),
 
         style:
             ElevatedButton.styleFrom(
           backgroundColor:
-              MaterialsStyles
+              MaterialWidgetStyles
                   .uploadButtonColor,
 
           shape:
               RoundedRectangleBorder(
             borderRadius:
-                MaterialsStyles
+                MaterialWidgetStyles
                     .uploadButtonRadius,
           ),
 

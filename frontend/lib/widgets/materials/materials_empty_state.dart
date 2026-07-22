@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../styles/screens/materials/material_styles.dart';
+import '../../styles/widgets/materials/material_widget_styles.dart';
 
 class MaterialsEmptyState extends StatelessWidget {
   const MaterialsEmptyState({
@@ -10,13 +10,13 @@ class MaterialsEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: MaterialsStyles.emptyCardHeight,
-      padding: MaterialsStyles.emptyCardPadding,
+      height: MaterialWidgetStyles.emptyCardHeight,
+      padding: MaterialWidgetStyles.emptyCardPadding,
 
       decoration: BoxDecoration(
-        color: MaterialsStyles.emptyCardColor,
-        borderRadius: MaterialsStyles.emptyCardRadius,
-        boxShadow: MaterialsStyles.emptyCardShadow,
+        color: MaterialWidgetStyles.emptyCardColor,
+        borderRadius: MaterialWidgetStyles.emptyCardRadius,
+        boxShadow: MaterialWidgetStyles.emptyCardShadow,
       ),
 
       child: Column(
@@ -28,27 +28,27 @@ class MaterialsEmptyState extends StatelessWidget {
           // Empty State Icon
           // ==========================
           Container(
-            width: MaterialsStyles.emptyIconContainerSize,
-            height: MaterialsStyles.emptyIconContainerSize,
+            width: MaterialWidgetStyles.emptyIconContainerSize,
+            height: MaterialWidgetStyles.emptyIconContainerSize,
 
             decoration: BoxDecoration(
               color:
-                  MaterialsStyles.emptyIconBackgroundColor,
+                  MaterialWidgetStyles.emptyIconBackgroundColor,
 
               borderRadius:
-                  MaterialsStyles.emptyIconRadius,
+                  MaterialWidgetStyles.emptyIconRadius,
             ),
 
             child: Icon(
               Icons.folder_open_outlined,
-              size: MaterialsStyles.emptyIconSize,
-              color: MaterialsStyles.emptyIconColor,
+              size: MaterialWidgetStyles.emptyIconSize,
+              color: MaterialWidgetStyles.emptyIconColor,
             ),
           ),
 
 
           const SizedBox(
-            height: MaterialsStyles.emptyIconTextSpacing,
+            height: MaterialWidgetStyles.emptyIconTextSpacing,
           ),
 
 
@@ -57,13 +57,13 @@ class MaterialsEmptyState extends StatelessWidget {
           // ==========================
           const Text(
             "No Materials Yet",
-            style: MaterialsStyles.emptyTitleStyle,
+            style: MaterialWidgetStyles.emptyTitleStyle,
             textAlign: TextAlign.center,
           ),
 
 
           const SizedBox(
-            height: MaterialsStyles.emptySubtitleTopSpacing,
+            height: MaterialWidgetStyles.emptySubtitleTopSpacing,
           ),
 
 
@@ -72,7 +72,7 @@ class MaterialsEmptyState extends StatelessWidget {
           // ==========================
           const Text(
             "Upload your General Algebra materials to organize and prepare them for OCR and Nemeth Braille translation.",
-            style: MaterialsStyles.emptySubtitleStyle,
+            style: MaterialWidgetStyles.emptySubtitleStyle,
             textAlign: TextAlign.center,
           ),
 

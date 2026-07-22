@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/materials/material_model.dart';
-import '../../styles/materials/materials_styles.dart';
+import '../../styles/widgets/materials/material_widget_styles.dart';
 
 class MaterialCard extends StatelessWidget {
   final MaterialModel material;
@@ -78,15 +78,15 @@ class MaterialCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(
-          MaterialsStyles.materialCardPadding,
+          MaterialWidgetStyles.materialCardPadding,
         ),
 
         decoration: BoxDecoration(
-          color: MaterialsStyles.materialCardColor,
+          color: MaterialWidgetStyles.materialCardColor,
           borderRadius:
-              MaterialsStyles.materialCardRadius,
+              MaterialWidgetStyles.materialCardRadius,
           boxShadow:
-              MaterialsStyles.materialCardShadow,
+              MaterialWidgetStyles.materialCardShadow,
         ),
 
         child: Row(
@@ -101,18 +101,18 @@ class MaterialCard extends StatelessWidget {
 
             Container(
               width:
-                  MaterialsStyles.materialIconContainerSize,
+                  MaterialWidgetStyles.materialIconContainerSize,
 
               height:
-                  MaterialsStyles.materialIconContainerSize,
+                  MaterialWidgetStyles.materialIconContainerSize,
 
               decoration: BoxDecoration(
                 color:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialIconBackgroundColor,
 
                 borderRadius:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialIconRadius,
               ),
 
@@ -122,18 +122,18 @@ class MaterialCard extends StatelessWidget {
                 ),
 
                 size:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialIconSize,
 
                 color:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialIconColor,
               ),
             ),
 
             const SizedBox(
               width:
-                  MaterialsStyles
+                  MaterialWidgetStyles
                       .materialIconTextSpacing,
             ),
 
@@ -156,13 +156,13 @@ class MaterialCard extends StatelessWidget {
                         TextOverflow.ellipsis,
 
                     style:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialTitleStyle,
                   ),
 
                   const SizedBox(
                     height:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialTitleFileSpacing,
                   ),
 
@@ -174,13 +174,13 @@ class MaterialCard extends StatelessWidget {
                         TextOverflow.ellipsis,
 
                     style:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialFileNameStyle,
                   ),
 
                   const SizedBox(
                     height:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialInfoSpacing,
                   ),
 
@@ -192,7 +192,7 @@ class MaterialCard extends StatelessWidget {
                         TextOverflow.ellipsis,
 
                     style:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialInfoStyle,
                   ),
 
@@ -211,7 +211,7 @@ class MaterialCard extends StatelessWidget {
                         TextOverflow.ellipsis,
 
                     style:
-                        MaterialsStyles
+                        MaterialWidgetStyles
                             .materialInfoStyle,
                   ),
                 ],
@@ -228,11 +228,11 @@ class MaterialCard extends StatelessWidget {
               icon: const Icon(
                 Icons.more_vert,
                 size:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialActionIconSize,
 
                 color:
-                    MaterialsStyles
+                    MaterialWidgetStyles
                         .materialActionIconColor,
               ),
 
@@ -253,7 +253,7 @@ class MaterialCard extends StatelessWidget {
                       Icon(
                         Icons.delete_outline,
                         color:
-                            MaterialsStyles
+                            MaterialWidgetStyles
                                 .materialDeleteIconColor,
                       ),
 

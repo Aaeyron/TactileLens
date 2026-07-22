@@ -5,7 +5,7 @@ import '../../services/materials/material_service.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/materials/upload_material_button.dart';
 import '../../widgets/materials/materials_empty_state.dart';
-import '../../styles/screens/materials/material_styles.dart';
+import '../../styles/screens/materials/material_screen_styles.dart';
 
 class MaterialsScreen extends StatefulWidget {
   const MaterialsScreen({super.key});
@@ -48,30 +48,30 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MaterialsStyles.backgroundColor,
+      backgroundColor: MaterialScreenStyles.backgroundColor,
       body: Column(
         children: [
           const AppHeader(),
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: MaterialsStyles.contentPadding,
+                padding: MaterialScreenStyles.contentPadding,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       "Materials",
-                      style: MaterialsStyles.pageTitleStyle,
+                      style: MaterialScreenStyles.pageTitleStyle,
                     ),
                     const SizedBox(
-                      height: MaterialsStyles.pageTitleBottomSpacing,
+                      height: MaterialScreenStyles.pageTitleBottomSpacing,
                     ),
                     const Text(
                       "Manage your uploaded General Algebra learning materials for OCR and Nemeth Braille translation.",
-                      style: MaterialsStyles.pageDescriptionStyle,
+                      style: MaterialScreenStyles.pageDescriptionStyle,
                     ),
                     const SizedBox(
-                      height: MaterialsStyles.pageDescriptionBottomSpacing,
+                      height: MaterialScreenStyles.pageDescriptionBottomSpacing,
                     ),
 
                     UploadMaterialButton(
@@ -79,24 +79,34 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                     ),
 
                     const SizedBox(
-                      height: MaterialsStyles.sectionSpacing,
+                      height: MaterialScreenStyles.sectionSpacing,
                     ),
 
-                    if (_isLoading)
-                      const Center(
-                        child: CircularProgressIndicator(),
-                      )
-                    else if (_materials.isEmpty)
-                      const MaterialsEmptyState()
-                    else
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+          // ==========================
+          // Materials List Container
+          // ==========================
+          Container(
+            height: MaterialScreenStyles.materialsListHeight,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: MaterialScreenStyles.materialsListBackgroundColor,
+              borderRadius: MaterialScreenStyles.materialsListRadius,
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : _materials.isEmpty
+                    ? const MaterialsEmptyState()
+                    : ListView.builder(
+                        padding: MaterialScreenStyles.materialsListPadding,
                         itemCount: _materials.length,
                         itemBuilder: (context, index) {
                           final material = _materials[index];
 
                           return Card(
+                            margin: MaterialScreenStyles.materialCardMargin,
                             child: ListTile(
                               title: Text(material.title),
                               subtitle: Text(material.subject),
@@ -105,6 +115,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                           );
                         },
                       ),
+                    ),
                   ],
                 ),
               ),

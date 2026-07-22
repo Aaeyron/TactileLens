@@ -1,54 +1,13 @@
 import 'package:flutter/material.dart';
 
-class MaterialsStyles {
-  const MaterialsStyles._();
-
-  // ============================================================
-  // PAGE
-  // ============================================================
-
-  static const Color backgroundColor =
-      Color(0xFFF8F9FA);
-
-  static const EdgeInsets contentPadding =
-      EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 20,
-  );
-
-  // ============================================================
-  // PAGE HEADER
-  // ============================================================
-
-  static const double pageTitleBottomSpacing =
-      8.0;
-
-  static const double pageDescriptionBottomSpacing =
-      24.0;
-
-  static const double sectionSpacing =
-      24.0;
-
-  static const TextStyle pageTitleStyle =
-      TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: Colors.black87,
-  );
-
-  static const TextStyle pageDescriptionStyle =
-      TextStyle(
-    fontSize: 15,
-    color: Colors.grey,
-    height: 1.5,
-  );
+class MaterialWidgetStyles {
+  const MaterialWidgetStyles._();
 
   // ============================================================
   // UPLOAD MATERIAL BUTTON
   // ============================================================
 
-  static const double uploadButtonHeight =
-      56.0;
+  static const double uploadButtonHeight = 56.0;
 
   static const BorderRadius uploadButtonRadius =
       BorderRadius.all(
@@ -234,5 +193,7 @@ class MaterialsStyles {
 // ============================================================
 
 static const double materialListSpacing = 14.0;
+
+
 
 }
