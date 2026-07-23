@@ -138,22 +138,23 @@ class _SignInScreenState extends State<SignInScreen> {
 
                   child: ElevatedButton(
                     onPressed: () async {
-                        if (emailController.text.isEmpty ||
-                            passwordController.text.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Please fill in all fields."),
-                            ),
-                          );
-                          return;
-                        }
+                          if (emailController.text.isEmpty ||
+                              passwordController.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Please fill in all fields."),
+                              ),
+                            );
+                            return;
+                          }
 
-                        final response = await AuthService.loginUser(
-                          email: emailController.text.trim(),
-                          password: passwordController.text,
-                        );
+                          try {
+                            final response = await AuthService.loginUser(
+                              email: emailController.text.trim(),
+                              password: passwordController.text,
+                            );
 
-                        if (response.statusCode == 200) {
+                            if (response.statusCode == 200) {
                               final data = jsonDecode(response.body);
 
                               await SessionManager.saveUser(
@@ -162,6 +163,8 @@ class _SignInScreenState extends State<SignInScreen> {
                                 lastName: data["user"]["last_name"],
                                 email: data["user"]["email"],
                               );
+
+                              if (!mounted) return;
 
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -176,13 +179,26 @@ class _SignInScreenState extends State<SignInScreen> {
                                 ),
                               );
                             } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Invalid email or password."),
-                            ),
-                          );
-                        }
-                      },
+                              if (!mounted) return;
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Login failed: ${response.body}",
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (error) {
+                            if (!mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Error: $error"),
+                              ),
+                            );
+                          }
+                        },
 
                     child: const Text("Sign In"),
                   ),

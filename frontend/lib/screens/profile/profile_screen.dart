@@ -135,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                         title: Text(
-                          "My Activity",
+                          "My Activity hahaha",
                           style: ProfileStyles.menuTitleStyle,
                         ),
                        trailing: Icon(

@@ -15,9 +15,9 @@ const storage = multer.diskStorage({
       Date.now() + "-" + Math.round(Math.random() * 1e9);
 
     cb(
-      null,
-      uniqueName + path.extname(file.originalname)
-    );
+    null,
+    uniqueName + path.extname(file.originalname).toLowerCase()
+  );
   },
 });
 
@@ -38,7 +38,14 @@ const fileFilter = (req, file, cb) => {
     .toLowerCase();
 
   if (allowedExtensions.includes(extension)) {
+
+    file.mimetype =
+      extension === ".pdf"
+        ? "application/pdf"
+        : "image/" + extension.replace(".", "");
+
     cb(null, true);
+
   } else {
     cb(
       new Error(

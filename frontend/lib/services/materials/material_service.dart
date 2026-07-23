@@ -6,12 +6,28 @@ import 'package:http/http.dart' as http;
 import '../../models/materials/material_model.dart';
 
 class MaterialService {
+
   // ==========================
   // Backend Base URL
   // ==========================
 
+  static const String serverUrl =
+      'http://192.168.1.5:5000';
+
   static const String baseUrl =
-    'http://127.0.0.1:5000/api/materials';
+      '$serverUrl/api/materials';
+
+
+  // ==========================
+  // File URL Builder
+  // ==========================
+
+  String getFileUrl(String filePath) {
+  final normalizedPath =
+      filePath.replaceAll('\\', '/');
+
+  return '$serverUrl/$normalizedPath';
+}
 
   // ==========================
   // Get All Materials

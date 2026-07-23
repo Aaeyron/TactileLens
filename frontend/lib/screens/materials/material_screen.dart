@@ -5,6 +5,7 @@ import '../../services/materials/material_service.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/materials/upload_material_button.dart';
 import '../../widgets/materials/materials_empty_state.dart';
+import '../../widgets/materials/material_card.dart';
 import '../../styles/screens/materials/material_screen_styles.dart';
 
 class MaterialsScreen extends StatefulWidget {
@@ -44,6 +45,30 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       });
     }
   }
+
+  Future<void> _deleteMaterial(int id) async {
+  try {
+    await _materialService.deleteMaterial(id);
+
+    if (!mounted) return;
+
+    setState(() {
+      _materials.removeWhere((material) => material.id == id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Material deleted successfully'),
+      ),
+    );
+  } catch (error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Failed to delete material'),
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -85,36 +110,30 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           // ==========================
           // Materials List Container
           // ==========================
-          Container(
-            height: MaterialScreenStyles.materialsListHeight,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: MaterialScreenStyles.materialsListBackgroundColor,
-              borderRadius: MaterialScreenStyles.materialsListRadius,
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : _materials.isEmpty
-                    ? const MaterialsEmptyState()
-                    : ListView.builder(
-                        padding: MaterialScreenStyles.materialsListPadding,
-                        itemCount: _materials.length,
-                        itemBuilder: (context, index) {
-                          final material = _materials[index];
+          _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : _materials.isEmpty
+                  ? const MaterialsEmptyState()
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _materials.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final material = _materials[index];
 
-                          return Card(
-                            margin: MaterialScreenStyles.materialCardMargin,
-                            child: ListTile(
-                              title: Text(material.title),
-                              subtitle: Text(material.subject),
-                              trailing: Text(material.fileType),
-                            ),
-                          );
-                        },
-                      ),
+                          return MaterialCard(
+                          material: material,
+                          onDelete: () {
+                            if (material.id != null) {
+                              _deleteMaterial(material.id!);
+                            }
+                          },
+                        );
+                      },
                     ),
                   ],
                 ),
