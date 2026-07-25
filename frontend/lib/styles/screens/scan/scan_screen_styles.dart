@@ -56,8 +56,12 @@ static const double topContentSpacing = 40.0;
 // CAMERA SCREEN SPACING
 // ============================================================
 
-static const double cameraTopSpacing = 100.0;
+// Space from the top of the screen to the scan mode selector.
+static const double modeSelectorTopSpacing = 35.0;
 
+// Space between the scan mode selector and the live camera.
+static const double toggleBottomSpacing = 20.0;
+
+// Space between the live camera and the bottom action buttons.
 static const double cameraBottomSpacing = 24.0;
-
 }
