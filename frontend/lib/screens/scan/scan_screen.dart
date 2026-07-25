@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/scan/scan_screen_styles.dart';
-import '../../widgets/app_header.dart';
 import '../../widgets/scan/scan_action_buttons.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
@@ -55,76 +54,57 @@ Future<void> _captureImage() async {
   });
 }
 
- 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ScanScreenStyles.backgroundColor,
 
-      body: Column(
-        children: [
+      body: SafeArea(
+  child: Column(
+    children: [
+      Expanded(
+        child: SingleChildScrollView(
+          padding: ScanScreenStyles.contentPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
 
-          const AppHeader(),
+            children: [
+              const SizedBox(
+                height: ScanScreenStyles.cameraTopSpacing,
+              ),
 
-          Expanded(
-            child: SingleChildScrollView(
-              padding: ScanScreenStyles.contentPadding,
+              // ==============================
+              // Camera / Preview
+              // ==============================
 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
-
-                  const SizedBox(
-                    height: ScanScreenStyles.topContentSpacing,
-                  ),
-
-                  const Text(
-                    "Scan Material",
-                    style: ScanScreenStyles.pageTitleStyle,
-                  ),
-
-                  const SizedBox(
-                      height: ScanScreenStyles.titleDescriptionSpacing,
+              _selectedImage == null
+                  ? ScanCameraPreview(
+                      cameraService: _cameraService,
+                    )
+                  : ScanPreview(
+                      selectedImage: _selectedImage,
+                      onRegionSelected: _onRegionSelected,
                     ),
 
-                  const Text(
-                    "Upload or capture learning materials for OCR recognition and Nemeth Braille translation.",
-                    style: ScanScreenStyles.pageDescriptionStyle,
-                  ),
-
-                  const SizedBox(
-                    height: ScanScreenStyles.sectionSpacing,
-                  ),
-
-                  // ==============================
-                  // Camera / Preview
-                  // ==============================
-
-                  _selectedImage == null
-                      ? ScanCameraPreview(
-                          cameraService: _cameraService,
-                        )
-                        : ScanPreview(
-                          selectedImage: _selectedImage,
-                          onRegionSelected: _onRegionSelected,
-                        ),
-
-                  // ==============================
-                  // Buttons
-                  // ==============================
-
-                   ScanActionButtons(
-                    onCameraPressed: _captureImage,
-                    onUploadPressed: _pickFile,
-                  ),
-                ],
+              const SizedBox(
+                height: ScanScreenStyles.cameraBottomSpacing,
               ),
-            ),
+
+              // ==============================
+              // Buttons
+              // ==============================
+
+                           ScanActionButtons(
+                            onCameraPressed: _captureImage,
+                            onUploadPressed: _pickFile,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
     );
   }
 }

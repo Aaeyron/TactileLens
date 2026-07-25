@@ -83,20 +83,19 @@ static const String uploadButtonText =
 // SCAN PREVIEW
 // ============================================================
 
-static const double previewHeight = 320.0;
+static const double previewHeight = 450.0;
 
 static const Color previewBackgroundColor =
     Colors.white;
 
 static const BorderRadius previewBorderRadius =
     BorderRadius.all(
-      Radius.circular(18),
+      Radius.circular(20),
     );
 
-static const Color previewBorderColor =
-    Color(0xFFE5E7EB);
+static const Color previewBorderColor = Color(0xFFD6DCE5);
 
-static const double previewBorderWidth = 1.2;
+static const double previewBorderWidth = 1.5;
 
 static const String previewPlaceholderText =
     "Selected image will appear here";

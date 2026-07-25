@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class ScanScreenStyles {
   const ScanScreenStyles._();
 
-
   // ============================================================
   // SCREEN
   // ============================================================
@@ -11,63 +10,8 @@ class ScanScreenStyles {
   static const Color backgroundColor =
       Colors.white;
 
-
   static const EdgeInsets contentPadding =
       EdgeInsets.all(20);
-
-
-  // ============================================================
-  // PAGE TITLE
-  // ============================================================
-
-  static const TextStyle pageTitleStyle =
-      TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.bold,
-    color: Colors.black87,
-  );
-
-
-  static const double titleDescriptionSpacing =
-      8.0;
-
-
-  // ============================================================
-  // PAGE DESCRIPTION
-  // ============================================================
-
-  static const TextStyle pageDescriptionStyle =
-      TextStyle(
-    fontSize: 14,
-    color: Colors.grey,
-    height: 1.5,
-  );
-
-
-  // ============================================================
-  // UPLOAD PREVIEW AREA
-  // ============================================================
-
-  static const double uploadAreaHeight =
-      180.0;
-
-
-  static const Color uploadAreaColor =
-      Color(0xFFF1F5F9);
-
-
-  static const BorderRadius uploadAreaRadius =
-      BorderRadius.all(
-        Radius.circular(18),
-      );
-
-
-  static const double uploadIconSize =
-      60.0;
-
-
-  static const Color uploadIconColor =
-      Color(0xFF0D47A1);
 
 
   // ============================================================
@@ -77,10 +21,8 @@ class ScanScreenStyles {
   static const double sectionSpacing =
       20.0;
 
-
   static const double buttonSpacing =
       12.0;
-
 
   // ============================================================
   // BUTTONS
@@ -89,16 +31,13 @@ class ScanScreenStyles {
   static const double buttonHeight =
       52.0;
 
-
   static const BorderRadius buttonRadius =
       BorderRadius.all(
         Radius.circular(14),
       );
 
-
   static const Color primaryButtonColor =
       Color(0xFF0D47A1);
-
 
   static const TextStyle buttonTextStyle =
       TextStyle(
@@ -112,5 +51,13 @@ class ScanScreenStyles {
 // ============================================================
 
 static const double topContentSpacing = 40.0;
+
+// ============================================================
+// CAMERA SCREEN SPACING
+// ============================================================
+
+static const double cameraTopSpacing = 100.0;
+
+static const double cameraBottomSpacing = 24.0;
 
 }
