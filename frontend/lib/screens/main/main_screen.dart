@@ -16,6 +16,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
+  int previousIndex = 0;
 
 
   late final List<Widget> pages;
@@ -27,28 +28,39 @@ void initState() {
   pages = [
     const HomeScreen(),
     const MaterialsScreen(),
-    const ScanScreen(),
+
+    ScanScreen(
+      onBack: () {
+        setState(() {
+          currentIndex = previousIndex;
+        });
+      },
+    ),
+
     const HistoryScreen(),
     const ProfileScreen(),
   ];
-} 
+}
 
 @override
 Widget build(BuildContext context) {
     return Scaffold(
       body: pages[currentIndex],
 
-       floatingActionButton: Transform.translate(
-        offset: MainStyles.fabOffset,
-        child: FloatingActionButton(
-          shape: const CircleBorder(), // Force a circular shape
-          backgroundColor: MainStyles.fabBackgroundColor,
-          elevation: MainStyles.fabElevation,
-          onPressed: () {
-            setState(() {
-              currentIndex = 2;
-            });
-          },
+       floatingActionButton: currentIndex == 2
+          ? null
+          : Transform.translate(
+              offset: MainStyles.fabOffset,
+              child: FloatingActionButton(
+                shape: const CircleBorder(),
+                backgroundColor: MainStyles.fabBackgroundColor,
+                elevation: MainStyles.fabElevation,
+               onPressed: () {
+                setState(() {
+                  previousIndex = currentIndex;
+                  currentIndex = 2;
+                });
+              },
           child: const Icon(
             Icons.camera_alt,
             size: MainStyles.fabIconSize,
@@ -59,7 +71,9 @@ Widget build(BuildContext context) {
 
       floatingActionButtonLocation: MainStyles.fabLocation,
 
-            bottomNavigationBar: Container(
+           bottomNavigationBar: currentIndex == 2
+              ? null
+              : Container(
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(

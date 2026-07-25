@@ -64,4 +64,16 @@ static const double toggleBottomSpacing = 20.0;
 
 // Space between the live camera and the bottom action buttons.
 static const double cameraBottomSpacing = 24.0;
+
+// ============================================================
+// BACK BUTTON
+// ============================================================
+
+static const double backButtonTopSpacing = 10.0;
+
+static const double backButtonBottomSpacing = 16.0;
+
+static const Color backButtonColor =
+    Color(0xFF0D47A1);
+
 }

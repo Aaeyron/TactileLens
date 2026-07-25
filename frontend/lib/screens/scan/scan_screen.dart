@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/scan/scan_screen_styles.dart';
-import '../../widgets/scan/scan_action_buttons.dart';
+import '../../widgets/scan/scan_action_button.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
 import '../../services/scan/scan_service.dart';
@@ -10,7 +10,12 @@ import '../../services/scan/camera_service.dart';
 import '../../widgets/scan/scan_mode_selector.dart';
 
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+  final VoidCallback onBack;
+
+  const ScanScreen({
+    super.key,
+    required this.onBack,
+  });
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -77,9 +82,42 @@ class _ScanScreenState extends State<ScanScreen> {
                   child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(
-                        height: ScanScreenStyles.modeSelectorTopSpacing,
+
+                     const SizedBox(
+                          height: ScanScreenStyles.backButtonTopSpacing,
+                        ),
+
+                      // ==============================
+                      // Back Button
+                      // ==============================
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Color(0xFF0D47A1),
                             ),
+                            onPressed: widget.onBack,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: ScanScreenStyles.backButtonBottomSpacing,
+                      ),
 
                     // ==============================
                     // Scan Mode Selector
@@ -110,7 +148,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     // ==============================
                     // Buttons
                     // ==============================
-                    ScanActionButtons(
+                    ScanActionButton(
                       onCameraPressed: _captureImage,
                       onUploadPressed: _pickFile,
                     ),
