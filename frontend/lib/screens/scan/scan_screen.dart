@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/scan/scan_action_buttons.dart';
+import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
 import '../../services/scan/scan_service.dart';
+import '../../services/scan/camera_service.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -20,6 +22,8 @@ class _ScanScreenState extends State<ScanScreen> {
   Rect? _selectedRegion;
 
 final ScanService _scanService = ScanService();
+final CameraService _cameraService = CameraService();
+
   Future<void> _pickFile() async {
   final File? selectedFile = await _scanService.pickFile();
 
@@ -95,16 +99,17 @@ Future<void> _captureImage() async {
                   ),
 
                   // ==============================
-                  // Upload Area
+                  // Camera / Preview
                   // ==============================
 
-                  ScanPreview(
-                    selectedImage: _selectedImage,
-                    onRegionSelected: _onRegionSelected,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.sectionSpacing,
-                  ),
+                  _selectedImage == null
+                      ? ScanCameraPreview(
+                          cameraService: _cameraService,
+                        )
+                        : ScanPreview(
+                          selectedImage: _selectedImage,
+                          onRegionSelected: _onRegionSelected,
+                        ),
 
                   // ==============================
                   // Buttons
