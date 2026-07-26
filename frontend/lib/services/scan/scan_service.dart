@@ -5,10 +5,6 @@ import 'package:file_picker/file_picker.dart';
 class ScanService {
   ScanService();
 
-  // ============================================================
-  // Upload Image or PDF
-  // ============================================================
-
   Future<File?> pickFile() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,

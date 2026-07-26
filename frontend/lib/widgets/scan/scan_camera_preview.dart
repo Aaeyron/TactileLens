@@ -19,8 +19,6 @@ class ScanCameraPreview extends StatefulWidget {
 
 class _ScanCameraPreviewState
     extends State<ScanCameraPreview> {
-
-
   bool _isLoading = true;
 
   @override
@@ -32,25 +30,17 @@ class _ScanCameraPreviewState
   Future<void> _initializeCamera() async {
     try {
       await widget.cameraService.initialize();
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isLoading = false;
-      });
-
     } catch (_) {
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isLoading = false;
-      });
+      // Camera initialization failed.
     }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -61,33 +51,63 @@ class _ScanCameraPreviewState
 
   @override
   Widget build(BuildContext context) {
-
     if (_isLoading) {
-      return Container(
-        height: ScanWidgetStyles.previewHeight,
-        alignment: Alignment.center,
-        child: const CircularProgressIndicator(),
-      );
+      return _buildLoadingState();
     }
 
     if (!widget.cameraService.isInitialized) {
-      return Container(
-        height: ScanWidgetStyles.previewHeight,
-        alignment: Alignment.center,
-        child: const Text(
-          "Unable to open camera.",
-        ),
-      );
+      return _buildErrorState();
     }
 
-    return ClipRRect(
-      borderRadius:
-          ScanWidgetStyles.previewBorderRadius,
-      child: SizedBox(
-        height: ScanWidgetStyles.previewHeight,
-        width: double.infinity,
+    return _buildCameraPreview();
+  }
+
+  // ============================================================
+  // Loading State
+  // ============================================================
+
+  Widget _buildLoadingState() {
+    return Container(
+      height: ScanWidgetStyles.previewHeight,
+      alignment: Alignment.center,
+      child: const CircularProgressIndicator(),
+    );
+  }
+
+  // ============================================================
+  // Error State
+  // ============================================================
+
+  Widget _buildErrorState() {
+    return Container(
+      height: ScanWidgetStyles.previewHeight,
+      alignment: Alignment.center,
+      child: const Text(
+        ScanWidgetStyles.cameraErrorText,
+      ),
+    );
+  }
+
+  // ============================================================
+  // Camera Preview
+  // ============================================================
+
+  Widget _buildCameraPreview() {
+    return Container(
+      width: double.infinity,
+      height: ScanWidgetStyles.previewHeight,
+      decoration: BoxDecoration(
+        color: ScanWidgetStyles.previewBackgroundColor,
+        borderRadius: ScanWidgetStyles.previewBorderRadius,
+        border: Border.all(
+          color: ScanWidgetStyles.previewBorderColor,
+          width: ScanWidgetStyles.previewBorderWidth,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: ScanWidgetStyles.previewBorderRadius,
         child: CameraPreview(
-         widget.cameraService.controller!,
+          widget.cameraService.controller!,
         ),
       ),
     );

@@ -87,59 +87,69 @@ void _scanImage() {
           children: [
             Expanded(
 
-              child: SingleChildScrollView(
-                padding: ScanScreenStyles.contentPadding,
-                  child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+             child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
 
-                     const SizedBox(
-                          height: ScanScreenStyles.backButtonTopSpacing,
-                        ),
+                      Padding(
+                        padding: ScanScreenStyles.contentPadding,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
 
-                      // ==============================
-                      // Back Button
-                      // ==============================
-
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Color(0xFF0D47A1),
+                            const SizedBox(
+                              height: ScanScreenStyles.backButtonTopSpacing,
                             ),
-                            onPressed: widget.onBack,
-                          ),
+
+                            // ==============================
+                            // Back Button
+                            // ==============================
+
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back,
+                                    color: Color(0xFF0D47A1),
+                                  ),
+                                  onPressed: widget.onBack,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(
+                              height: ScanScreenStyles.backButtonBottomSpacing,
+                            ),
+
+                            // ==============================
+                            // Scan Mode Selector
+                            // ==============================
+
+                            ScanModeSelector(
+                              selectedMode: _selectedMode,
+                              onModeChanged: _onModeChanged,
+                            ),
+
+                            const SizedBox(
+                              height: ScanScreenStyles.toggleBottomSpacing,
+                            ),
+
+                          ],
                         ),
                       ),
-
-                      const SizedBox(
-                        height: ScanScreenStyles.backButtonBottomSpacing,
-                      ),
-
-                    // ==============================
-                    // Scan Mode Selector
-                    // ==============================
-                    ScanModeSelector(
-                      selectedMode: _selectedMode,
-                      onModeChanged: _onModeChanged,
-                    ),
-
-                    const SizedBox(
-                      height: ScanScreenStyles.toggleBottomSpacing,
-                    ),
 
                     // ==============================
                     // Camera / Preview

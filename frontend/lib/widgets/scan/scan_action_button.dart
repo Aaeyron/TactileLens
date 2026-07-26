@@ -31,85 +31,78 @@ final VoidCallback onUploadPressed;
           // Upload Button (Left)
           // ============================================================
 
-          GestureDetector(
-            onTap: onUploadPressed,
-
-            child: Container(
-            width: ScanWidgetStyles.galleryButtonSize,
-            height: ScanWidgetStyles.galleryButtonSize,
-
-              decoration: BoxDecoration(
-              color: ScanWidgetStyles.galleryBackgroundColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: ScanWidgetStyles.galleryBorderColor,
-              width: ScanWidgetStyles.galleryBorderWidth,
+            Transform.translate(
+            offset: Offset(
+                ScanWidgetStyles.galleryButtonHorizontalOffset,
+                0,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
+            child: GestureDetector(
+              onTap: onUploadPressed,
+              child: Container(
+                width: ScanWidgetStyles.galleryButtonSize,
+                height: ScanWidgetStyles.galleryButtonSize,
+                decoration: BoxDecoration(
+                  color: ScanWidgetStyles.galleryBackgroundColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: ScanWidgetStyles.galleryBorderColor,
+                    width: ScanWidgetStyles.galleryBorderWidth,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-
-               child: const Icon(
-              ScanWidgetStyles.galleryButtonIcon,
-               size: ScanWidgetStyles.galleryIconSize,
-                color: ScanWidgetStyles.primaryBlue,
+                child: const Icon(
+                  ScanWidgetStyles.galleryButtonIcon,
+                  size: ScanWidgetStyles.galleryIconSize,
+                  color: ScanWidgetStyles.primaryBlue,
+                ),
               ),
             ),
           ),
 
           const Spacer(),
 
-            // ============================================================
-            // Camera Capture Button (Center)
-            // ============================================================
-
-            GestureDetector(
-            onTap: hasCapturedImage ? onScanPressed : onCameraPressed,
-
-              child: Container(
-              width: ScanWidgetStyles.captureButtonSize,
-              height: ScanWidgetStyles.captureButtonSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: ScanWidgetStyles.primaryBlue,
-                  border: Border.all(
-                    color: ScanWidgetStyles.galleryBackgroundColor,
-                   width: ScanWidgetStyles.captureBorderWidth,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+         GestureDetector(
+                onTap: hasCapturedImage ? onScanPressed : onCameraPressed,
+                child: Container(
+                  width: ScanWidgetStyles.captureButtonSize,
+                  height: ScanWidgetStyles.captureButtonSize,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ScanWidgetStyles.primaryBlue,
+                    border: Border.all(
+                      color: ScanWidgetStyles.galleryBackgroundColor,
+                      width: ScanWidgetStyles.captureBorderWidth,
                     ),
-                  ],
-                ),
-               child: Center(
-                  child: Icon(
-                    hasCapturedImage
-                        ? ScanWidgetStyles.scanButtonIcon
-                        : ScanWidgetStyles.captureButtonIcon,
-                    color: ScanWidgetStyles.captureIconColor,
-                    size: ScanWidgetStyles.captureIconSize,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Icon(
+                      hasCapturedImage
+                          ? ScanWidgetStyles.scanButtonIcon
+                          : ScanWidgetStyles.captureButtonIcon,
+                      color: ScanWidgetStyles.captureIconColor,
+                      size: ScanWidgetStyles.captureIconSize,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            const Spacer(),
-
-          // ============================================================
-          // Empty Space (Right)
-          // Keeps the capture button perfectly centered.
-          // ============================================================
+          const Spacer(),
 
           const SizedBox(
-           width: ScanWidgetStyles.galleryButtonSize,
+            width: ScanWidgetStyles.galleryButtonSize,
           ),
         ],
       ),
