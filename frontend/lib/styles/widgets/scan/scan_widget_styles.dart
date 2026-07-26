@@ -4,7 +4,7 @@ class ScanWidgetStyles {
   const ScanWidgetStyles._();
 
   // ============================================================
-  // SCAN ACTION BUTTON
+  // SCAN ACTION BUTTONS
   // ============================================================
 
   static const double actionButtonBottomPadding = 8.0;
@@ -17,23 +17,28 @@ class ScanWidgetStyles {
   static const double captureBorderWidth = 5.0;
   static const double captureIconSize = 34.0;
 
-  static const IconData galleryButtonIcon =
-      Icons.photo_library_outlined;
+  // Colors
+static const Color primaryBlue =
+    Color(0xFF0D47A1);
 
-  static const IconData captureButtonIcon =
-      Icons.document_scanner_outlined;
+static const Color galleryBackgroundColor =
+    Colors.white;
 
-  static const Color primaryBlue =
-      Color(0xFF0D47A1);
+static const Color galleryBorderColor =
+    Color(0xFFE5E7EB);
 
-  static const Color galleryBackgroundColor =
-      Colors.white;
+static const Color captureIconColor =
+    Colors.white;
 
-  static const Color galleryBorderColor =
-      Color(0xFFE5E7EB);
+// Icons
+static const IconData galleryButtonIcon =
+    Icons.photo_library_outlined;
 
-  static const Color captureIconColor =
-      Colors.white;
+static const IconData captureButtonIcon =
+    Icons.camera_alt_rounded;
+
+static const IconData scanButtonIcon =
+    Icons.document_scanner_outlined;
 
   // ============================================================
   // UPLOAD PREVIEW AREA

@@ -3,20 +3,24 @@ import 'package:flutter/material.dart';
 import '../../styles/widgets/scan/scan_widget_styles.dart';
 
 class ScanActionButton extends StatelessWidget {
-  final VoidCallback onCameraPressed;
-  final VoidCallback onUploadPressed;
+final bool hasCapturedImage;
+final VoidCallback onCameraPressed;
+final VoidCallback onScanPressed;
+final VoidCallback onUploadPressed;
 
-  const ScanActionButton({
-    super.key,
-    required this.onCameraPressed,
-    required this.onUploadPressed,
-  });
+ const ScanActionButton({
+  super.key,
+  required this.hasCapturedImage,
+  required this.onCameraPressed,
+  required this.onScanPressed,
+  required this.onUploadPressed,
+});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-      bottom: ScanWidgetStyles.actionButtonBottomPadding,
+        bottom: ScanWidgetStyles.actionButtonBottomPadding,
           ),
 
       child: Row(
@@ -65,7 +69,8 @@ class ScanActionButton extends StatelessWidget {
             // ============================================================
 
             GestureDetector(
-              onTap: onCameraPressed,
+            onTap: hasCapturedImage ? onScanPressed : onCameraPressed,
+
               child: Container(
               width: ScanWidgetStyles.captureButtonSize,
               height: ScanWidgetStyles.captureButtonSize,
@@ -84,13 +89,15 @@ class ScanActionButton extends StatelessWidget {
                     ),
                   ],
                 ),
-               child: const Center(
-                child: Icon(
-                  ScanWidgetStyles.captureButtonIcon,
-                  color: ScanWidgetStyles.captureIconColor,
-                  size: ScanWidgetStyles.captureIconSize,
+               child: Center(
+                  child: Icon(
+                    hasCapturedImage
+                        ? ScanWidgetStyles.scanButtonIcon
+                        : ScanWidgetStyles.captureButtonIcon,
+                    color: ScanWidgetStyles.captureIconColor,
+                    size: ScanWidgetStyles.captureIconSize,
+                  ),
                 ),
-              ),
               ),
             ),
 

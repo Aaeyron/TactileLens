@@ -45,7 +45,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Future<void> _captureImage() async {
   try {
-    final File capturedImage = await _cameraService.captureImage();
+    final File capturedImage =
+        await _cameraService.captureImage();
 
     setState(() {
       _selectedImage = capturedImage;
@@ -53,6 +54,12 @@ class _ScanScreenState extends State<ScanScreen> {
   } catch (e) {
     debugPrint('Camera capture failed: $e');
   }
+}
+
+void _scanImage() {
+  debugPrint("Scan button pressed.");
+
+  // OCR will be added here later.
 }
 
   void _onRegionSelected(Rect selectedRegion) {
@@ -69,6 +76,9 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final bool hasCapturedImage = _selectedImage != null;
+
     return Scaffold(
       backgroundColor: ScanScreenStyles.backgroundColor,
 
@@ -148,10 +158,12 @@ class _ScanScreenState extends State<ScanScreen> {
                     // ==============================
                     // Buttons
                     // ==============================
-                    ScanActionButton(
-                      onCameraPressed: _captureImage,
-                      onUploadPressed: _pickFile,
-                    ),
+                   ScanActionButton(
+                    hasCapturedImage: hasCapturedImage,
+                    onCameraPressed: _captureImage,
+                    onScanPressed: _scanImage,
+                    onUploadPressed: _pickFile,
+                   ),
                   ],
                 ),
               ),
