@@ -42,16 +42,13 @@ class ScanPreview extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-
-            Image.file(
-              selectedImage!,
-              fit: BoxFit.contain,
-            ),
-
-            ScanSelectionOverlay(
-                onRegionSelected: onRegionSelected,
+              Image.file(
+                selectedImage!,
+                fit: BoxFit.cover,
               ),
-
+              ScanSelectionOverlay(
+                onRegionSelected: onRegionSelected,
+           ),
           ],
         ),
       )

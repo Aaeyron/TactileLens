@@ -1,12 +1,9 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 
 class ScanService {
   ScanService();
-
-  final ImagePicker _imagePicker = ImagePicker();
 
   // ============================================================
   // Upload Image or PDF
@@ -34,22 +31,5 @@ class ScanService {
     }
 
     return File(path);
-  }
-
-  // ============================================================
-  // Capture Image
-  // ============================================================
-
-  Future<File?> captureImage() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 100,
-    );
-
-    if (image == null) {
-      return null;
-    }
-
-    return File(image.path);
   }
 }

@@ -44,16 +44,16 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _captureImage() async {
-    final File? capturedImage = await _scanService.captureImage();
-
-    if (capturedImage == null) {
-      return;
-    }
+  try {
+    final File capturedImage = await _cameraService.captureImage();
 
     setState(() {
       _selectedImage = capturedImage;
     });
+  } catch (e) {
+    debugPrint('Camera capture failed: $e');
   }
+}
 
   void _onRegionSelected(Rect selectedRegion) {
     setState(() {

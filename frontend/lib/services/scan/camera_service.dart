@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:camera/camera.dart';
 
 class CameraService {
@@ -35,16 +36,18 @@ class CameraService {
   }
 
   // ============================================================
-  // Capture Image
-  // ============================================================
+// Capture Image
+// ============================================================
 
-  Future<XFile> captureImage() async {
-    if (!isInitialized) {
-      throw Exception('Camera is not initialized.');
-    }
-
-    return await _controller!.takePicture();
+Future<File> captureImage() async {
+  if (!isInitialized) {
+    throw Exception('Camera is not initialized.');
   }
+
+  final XFile image = await _controller!.takePicture();
+
+  return File(image.path);
+}
 
   // ============================================================
   // Dispose Camera
