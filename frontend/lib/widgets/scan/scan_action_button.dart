@@ -15,7 +15,9 @@ class ScanActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(
+      bottom: ScanWidgetStyles.actionButtonBottomPadding,
+          ),
 
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -29,75 +31,70 @@ class ScanActionButton extends StatelessWidget {
             onTap: onUploadPressed,
 
             child: Container(
-              width: 56,
-              height: 56,
+            width: ScanWidgetStyles.galleryButtonSize,
+            height: ScanWidgetStyles.galleryButtonSize,
 
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+              color: ScanWidgetStyles.galleryBackgroundColor,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: ScanWidgetStyles.galleryBorderColor,
+              width: ScanWidgetStyles.galleryBorderWidth,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
 
-              child: const Icon(
-                Icons.upload_file_outlined,
-                size: 28,
-                color: Color(0xFF0D47A1),
+               child: const Icon(
+              ScanWidgetStyles.galleryButtonIcon,
+               size: ScanWidgetStyles.galleryIconSize,
+                color: ScanWidgetStyles.primaryBlue,
               ),
             ),
           ),
 
           const Spacer(),
 
-          // ============================================================
-          // Camera Capture Button (Center)
-          // ============================================================
+            // ============================================================
+            // Camera Capture Button (Center)
+            // ============================================================
 
-          GestureDetector(
-            onTap: onCameraPressed,
-
-            child: Container(
-              width: 82,
-              height: 82,
-
-              decoration: const BoxDecoration(
-                color: Color(0xFF0D47A1),
-                shape: BoxShape.circle,
-              ),
-
-              child: Center(
-                child: Container(
-                  width: 68,
-                  height: 68,
-
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+            GestureDetector(
+              onTap: onCameraPressed,
+              child: Container(
+              width: ScanWidgetStyles.captureButtonSize,
+              height: ScanWidgetStyles.captureButtonSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ScanWidgetStyles.primaryBlue,
+                  border: Border.all(
+                    color: ScanWidgetStyles.galleryBackgroundColor,
+                   width: ScanWidgetStyles.captureBorderWidth,
                   ),
-
-                  child: Center(
-                    child: Container(
-                      width: 56,
-                      height: 56,
-
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0D47A1),
-                        shape: BoxShape.circle,
-                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
-                  ),
+                  ],
+                ),
+               child: const Center(
+                child: Icon(
+                  ScanWidgetStyles.captureButtonIcon,
+                  color: ScanWidgetStyles.captureIconColor,
+                  size: ScanWidgetStyles.captureIconSize,
                 ),
               ),
+              ),
             ),
-          ),
 
-          const Spacer(),
+            const Spacer(),
 
           // ============================================================
           // Empty Space (Right)
@@ -105,7 +102,7 @@ class ScanActionButton extends StatelessWidget {
           // ============================================================
 
           const SizedBox(
-            width: 56,
+           width: ScanWidgetStyles.galleryButtonSize,
           ),
         ],
       ),
