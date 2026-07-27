@@ -41,7 +41,7 @@ class ProfileStyles {
       EdgeInsets.all(20);
 
   // ==========================================================
-  // HEADER
+  // SCREEN TITLE
   // ==========================================================
 
   static const String screenTitle = "Profile";
@@ -103,12 +103,15 @@ class ProfileStyles {
       );
 
   // ==========================================================
-  // MENU CARD
+  // MENU LAYOUT
   // ==========================================================
 
-  static const double menuTopSpacing = 40;
-  static const double secondaryMenuTopSpacing = 20;
-  static const double logoutMenuTopSpacing = 20;
+// Section spacing
+static const double menuTopSpacing = 40;
+
+static const double secondaryMenuTopSpacing = 20;
+
+static const double logoutMenuTopSpacing = 20;
 
   static const double menuBorderRadius = 10;
 
@@ -121,19 +124,19 @@ class ProfileStyles {
 
   static const double menuDividerIndent = 20;
 
-  static const Clip menuClipBehavior =
-      Clip.antiAlias;
-
   static final List<BoxShadow> menuShadow = [
-    BoxShadow(
-      color: Colors.black.withValues(alpha: 0.05),
-      blurRadius: 12,
-      offset: const Offset(0, 4),
-    ),
-  ];
+  BoxShadow(
+    color: Colors.black.withValues(alpha: 0.05),
+    blurRadius: 12,
+    offset: const Offset(0, 4),
+  ),
+];
+
+static const Clip menuClipBehavior =
+    Clip.antiAlias;
 
   // ==========================================================
-  // MENU TEXT STYLES
+  // MENU STYLES
   // ==========================================================
 
   static const TextStyle menuTitleStyle =
@@ -154,46 +157,46 @@ class ProfileStyles {
   // MENU TITLES
   // ==========================================================
 
-  static const String activityTitle =
-      "My Activity";
+static const String accountInformationTitle =
+    "Account Information";
 
-  static const String savedItemsTitle =
-      "Saved Items";
+static const String aboutTactileLensTitle =
+    "About TactileLens";
 
-  static const String termsTitle =
-      "Terms & Policy";
+static const String termsTitle =
+    "Terms & Policy";
 
-  static const String settingsTitle =
-      "Settings";
+static const String settingsTitle =
+    "Settings";
 
-  static const String privacyTitle =
-      "Privacy & Security";
+static const String privacyTitle =
+    "Privacy & Security";
 
-  static const String logoutTitle =
-      "Log Out";
+static const String logoutTitle =
+    "Log Out";
 
   // ==========================================================
   // MENU ICONS
   // ==========================================================
 
-  static const IconData activityIcon =
-      Icons.history;
+ static const IconData accountInformationIcon =
+    Icons.manage_accounts_outlined;
 
-  static const IconData savedItemsIcon =
-      Icons.bookmark_border;
+static const IconData aboutTactileLensIcon =
+    Icons.info_outline;
 
-  static const IconData termsIcon =
-      Icons.description_outlined;
+static const IconData termsIcon =
+    Icons.description_outlined;
 
-  static const IconData settingsIcon =
-      Icons.settings_outlined;
+static const IconData settingsIcon =
+    Icons.settings_outlined;
 
-  static const IconData privacyIcon =
-      Icons.shield_outlined;
+static const IconData privacyIcon =
+    Icons.shield_outlined;
 
-  static const IconData logoutIcon =
-      Icons.logout_rounded;
+static const IconData logoutIcon =
+    Icons.logout_rounded;
 
-  static const IconData menuArrowIcon =
-      Icons.chevron_right;
+static const IconData menuArrowIcon =
+    Icons.chevron_right;
 }

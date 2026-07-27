@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_header.dart';
 import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
-import '../../widgets/logout_dialog.dart';
+import '../../widgets/profile/logout_dialog.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -92,7 +92,7 @@ Widget build(BuildContext context) {
                   borderRadius: BorderRadius.circular(
                     ProfileStyles.menuBorderRadius,
                   ),
-                  clipBehavior: ProfileStyles.menuClipBehavior, // Keeps the ripple inside the rounded corners
+                 clipBehavior: ProfileStyles.menuClipBehavior, // Ripple clipping
                   child: Column(
                     children: [
                       ListTile(
@@ -103,19 +103,19 @@ Widget build(BuildContext context) {
 
                       minTileHeight: ProfileStyles.menuTileHeight,
                         leading: Icon(
-                        Icons.history,
-                        size: ProfileStyles.menuIconSize,
-                        color: ProfileStyles.menuIconColor,
-                      ),
+                          ProfileStyles.accountInformationIcon,
+                          size: ProfileStyles.menuIconSize,
+                          color: ProfileStyles.menuIconColor,
+                        ),
                         title: Text(
-                          ProfileStyles.activityTitle,
+                          ProfileStyles.accountInformationTitle,
                           style: ProfileStyles.menuTitleStyle,
                         ),
                        trailing: Icon(
-                        Icons.chevron_right,
-                        size: ProfileStyles.menuArrowSize,
-                        color: ProfileStyles.menuArrowColor,
-                      ),
+                          ProfileStyles.menuArrowIcon,
+                          size: ProfileStyles.menuArrowSize,
+                          color: ProfileStyles.menuArrowColor,
+                        ),
                         onTap: () {},
                       ),
 
@@ -134,16 +134,16 @@ Widget build(BuildContext context) {
 
                       minTileHeight: ProfileStyles.menuTileHeight,
                         leading: Icon(
-                        Icons.bookmark_border,
+                        ProfileStyles.aboutTactileLensIcon,
                         size: ProfileStyles.menuIconSize,
                         color: ProfileStyles.menuIconColor,
                       ),
                         title: Text(
-                         ProfileStyles.savedItemsTitle,
-                          style: ProfileStyles.menuTitleStyle,
-                        ),
+                        ProfileStyles.aboutTactileLensTitle,
+                        style: ProfileStyles.menuTitleStyle,
+                      ),
                         trailing: Icon(
-                        Icons.chevron_right,
+                        ProfileStyles.menuArrowIcon,
                         size: ProfileStyles.menuArrowSize,
                         color: ProfileStyles.menuArrowColor,
                       ),
@@ -164,20 +164,20 @@ Widget build(BuildContext context) {
                       ),
 
                       minTileHeight: ProfileStyles.menuTileHeight,
-                        leading: Icon(
-                        Icons.description_outlined,
-                        size: ProfileStyles.menuIconSize,
-                        color: ProfileStyles.menuIconColor,
-                      ),
+                       leading: Icon(
+                          ProfileStyles.termsIcon,
+                          size: ProfileStyles.menuIconSize,
+                          color: ProfileStyles.menuIconColor,
+                        ),
                         title: Text(
                         ProfileStyles.termsTitle,
                           style: ProfileStyles.menuTitleStyle,
                         ),
                        trailing: Icon(
-                        Icons.chevron_right,
-                        size: ProfileStyles.menuArrowSize,
-                        color: ProfileStyles.menuArrowColor,
-                      ),
+                          ProfileStyles.menuArrowIcon,
+                          size: ProfileStyles.menuArrowSize,
+                          color: ProfileStyles.menuArrowColor,
+                        ),
                         onTap: () {},
                       ),
                     ],
@@ -211,7 +211,7 @@ Widget build(BuildContext context) {
                       ),
                       minTileHeight: ProfileStyles.menuTileHeight,
                       leading: Icon(
-                        Icons.settings_outlined,
+                        ProfileStyles.settingsIcon,
                         size: ProfileStyles.menuIconSize,
                         color: ProfileStyles.menuIconColor,
                       ),
@@ -220,7 +220,7 @@ Widget build(BuildContext context) {
                         style: ProfileStyles.menuTitleStyle,
                       ),
                       trailing: Icon(
-                        Icons.chevron_right,
+                        ProfileStyles.menuArrowIcon,
                         size: ProfileStyles.menuArrowSize,
                         color: ProfileStyles.menuArrowColor,
                       ),
@@ -241,7 +241,7 @@ Widget build(BuildContext context) {
                       ),
                       minTileHeight: ProfileStyles.menuTileHeight,
                       leading: Icon(
-                        Icons.shield_outlined,
+                        ProfileStyles.privacyIcon,
                         size: ProfileStyles.menuIconSize,
                         color: ProfileStyles.menuIconColor,
                       ),
@@ -250,7 +250,7 @@ Widget build(BuildContext context) {
                         style: ProfileStyles.menuTitleStyle,
                       ),
                       trailing: Icon(
-                        Icons.chevron_right,
+                        ProfileStyles.menuArrowIcon,
                         size: ProfileStyles.menuArrowSize,
                         color: ProfileStyles.menuArrowColor,
                       ),
@@ -285,11 +285,11 @@ Widget build(BuildContext context) {
                               ),
                               minTileHeight: ProfileStyles.menuTileHeight,
 
-                              leading: Icon(
-                                Icons.logout_rounded,
-                                size: ProfileStyles.menuIconSize,
-                                color: ProfileStyles.logoutIconColor,
-                              ),
+                             leading: Icon(
+                              ProfileStyles.logoutIcon,
+                              size: ProfileStyles.menuIconSize,
+                              color: ProfileStyles.logoutIconColor,
+                            ),
 
                               title: Text(
                                 ProfileStyles.logoutTitle,
@@ -297,7 +297,7 @@ Widget build(BuildContext context) {
                               ),
 
                               trailing: Icon(
-                                Icons.chevron_right,
+                                ProfileStyles.menuArrowIcon,
                                 size: ProfileStyles.menuArrowSize,
                                 color: ProfileStyles.logoutIconColor,
                               ),
