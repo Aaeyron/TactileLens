@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../styles/screens/profile/profile_styles.dart';
+import '../../widgets/app_header.dart';
+import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/logout_dialog.dart';
 
@@ -32,49 +33,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-      child: Padding(
-        padding: ProfileStyles.screenPadding,
-        child: Column(
-          children: [
-            Row(
+Widget build(BuildContext context) {
+  return Scaffold(
+  body: Column(
+    children: [
+      const AppHeader(),
+
+      Expanded(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: ProfileStyles.screenPadding,
+            child: Column(
               children: [
-                IconButton(
-                  onPressed: () {
-                    // TODO: Back navigation will be implemented later.
-                  },
-                  icon: Icon(
-                    Icons.arrow_back,
-                    size: ProfileStyles.backIconSize,
-                    color: ProfileStyles.backIconColor,
-                  ),
-                ),
-
-                Expanded(
-                  child: Text(
-                    ProfileStyles.screenTitle,
-                    textAlign: TextAlign.center,
-                    style: ProfileStyles.titleStyle,
-                  ),
-                ),
-
                 SizedBox(
-                  width: ProfileStyles.titleRightSpacing,
+                  height: ProfileStyles.profileAvatarTopSpacing,
                 ),
-              ],
-            ),
-
-            SizedBox(
-              height: ProfileStyles.profileAvatarTopSpacing,
-            ),
 
             CircleAvatar(
               radius: ProfileStyles.profileAvatarRadius,
               backgroundColor: ProfileStyles.profileAvatarBackgroundColor,
               child: Icon(
-                Icons.person,
+               ProfileStyles.profileAvatarIcon,
                 size: ProfileStyles.profileAvatarIconSize,
                 color: ProfileStyles.profileAvatarIconColor,
               ),
@@ -106,20 +85,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(
                     ProfileStyles.menuBorderRadius,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: ProfileStyles.menuShadow,
                 ),
                 child: Material(
                   color: ProfileStyles.menuBackgroundColor,
                   borderRadius: BorderRadius.circular(
                     ProfileStyles.menuBorderRadius,
                   ),
-                  clipBehavior: Clip.antiAlias, // Keeps the ripple inside the rounded corners
+                  clipBehavior: ProfileStyles.menuClipBehavior, // Keeps the ripple inside the rounded corners
                   child: Column(
                     children: [
                       ListTile(
@@ -135,7 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                         title: Text(
-                          "My Activity hahaha",
+                          ProfileStyles.activityTitle,
                           style: ProfileStyles.menuTitleStyle,
                         ),
                        trailing: Icon(
@@ -166,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                         title: Text(
-                          "Saved Items",
+                         ProfileStyles.savedItemsTitle,
                           style: ProfileStyles.menuTitleStyle,
                         ),
                         trailing: Icon(
@@ -197,7 +170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                         title: Text(
-                          "Terms & Policy",
+                        ProfileStyles.termsTitle,
                           style: ProfileStyles.menuTitleStyle,
                         ),
                        trailing: Icon(
@@ -221,20 +194,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(
                   ProfileStyles.menuBorderRadius,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: ProfileStyles.menuShadow,
               ),
               child: Material(
                 color: ProfileStyles.menuBackgroundColor,
                 borderRadius: BorderRadius.circular(
                   ProfileStyles.menuBorderRadius,
                 ),
-                clipBehavior: Clip.antiAlias,
+                clipBehavior: ProfileStyles.menuClipBehavior,
                 child: Column(
                   children: [
                     ListTile(
@@ -249,7 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                       title: Text(
-                        "Settings",
+                        ProfileStyles.settingsTitle,
                         style: ProfileStyles.menuTitleStyle,
                       ),
                       trailing: Icon(
@@ -279,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: ProfileStyles.menuIconColor,
                       ),
                       title: Text(
-                        "Privacy & Security",
+                        ProfileStyles.privacyTitle,
                         style: ProfileStyles.menuTitleStyle,
                       ),
                       trailing: Icon(
@@ -294,62 +261,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            SizedBox(
-              height: ProfileStyles.logoutMenuTopSpacing,
-            ),
+                              SizedBox(
+                                height: ProfileStyles.logoutMenuTopSpacing,
+                              ),
 
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(
-                  ProfileStyles.menuBorderRadius,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: ProfileStyles.menuBackgroundColor,
-                borderRadius: BorderRadius.circular(
-                  ProfileStyles.menuBorderRadius,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: ProfileStyles.menuHorizontalPadding,
-                    vertical: ProfileStyles.menuVerticalPadding,
-                  ),
-                  minTileHeight: ProfileStyles.menuTileHeight,
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                  ProfileStyles.menuBorderRadius,
+                                ),
+                                boxShadow: ProfileStyles.menuShadow,
+                              ),
+                              child: Material(
+                                color: ProfileStyles.menuBackgroundColor,
+                                borderRadius: BorderRadius.circular(
+                                  ProfileStyles.menuBorderRadius,
+                                ),
+                                clipBehavior: ProfileStyles.menuClipBehavior,
+                              child: ListTile(
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: ProfileStyles.menuHorizontalPadding,
+                                vertical: ProfileStyles.menuVerticalPadding,
+                              ),
+                              minTileHeight: ProfileStyles.menuTileHeight,
 
-                  leading: Icon(
-                    Icons.logout_rounded,
-                    size: ProfileStyles.menuIconSize,
-                    color: ProfileStyles.logoutIconColor,
-                  ),
+                              leading: Icon(
+                                Icons.logout_rounded,
+                                size: ProfileStyles.menuIconSize,
+                                color: ProfileStyles.logoutIconColor,
+                              ),
 
-                  title: Text(
-                    "Log Out",
-                    style: ProfileStyles.logoutTitleStyle,
-                  ),
+                              title: Text(
+                                ProfileStyles.logoutTitle,
+                                style: ProfileStyles.logoutTitleStyle,
+                              ),
 
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    size: ProfileStyles.menuArrowSize,
-                    color: ProfileStyles.logoutIconColor,
-                  ),
+                              trailing: Icon(
+                                Icons.chevron_right,
+                                size: ProfileStyles.menuArrowSize,
+                                color: ProfileStyles.logoutIconColor,
+                              ),
 
-                  onTap: () {
-                    showLogoutDialog(context);
-                  },
-                      ),
+                              onTap: () {
+                                showLogoutDialog(context);
+                              },
+                            ),
+                          ),
+                        ),
+
+                      ],
                     ),
                   ),
-                 ],
                 ),
               ),
+             ],
             ),
           );
         }
