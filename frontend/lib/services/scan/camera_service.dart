@@ -28,7 +28,7 @@ class CameraService {
 
     _controller = CameraController(
       rearCamera,
-      ResolutionPreset.high,
+      ResolutionPreset.veryHigh,
       enableAudio: false,
     );
 
@@ -44,7 +44,11 @@ Future<File> captureImage() async {
     throw Exception('Camera is not initialized.');
   }
 
-  final XFile image = await _controller!.takePicture();
+  await Future.delayed(
+  const Duration(milliseconds: 250),
+);
+
+final XFile image = await _controller!.takePicture();
 
   return File(image.path);
 }

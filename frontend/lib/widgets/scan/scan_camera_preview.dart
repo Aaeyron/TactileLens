@@ -106,8 +106,22 @@ class _ScanCameraPreviewState
       ),
       child: ClipRRect(
         borderRadius: ScanWidgetStyles.previewBorderRadius,
-        child: CameraPreview(
-          widget.cameraService.controller!,
+       child: FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: widget.cameraService.controller!.value.previewSize!.height,
+            height: widget.cameraService.controller!.value.previewSize!.width,
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: widget.cameraService.controller!.value.previewSize!.height,
+                height: widget.cameraService.controller!.value.previewSize!.width,
+                child: CameraPreview(
+                  widget.cameraService.controller!,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
