@@ -20,6 +20,7 @@ class ScanCameraPreview extends StatefulWidget {
 class _ScanCameraPreviewState
     extends State<ScanCameraPreview> {
   bool _isLoading = true;
+  Offset? _focusPoint;
 
   @override
   void initState() {
@@ -104,23 +105,75 @@ class _ScanCameraPreviewState
           width: ScanWidgetStyles.previewBorderWidth,
         ),
       ),
-      child: ClipRRect(
+    child: ClipRRect(
         borderRadius: ScanWidgetStyles.previewBorderRadius,
-       child: FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: widget.cameraService.controller!.value.previewSize!.height,
-            height: widget.cameraService.controller!.value.previewSize!.width,
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: widget.cameraService.controller!.value.previewSize!.height,
-                height: widget.cameraService.controller!.value.previewSize!.width,
-                child: CameraPreview(
-                  widget.cameraService.controller!,
+        child: GestureDetector(
+          onTapDown: (details) async {
+            final RenderBox box =
+                context.findRenderObject() as RenderBox;
+
+            final localPoint =
+                box.globalToLocal(details.globalPosition);
+
+            setState(() {
+              _focusPoint = localPoint;
+            });
+
+            await widget.cameraService.focusOnPoint(
+              localPoint,
+              box.size,
+            );
+
+            Future.delayed(
+              const Duration(milliseconds: 800),
+              () {
+                if (mounted) {
+                  setState(() {
+                    _focusPoint = null;
+                  });
+                }
+              },
+            );
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+
+              FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: widget.cameraService.controller!.value.previewSize!.height,
+                  height: widget.cameraService.controller!.value.previewSize!.width,
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: widget.cameraService.controller!.value.previewSize!.height,
+                      height: widget.cameraService.controller!.value.previewSize!.width,
+                      child: CameraPreview(
+                        widget.cameraService.controller!,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+
+              if (_focusPoint != null)
+                Positioned(
+                  left: _focusPoint!.dx - 30,
+                  top: _focusPoint!.dy - 30,
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

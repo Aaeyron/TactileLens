@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
 
 class CameraService {
   CameraController? _controller;
@@ -35,7 +36,7 @@ class CameraService {
     await _controller!.initialize();
   }
 
-  // ============================================================
+// ============================================================
 // Capture Image
 // ============================================================
 
@@ -53,12 +54,45 @@ final XFile image = await _controller!.takePicture();
   return File(image.path);
 }
 
-  // ============================================================
-  // Dispose Camera
-  // ============================================================
+// ============================================================
+// Flash
+// ============================================================
+
+FlashMode get flashMode =>
+    _controller?.value.flashMode ?? FlashMode.off;
+
+Future<void> toggleFlash() async {
+  if (!isInitialized) return;
+
+  if (_controller!.value.flashMode == FlashMode.off) {
+    await _controller!.setFlashMode(FlashMode.torch);
+  } else {
+    await _controller!.setFlashMode(FlashMode.off);
+  }
+}
+
+// ============================================================
+// Dispose Camera
+// ============================================================
 
   Future<void> dispose() async {
     await _controller?.dispose();
     _controller = null;
   }
+
+// ============================================================
+// Tap to Focus
+// ============================================================
+
+Future<void> focusOnPoint(Offset point, Size previewSize) async {
+  if (!isInitialized) return;
+
+  final double x = point.dx / previewSize.width;
+  final double y = point.dy / previewSize.height;
+
+  await _controller!.setFocusPoint(
+    Offset(x, y),
+  );
+}
+
 }

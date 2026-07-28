@@ -27,9 +27,19 @@ class _ScanScreenState extends State<ScanScreen> {
 
   ScanMode _selectedMode = ScanMode.ueb;
 
+  bool _flashEnabled = false;
+
   final ScanService _scanService = ScanService();
 
   final CameraService _cameraService = CameraService();
+  
+  Future<void> _toggleFlash() async {
+  await _cameraService.toggleFlash();
+
+  setState(() {
+    _flashEnabled = !_flashEnabled;
+  });
+}
 
   Future<void> _pickFile() async {
     final File? selectedFile = await _scanService.pickFile();
@@ -173,6 +183,8 @@ void _scanImage() {
                     onCameraPressed: _captureImage,
                     onScanPressed: _scanImage,
                     onUploadPressed: _pickFile,
+                    onFlashPressed: _toggleFlash,
+                    flashEnabled: _flashEnabled,
                    ),
                   ],
                 ),
