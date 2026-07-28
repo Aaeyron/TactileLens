@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth/auth_service.dart';
 import '../../styles/screens/auth/signin_styles.dart';
+import 'signup_screen.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
 
@@ -217,10 +218,13 @@ class _SignInScreenState extends State<SignInScreen> {
 
                     TextButton(
                       onPressed: () {
-                        // TODO:
-                        // Navigate to Sign Up
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignUpScreen(),
+                          ),
+                        );
                       },
-
                       child: const Text("Sign Up"),
                     ),
 

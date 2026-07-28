@@ -16,6 +16,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
 
+  String selectedRole = "Student";
+
   final TextEditingController firstNameController =
     TextEditingController();
 final TextEditingController lastNameController =
@@ -172,8 +174,39 @@ void dispose() {
                       ),
                     ),
 
+                const SizedBox(height: 20),
+
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  decoration: InputDecoration(
+                    labelText: "Role",
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: "Student",
+                      child: Text("Student"),
+                    ),
+                    DropdownMenuItem(
+                      value: "Educator",
+                      child: Text("Educator"),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedRole = value!;
+                    });
+                  },
+                ),
+
                 const SizedBox(height: 30),
+
                 SizedBox(
+
+                  
                   width: double.infinity,
                   child: ElevatedButton(
                    onPressed: () async {
@@ -212,11 +245,12 @@ void dispose() {
                           }
 
                           final response = await AuthService.registerUser(
-                            firstName: firstNameController.text.trim(),
-                            lastName: lastNameController.text.trim(),
-                            email: emailController.text.trim(),
-                            password: passwordController.text,
-                          );
+                          firstName: firstNameController.text.trim(),
+                          lastName: lastNameController.text.trim(),
+                          email: emailController.text.trim(),
+                          password: passwordController.text,
+                          role: selectedRole,
+                        );
 
                           if (response.statusCode == 201) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -260,8 +294,7 @@ void dispose() {
 
                     TextButton(
                       onPressed: () {
-                        // TODO:
-                        // Navigate to Sign In
+                        Navigator.pop(context);
                       },
                       child: const Text("Sign In"),
                     ),

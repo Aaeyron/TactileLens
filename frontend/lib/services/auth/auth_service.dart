@@ -8,11 +8,12 @@ class AuthService {
 static const String baseUrl = "http://192.168.1.5:5000";
 
   static Future<http.Response> registerUser({
-    required String firstName,
-    required String lastName,
-    required String email,
-    required String password,
-  }) async {
+  required String firstName,
+  required String lastName,
+  required String email,
+  required String password,
+  required String role,
+}) async {
     final url = Uri.parse("$baseUrl/api/auth/register");
 
     return await http.post(
@@ -25,6 +26,7 @@ static const String baseUrl = "http://192.168.1.5:5000";
         "last_name": lastName,
         "email": email,
         "password": password,
+        "role": role,
       }),
     );
   }

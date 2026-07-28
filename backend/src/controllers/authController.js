@@ -15,6 +15,7 @@ const register = async (req, res) => {
       last_name,
       email,
       password,
+      role, 
     } = req.body;
 
     // Check if email already exists
@@ -34,7 +35,8 @@ const register = async (req, res) => {
       first_name,
       last_name,
       email,
-      hashedPassword
+      hashedPassword,
+      role, 
     );
 
     res.status(201).json({
@@ -86,6 +88,7 @@ const login = async (req, res) => {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
+        role: user.role, 
       },
     });
 
