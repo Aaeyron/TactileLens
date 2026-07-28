@@ -16,6 +16,7 @@ class _AccountInformationScreenState
   String firstName = "";
   String lastName = "";
   String email = "";
+  String role = "";
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _AccountInformationScreenState
     firstName = await SessionManager.getFirstName() ?? "";
     lastName = await SessionManager.getLastName() ?? "";
     email = await SessionManager.getEmail() ?? "";
+    role = await SessionManager.getRole() ?? "";
 
     setState(() {});
   }
@@ -383,7 +385,7 @@ Widget build(BuildContext context) {
                               Padding(
                                 padding: const EdgeInsets.only(top: 18),
                                 child: Text(
-                                  "Student",
+                                  role,
                                   style: AccountInformationStyles.infoValueStyle,
                                 ),
                               ),

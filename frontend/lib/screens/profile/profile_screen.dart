@@ -18,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String firstName = "";
   String lastName = "";
   String email = "";
+  String role = "";
 
   @override
   void initState() {
@@ -29,6 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     firstName = await SessionManager.getFirstName() ?? "";
     lastName = await SessionManager.getLastName() ?? "";
     email = await SessionManager.getEmail() ?? "";
+    role = await SessionManager.getRole() ?? "";
 
     setState(() {});
   }
@@ -70,11 +72,11 @@ Widget build(BuildContext context) {
             ),
 
               SizedBox(
-                height: ProfileStyles.profileEmailTopSpacing,
-              ),
+              height: ProfileStyles.profileEmailTopSpacing,
+            ),
 
               Text(
-              email,
+              role,
               style: ProfileStyles.profileEmailStyle,
             ),
               SizedBox(

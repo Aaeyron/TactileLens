@@ -5,12 +5,14 @@ class SessionManager {
   static const String firstNameKey = "first_name";
   static const String lastNameKey = "last_name";
   static const String emailKey = "email";
+  static const String roleKey = "role";
 
   static Future<void> saveUser({
     required int id,
     required String firstName,
     required String lastName,
     required String email,
+    required String role, 
   }) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -18,6 +20,7 @@ class SessionManager {
     await prefs.setString(firstNameKey, firstName);
     await prefs.setString(lastNameKey, lastName);
     await prefs.setString(emailKey, email);
+    await prefs.setString(roleKey, role);
   }
 
   static Future<void> logout() async {
@@ -45,5 +48,10 @@ class SessionManager {
   static Future<String?> getEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(emailKey);
+  }
+
+  static Future<String?> getRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(roleKey);
   }
 }

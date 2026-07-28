@@ -163,6 +163,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                 firstName: data["user"]["first_name"],
                                 lastName: data["user"]["last_name"],
                                 email: data["user"]["email"],
+                                role: data["user"]["role"],
                               );
 
                               if (!mounted) return;
