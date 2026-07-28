@@ -12,6 +12,9 @@ class AccountInformationStyles {
   static const Color appPrimaryColor =
       Color(0xFF0D47A1);
 
+  static const Color dividerColor =
+      Color(0xFFE6EAF0);
+
   // ==========================================================
   // SCREEN LAYOUT
   // ==========================================================
@@ -20,22 +23,19 @@ class AccountInformationStyles {
       EdgeInsets.all(20);
 
   // ==========================================================
-  // SCREEN TITLE
+  // SCREEN HEADER
   // ==========================================================
 
   static const String screenTitle =
       "Account Information";
 
   static const TextStyle screenTitleStyle = TextStyle(
+    fontFamily: 'Poppins',
     fontSize: 20,
     fontWeight: FontWeight.w600,
     color: primaryTextColor,
     letterSpacing: 0.2,
   );
-
-  // ==========================================================
-  // HEADER
-  // ==========================================================
 
   static const IconData backIcon =
       Icons.arrow_back_rounded;
@@ -53,28 +53,43 @@ class AccountInformationStyles {
   static const Color profileCardBackgroundColor =
       appPrimaryColor;
 
+  static const double profileCardBorderRadius = 16;
+
+  static const EdgeInsets profileCardPadding =
+      EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 18,
+      );
+
+  static const double profileAvatarRadius = 34;
+
+  static const TextStyle profileNameStyle =
+      TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      );
+
   // ==========================================================
   // PERSONAL DETAILS CARD
   // ==========================================================
 
-  static const EdgeInsets infoTilePadding =
-      EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 18,
-  );
+  static const double cardBorderRadius = 12;
 
   static final BoxDecoration cardDecoration =
       BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.05),
-        blurRadius: 12,
-        offset: const Offset(0, 4),
-      ),
-    ],
-  );
+        color: Colors.white,
+        borderRadius:
+            BorderRadius.circular(cardBorderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
 
   // ==========================================================
   // PERSONAL DETAILS HEADER
@@ -88,56 +103,73 @@ class AccountInformationStyles {
 
   static const TextStyle personalDetailsTitleStyle =
       TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 15,
-    fontWeight: FontWeight.w600,
-    color: appPrimaryColor,
-  );
-
-
- // ==========================================================
-// EDIT BUTTON
-// ==========================================================
-
-static const String editButtonTitle =
-    "Edit";
-
-static const IconData editButtonIcon =
-    Icons.mode_edit_outline_rounded;
-
-static const double editButtonIconSize = 16;
-
-static const double editButtonRadius = 8;
-
-static const EdgeInsets editButtonPadding =
-    EdgeInsets.symmetric(
-      horizontal: 12,
-      vertical: 7,
-    );
-
-static const TextStyle editButtonStyle =
-    TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: appPrimaryColor,
-    );
+        fontFamily: 'Poppins',
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: appPrimaryColor,
+      );
 
   // ==========================================================
-  // INFO TEXT STYLES
+  // EDIT BUTTON
   // ==========================================================
+
+  static const String editButtonTitle =
+      "Edit";
+
+  static const IconData editButtonIcon =
+      Icons.mode_edit_outline_rounded;
+
+  static const double editButtonIconSize = 16;
+
+  static const double editButtonRadius = 8;
+
+  static const double editButtonBorderWidth = 1.2;
+
+  static const EdgeInsets editButtonPadding =
+      EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 7,
+      );
+
+  static const TextStyle editButtonStyle =
+      TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: appPrimaryColor,
+      );
+
+  // ==========================================================
+  // INFORMATION TILES
+  // ==========================================================
+
+  static const EdgeInsets infoTilePadding =
+      EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 18,
+      );
+
+  static const double infoIconSize = 22;
 
   static const TextStyle infoTitleStyle =
       TextStyle(
-    fontSize: 13,
-    color: Colors.grey,
-    fontWeight: FontWeight.w500,
-  );
+        fontFamily: 'Poppins',
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: primaryTextColor,
+      );
 
   static const TextStyle infoValueStyle =
       TextStyle(
-    fontSize: 16,
-    color: Colors.black87,
-    fontWeight: FontWeight.w600,
-  );
+        fontFamily: 'Poppins',
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        color: primaryTextColor,
+      );
+
+  // ==========================================================
+  // DIVIDER
+  // ==========================================================
+
+  static const double dividerThickness = 1.0;
 }

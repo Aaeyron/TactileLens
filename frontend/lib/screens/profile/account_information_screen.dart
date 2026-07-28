@@ -31,32 +31,50 @@ class _AccountInformationScreenState
     setState(() {});
   }
 
-  Widget buildInfoTile(
-    String title,
-    String value,
-  ) {
-    return Padding(
-      padding: AccountInformationStyles.infoTilePadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+ Widget buildInfoTile(
+  IconData icon,
+  String title,
+  String value,
+) {
+  return Padding(
+ padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+  child: Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
 
-          Text(
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Icon(
+            icon,
+            size: AccountInformationStyles.infoIconSize,
+            color: AccountInformationStyles.appPrimaryColor,
+          ),
+        ),
+        const SizedBox(width: 14),
+
+        Expanded(
+        child: Padding(
+         padding: const EdgeInsets.only(top: 8),
+          child: Text(
             title,
             style: AccountInformationStyles.infoTitleStyle,
           ),
-
-          const SizedBox(height: 6),
-
-          Text(
-            value,
-            style: AccountInformationStyles.infoValueStyle,
-          ),
-
-        ],
+        ),
       ),
-    );
-  }
+
+        Padding(
+       padding: const EdgeInsets.only(top: 8),
+        child: Text(
+          value,
+          style: AccountInformationStyles.infoValueStyle,
+          textAlign: TextAlign.end,
+        ),
+      ),
+
+      ],
+    ),
+  );
+}
 
  @override
 Widget build(BuildContext context) {
@@ -80,7 +98,9 @@ Widget build(BuildContext context) {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 12),
+             SizedBox(
+                width: AccountInformationStyles.headerSpacing,
+              ),
 
               Text(
                 AccountInformationStyles.screenTitle,
@@ -89,24 +109,25 @@ Widget build(BuildContext context) {
             ],
           ),
 
-          const SizedBox(height: 24),
+         SizedBox(
+            height: AccountInformationStyles.headerBottomSpacing,
+          ),
 
            Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 18,
-                ),
+                padding: AccountInformationStyles.profileCardPadding,
                 decoration: BoxDecoration(
-                color: AccountInformationStyles.profileCardBackgroundColor,  // App dark blue
-                  borderRadius: BorderRadius.circular(16),
+                color: AccountInformationStyles.profileCardBackgroundColor,
+                 borderRadius: BorderRadius.circular(
+                  AccountInformationStyles.profileCardBorderRadius,
+                 ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
 
                     CircleAvatar(
-                      radius: 34,
+                      radius: AccountInformationStyles.profileAvatarRadius,
                       backgroundColor: Colors.white24,
                       child: const Icon(
                         Icons.person,
@@ -124,12 +145,7 @@ Widget build(BuildContext context) {
 
                           Text(
                             "$firstName $lastName",
-                            style: const TextStyle(
-                              fontFamily: 'Poppins',
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                            style: AccountInformationStyles.profileNameStyle,
                           ),
                         ],
                       ),
@@ -138,7 +154,9 @@ Widget build(BuildContext context) {
                 ),
               ),
 
-              const SizedBox(height: 24),
+            SizedBox(
+              height: AccountInformationStyles.headerBottomSpacing,
+            ),
 
 
               Container(
@@ -174,7 +192,7 @@ Widget build(BuildContext context) {
                                 ),
                                 border: Border.all(
                                   color: AccountInformationStyles.appPrimaryColor,
-                                  width: 1.2,
+                                  width: AccountInformationStyles.editButtonBorderWidth,
                                 ),
                               ),
                               child: Row(
@@ -202,32 +220,175 @@ Widget build(BuildContext context) {
                         ],
                       ),
                     ),
-                    const Divider(),
+                  const SizedBox(height: 6),
 
-                    buildInfoTile(
-                      "Full Name",
-                      "$firstName $lastName",
+                    Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Icon(
+                            Icons.person_outline_rounded,
+                            size: AccountInformationStyles.infoIconSize,
+                            color: AccountInformationStyles.appPrimaryColor,
+                          ),
+                        ),
+
+                        const SizedBox(width: 14),
+
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Text(
+                              "Full Name",
+                              style: AccountInformationStyles.infoTitleStyle,
+                            ),
+                          ),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.only(top: 18),
+                          child: Text(
+                            "$firstName $lastName",
+                            style: AccountInformationStyles.infoValueStyle,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
 
-                    const Divider(),
+                   Divider(
+                    color: AccountInformationStyles.dividerColor,
+                    thickness: AccountInformationStyles.dividerThickness,
+                  ),
 
-                    buildInfoTile(
-                      "Email Address",
-                      email,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Icon(
+                            Icons.email_outlined,
+                            size: AccountInformationStyles.infoIconSize,
+                            color: AccountInformationStyles.appPrimaryColor,
+                          ),
+                        ),
+
+                        const SizedBox(width: 14),
+
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 18),
+                            child: Text(
+                              "Email Address",
+                              style: AccountInformationStyles.infoTitleStyle,
+                            ),
+                          ),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.only(top: 18),
+                          child: Text(
+                            email,
+                            style: AccountInformationStyles.infoValueStyle,
+                          ),
+                        ),
+
+                      ],
                     ),
+                  ),
 
-                    const Divider(),
+                  Divider(
+                    color: AccountInformationStyles.dividerColor,
+                    thickness: AccountInformationStyles.dividerThickness,
+                  ),
+                  
+                    Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
 
-                    buildInfoTile(
-                      "Password",
-                      "••••••••",
-                    ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: AccountInformationStyles.infoIconSize,
+                                  color: AccountInformationStyles.appPrimaryColor,
+                                ),
+                              ),
 
-                    const Divider(),
+                              const SizedBox(width: 14),
 
-                    buildInfoTile(
-                      "Account Status",
-                      "Active",
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 18),
+                                  child: Text(
+                                    "Password",
+                                    style: AccountInformationStyles.infoTitleStyle,
+                                  ),
+                                ),
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.only(top: 18),
+                                child: Text(
+                                  "••••••••",
+                                  style: AccountInformationStyles.infoValueStyle,
+                                ),
+                              ),
+
+                            ],
+                          ),
+                        ),
+
+                        Divider(
+                          color: AccountInformationStyles.dividerColor,
+                          thickness: AccountInformationStyles.dividerThickness,
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+
+                              Padding(
+                                padding: const EdgeInsets.only(top: 16),
+                                child: Icon(
+                                  Icons.badge_outlined,
+                                  size: AccountInformationStyles.infoIconSize,
+                                  color: AccountInformationStyles.appPrimaryColor,
+                                ),
+                              ),
+
+                              const SizedBox(width: 14),
+
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 18),
+                                  child: Text(
+                                    "Role",
+                                    style: AccountInformationStyles.infoTitleStyle,
+                                  ),
+                                ),
+                              ),
+
+                              Padding(
+                                padding: const EdgeInsets.only(top: 18),
+                                child: Text(
+                                  "Student",
+                                  style: AccountInformationStyles.infoValueStyle,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
