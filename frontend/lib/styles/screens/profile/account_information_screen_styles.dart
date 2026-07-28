@@ -149,6 +149,14 @@ class AccountInformationStyles {
         vertical: 18,
       );
 
+  static const EdgeInsets infoIconPadding =
+      EdgeInsets.only(top: 16);
+
+  static const EdgeInsets infoTextPadding =
+      EdgeInsets.only(top: 18);
+
+  static const double infoTileSpacing = 14;
+
   static const double infoIconSize = 22;
 
   static const TextStyle infoTitleStyle =
@@ -172,4 +180,5 @@ class AccountInformationStyles {
   // ==========================================================
 
   static const double dividerThickness = 1.0;
+  
 }
