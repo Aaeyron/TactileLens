@@ -28,4 +28,5 @@ class AuthStyles {
     height: 1.5,
   );
 
+
 }

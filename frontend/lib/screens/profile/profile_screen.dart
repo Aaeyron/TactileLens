@@ -21,6 +21,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String email = "";
   String role = "";
 
+  bool isGuest = false;
+  String guestNickname = "";
+
   @override
   void initState() {
     super.initState();
@@ -28,13 +31,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> loadUser() async {
-    firstName = await SessionManager.getFirstName() ?? "";
-    lastName = await SessionManager.getLastName() ?? "";
-    email = await SessionManager.getEmail() ?? "";
-    role = await SessionManager.getRole() ?? "";
+  isGuest = await SessionManager.isGuest();
 
-    setState(() {});
+  if (isGuest) {
+    guestNickname =
+        await SessionManager.getGuestNickname() ?? "";
+
+    role = await SessionManager.getRole() ?? "";
+  } else {
+    firstName =
+        await SessionManager.getFirstName() ?? "";
+
+    lastName =
+        await SessionManager.getLastName() ?? "";
+
+    email =
+        await SessionManager.getEmail() ?? "";
+
+    role =
+        await SessionManager.getRole() ?? "";
   }
+
+  setState(() {});
+}
 
   @override
 Widget build(BuildContext context) {
@@ -68,7 +87,9 @@ Widget build(BuildContext context) {
               ),
 
               Text(
-              "$firstName $lastName",
+              isGuest
+                  ? guestNickname
+                  : "$firstName $lastName",
               style: ProfileStyles.profileNameStyle,
             ),
 
@@ -76,10 +97,21 @@ Widget build(BuildContext context) {
               height: ProfileStyles.profileEmailTopSpacing,
             ),
 
-              Text(
+            Text(
               role,
               style: ProfileStyles.profileEmailStyle,
             ),
+
+            if (isGuest) ...[
+            SizedBox(
+              height: ProfileStyles.guestBadgeTopSpacing,
+            ),
+
+            Text(
+              "Guest",
+              style: ProfileStyles.guestBadgeStyle,
+            ),
+          ],
               SizedBox(
                 height: ProfileStyles.menuTopSpacing,
               ),

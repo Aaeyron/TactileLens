@@ -18,6 +18,9 @@ class _AccountInformationScreenState
   String email = "";
   String role = "";
 
+  bool isGuest = false;
+  String guestNickname = "";
+
   @override
   void initState() {
     super.initState();
@@ -25,13 +28,30 @@ class _AccountInformationScreenState
   }
 
   Future<void> loadUser() async {
-    firstName = await SessionManager.getFirstName() ?? "";
-    lastName = await SessionManager.getLastName() ?? "";
-    email = await SessionManager.getEmail() ?? "";
-    role = await SessionManager.getRole() ?? "";
+  isGuest = await SessionManager.isGuest();
 
-    setState(() {});
+  if (isGuest) {
+    guestNickname =
+        await SessionManager.getGuestNickname() ?? "";
+
+    role =
+        await SessionManager.getRole() ?? "";
+  } else {
+    firstName =
+        await SessionManager.getFirstName() ?? "";
+
+    lastName =
+        await SessionManager.getLastName() ?? "";
+
+    email =
+        await SessionManager.getEmail() ?? "";
+
+    role =
+        await SessionManager.getRole() ?? "";
   }
+
+  setState(() {});
+}
 
  Widget buildInfoTile({
   required IconData icon,
@@ -145,7 +165,9 @@ Widget build(BuildContext context) {
                         children: [
 
                           Text(
-                            "$firstName $lastName",
+                            isGuest
+                                ? guestNickname
+                                : "$firstName $lastName",
                             style: AccountInformationStyles.profileNameStyle,
                           ),
                         ],
@@ -223,43 +245,74 @@ Widget build(BuildContext context) {
                     ),
                   const SizedBox(height: 6),
 
-                    buildInfoTile(
-                      icon: Icons.person_outline_rounded,
-                      title: "Full Name",
-                      value: "$firstName $lastName",
-                    ),
+                        if (isGuest) ...[
+                          buildInfoTile(
+                            icon: Icons.person_outline_rounded,
+                            title: "Nickname",
+                            value: guestNickname,
+                          ),
 
-                   Divider(
-                    color: AccountInformationStyles.dividerColor,
-                    thickness: AccountInformationStyles.dividerThickness,
-                  ),
+                          Divider(
+                            color: AccountInformationStyles.dividerColor,
+                            thickness: AccountInformationStyles.dividerThickness,
+                          ),
 
-                  buildInfoTile(
-                    icon: Icons.email_outlined,
-                    title: "Email Address",
-                    value: email,
-                  ),
+                          buildInfoTile(
+                            icon: Icons.badge_outlined,
+                            title: "Role",
+                            value: role,
+                          ),
 
-                  Divider(
-                    color: AccountInformationStyles.dividerColor,
-                    thickness: AccountInformationStyles.dividerThickness,
-                  ),
-                  
-                     buildInfoTile(
-                      icon: Icons.lock_outline_rounded,
-                      title: "Password",
-                      value: "••••••••",
-                    ),
-                        Divider(
-                          color: AccountInformationStyles.dividerColor,
-                          thickness: AccountInformationStyles.dividerThickness,
-                        ),
+                          Divider(
+                            color: AccountInformationStyles.dividerColor,
+                            thickness: AccountInformationStyles.dividerThickness,
+                          ),
 
-                        buildInfoTile(
-                          icon: Icons.badge_outlined,
-                          title: "Role",
-                          value: role,
-                        ),
+                          buildInfoTile(
+                            icon: Icons.wifi_off_rounded,
+                            title: "Account Type",
+                            value: "Offline Guest",
+                          ),
+                        ] else ...[
+                          buildInfoTile(
+                            icon: Icons.person_outline_rounded,
+                            title: "Full Name",
+                            value: "$firstName $lastName",
+                          ),
+
+                          Divider(
+                            color: AccountInformationStyles.dividerColor,
+                            thickness: AccountInformationStyles.dividerThickness,
+                          ),
+
+                          buildInfoTile(
+                            icon: Icons.email_outlined,
+                            title: "Email Address",
+                            value: email,
+                          ),
+
+                          Divider(
+                            color: AccountInformationStyles.dividerColor,
+                            thickness: AccountInformationStyles.dividerThickness,
+                          ),
+
+                          buildInfoTile(
+                            icon: Icons.lock_outline_rounded,
+                            title: "Password",
+                            value: "••••••••",
+                          ),
+
+                          Divider(
+                            color: AccountInformationStyles.dividerColor,
+                            thickness: AccountInformationStyles.dividerThickness,
+                          ),
+
+                          buildInfoTile(
+                            icon: Icons.badge_outlined,
+                            title: "Role",
+                            value: role,
+                          ),
+                        ],
                       ],
                     ),
                   ),

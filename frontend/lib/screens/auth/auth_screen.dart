@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../styles/screens/auth/auth_styles.dart';
+import '../../styles/screens/auth/auth_screen_styles.dart';
 import '../main/main_screen.dart';
 import 'signin_screen.dart';
 import 'signup_screen.dart';
+import 'guest_setup_screen.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -87,10 +88,10 @@ class AuthScreen extends StatelessWidget {
 
               TextButton(
                 onPressed: () {
-                  Navigator.pushReplacement(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const MainScreen(),
+                      builder: (context) => const GuestSetupScreen(),
                     ),
                   );
                 },

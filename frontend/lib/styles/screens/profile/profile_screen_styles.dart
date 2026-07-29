@@ -102,6 +102,18 @@ class ProfileStyles {
         color: primaryTextColor,
       );
 
+  // Guest Badge
+
+  static const double guestBadgeTopSpacing = 6;
+
+  static const TextStyle guestBadgeStyle = TextStyle(
+    fontFamily: "Poppins",
+    fontSize: 13,
+    fontStyle: FontStyle.italic,
+    fontWeight: FontWeight.w500,
+    color: Colors.grey,
+  );
+
   // ==========================================================
   // MENU LAYOUT
   // ==========================================================
