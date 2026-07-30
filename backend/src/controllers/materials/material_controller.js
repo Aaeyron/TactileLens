@@ -60,8 +60,19 @@ const uploadMaterial = async (req, res) => {
 const getAllMaterials = async (req, res) => {
   try {
 
+    const { user_id } = req.query;
+
+    console.log("Requested user_id:", user_id);
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id is required.",
+      });
+    }
+
     const materials =
-      await materialService.getAllMaterials();
+      await materialService.getAllMaterials(user_id);
 
     return res.status(200).json({
       success: true,

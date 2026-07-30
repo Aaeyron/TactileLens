@@ -45,10 +45,25 @@ if (isGuest) {
   return await MaterialDatabase.instance.getAllMaterials();
 }
 
-    final response = await http.get(
-      Uri.parse(baseUrl),
-    );
+    final userId = await SessionManager.getUserId();
 
+      if (userId == null) {
+        throw Exception("User ID not found.");
+      }
+
+      print("========== GET MATERIALS ==========");
+      print("Current User ID: $userId");
+      print("Request URL: $baseUrl?user_id=$userId");
+
+      final response = await http.get(
+        Uri.parse(
+          "$baseUrl?user_id=$userId",
+        ),
+      );
+
+      print("Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+      
     if (response.statusCode == 200) {
       final responseData =
           jsonDecode(response.body);

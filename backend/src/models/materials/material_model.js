@@ -53,14 +53,18 @@ const createMaterial = async (materialData) => {
 // Get All Materials
 // ==========================
 
-const getAllMaterials = async () => {
+const getAllMaterials = async (userId) => {
   const query = `
     SELECT *
     FROM materials
+    WHERE user_id = $1
     ORDER BY uploaded_at DESC;
   `;
 
-  const result = await db.query(query);
+  const result = await db.query(
+    query,
+    [userId],
+  );
 
   return result.rows;
 };

@@ -235,15 +235,25 @@ final uploadData =
     });
 
     try {
-     final isGuest = await SessionManager.isGuest();
+    final isGuest = await SessionManager.isGuest();
 
-      await _materialService.uploadMaterial(
-        file: selectedFile,
-        userId: isGuest ? 0 : 1, // TODO: Replace 1 with SessionManager.getUserId()
-        title: uploadData['title']!,
-        subject: uploadData['subject']!,
-        description: uploadData['description'],
-      );
+    final userId = await SessionManager.getUserId();
+
+    if (!isGuest && userId == null) {
+      throw Exception("User ID not found.");
+    }
+
+    print("========== UPLOAD ==========");
+    print("isGuest: $isGuest");
+    print("userId: $userId");
+
+    await _materialService.uploadMaterial(
+      file: selectedFile,
+      userId: isGuest ? 0 : userId!,
+      title: uploadData['title']!,
+      subject: uploadData['subject']!,
+      description: uploadData['description'],
+    );
 
       if (!mounted) {
         return;

@@ -15,8 +15,8 @@ const createMaterial = async (materialData) => {
 // Get All Materials
 // ==========================
 
-const getAllMaterials = async () => {
-  return await materialModel.getAllMaterials();
+const getAllMaterials = async (userId) => {
+  return await materialModel.getAllMaterials(userId);
 };
 
 // ==========================

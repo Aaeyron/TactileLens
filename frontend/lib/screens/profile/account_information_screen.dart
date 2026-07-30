@@ -199,27 +199,25 @@ Widget build(BuildContext context) {
                             style: AccountInformationStyles.personalDetailsTitleStyle,
                           ),
 
+                          if (!isGuest)
                           InkWell(
-                            onTap: isGuest
-                            ? null
-                            : () {
-                                // TODO: Navigate to Edit Account
-                              },
+                            onTap: () {
+                              // TODO: Navigate to Edit Account
+                            },
                             borderRadius: BorderRadius.circular(
                               AccountInformationStyles.editButtonRadius,
                             ),
                             child: Container(
                               padding: AccountInformationStyles.editButtonPadding,
                               decoration: BoxDecoration(
-                                color: isGuest
-                                ? Colors.grey.shade200
-                                : Colors.white,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(
                                   AccountInformationStyles.editButtonRadius,
                                 ),
                                 border: Border.all(
                                   color: AccountInformationStyles.appPrimaryColor,
-                                  width: AccountInformationStyles.editButtonBorderWidth,
+                                  width:
+                                      AccountInformationStyles.editButtonBorderWidth,
                                 ),
                               ),
                               child: Row(
@@ -228,22 +226,23 @@ Widget build(BuildContext context) {
 
                                   Icon(
                                     AccountInformationStyles.editButtonIcon,
-                                    size: AccountInformationStyles.editButtonIconSize,
-                                    color: AccountInformationStyles.appPrimaryColor,
+                                    size:
+                                        AccountInformationStyles.editButtonIconSize,
+                                    color:
+                                        AccountInformationStyles.appPrimaryColor,
                                   ),
 
                                   const SizedBox(width: 6),
 
                                   Text(
                                     AccountInformationStyles.editButtonTitle,
-                                    style: AccountInformationStyles.editButtonStyle,
+                                    style:
+                                        AccountInformationStyles.editButtonStyle,
                                   ),
-
                                 ],
                               ),
                             ),
                           ),
-
                         ],
                       ),
                     ),
