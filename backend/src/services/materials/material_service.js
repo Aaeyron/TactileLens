@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+
 const materialModel = require("../../models/materials/material_model");
 
 // ==========================
@@ -29,6 +32,26 @@ const getMaterialById = async (id) => {
 // ==========================
 
 const deleteMaterial = async (id) => {
+
+  // Find the material first
+  const material = await materialModel.getMaterialById(id);
+
+  if (!material) {
+    return null;
+  }
+
+  // Delete the uploaded file
+  console.log("Deleting file:", material.file_path);
+console.log("Exists:", fs.existsSync(material.file_path));
+
+if (material.file_path && fs.existsSync(material.file_path)) {
+    await fs.promises.unlink(material.file_path);
+    console.log("File deleted successfully.");
+} else {
+    console.log("File not found.");
+}
+
+  // Delete database record
   return await materialModel.deleteMaterial(id);
 };
 

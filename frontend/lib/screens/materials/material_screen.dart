@@ -52,9 +52,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
     if (!mounted) return;
 
-    setState(() {
-      _materials.removeWhere((material) => material.id == id);
-    });
+    await _loadMaterials();
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -127,8 +125,36 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
                           return MaterialCard(
                           material: material,
-                          onDelete: () {
-                            if (material.id != null) {
+                          onDelete: () async {
+                            if (material.id == null) return;
+
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: const Text("Delete Material"),
+                                  content: const Text(
+                                    "Are you sure you want to permanently delete this material?",
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context, false);
+                                      },
+                                      child: const Text("Cancel"),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () {
+                                        Navigator.pop(context, true);
+                                      },
+                                      child: const Text("Delete"),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            if (confirm == true) {
                               _deleteMaterial(material.id!);
                             }
                           },

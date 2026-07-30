@@ -22,6 +22,26 @@ class _SplashScreenState extends State<SplashScreen> {
     startLoading();
   }
 
+  Future<void> checkSession() async {
+  final isGuest = await SessionManager.isGuest();
+  final isLoggedIn = await SessionManager.isLoggedIn();
+
+  if (!mounted) return;
+
+  if (isGuest || isLoggedIn) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const MainScreen(),
+      ),
+    );
+  } else {
+    setState(() {
+      isLoaded = true;
+    });
+  }
+}
+
   void startLoading() {
 
     Timer.periodic(
@@ -36,15 +56,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
           timer.cancel();
 
-          Future.delayed(
+            Future.delayed(
             const Duration(milliseconds: 500),
             () {
-
-              if (mounted) {
-                setState(() {
-                  isLoaded = true;
-                });
-              }
+              checkSession();
             },
           );
         }
