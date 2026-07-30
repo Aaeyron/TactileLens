@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
 import 'package:http/http.dart' as http;
 
 import '../../models/materials/material_model.dart';
+import '../../database/materials/material_database.dart';
+import '../../utils/session_manager.dart';
 
 class MaterialService {
 
@@ -34,6 +39,12 @@ class MaterialService {
   // ==========================
 
   Future<List<MaterialModel>> getMaterials() async {
+    final isGuest = await SessionManager.isGuest();
+
+if (isGuest) {
+  return await MaterialDatabase.instance.getAllMaterials();
+}
+
     final response = await http.get(
       Uri.parse(baseUrl),
     );
@@ -69,6 +80,62 @@ class MaterialService {
     required String subject,
     String? description,
   }) async {
+
+     final isGuest = await SessionManager.isGuest();
+
+if (isGuest) {
+
+  // Get application documents directory
+  final appDirectory =
+      await getApplicationDocumentsDirectory();
+
+  // Create materials folder
+  final materialsFolder = Directory(
+    p.join(appDirectory.path, "materials"),
+  );
+
+  if (!await materialsFolder.exists()) {
+    await materialsFolder.create(recursive: true);
+  }
+
+  // Create a unique file name
+  final fileName =
+      "${DateTime.now().millisecondsSinceEpoch}_${p.basename(file.path)}";
+
+  final savedFile = await file.copy(
+    p.join(
+      materialsFolder.path,
+      fileName,
+    ),
+  );
+
+  final material = MaterialModel(
+  title: title,
+  subject: subject,
+  description: description ?? "",
+  fileName: fileName,
+  fileType: p.extension(file.path),
+  fileSize: await savedFile.length(),
+  filePath: savedFile.path,
+  uploadDate: DateTime.now(),
+);
+
+  final id =
+      await MaterialDatabase.instance.insertMaterial(material);
+
+  return MaterialModel(
+  id: id,
+  title: material.title,
+  subject: material.subject,
+  description: material.description,
+  fileName: material.fileName,
+  fileType: material.fileType,
+  fileSize: material.fileSize,
+  filePath: material.filePath,
+  uploadDate: material.uploadDate,
+);
+}
+
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$baseUrl/upload'),
@@ -144,16 +211,38 @@ class MaterialService {
   // ==========================
 
   Future<void> deleteMaterial(
-    int id,
-  ) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/$id'),
-    );
+  int id,
+) async {
 
-    if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to delete material.',
-      );
+  final isGuest = await SessionManager.isGuest();
+
+  if (isGuest) {
+  final material = await MaterialDatabase.instance.getMaterialById(id);
+
+  if (material != null) {
+    final file = File(material.filePath);
+
+   try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Ignore file deletion errors.
     }
   }
+
+  await MaterialDatabase.instance.deleteMaterial(id);
+  return;
+}
+
+  final response = await http.delete(
+    Uri.parse('$baseUrl/$id'),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Failed to delete material.',
+    );
+  }
+}
 }

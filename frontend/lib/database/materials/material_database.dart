@@ -18,9 +18,10 @@ class MaterialDatabase {
   ) async {
     final db = await AppDatabase.instance.database;
 
-    return await db.insert(
-      "materials",
-      {
+      return await db.insert(
+        "materials",
+        {
+        "user_id": null,
         "title": material.title,
         "subject": material.subject,
         "description": "",
@@ -29,7 +30,7 @@ class MaterialDatabase {
         "file_type": material.fileType,
         "file_size": material.fileSize,
         "uploaded_at":
-            material.uploadDate.toIso8601String(),
+        material.uploadDate.toIso8601String(),
       },
     );
   }
@@ -46,10 +47,37 @@ class MaterialDatabase {
       orderBy: "uploaded_at DESC",
     );
 
-    return result.map((json) {
-      return MaterialModel.fromJson(json);
+     return result.map((json) {
+      return MaterialModel.fromJson(
+        Map<String, dynamic>.from(json),
+      );
     }).toList();
   }
+
+  // ==========================
+// Get Material By ID
+// ==========================
+
+Future<MaterialModel?> getMaterialById(
+  int id,
+) async {
+  final db = await AppDatabase.instance.database;
+
+  final result = await db.query(
+    "materials",
+    where: "id = ?",
+    whereArgs: [id],
+    limit: 1,
+  );
+
+  if (result.isEmpty) {
+    return null;
+  }
+
+  return MaterialModel.fromJson(
+    Map<String, dynamic>.from(result.first),
+  );
+}
 
   // ==========================
   // Delete Material

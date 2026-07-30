@@ -54,6 +54,16 @@ static Future<void> saveGuest({
     return prefs.getBool(guestModeKey) ?? false;
   }
 
+// ==========================
+// Get User ID
+// ==========================
+
+static Future<int?> getUserId() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  return prefs.getInt(userIdKey);
+}
+
   static Future<String?> getFirstName() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(firstNameKey);

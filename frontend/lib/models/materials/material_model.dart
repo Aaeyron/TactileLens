@@ -2,6 +2,7 @@ class MaterialModel {
   final int? id;
   final String title;
   final String subject;
+  final String description;
   final String fileName;
   final String fileType;
   final int fileSize;
@@ -9,15 +10,16 @@ class MaterialModel {
   final DateTime uploadDate;
 
   MaterialModel({
-    this.id,
-    required this.title,
-    required this.subject,
-    required this.fileName,
-    required this.fileType,
-    required this.fileSize,
-    required this.filePath,
-    required this.uploadDate,
-  });
+  this.id,
+  required this.title,
+  required this.subject,
+  required this.description,
+  required this.fileName,
+  required this.fileType,
+  required this.fileSize,
+  required this.filePath,
+  required this.uploadDate,
+});
 
   factory MaterialModel.fromJson(
     Map<String, dynamic> json,
@@ -28,6 +30,7 @@ class MaterialModel {
           : null,
       title: json['title'],
       subject: json['subject'],
+      description: json['description'] ?? "",
       fileName: json['file_name'],
       fileType: json['file_type'],
       fileSize: int.parse(json['file_size'].toString()),
@@ -43,6 +46,7 @@ class MaterialModel {
       'id': id,
       'title': title,
       'subject': subject,
+      'description': description,
       'file_name': fileName,
       'file_type': fileType,
       'file_size': fileSize,

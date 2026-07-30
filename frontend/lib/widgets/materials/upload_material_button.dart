@@ -1,10 +1,9 @@
-import 'dart:io';
-
+import 'dart:io'; 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-
 import '../../services/materials/material_service.dart';
 import '../../styles/widgets/materials/material_widget_styles.dart';
+import '../../utils/session_manager.dart';
 
 class UploadMaterialButton extends StatefulWidget {
   final VoidCallback onUploadSuccess;
@@ -236,22 +235,14 @@ final uploadData =
     });
 
     try {
+     final isGuest = await SessionManager.isGuest();
+
       await _materialService.uploadMaterial(
         file: selectedFile,
-
-        // TEMPORARY USER ID
-        // We will connect this to
-        // SessionManager later.
-        userId: 1,
-
-        title:
-            uploadData['title']!,
-
-        subject:
-            uploadData['subject']!,
-
-        description:
-            uploadData['description'],
+        userId: isGuest ? 0 : 1, // TODO: Replace 1 with SessionManager.getUserId()
+        title: uploadData['title']!,
+        subject: uploadData['subject']!,
+        description: uploadData['description'],
       );
 
       if (!mounted) {

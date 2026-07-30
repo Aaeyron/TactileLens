@@ -200,16 +200,20 @@ Widget build(BuildContext context) {
                           ),
 
                           InkWell(
-                            onTap: () {
-                              // TODO: Navigate to Edit Account
-                            },
+                            onTap: isGuest
+                            ? null
+                            : () {
+                                // TODO: Navigate to Edit Account
+                              },
                             borderRadius: BorderRadius.circular(
                               AccountInformationStyles.editButtonRadius,
                             ),
                             child: Container(
                               padding: AccountInformationStyles.editButtonPadding,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: isGuest
+                                ? Colors.grey.shade200
+                                : Colors.white,
                                 borderRadius: BorderRadius.circular(
                                   AccountInformationStyles.editButtonRadius,
                                 ),

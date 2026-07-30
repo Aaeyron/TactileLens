@@ -28,6 +28,9 @@ class AppDatabase {
       path,
       version: 1,
       onCreate: _createDatabase,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // Future database migrations
+      },
     );
   }
 
@@ -40,6 +43,7 @@ class AppDatabase {
     await db.execute('''
       CREATE TABLE materials(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
         title TEXT NOT NULL,
         subject TEXT NOT NULL,
         description TEXT,

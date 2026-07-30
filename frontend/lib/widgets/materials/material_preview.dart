@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../models/materials/material_model.dart';
@@ -61,23 +62,41 @@ Widget build(BuildContext context) {
     ),
 
       child: isImage
-    ? ClipRRect(
-        borderRadius:
-            MaterialWidgetStyles.materialPreviewRadius,
+        ? ClipRRect(
+            borderRadius:
+                MaterialWidgetStyles.materialPreviewRadius,
 
-        child: Image.network(
-                MaterialService().getFileUrl(material.filePath),
-                fit: BoxFit.cover,
-
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(
-                      Icons.error,
+            child: material.filePath.startsWith("http") ||
+                    material.filePath.contains("uploads")
+                ? Image.network(
+                    MaterialService().getFileUrl(
+                      material.filePath,
                     ),
-                  );
-                },
-              ),
-          )
+                    fit: BoxFit.cover,
+                    errorBuilder: (
+                      context,
+                      error,
+                      stackTrace,
+                    ) {
+                      return const Center(
+                        child: Icon(Icons.error),
+                      );
+                    },
+                  )
+                : Image.file(
+                    File(material.filePath),
+                    fit: BoxFit.cover,
+                    errorBuilder: (
+                      context,
+                      error,
+                      stackTrace,
+                    ) {
+                      return const Center(
+                        child: Icon(Icons.error),
+                      );
+                    },
+                  ),
+                )
           : Center(
               child: Icon(
                 _getFileIcon(material.fileType),
