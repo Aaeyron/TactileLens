@@ -177,7 +177,7 @@ void dispose() {
                 const SizedBox(height: 20),
 
                 DropdownButtonFormField<String>(
-                  value: selectedRole,
+                  initialValue: selectedRole,
                   decoration: InputDecoration(
                     labelText: "Role",
                     prefixIcon: const Icon(Icons.badge_outlined),

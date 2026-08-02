@@ -1,32 +1,37 @@
 from flask import Flask, request, jsonify
-from recognize_math import recognize
-import os
+from pix2tex.cli import LatexOCR
+from PIL import Image
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Load the AI model once when the server starts
+model = LatexOCR()
 
 @app.route("/")
 def home():
-    return "TactileLens AI Server is Running!"
+    return "Pix2Tex AI Server is Running!"
 
 @app.route("/recognize", methods=["POST"])
-def recognize_equation():
-
+def recognize():
     if "image" not in request.files:
         return jsonify({"error": "No image uploaded"}), 400
 
-    image = request.files["image"]
+    image_file = request.files["image"]
 
-    image_path = os.path.join(UPLOAD_FOLDER, image.filename)
-    image.save(image_path)
+    try:
+        image = Image.open(image_file.stream)
+        latex = model(image)
 
-    result = recognize(image_path)
+        return jsonify({
+            "success": True,
+            "latex": latex
+        })
 
-    return jsonify({
-        "latex": result
-    })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+  app.run(host="0.0.0.0", port=5001, debug=True)

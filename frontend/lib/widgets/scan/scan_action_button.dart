@@ -48,7 +48,7 @@ final bool flashEnabled;
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -79,7 +79,7 @@ final bool flashEnabled;
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
+                      color: Colors.black.withValues(alpha: 0.18),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -113,7 +113,7 @@ final bool flashEnabled;
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),

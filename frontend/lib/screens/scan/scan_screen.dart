@@ -8,6 +8,7 @@ import '../../widgets/scan/scan_preview.dart';
 import '../../services/scan/scan_service.dart';
 import '../../services/scan/camera_service.dart';
 import '../../widgets/scan/scan_mode_selector.dart';
+import '../../services/ai/ai_service.dart';
 
 class ScanScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -24,6 +25,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   File? _selectedImage;
   Rect? _selectedRegion;
+  String? _recognizedLatex;
 
   ScanMode _selectedMode = ScanMode.ueb;
 
@@ -32,6 +34,8 @@ class _ScanScreenState extends State<ScanScreen> {
   final ScanService _scanService = ScanService();
 
   final CameraService _cameraService = CameraService();
+
+  final AIService _aiService = AIService();
   
   Future<void> _toggleFlash() async {
   await _cameraService.toggleFlash();
@@ -66,10 +70,25 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 }
 
-void _scanImage() {
-  debugPrint("Scan button pressed.");
+Future<void> _scanImage() async {
+  if (_selectedImage == null) {
+    return;
+  }
 
-  // OCR will be added here later.
+  try {
+    final latex =
+        await _aiService.recognizeEquation(_selectedImage!);
+
+    setState(() {
+      _recognizedLatex = latex;
+    });
+
+    debugPrint("Recognized LaTeX:");
+    debugPrint(latex);
+
+  } catch (e) {
+    debugPrint("AI Error: $e");
+  }
 }
 
   void _onRegionSelected(Rect selectedRegion) {
@@ -124,7 +143,7 @@ void _scanImage() {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
+                                      color: Colors.black.withValues(alpha: 0.08),
                                       blurRadius: 10,
                                       offset: const Offset(0, 2),
                                     ),
