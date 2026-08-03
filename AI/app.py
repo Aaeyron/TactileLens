@@ -20,6 +20,10 @@ def recognize():
 
     try:
         image = Image.open(image_file.stream)
+
+        image.save("received_image.png")
+        print("Saved received image as received_image.png")
+
         latex = model(image)
 
         return jsonify({
@@ -34,4 +38,4 @@ def recognize():
         }), 500
 
 if __name__ == "__main__":
-  app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

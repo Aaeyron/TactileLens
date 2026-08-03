@@ -1,14 +1,17 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
+
+import '../../services/ai/ai_service.dart';
+import '../../services/scan/camera_service.dart';
+import '../../services/scan/image_crop_service.dart';
+import '../../services/scan/scan_service.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/scan/scan_action_button.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
-import '../../widgets/scan/scan_preview.dart';
-import '../../services/scan/scan_service.dart';
-import '../../services/scan/camera_service.dart';
 import '../../widgets/scan/scan_mode_selector.dart';
-import '../../services/ai/ai_service.dart';
+import '../../widgets/scan/scan_preview.dart';
 
 class ScanScreen extends StatefulWidget {
   final VoidCallback onBack;
@@ -25,17 +28,16 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   File? _selectedImage;
   Rect? _selectedRegion;
+  Size? _previewSize;
   String? _recognizedLatex;
-
   ScanMode _selectedMode = ScanMode.ueb;
-
   bool _flashEnabled = false;
 
   final ScanService _scanService = ScanService();
-
   final CameraService _cameraService = CameraService();
-
   final AIService _aiService = AIService();
+  final ImageCropService _imageCropService =
+    ImageCropService();
   
   Future<void> _toggleFlash() async {
   await _cameraService.toggleFlash();
@@ -75,9 +77,44 @@ Future<void> _scanImage() async {
     return;
   }
 
+  if (_selectedRegion == null || _previewSize == null) {
+    debugPrint("No region selected.");
+    return;
+  }
+
   try {
+    final bytes = await _selectedImage!.readAsBytes();
+
+    final decodedImage = img.decodeImage(bytes);
+
+    if (decodedImage == null) {
+      throw Exception("Unable to decode image.");
+    }
+
+    final double scaleX =
+        decodedImage.width / _previewSize!.width;
+
+    final double scaleY =
+        decodedImage.height / _previewSize!.height;
+
+    final Rect actualRegion = Rect.fromLTWH(
+      _selectedRegion!.left * scaleX,
+      _selectedRegion!.top * scaleY,
+      _selectedRegion!.width * scaleX,
+      _selectedRegion!.height * scaleY,
+    );
+
+    final File croppedImage =
+        await _imageCropService.cropImage(
+      imageFile: _selectedImage!,
+      cropRect: actualRegion,
+    );
+
+    debugPrint("====== CROPPED IMAGE ======");
+  debugPrint(croppedImage.path);
+
     final latex =
-        await _aiService.recognizeEquation(_selectedImage!);
+        await _aiService.recognizeEquation(croppedImage);
 
     setState(() {
       _recognizedLatex = latex;
@@ -91,11 +128,15 @@ Future<void> _scanImage() async {
   }
 }
 
-  void _onRegionSelected(Rect selectedRegion) {
-    setState(() {
-      _selectedRegion = selectedRegion;
-    });
-  }
+  void _onRegionSelected(
+    Rect selectedRegion,
+    Size previewSize,
+  ) {
+  setState(() {
+    _selectedRegion = selectedRegion;
+    _previewSize = previewSize;
+  });
+}
 
   void _onModeChanged(ScanMode mode) {
     setState(() {

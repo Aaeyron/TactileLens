@@ -6,7 +6,11 @@ import 'scan_selection_overlay.dart';
 
 class ScanPreview extends StatelessWidget {
   final File? selectedImage;
-  final ValueChanged<Rect> onRegionSelected;
+  
+  final void Function(
+  Rect selectedRegion,
+  Size previewSize,
+) onRegionSelected;
 
   const ScanPreview({
   super.key,
@@ -46,9 +50,21 @@ class ScanPreview extends StatelessWidget {
                 selectedImage!,
                 fit: BoxFit.cover,
               ),
-              ScanSelectionOverlay(
-                onRegionSelected: onRegionSelected,
-           ),
+              LayoutBuilder(
+              builder: (context, constraints) {
+                return ScanSelectionOverlay(
+                  onRegionSelected: (rect) {
+                    onRegionSelected(
+                      rect,
+                      Size(
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ],
         ),
       )
