@@ -48,7 +48,9 @@ class ScanPreview extends StatelessWidget {
           children: [
               Image.file(
               selectedImage!,
-              fit: BoxFit.contain,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
             ),
               LayoutBuilder(
               builder: (context, constraints) {

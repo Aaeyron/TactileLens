@@ -32,9 +32,15 @@ class ImageCropService {
     );
 
     await croppedFile.writeAsBytes(
-      img.encodePng(croppedImage),
-    );
+  img.encodePng(croppedImage),
+);
 
-    return croppedFile;
+debugPrint("========== CROPPED IMAGE ==========");
+debugPrint("Saved at: ${croppedFile.path}");
+debugPrint(
+  "Crop Size: ${croppedImage.width} x ${croppedImage.height}",
+);
+
+return croppedFile;
   }
 }
