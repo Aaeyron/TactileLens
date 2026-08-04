@@ -91,18 +91,64 @@ Future<void> _scanImage() async {
       throw Exception("Unable to decode image.");
     }
 
-    final double scaleX =
-        decodedImage.width / _previewSize!.width;
+    // Original image size
+    final imageWidth = decodedImage.width.toDouble();
+    final imageHeight = decodedImage.height.toDouble();
 
-    final double scaleY =
-        decodedImage.height / _previewSize!.height;
+    // Preview size
+    final previewWidth = _previewSize!.width;
+    final previewHeight = _previewSize!.height;
 
-    final Rect actualRegion = Rect.fromLTWH(
-      _selectedRegion!.left * scaleX,
-      _selectedRegion!.top * scaleY,
-      _selectedRegion!.width * scaleX,
-      _selectedRegion!.height * scaleY,
+    // Image aspect ratios
+    final imageAspect = imageWidth / imageHeight;
+    final previewAspect = previewWidth / previewHeight;
+
+    // Actual displayed image size
+    double displayedWidth;
+    double displayedHeight;
+
+    if (imageAspect > previewAspect) {
+      displayedWidth = previewWidth;
+      displayedHeight = previewWidth / imageAspect;
+    } else {
+      displayedHeight = previewHeight;
+      displayedWidth = previewHeight * imageAspect;
+    }
+
+    // Empty margins introduced by BoxFit.contain
+    final offsetX = (previewWidth - displayedWidth) / 2;
+    final offsetY = (previewHeight - displayedHeight) / 2;
+
+    // Remove margins
+    double cropLeft = (_selectedRegion!.left - offsetX);
+    double cropTop = (_selectedRegion!.top - offsetY);
+    double cropWidth = _selectedRegion!.width;
+    double cropHeight = _selectedRegion!.height;
+
+    // Clamp so it never goes outside
+    cropLeft = cropLeft.clamp(0.0, displayedWidth);
+    cropTop = cropTop.clamp(0.0, displayedHeight);
+
+    cropWidth = cropWidth.clamp(
+      1.0,
+      displayedWidth - cropLeft,
     );
+
+    cropHeight = cropHeight.clamp(
+      1.0,
+      displayedHeight - cropTop,
+    );
+
+    // Convert to original image coordinates
+    final scaleX = imageWidth / displayedWidth;
+    final scaleY = imageHeight / displayedHeight;
+
+   final Rect actualRegion = Rect.fromLTWH(
+  (cropLeft * scaleX).roundToDouble(),
+  (cropTop * scaleY).roundToDouble(),
+  (cropWidth * scaleX).roundToDouble(),
+  (cropHeight * scaleY).roundToDouble(),
+);
 
     final File croppedImage =
         await _imageCropService.cropImage(
