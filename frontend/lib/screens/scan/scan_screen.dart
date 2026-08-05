@@ -143,7 +143,7 @@ Future<void> _scanImage() async {
     final scaleX = imageWidth / displayedWidth;
     final scaleY = imageHeight / displayedHeight;
 
-   final Rect actualRegion = Rect.fromLTWH(
+  final Rect actualRegion = Rect.fromLTWH(
   (cropLeft * scaleX).roundToDouble(),
   (cropTop * scaleY).roundToDouble(),
   (cropWidth * scaleX).roundToDouble(),
