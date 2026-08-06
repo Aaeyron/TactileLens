@@ -343,7 +343,7 @@ class _ProjectInformationCard extends StatelessWidget {
           _ProjectRow(
             icon: AboutTactileLensScreenStyles.yearIcon,
             label: 'Year',
-            value: 'AY 2025 - 2026',
+            value: 'AY 2025-2026',
             showDivider: false,
           ),
         ],
@@ -382,8 +382,8 @@ class _ProjectRow extends StatelessWidget {
             size: AboutTactileLensScreenStyles.projectIconSize,
           ),
           const SizedBox(width: AboutTactileLensScreenStyles.space12),
-          Flexible(
-            flex: 4,
+          SizedBox(
+            width: AboutTactileLensScreenStyles.projectLabelColumnWidth,
             child: Text(
               label,
               style: AboutTactileLensScreenStyles.projectLabelStyle,
@@ -391,11 +391,13 @@ class _ProjectRow extends StatelessWidget {
           ),
           const SizedBox(width: AboutTactileLensScreenStyles.space8),
           Expanded(
-            flex: 6,
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: AboutTactileLensScreenStyles.projectValueStyle,
+            child: Transform.translate(
+              offset: AboutTactileLensScreenStyles.projectValueOffset,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: AboutTactileLensScreenStyles.projectValueStyle,
+              ),
             ),
           ),
         ],
