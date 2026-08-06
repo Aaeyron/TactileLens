@@ -270,6 +270,7 @@ class _PrivacyTopicCard extends StatelessWidget {
                   ? PrivacySecurityScreenStyles.compactTopicCardPadding
                   : PrivacySecurityScreenStyles.topicCardPadding,
               decoration: const BoxDecoration(
+                color: PrivacySecurityScreenStyles.cardColor,
                 borderRadius: PrivacySecurityScreenStyles.cardRadius,
                 border: PrivacySecurityScreenStyles.cardBorder,
                 boxShadow: PrivacySecurityScreenStyles.cardShadow,

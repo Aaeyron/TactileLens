@@ -8,12 +8,12 @@ abstract final class PrivacySecurityScreenStyles {
   static const Color primaryDarkColor = Color(0xFF083475);
   static const Color primarySoftColor = Color(0xFFEAF2FC);
   static const Color primaryFaintColor = Color(0xFFF6F9FD);
-  static const Color backgroundColor = Color(0xFFFAFCFF);
+  static const Color backgroundColor = Color(0xFFFFFFFF);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimaryColor = Color(0xFF11152E);
   static const Color textSecondaryColor = Color(0xFF4E5872);
-  static const Color borderColor = Color(0xFFD8E4F3);
-  static const Color shadowColor = Color(0x140D47A1);
+  static const Color borderColor = Color(0x3D0D47A1);
+  static const Color shadowColor = Color(0x1A0D47A1);
 
   // Responsive layout
   static const double contentMaxWidth = 680;
@@ -84,7 +84,7 @@ abstract final class PrivacySecurityScreenStyles {
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[primarySoftColor, backgroundColor],
+    colors: <Color>[cardColor, cardColor],
   );
   static const LinearGradient iconGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -92,7 +92,12 @@ abstract final class PrivacySecurityScreenStyles {
     colors: <Color>[primaryColor, primaryDarkColor],
   );
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: shadowColor, blurRadius: 16, offset: Offset(0, 5)),
+    BoxShadow(
+      color: shadowColor,
+      blurRadius: 18,
+      spreadRadius: 1,
+      offset: Offset(0, 6),
+    ),
   ];
   static const List<BoxShadow> heroIconShadow = <BoxShadow>[
     BoxShadow(color: shadowColor, blurRadius: 18, offset: Offset(0, 8)),
