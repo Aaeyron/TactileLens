@@ -5,6 +5,7 @@ import '../../utils/session_manager.dart';
 import '../../widgets/profile/logout_dialog.dart';
 import 'account_information_screen.dart';
 import 'about_tactilelens_screen.dart';
+import 'terms_policy_screen.dart';
 
 
 class ProfileScreen extends StatefulWidget {
@@ -228,7 +229,14 @@ Widget build(BuildContext context) {
                           size: ProfileStyles.menuArrowSize,
                           color: ProfileStyles.menuArrowColor,
                         ),
-                        onTap: () {},
+                       onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TermsPolicyScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

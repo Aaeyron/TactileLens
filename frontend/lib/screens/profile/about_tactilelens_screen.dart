@@ -72,7 +72,7 @@ class AboutTactileLensScreen extends StatelessWidget {
                     icon: AboutTactileLensScreenStyles.missionIcon,
                     title: 'Our Mission',
                     body:
-                        'Empower SPED educators with accurate and accessible tools to translate text and math into UEB and Nemeth Braille—making learning truly inclusive.',
+                        'Empower SPED educators with accurate and accessible tools to translate text and math into UEB and Nemeth Braille making learning truly inclusive.',
                   ),
                   const SizedBox(height: AboutTactileLensScreenStyles.space12),
                   const _InformationCard(
