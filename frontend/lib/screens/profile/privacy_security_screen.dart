@@ -193,29 +193,19 @@ class _PrivacyHero extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      'Privacy & Security',
-                      style: PrivacySecurityScreenStyles.heroTitleStyle,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Privacy & Security',
+                        maxLines: 1,
+                        style: PrivacySecurityScreenStyles.heroTitleStyle,
+                      ),
                     ),
                     SizedBox(height: PrivacySecurityScreenStyles.space6),
                     Text(
                       'Your data stays protected whether you work offline or online.',
                       style: PrivacySecurityScreenStyles.heroSubtitleStyle,
-                    ),
-                    SizedBox(height: PrivacySecurityScreenStyles.space10),
-                    Wrap(
-                      spacing: PrivacySecurityScreenStyles.space8,
-                      runSpacing: PrivacySecurityScreenStyles.space8,
-                      children: <Widget>[
-                        _ModeBadge(
-                          icon: PrivacySecurityScreenStyles.offlineBadgeIcon,
-                          label: 'Offline Mode',
-                        ),
-                        _ModeBadge(
-                          icon: PrivacySecurityScreenStyles.onlineBadgeIcon,
-                          label: 'Online Mode',
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -252,36 +242,6 @@ class _HeroShield extends StatelessWidget {
             color: PrivacySecurityScreenStyles.primaryColor,
             size: PrivacySecurityScreenStyles.heroLockIconSize,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ModeBadge extends StatelessWidget {
-  const _ModeBadge({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: PrivacySecurityScreenStyles.badgePadding,
-      decoration: const BoxDecoration(
-        color: PrivacySecurityScreenStyles.primarySoftColor,
-        borderRadius: PrivacySecurityScreenStyles.badgeRadius,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            icon,
-            color: PrivacySecurityScreenStyles.primaryColor,
-            size: PrivacySecurityScreenStyles.badgeIconSize,
-          ),
-          const SizedBox(width: PrivacySecurityScreenStyles.space6),
-          Text(label, style: PrivacySecurityScreenStyles.badgeStyle),
         ],
       ),
     );

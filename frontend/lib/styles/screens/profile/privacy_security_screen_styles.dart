@@ -40,10 +40,6 @@ abstract final class PrivacySecurityScreenStyles {
     vertical: 28,
   );
   static const EdgeInsets compactHeroPadding = EdgeInsets.all(18);
-  static const EdgeInsets badgePadding = EdgeInsets.symmetric(
-    horizontal: 11,
-    vertical: 6,
-  );
   static const EdgeInsets topicCardPadding = EdgeInsets.symmetric(
     horizontal: 18,
     vertical: 12,
@@ -71,7 +67,6 @@ abstract final class PrivacySecurityScreenStyles {
   static const double cardRadiusValue = 18;
   static const double heroIconRadiusValue = 28;
   static const double iconRadiusValue = 16;
-  static const double badgeRadiusValue = 24;
   static const BorderRadius cardRadius = BorderRadius.all(
     Radius.circular(cardRadiusValue),
   );
@@ -80,9 +75,6 @@ abstract final class PrivacySecurityScreenStyles {
   );
   static const BorderRadius iconRadius = BorderRadius.all(
     Radius.circular(iconRadiusValue),
-  );
-  static const BorderRadius badgeRadius = BorderRadius.all(
-    Radius.circular(badgeRadiusValue),
   );
   static const Border cardBorder = Border.fromBorderSide(
     BorderSide(color: borderColor, width: borderWidth),
@@ -109,8 +101,6 @@ abstract final class PrivacySecurityScreenStyles {
   // Icons
   static const IconData heroIcon = Icons.shield_rounded;
   static const IconData heroLockIcon = Icons.lock_rounded;
-  static const IconData offlineBadgeIcon = Icons.wifi_off_rounded;
-  static const IconData onlineBadgeIcon = Icons.language_rounded;
   static const IconData dataProtectionIcon = Icons.admin_panel_settings_rounded;
   static const IconData offlinePrivacyIcon = Icons.phone_android_rounded;
   static const IconData onlineSecurityIcon = Icons.lock_person_rounded;
@@ -131,7 +121,6 @@ abstract final class PrivacySecurityScreenStyles {
   // Icon sizes
   static const double heroIconSize = 58;
   static const double heroLockIconSize = 30;
-  static const double badgeIconSize = 17;
   static const double topicIconSize = 34;
   static const double arrowIconSize = 26;
   static const double featureIconSize = 29;
@@ -161,12 +150,6 @@ abstract final class PrivacySecurityScreenStyles {
     fontSize: 14.5,
     fontWeight: FontWeight.w500,
     height: 1.5,
-  );
-  static const TextStyle badgeStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
   );
   static const TextStyle topicTitleStyle = TextStyle(
     fontFamily: fontFamily,
