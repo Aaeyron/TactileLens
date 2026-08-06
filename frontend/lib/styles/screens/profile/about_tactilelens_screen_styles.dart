@@ -38,7 +38,7 @@ abstract final class AboutTactileLensScreenStyles {
   static const EdgeInsets heroPadding = EdgeInsets.symmetric(horizontal: 24, vertical: 26);
   static const EdgeInsets informationCardPadding = EdgeInsets.all(18);
   static const EdgeInsets featureCardPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 16);
-  static const EdgeInsets projectCardPadding = EdgeInsets.fromLTRB(16, 8, 0, 8);
+  static const EdgeInsets projectCardPadding = EdgeInsets.fromLTRB(16, 8, 8, 8);
   static const EdgeInsets projectRowPadding = EdgeInsets.symmetric(vertical: 9);
   static const EdgeInsets footerCardPadding = EdgeInsets.all(18);
   static const EdgeInsets badgePadding = EdgeInsets.symmetric(horizontal: 14, vertical: 7);

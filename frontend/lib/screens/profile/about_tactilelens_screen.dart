@@ -316,6 +316,7 @@ class _ProjectInformationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: AboutTactileLensScreenStyles.projectCardPadding,
       decoration: const BoxDecoration(
         color: AboutTactileLensScreenStyles.cardColor,
