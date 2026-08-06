@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 
 abstract final class AboutTactileLensScreenStyles {
+  static const String fontFamily = 'Poppins';
+
   // Brand palette
   static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color primaryDarkColor = Color(0xFF082E73);
-  static const Color primaryAccentColor = Color(0xFF5E35B1);
-  static const Color primarySoftColor = Color(0xFFF0EDFF);
-  static const Color primaryFaintColor = Color(0xFFF8F7FF);
-  static const Color backgroundColor = Color(0xFFFCFCFF);
+  static const Color primaryDarkColor = Color(0xFF0D47A1);
+  static const Color primaryAccentColor = Color(0xFF0D47A1);
+  static const Color primarySoftColor = Color(0xFFEAF2FC);
+  static const Color primaryFaintColor = Color(0xFFF5F8FD);
+  static const Color backgroundColor = Color(0xFFFAFCFF);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimaryColor = Color(0xFF11112B);
   static const Color textSecondaryColor = Color(0xFF4E4D66);
-  static const Color borderColor = Color(0xFFE8E7F0);
+  static const Color borderColor = Color(0xFFDCE7F5);
   static const Color shadowColor = Color(0x140D47A1);
-  static const Color heroHighlightColor = Color(0xFFF5F2FF);
-  static const Color heroEndColor = Color(0xFFFAF9FF);
+  static const Color heroHighlightColor = Color(0xFFEAF2FC);
+  static const Color heroEndColor = Color(0xFFF7FAFE);
 
   // Layout
   static const double contentMaxWidth = 640;
@@ -108,12 +110,14 @@ abstract final class AboutTactileLensScreenStyles {
 
   // Typography
   static const TextStyle appBarTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 20,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.25,
   );
   static const TextStyle heroTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 30,
     fontWeight: FontWeight.w800,
@@ -121,62 +125,73 @@ abstract final class AboutTactileLensScreenStyles {
     letterSpacing: -0.8,
   );
   static const TextStyle heroTaglineStyle = TextStyle(
+    fontFamily: fontFamily,
     color: primaryColor,
     fontSize: 15,
     fontWeight: FontWeight.w600,
     height: 1.3,
   );
   static const TextStyle badgeTextStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 12.5,
     fontWeight: FontWeight.w600,
   );
   static const TextStyle sectionTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: primaryColor,
     fontSize: 18,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.2,
   );
   static const TextStyle cardTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: primaryColor,
     fontSize: 16,
     fontWeight: FontWeight.w800,
     height: 1.25,
   );
   static const TextStyle bodyStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.55,
   );
   static const TextStyle featureTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 13.5,
     fontWeight: FontWeight.w700,
     height: 1.25,
   );
   static const TextStyle featureBodyStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textSecondaryColor,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.35,
   );
   static const TextStyle projectLabelStyle = TextStyle(
+    fontFamily: fontFamily,
     color: primaryColor,
     fontSize: 12.5,
     fontWeight: FontWeight.w700,
   );
   static const TextStyle projectValueStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textSecondaryColor,
     fontSize: 12.5,
     fontWeight: FontWeight.w500,
   );
   static const TextStyle footerTitleStyle = TextStyle(
+    fontFamily: fontFamily,
     color: primaryColor,
     fontSize: 14,
     fontWeight: FontWeight.w800,
   );
   static const TextStyle footerBodyStyle = TextStyle(
+    fontFamily: fontFamily,
     color: textPrimaryColor,
     fontSize: 12.5,
     height: 1.45,
