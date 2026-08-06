@@ -72,7 +72,7 @@ class AboutTactileLensScreen extends StatelessWidget {
                     icon: AboutTactileLensScreenStyles.missionIcon,
                     title: 'Our Mission',
                     body:
-                        'Empower SPED educators with accurate and accessible tools to translate text and math into UEB and Nemeth Braille making learning truly inclusive.',
+                        'Empower SPED educators with accurate and accessible tools to translate text and math into UEB and Nemeth Braille—making learning truly inclusive.',
                   ),
                   const SizedBox(height: AboutTactileLensScreenStyles.space12),
                   const _InformationCard(
@@ -118,6 +118,7 @@ class _HeroSection extends StatelessWidget {
         gradient: AboutTactileLensScreenStyles.heroGradient,
         borderRadius: AboutTactileLensScreenStyles.cardRadius,
         border: AboutTactileLensScreenStyles.cardBorder,
+        boxShadow: AboutTactileLensScreenStyles.cardShadow,
       ),
       child: Column(
         children: <Widget>[
@@ -161,8 +162,9 @@ class _HeroSection extends StatelessWidget {
           Container(
             padding: AboutTactileLensScreenStyles.badgePadding,
             decoration: const BoxDecoration(
-              color: AboutTactileLensScreenStyles.primarySoftColor,
+              color: AboutTactileLensScreenStyles.cardColor,
               borderRadius: AboutTactileLensScreenStyles.badgeRadius,
+              border: AboutTactileLensScreenStyles.accentContainerBorder,
             ),
             child: const Text(
               'Version 1.0.0  •  Offline First',
@@ -204,6 +206,7 @@ class _InformationCard extends StatelessWidget {
             decoration: const BoxDecoration(
               color: AboutTactileLensScreenStyles.primarySoftColor,
               shape: BoxShape.circle,
+              border: AboutTactileLensScreenStyles.accentContainerBorder,
             ),
             child: Icon(
               icon,
@@ -275,6 +278,7 @@ class _FeatureCard extends StatelessWidget {
         color: AboutTactileLensScreenStyles.primaryFaintColor,
         borderRadius: AboutTactileLensScreenStyles.featureRadius,
         border: AboutTactileLensScreenStyles.featureCardBorder,
+        boxShadow: AboutTactileLensScreenStyles.cardShadow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -419,6 +423,7 @@ class _AboutProjectCard extends StatelessWidget {
         gradient: AboutTactileLensScreenStyles.heroGradient,
         borderRadius: AboutTactileLensScreenStyles.cardRadius,
         border: AboutTactileLensScreenStyles.cardBorder,
+        boxShadow: AboutTactileLensScreenStyles.cardShadow,
       ),
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,6 +462,7 @@ class _FooterIcon extends StatelessWidget {
       decoration: const BoxDecoration(
         color: AboutTactileLensScreenStyles.primarySoftColor,
         borderRadius: AboutTactileLensScreenStyles.iconRadius,
+        border: AboutTactileLensScreenStyles.accentContainerBorder,
       ),
       child: const Icon(
         AboutTactileLensScreenStyles.aboutProjectIcon,

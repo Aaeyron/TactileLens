@@ -8,16 +8,16 @@ abstract final class AboutTactileLensScreenStyles {
   static const Color primaryDarkColor = Color(0xFF0D47A1);
   static const Color primaryAccentColor = Color(0xFF0D47A1);
   static const Color primarySoftColor = Color(0xFFEAF2FC);
-  static const Color primaryFaintColor = Color(0xFFF5F8FD);
-  static const Color backgroundColor = Color(0xFFFAFCFF);
+  static const Color primaryFaintColor = Color(0xFFFFFFFF);
+  static const Color backgroundColor = Color(0xFFFFFFFF);
   static const Color cardColor = Color(0xFFFFFFFF);
   static const Color textPrimaryColor = Color(0xFF11112B);
   static const Color textSecondaryColor = Color(0xFF4E4D66);
-  static const Color borderColor = Color(0xFFDCE7F5);
-  static const Color featureBorderColor = Color(0x400D47A1);
-  static const Color shadowColor = Color(0x140D47A1);
-  static const Color heroHighlightColor = Color(0xFFEAF2FC);
-  static const Color heroEndColor = Color(0xFFF7FAFE);
+  static const Color borderColor = Color(0x3D0D47A1);
+  static const Color featureBorderColor = Color(0x3D0D47A1);
+  static const Color shadowColor = Color(0x1A0D47A1);
+  static const Color heroHighlightColor = Color(0xFFFFFFFF);
+  static const Color heroEndColor = Color(0xFFFFFFFF);
 
   // Layout
   static const double contentMaxWidth = 640;
@@ -83,9 +83,17 @@ abstract final class AboutTactileLensScreenStyles {
       width: featureBorderWidth,
     ),
   );
+  static const Border accentContainerBorder = Border.fromBorderSide(
+    BorderSide(color: borderColor, width: cardBorderWidth),
+  );
 
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: shadowColor, blurRadius: 18, offset: Offset(0, 6)),
+    BoxShadow(
+      color: shadowColor,
+      blurRadius: 18,
+      spreadRadius: 1,
+      offset: Offset(0, 6),
+    ),
   ];
 
   static const LinearGradient heroGradient = LinearGradient(
