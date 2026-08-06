@@ -115,14 +115,12 @@ abstract final class PrivacySecurityScreenStyles {
   static const IconData userControlIcon = Icons.account_circle_rounded;
   static const IconData overviewIcon = Icons.info_outline_rounded;
   static const IconData checkIcon = Icons.check_circle_outline_rounded;
-  static const IconData arrowIcon = Icons.chevron_right_rounded;
   static const IconData brandIcon = Icons.more_vert_rounded;
 
   // Icon sizes
   static const double heroIconSize = 58;
   static const double heroLockIconSize = 30;
   static const double topicIconSize = 34;
-  static const double arrowIconSize = 26;
   static const double featureIconSize = 29;
   static const double overviewIconSize = 30;
   static const double checkIconSize = 19;

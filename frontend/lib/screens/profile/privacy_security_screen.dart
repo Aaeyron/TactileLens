@@ -316,12 +316,6 @@ class _PrivacyTopicCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: PrivacySecurityScreenStyles.space8),
-                  const Icon(
-                    PrivacySecurityScreenStyles.arrowIcon,
-                    color: PrivacySecurityScreenStyles.primaryColor,
-                    size: PrivacySecurityScreenStyles.arrowIconSize,
-                  ),
                 ],
               ),
             ),
