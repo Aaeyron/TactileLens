@@ -274,6 +274,7 @@ class _FeatureCard extends StatelessWidget {
       decoration: const BoxDecoration(
         color: AboutTactileLensScreenStyles.primaryFaintColor,
         borderRadius: AboutTactileLensScreenStyles.featureRadius,
+        border: AboutTactileLensScreenStyles.featureCardBorder,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

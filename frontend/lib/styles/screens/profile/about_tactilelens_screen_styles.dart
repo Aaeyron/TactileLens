@@ -14,6 +14,7 @@ abstract final class AboutTactileLensScreenStyles {
   static const Color textPrimaryColor = Color(0xFF11112B);
   static const Color textSecondaryColor = Color(0xFF4E4D66);
   static const Color borderColor = Color(0xFFDCE7F5);
+  static const Color featureBorderColor = Color(0x400D47A1);
   static const Color shadowColor = Color(0x140D47A1);
   static const Color heroHighlightColor = Color(0xFFEAF2FC);
   static const Color heroEndColor = Color(0xFFF7FAFE);
@@ -28,6 +29,7 @@ abstract final class AboutTactileLensScreenStyles {
   static const double appBarElevation = 0;
   static const double appBarScrolledUnderElevation = 0;
   static const double cardBorderWidth = 1;
+  static const double featureBorderWidth = 1.15;
   static const double dividerThickness = 1;
   static const Offset projectValueOffset = Offset(0, 0);
   static const double projectLabelColumnWidth = 92;
@@ -74,6 +76,12 @@ abstract final class AboutTactileLensScreenStyles {
   );
   static const Border projectDividerBorder = Border(
     bottom: BorderSide(color: borderColor, width: dividerThickness),
+  );
+  static const Border featureCardBorder = Border.fromBorderSide(
+    BorderSide(
+      color: featureBorderColor,
+      width: featureBorderWidth,
+    ),
   );
 
   static const List<BoxShadow> cardShadow = <BoxShadow>[
