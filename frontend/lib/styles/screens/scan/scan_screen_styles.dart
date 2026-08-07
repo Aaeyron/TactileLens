@@ -17,9 +17,7 @@ class ScanScreenStyles {
   static const double topContentSpacing = 40;
 
   // Camera layout
-  static const double modeSelectorTopSpacing = 35;
-  static const double toggleBottomSpacing = 20;
-  static const double cameraBottomSpacing = 24;
+  static const double cameraBottomSpacing = 77;
 
   // Back button
   static const double backButtonTopSpacing = 10;

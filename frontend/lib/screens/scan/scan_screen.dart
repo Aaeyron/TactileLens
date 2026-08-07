@@ -10,7 +10,6 @@ import '../../services/scan/scan_service.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/scan/scan_action_button.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
-import '../../widgets/scan/scan_mode_selector.dart';
 import '../../widgets/scan/scan_preview.dart';
 
 class ScanScreen extends StatefulWidget {
@@ -34,7 +33,6 @@ class _ScanScreenState extends State<ScanScreen> {
   File? _selectedImage;
   Rect? _selectedRegion;
   Size? _previewSize;
-  ScanMode _selectedMode = ScanMode.ueb;
   bool _flashEnabled = false;
 
   Future<void> _toggleFlash() async {
@@ -180,12 +178,6 @@ class _ScanScreenState extends State<ScanScreen> {
     });
   }
 
-  void _onModeChanged(ScanMode mode) {
-    setState(() {
-      _selectedMode = mode;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool hasCapturedImage = _selectedImage != null;
@@ -224,13 +216,6 @@ class _ScanScreenState extends State<ScanScreen> {
                           ),
                           const SizedBox(
                             height: ScanScreenStyles.backButtonBottomSpacing,
-                          ),
-                          ScanModeSelector(
-                            selectedMode: _selectedMode,
-                            onModeChanged: _onModeChanged,
-                          ),
-                          const SizedBox(
-                            height: ScanScreenStyles.toggleBottomSpacing,
                           ),
                         ],
                       ),
