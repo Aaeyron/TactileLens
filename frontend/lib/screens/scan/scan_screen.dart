@@ -95,54 +95,115 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _scanImage() async {
-    final File? selectedImage = _selectedImage;
+  final File? selectedImage = _selectedImage;
 
-    if (selectedImage == null || _isProcessing) return;
+  if (selectedImage == null || _isProcessing) return;
 
-    setState(() {
-      _isProcessing = true;
-    });
+  setState(() {
+    _isProcessing = true;
+  });
 
-    try {
-      final File imageToScan =
-          await _prepareImageForScanning(selectedImage);
+  try {
+    final File imageToScan =
+        await _prepareImageForScanning(selectedImage);
 
-      debugPrint('Sending image to PaddleOCR-VL: ${imageToScan.path}');
+    if (!mounted) return;
 
-      final scanResult =
-          await _aiService.scanDocument(imageToScan);
+    final bool shouldSendToAI =
+        await _confirmImageToScan(imageToScan);
 
-      if (!mounted) return;
+    if (!shouldSendToAI || !mounted) return;
 
-      debugPrint('PaddleOCR-VL scan completed successfully.');
-      debugPrint('Scan result: $scanResult');
+    debugPrint(
+      'Sending image to PaddleOCR-VL: ${imageToScan.path}',
+    );
 
-      // The next step will open the scan-result screen here
-      // and pass scanResult to it.
-    } on AIServiceException catch (error, stackTrace) {
-      debugPrint('AI service error: ${error.message}');
-      debugPrintStack(stackTrace: stackTrace);
+    final scanResult =
+        await _aiService.scanDocument(imageToScan);
 
-      if (!mounted) return;
+    if (!mounted) return;
 
-      _showScanError(error.message);
-    } catch (error, stackTrace) {
-      debugPrint('Document scan failed: $error');
-      debugPrintStack(stackTrace: stackTrace);
+    debugPrint(
+      'PaddleOCR-VL scan completed successfully.',
+    );
 
-      if (!mounted) return;
+    debugPrint(
+      'AI processing time: '
+      '${scanResult.processingTimeMs} ms',
+    );
 
-      _showScanError(
-        'Unable to scan the document. Please try again.',
+    debugPrint(
+      'Detected blocks: ${scanResult.blocks.length}',
+    );
+
+    for (final block in scanResult.blocks) {
+      debugPrint(
+        '[${block.type}] ${block.content}',
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+    }
+
+    // The result screen will be opened here later.
+  } on AIServiceException catch (error, stackTrace) {
+    debugPrint('AI service error: ${error.message}');
+    debugPrintStack(stackTrace: stackTrace);
+
+    if (!mounted) return;
+
+    _showScanError(error.message);
+  } catch (error, stackTrace) {
+    debugPrint('Document scan failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+
+    if (!mounted) return;
+
+    _showScanError(
+      'Unable to scan the document. Please try again.',
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isProcessing = false;
+      });
     }
   }
+}
+
+Future<bool> _confirmImageToScan(
+  File imageToScan,
+) async {
+  final bool? shouldContinue = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: const Text('Preview Image to Scan'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Image.file(
+            imageToScan,
+            fit: BoxFit.contain,
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(false);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop(true);
+            },
+            child: const Text('Send to AI'),
+          ),
+        ],
+      );
+    },
+  );
+
+  return shouldContinue ?? false;
+}
 
   Future<File> _prepareImageForScanning(
     File selectedImage,
