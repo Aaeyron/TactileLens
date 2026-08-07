@@ -14,175 +14,171 @@ import '../../widgets/scan/scan_mode_selector.dart';
 import '../../widgets/scan/scan_preview.dart';
 
 class ScanScreen extends StatefulWidget {
-  final VoidCallback onBack;
-
   const ScanScreen({
     super.key,
     required this.onBack,
   });
+
+  final VoidCallback onBack;
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  File? _selectedImage;
-  Rect? _selectedRegion;
-  Size? _previewSize;
-  String? _recognizedLatex;
-  ScanMode _selectedMode = ScanMode.ueb;
-  bool _flashEnabled = false;
-
   final ScanService _scanService = ScanService();
   final CameraService _cameraService = CameraService();
   final AIService _aiService = AIService();
-  final ImageCropService _imageCropService =
-    ImageCropService();
-  
-  Future<void> _toggleFlash() async {
-  await _cameraService.toggleFlash();
+  final ImageCropService _imageCropService = ImageCropService();
 
-  setState(() {
-    _flashEnabled = !_flashEnabled;
-  });
-}
+  File? _selectedImage;
+  Rect? _selectedRegion;
+  Size? _previewSize;
+  ScanMode _selectedMode = ScanMode.ueb;
+  bool _flashEnabled = false;
+
+  Future<void> _toggleFlash() async {
+    try {
+      await _cameraService.toggleFlash();
+
+      if (!mounted) return;
+
+      setState(() {
+        _flashEnabled = !_flashEnabled;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Flash toggle failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
 
   Future<void> _pickFile() async {
     final File? selectedFile = await _scanService.pickFile();
 
-    if (selectedFile == null) {
-      return;
-    }
+    if (selectedFile == null || !mounted) return;
 
-    setState(() {
-      _selectedImage = selectedFile;
-    });
+    _setSelectedImage(selectedFile);
   }
 
   Future<void> _captureImage() async {
-  try {
-    final File capturedImage =
-        await _cameraService.captureImage();
+    try {
+      final File capturedImage = await _cameraService.captureImage();
 
+      if (!mounted) return;
+
+      _setSelectedImage(capturedImage);
+    } catch (error, stackTrace) {
+      debugPrint('Camera capture failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  void _setSelectedImage(File imageFile) {
     setState(() {
-      _selectedImage = capturedImage;
+      _selectedImage = imageFile;
+      _selectedRegion = null;
+      _previewSize = null;
     });
-  } catch (e) {
-    debugPrint('Camera capture failed: $e');
-  }
-}
-
-Future<void> _scanImage() async {
-  if (_selectedImage == null) {
-    return;
   }
 
-  if (_selectedRegion == null || _previewSize == null) {
-    debugPrint("No region selected.");
-    return;
-  }
+  Future<void> _scanImage() async {
+    final File? selectedImage = _selectedImage;
+    final Rect? selectedRegion = _selectedRegion;
+    final Size? previewSize = _previewSize;
 
-  try {
-    final bytes = await _selectedImage!.readAsBytes();
+    if (selectedImage == null) return;
 
-    final decodedImage = img.decodeImage(bytes);
-
-    if (decodedImage == null) {
-      throw Exception("Unable to decode image.");
+    if (selectedRegion == null || previewSize == null) {
+      debugPrint('No region selected.');
+      return;
     }
 
-    // Original image size
-    final imageWidth = decodedImage.width.toDouble();
-    final imageHeight = decodedImage.height.toDouble();
+    try {
+      final bytes = await selectedImage.readAsBytes();
+      final img.Image? decodedImage = img.decodeImage(bytes);
 
-    // Preview size
-    final previewWidth = _previewSize!.width;
-    final previewHeight = _previewSize!.height;
+      if (decodedImage == null) {
+        throw const FormatException('Unable to decode image.');
+      }
 
-    // Image aspect ratios
-    final imageAspect = imageWidth / imageHeight;
-    final previewAspect = previewWidth / previewHeight;
+      final Rect actualRegion = _mapPreviewRegionToImage(
+        selectedRegion: selectedRegion,
+        previewSize: previewSize,
+        imageSize: Size(
+          decodedImage.width.toDouble(),
+          decodedImage.height.toDouble(),
+        ),
+      );
 
-    // Actual displayed image size
-    double displayedWidth;
-    double displayedHeight;
+      final File croppedImage = await _imageCropService.cropImage(
+        imageFile: selectedImage,
+        cropRect: actualRegion,
+      );
 
-    if (imageAspect > previewAspect) {
-      displayedWidth = previewWidth;
-      displayedHeight = previewWidth / imageAspect;
-    } else {
-      displayedHeight = previewHeight;
-      displayedWidth = previewHeight * imageAspect;
+      debugPrint('Cropped image: ${croppedImage.path}');
+
+      final String recognizedLatex =
+          await _aiService.recognizeEquation(croppedImage);
+
+      if (!mounted) return;
+
+      debugPrint('Recognized LaTeX: $recognizedLatex');
+    } catch (error, stackTrace) {
+      debugPrint('Scan failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  Rect _mapPreviewRegionToImage({
+    required Rect selectedRegion,
+    required Size previewSize,
+    required Size imageSize,
+  }) {
+    if (previewSize.isEmpty || imageSize.isEmpty) {
+      throw const FormatException('Invalid image or preview dimensions.');
     }
 
-    // Empty margins introduced by BoxFit.contain
-    final offsetX = (previewWidth - displayedWidth) / 2;
-    final offsetY = (previewHeight - displayedHeight) / 2;
+    final double imageAspectRatio = imageSize.aspectRatio;
+    final double previewAspectRatio = previewSize.aspectRatio;
 
-    // Remove margins
-    double cropLeft = (_selectedRegion!.left - offsetX);
-    double cropTop = (_selectedRegion!.top - offsetY);
-    double cropWidth = _selectedRegion!.width;
-    double cropHeight = _selectedRegion!.height;
+    final Size displayedImageSize = imageAspectRatio > previewAspectRatio
+        ? Size(previewSize.width, previewSize.width / imageAspectRatio)
+        : Size(previewSize.height * imageAspectRatio, previewSize.height);
 
-    // Clamp so it never goes outside
-    cropLeft = cropLeft.clamp(0.0, displayedWidth);
-    cropTop = cropTop.clamp(0.0, displayedHeight);
-
-    cropWidth = cropWidth.clamp(
-      1.0,
-      displayedWidth - cropLeft,
+    final Offset displayedImageOffset = Offset(
+      (previewSize.width - displayedImageSize.width) / 2,
+      (previewSize.height - displayedImageSize.height) / 2,
     );
 
-    cropHeight = cropHeight.clamp(
-      1.0,
-      displayedHeight - cropTop,
+    final Rect displayedImageBounds =
+        displayedImageOffset & displayedImageSize;
+    final Rect clippedRegion = selectedRegion.intersect(displayedImageBounds);
+
+    if (clippedRegion.isEmpty) {
+      throw const FormatException(
+        'The selected region is outside the displayed image.',
+      );
+    }
+
+    final double scaleX = imageSize.width / displayedImageSize.width;
+    final double scaleY = imageSize.height / displayedImageSize.height;
+
+    return Rect.fromLTWH(
+      ((clippedRegion.left - displayedImageOffset.dx) * scaleX)
+          .roundToDouble(),
+      ((clippedRegion.top - displayedImageOffset.dy) * scaleY)
+          .roundToDouble(),
+      (clippedRegion.width * scaleX).roundToDouble(),
+      (clippedRegion.height * scaleY).roundToDouble(),
     );
-
-    // Convert to original image coordinates
-    final scaleX = imageWidth / displayedWidth;
-    final scaleY = imageHeight / displayedHeight;
-
-  final Rect actualRegion = Rect.fromLTWH(
-  (cropLeft * scaleX).roundToDouble(),
-  (cropTop * scaleY).roundToDouble(),
-  (cropWidth * scaleX).roundToDouble(),
-  (cropHeight * scaleY).roundToDouble(),
-);
-
-    final File croppedImage =
-        await _imageCropService.cropImage(
-      imageFile: _selectedImage!,
-      cropRect: actualRegion,
-    );
-
-    debugPrint("====== CROPPED IMAGE ======");
-  debugPrint(croppedImage.path);
-
-    final latex =
-        await _aiService.recognizeEquation(croppedImage);
-
-    setState(() {
-      _recognizedLatex = latex;
-    });
-
-    debugPrint("Recognized LaTeX:");
-    debugPrint(latex);
-
-  } catch (e) {
-    debugPrint("AI Error: $e");
   }
-}
 
-  void _onRegionSelected(
-    Rect selectedRegion,
-    Size previewSize,
-  ) {
-  setState(() {
-    _selectedRegion = selectedRegion;
-    _previewSize = previewSize;
-  });
-}
+  void _onRegionSelected(Rect selectedRegion, Size previewSize) {
+    setState(() {
+      _selectedRegion = selectedRegion;
+      _previewSize = previewSize;
+    });
+  }
 
   void _onModeChanged(ScanMode mode) {
     setState(() {
@@ -192,106 +188,71 @@ Future<void> _scanImage() async {
 
   @override
   Widget build(BuildContext context) {
-
     final bool hasCapturedImage = _selectedImage != null;
 
     return Scaffold(
       backgroundColor: ScanScreenStyles.backgroundColor,
-
       body: SafeArea(
         child: Column(
-          children: [
+          children: <Widget>[
             Expanded(
-
-             child: SingleChildScrollView(
+              child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                      Padding(
-                        padding: ScanScreenStyles.contentPadding,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-
-                            const SizedBox(
-                              height: ScanScreenStyles.backButtonTopSpacing,
-                            ),
-
-                            // ==============================
-                            // Back Button
-                            // ==============================
-
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.08),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+                  children: <Widget>[
+                    Padding(
+                      padding: ScanScreenStyles.contentPadding,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const SizedBox(
+                            height: ScanScreenStyles.backButtonTopSpacing,
+                          ),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              decoration:
+                                  ScanScreenStyles.backButtonDecoration,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: ScanScreenStyles.backButtonColor,
                                 ),
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.arrow_back,
-                                    color: Color(0xFF0D47A1),
-                                  ),
-                                  onPressed: widget.onBack,
-                                ),
+                                onPressed: widget.onBack,
                               ),
                             ),
-
-                            const SizedBox(
-                              height: ScanScreenStyles.backButtonBottomSpacing,
-                            ),
-
-                            // ==============================
-                            // Scan Mode Selector
-                            // ==============================
-
-                            ScanModeSelector(
-                              selectedMode: _selectedMode,
-                              onModeChanged: _onModeChanged,
-                            ),
-
-                            const SizedBox(
-                              height: ScanScreenStyles.toggleBottomSpacing,
-                            ),
-
-                          ],
-                        ),
-                      ),
-
-                    // ==============================
-                    // Camera / Preview
-                    // ==============================
-                    _selectedImage == null
-                        ? ScanCameraPreview(cameraService: _cameraService)
-                        : ScanPreview(
-                            selectedImage: _selectedImage,
-                            onRegionSelected: _onRegionSelected,
                           ),
-
+                          const SizedBox(
+                            height: ScanScreenStyles.backButtonBottomSpacing,
+                          ),
+                          ScanModeSelector(
+                            selectedMode: _selectedMode,
+                            onModeChanged: _onModeChanged,
+                          ),
+                          const SizedBox(
+                            height: ScanScreenStyles.toggleBottomSpacing,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_selectedImage == null)
+                      ScanCameraPreview(cameraService: _cameraService)
+                    else
+                      ScanPreview(
+                        selectedImage: _selectedImage,
+                        onRegionSelected: _onRegionSelected,
+                      ),
                     const SizedBox(
                       height: ScanScreenStyles.cameraBottomSpacing,
                     ),
-
-                    // ==============================
-                    // Buttons
-                    // ==============================
-                   ScanActionButton(
-                    hasCapturedImage: hasCapturedImage,
-                    onCameraPressed: _captureImage,
-                    onScanPressed: _scanImage,
-                    onUploadPressed: _pickFile,
-                    onFlashPressed: _toggleFlash,
-                    flashEnabled: _flashEnabled,
-                   ),
+                    ScanActionButton(
+                      hasCapturedImage: hasCapturedImage,
+                      onCameraPressed: _captureImage,
+                      onScanPressed: _scanImage,
+                      onUploadPressed: _pickFile,
+                      onFlashPressed: _toggleFlash,
+                      flashEnabled: _flashEnabled,
+                    ),
                   ],
                 ),
               ),
