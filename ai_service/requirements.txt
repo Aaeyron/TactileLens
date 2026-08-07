@@ -1,0 +1,11 @@
+fastapi==0.141.1
+uvicorn==0.52.1
+python-multipart==0.0.32
+
+# PaddleOCR-VL runtime packages are installed separately because the
+# PaddlePaddle build must match the deployment device and CUDA version.
+# Current tested environment:
+# paddlepaddle-gpu==3.2.1 (CUDA 12.6)
+# paddleocr[doc-parser]==3.7.0
+# python-docx==1.2.0
+

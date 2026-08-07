@@ -33,9 +33,13 @@ class _ScanScreenState extends State<ScanScreen> {
   File? _selectedImage;
   Rect? _selectedRegion;
   Size? _previewSize;
+
   bool _flashEnabled = false;
+  bool _isProcessing = false;
 
   Future<void> _toggleFlash() async {
+    if (_selectedImage != null || _isProcessing) return;
+
     try {
       await _cameraService.toggleFlash();
 
@@ -51,16 +55,26 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _pickFile() async {
-    final File? selectedFile = await _scanService.pickFile();
+    if (_isProcessing) return;
 
-    if (selectedFile == null || !mounted) return;
+    try {
+      final File? selectedFile = await _scanService.pickFile();
 
-    _setSelectedImage(selectedFile);
+      if (selectedFile == null || !mounted) return;
+
+      _setSelectedImage(selectedFile);
+    } catch (error, stackTrace) {
+      debugPrint('Image selection failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   Future<void> _captureImage() async {
+    if (_isProcessing) return;
+
     try {
-      final File capturedImage = await _cameraService.captureImage();
+      final File capturedImage =
+          await _cameraService.captureImage();
 
       if (!mounted) return;
 
@@ -76,55 +90,93 @@ class _ScanScreenState extends State<ScanScreen> {
       _selectedImage = imageFile;
       _selectedRegion = null;
       _previewSize = null;
+      _flashEnabled = false;
     });
   }
 
   Future<void> _scanImage() async {
     final File? selectedImage = _selectedImage;
-    final Rect? selectedRegion = _selectedRegion;
-    final Size? previewSize = _previewSize;
 
-    if (selectedImage == null) return;
+    if (selectedImage == null || _isProcessing) return;
 
-    if (selectedRegion == null || previewSize == null) {
-      debugPrint('No region selected.');
-      return;
-    }
+    setState(() {
+      _isProcessing = true;
+    });
 
     try {
-      final bytes = await selectedImage.readAsBytes();
-      final img.Image? decodedImage = img.decodeImage(bytes);
+      final File imageToScan =
+          await _prepareImageForScanning(selectedImage);
 
-      if (decodedImage == null) {
-        throw const FormatException('Unable to decode image.');
-      }
+      debugPrint('Sending image to PaddleOCR-VL: ${imageToScan.path}');
 
-      final Rect actualRegion = _mapPreviewRegionToImage(
-        selectedRegion: selectedRegion,
-        previewSize: previewSize,
-        imageSize: Size(
-          decodedImage.width.toDouble(),
-          decodedImage.height.toDouble(),
-        ),
-      );
-
-      final File croppedImage = await _imageCropService.cropImage(
-        imageFile: selectedImage,
-        cropRect: actualRegion,
-      );
-
-      debugPrint('Cropped image: ${croppedImage.path}');
-
-      final String recognizedLatex =
-          await _aiService.recognizeEquation(croppedImage);
+      final scanResult =
+          await _aiService.scanDocument(imageToScan);
 
       if (!mounted) return;
 
-      debugPrint('Recognized LaTeX: $recognizedLatex');
-    } catch (error, stackTrace) {
-      debugPrint('Scan failed: $error');
+      debugPrint('PaddleOCR-VL scan completed successfully.');
+      debugPrint('Scan result: $scanResult');
+
+      // The next step will open the scan-result screen here
+      // and pass scanResult to it.
+    } on AIServiceException catch (error, stackTrace) {
+      debugPrint('AI service error: ${error.message}');
       debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      _showScanError(error.message);
+    } catch (error, stackTrace) {
+      debugPrint('Document scan failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      _showScanError(
+        'Unable to scan the document. Please try again.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
+  }
+
+  Future<File> _prepareImageForScanning(
+    File selectedImage,
+  ) async {
+    final Rect? selectedRegion = _selectedRegion;
+    final Size? previewSize = _previewSize;
+
+    // No selected crop means the complete image is sent.
+    if (selectedRegion == null || previewSize == null) {
+      return selectedImage;
+    }
+
+    final bytes = await selectedImage.readAsBytes();
+    final img.Image? decodedImage = img.decodeImage(bytes);
+
+    if (decodedImage == null) {
+      throw const FormatException(
+        'Unable to decode the selected image.',
+      );
+    }
+
+    final Rect actualRegion = _mapPreviewRegionToImage(
+      selectedRegion: selectedRegion,
+      previewSize: previewSize,
+      imageSize: Size(
+        decodedImage.width.toDouble(),
+        decodedImage.height.toDouble(),
+      ),
+    );
+
+    return _imageCropService.cropImage(
+      imageFile: selectedImage,
+      cropRect: actualRegion,
+    );
   }
 
   Rect _mapPreviewRegionToImage({
@@ -133,49 +185,111 @@ class _ScanScreenState extends State<ScanScreen> {
     required Size imageSize,
   }) {
     if (previewSize.isEmpty || imageSize.isEmpty) {
-      throw const FormatException('Invalid image or preview dimensions.');
+      throw const FormatException(
+        'Invalid image or preview dimensions.',
+      );
     }
 
-    final double imageAspectRatio = imageSize.aspectRatio;
-    final double previewAspectRatio = previewSize.aspectRatio;
+    /*
+     * ScanPreview displays the image using BoxFit.cover.
+     *
+     * BoxFit.cover may crop the displayed image around its edges.
+     * We therefore calculate its scale and offset before mapping
+     * the user's selection back to the original image.
+     */
+    final double widthScale =
+        previewSize.width / imageSize.width;
 
-    final Size displayedImageSize = imageAspectRatio > previewAspectRatio
-        ? Size(previewSize.width, previewSize.width / imageAspectRatio)
-        : Size(previewSize.height * imageAspectRatio, previewSize.height);
+    final double heightScale =
+        previewSize.height / imageSize.height;
+
+    final double coverScale =
+        widthScale > heightScale ? widthScale : heightScale;
+
+    final Size displayedImageSize = Size(
+      imageSize.width * coverScale,
+      imageSize.height * coverScale,
+    );
 
     final Offset displayedImageOffset = Offset(
       (previewSize.width - displayedImageSize.width) / 2,
       (previewSize.height - displayedImageSize.height) / 2,
     );
 
-    final Rect displayedImageBounds =
-        displayedImageOffset & displayedImageSize;
-    final Rect clippedRegion = selectedRegion.intersect(displayedImageBounds);
+    final Rect previewBounds = Offset.zero & previewSize;
+    final Rect clippedRegion =
+        selectedRegion.intersect(previewBounds);
 
     if (clippedRegion.isEmpty) {
       throw const FormatException(
-        'The selected region is outside the displayed image.',
+        'The selected crop area is invalid.',
       );
     }
 
-    final double scaleX = imageSize.width / displayedImageSize.width;
-    final double scaleY = imageSize.height / displayedImageSize.height;
+    final double left =
+        ((clippedRegion.left - displayedImageOffset.dx) /
+                coverScale)
+            .clamp(0.0, imageSize.width)
+            .toDouble();
 
-    return Rect.fromLTWH(
-      ((clippedRegion.left - displayedImageOffset.dx) * scaleX)
-          .roundToDouble(),
-      ((clippedRegion.top - displayedImageOffset.dy) * scaleY)
-          .roundToDouble(),
-      (clippedRegion.width * scaleX).roundToDouble(),
-      (clippedRegion.height * scaleY).roundToDouble(),
+    final double top =
+        ((clippedRegion.top - displayedImageOffset.dy) /
+                coverScale)
+            .clamp(0.0, imageSize.height)
+            .toDouble();
+
+    final double right =
+        ((clippedRegion.right - displayedImageOffset.dx) /
+                coverScale)
+            .clamp(0.0, imageSize.width)
+            .toDouble();
+
+    final double bottom =
+        ((clippedRegion.bottom - displayedImageOffset.dy) /
+                coverScale)
+            .clamp(0.0, imageSize.height)
+            .toDouble();
+
+    if (right <= left || bottom <= top) {
+      throw const FormatException(
+        'The selected crop area is too small.',
+      );
+    }
+
+    return Rect.fromLTRB(
+      left.roundToDouble(),
+      top.roundToDouble(),
+      right.roundToDouble(),
+      bottom.roundToDouble(),
     );
   }
 
-  void _onRegionSelected(Rect selectedRegion, Size previewSize) {
+  void _onRegionSelected(
+    Rect selectedRegion,
+    Size previewSize,
+  ) {
+    if (_isProcessing) return;
+
     setState(() {
       _selectedRegion = selectedRegion;
       _previewSize = previewSize;
     });
+  }
+
+  void _showScanError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+  }
+
+  @override
+  void dispose() {
+    _aiService.dispose();
+    super.dispose();
   }
 
   @override
@@ -195,10 +309,12 @@ class _ScanScreenState extends State<ScanScreen> {
                     Padding(
                       padding: ScanScreenStyles.contentPadding,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: <Widget>[
                           const SizedBox(
-                            height: ScanScreenStyles.backButtonTopSpacing,
+                            height:
+                                ScanScreenStyles.backButtonTopSpacing,
                           ),
                           Align(
                             alignment: Alignment.centerLeft,
@@ -208,30 +324,38 @@ class _ScanScreenState extends State<ScanScreen> {
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.arrow_back,
-                                  color: ScanScreenStyles.backButtonColor,
+                                  color:
+                                      ScanScreenStyles.backButtonColor,
                                 ),
-                                onPressed: widget.onBack,
+                                onPressed:
+                                    _isProcessing ? null : widget.onBack,
                               ),
                             ),
                           ),
                           const SizedBox(
-                            height: ScanScreenStyles.backButtonBottomSpacing,
+                            height: ScanScreenStyles
+                                .backButtonBottomSpacing,
                           ),
                         ],
                       ),
                     ),
                     if (_selectedImage == null)
-                      ScanCameraPreview(cameraService: _cameraService)
+                      ScanCameraPreview(
+                        cameraService: _cameraService,
+                      )
                     else
                       ScanPreview(
                         selectedImage: _selectedImage,
                         onRegionSelected: _onRegionSelected,
                       ),
                     const SizedBox(
-                      height: ScanScreenStyles.cameraBottomSpacing,
+                      height:
+                          ScanScreenStyles.cameraBottomSpacing,
                     ),
                     ScanActionButton(
                       hasCapturedImage: hasCapturedImage,
+                      isProcessing: _isProcessing,
+                      flashAvailable: !hasCapturedImage,
                       onCameraPressed: _captureImage,
                       onScanPressed: _scanImage,
                       onUploadPressed: _pickFile,
