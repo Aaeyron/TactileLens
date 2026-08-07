@@ -51,4 +51,5 @@ class ScanScreenStyles {
     fontWeight: FontWeight.w600,
     color: onPrimaryColor,
   );
+
 }

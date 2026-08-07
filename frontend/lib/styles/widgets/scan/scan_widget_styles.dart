@@ -147,13 +147,23 @@ abstract final class ScanWidgetStyles {
     fontWeight: FontWeight.w500,
   );
 
-  // ============================================================
-  // SELECTION OVERLAY
-  // ============================================================
+  static const BoxFit previewImageFit = BoxFit.cover;
 
-  static const Color selectionFillColor = Color(0x260D47A1);
-  static const Color selectionBorderColor = primaryBlue;
-  static const double selectionBorderWidth = 2.0;
+// ============================================================
+// SELECTION OVERLAY
+// ============================================================
+
+static const Color selectionFillColor =
+    Color(0x260D47A1);
+
+static const Color selectionBorderColor =
+    primaryBlue;
+
+static const double selectionBorderWidth = 2.0;
+
+static const double minimumSelectionWidth = 24.0;
+
+static const double minimumSelectionHeight = 24.0;
 
   // ============================================================
   // CAMERA PREVIEW

@@ -1,13 +1,18 @@
-import 'dart:math';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-class ScanSelectionOverlay extends StatefulWidget {
-  final ValueChanged<Rect> onRegionSelected;
+import '../../styles/widgets/scan/scan_widget_styles.dart';
 
+class ScanSelectionOverlay extends StatefulWidget {
   const ScanSelectionOverlay({
     super.key,
     required this.onRegionSelected,
+    required this.onSelectionCleared,
   });
+
+  final ValueChanged<Rect> onRegionSelected;
+  final VoidCallback onSelectionCleared;
 
   @override
   State<ScanSelectionOverlay> createState() =>
@@ -16,94 +21,153 @@ class ScanSelectionOverlay extends StatefulWidget {
 
 class _ScanSelectionOverlayState
     extends State<ScanSelectionOverlay> {
-
   Offset? _startPoint;
   Offset? _currentPoint;
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onPanStart: (details) {
-        setState(() {
-          _startPoint = details.localPosition;
-          _currentPoint = details.localPosition;
-        });
-      },
+  Rect? get _selectedRegion {
+    final Offset? startPoint = _startPoint;
+    final Offset? currentPoint = _currentPoint;
 
-      onPanUpdate: (details) {
-        setState(() {
-          _currentPoint = details.localPosition;
-        });
-      },
-            onPanEnd: (_) {
-        if (_startPoint == null || _currentPoint == null) {
-          return;
-        }
+    if (startPoint == null || currentPoint == null) {
+      return null;
+    }
 
-        final Rect selectedRegion = Rect.fromLTRB(
-          min(_startPoint!.dx, _currentPoint!.dx),
-          min(_startPoint!.dy, _currentPoint!.dy),
-          max(_startPoint!.dx, _currentPoint!.dx),
-          max(_startPoint!.dy, _currentPoint!.dy),
-        );
-
-        widget.onRegionSelected(selectedRegion);
-      },
-      
-      child: CustomPaint(
-        painter: _SelectionPainter(
-          startPoint: _startPoint,
-          currentPoint: _currentPoint,
-        ),
-        child: Container(
-          color: Colors.transparent,
-        ),
-      ),
+    return Rect.fromLTRB(
+      math.min(startPoint.dx, currentPoint.dx),
+      math.min(startPoint.dy, currentPoint.dy),
+      math.max(startPoint.dx, currentPoint.dx),
+      math.max(startPoint.dy, currentPoint.dy),
     );
   }
-}
-
-// ============================================================
-// Selection Painter
-// ============================================================
-
-class _SelectionPainter extends CustomPainter {
-
-  final Offset? startPoint;
-  final Offset? currentPoint;
-
-  _SelectionPainter({
-    required this.startPoint,
-    required this.currentPoint,
-  });
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (startPoint == null || currentPoint == null) {
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (
+        BuildContext context,
+        BoxConstraints constraints,
+      ) {
+        final Size overlaySize = Size(
+          constraints.maxWidth,
+          constraints.maxHeight,
+        );
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _clearSelection,
+          onPanStart: (DragStartDetails details) {
+            final Offset position = _restrictToBounds(
+              details.localPosition,
+              overlaySize,
+            );
+
+            setState(() {
+              _startPoint = position;
+              _currentPoint = position;
+            });
+          },
+          onPanUpdate: (DragUpdateDetails details) {
+            if (_startPoint == null) return;
+
+            setState(() {
+              _currentPoint = _restrictToBounds(
+                details.localPosition,
+                overlaySize,
+              );
+            });
+          },
+          onPanEnd: (_) => _finishSelection(),
+          onPanCancel: _cancelCurrentSelection,
+          child: CustomPaint(
+            painter: _SelectionPainter(
+              selectedRegion: _selectedRegion,
+            ),
+            child: const SizedBox.expand(),
+          ),
+        );
+      },
+    );
+  }
+
+  Offset _restrictToBounds(
+    Offset position,
+    Size overlaySize,
+  ) {
+    return Offset(
+      position.dx
+          .clamp(0.0, overlaySize.width)
+          .toDouble(),
+      position.dy
+          .clamp(0.0, overlaySize.height)
+          .toDouble(),
+    );
+  }
+
+  void _finishSelection() {
+    final Rect? selectedRegion = _selectedRegion;
+
+    if (selectedRegion == null ||
+        selectedRegion.width <
+            ScanWidgetStyles.minimumSelectionWidth ||
+        selectedRegion.height <
+            ScanWidgetStyles.minimumSelectionHeight) {
+      _clearSelection();
       return;
     }
 
-    final rect = Rect.fromLTRB(
-      min(startPoint!.dx, currentPoint!.dx),
-      min(startPoint!.dy, currentPoint!.dy),
-      max(startPoint!.dx, currentPoint!.dx),
-      max(startPoint!.dy, currentPoint!.dy),
-    );
+    widget.onRegionSelected(selectedRegion);
+  }
 
-    final fillPaint = Paint()
-      ..color = Colors.blue.withValues(alpha: 0.15);
+  void _cancelCurrentSelection() {
+    _clearSelection();
+  }
 
-    final borderPaint = Paint()
-      ..color = Colors.blue
+  void _clearSelection() {
+    if (_startPoint == null && _currentPoint == null) {
+      widget.onSelectionCleared();
+      return;
+    }
+
+    setState(() {
+      _startPoint = null;
+      _currentPoint = null;
+    });
+
+    widget.onSelectionCleared();
+  }
+}
+
+class _SelectionPainter extends CustomPainter {
+  const _SelectionPainter({
+    required this.selectedRegion,
+  });
+
+  final Rect? selectedRegion;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Rect? region = selectedRegion;
+
+    if (region == null) return;
+
+    final Paint fillPaint = Paint()
+      ..color = ScanWidgetStyles.selectionFillColor
+      ..style = PaintingStyle.fill;
+
+    final Paint borderPaint = Paint()
+      ..color = ScanWidgetStyles.selectionBorderColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth =
+          ScanWidgetStyles.selectionBorderWidth;
 
-    canvas.drawRect(rect, fillPaint);
-    canvas.drawRect(rect, borderPaint);
+    canvas.drawRect(region, fillPaint);
+    canvas.drawRect(region, borderPaint);
   }
 
   @override
-  bool shouldRepaint(covariant _SelectionPainter oldDelegate) {
-    return true;
+  bool shouldRepaint(
+    covariant _SelectionPainter oldDelegate,
+  ) {
+    return oldDelegate.selectedRegion != selectedRegion;
   }
 }

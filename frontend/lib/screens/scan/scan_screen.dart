@@ -276,6 +276,17 @@ class _ScanScreenState extends State<ScanScreen> {
     });
   }
 
+  void _clearSelectedRegion() {
+  if (_isProcessing) return;
+
+  setState(() {
+    _selectedRegion = null;
+    _previewSize = null;
+  });
+}
+
+  
+
   void _showScanError(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -344,10 +355,11 @@ class _ScanScreenState extends State<ScanScreen> {
                         cameraService: _cameraService,
                       )
                     else
-                      ScanPreview(
-                        selectedImage: _selectedImage,
-                        onRegionSelected: _onRegionSelected,
-                      ),
+                    ScanPreview(
+                      selectedImage: _selectedImage!,
+                      onRegionSelected: _onRegionSelected,
+                      onSelectionCleared: _clearSelectedRegion,
+                    ),
                     const SizedBox(
                       height:
                           ScanScreenStyles.cameraBottomSpacing,
