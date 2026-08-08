@@ -34,25 +34,25 @@ class ScanDocumentResult {
       );
     }
 
-    final List<DocumentBlock> blocks =
-        _parseBlocks(rawBlocks);
+    final List<DocumentBlock> blocks = _parseBlocks(rawBlocks);
+    final List<DocumentPage> pages = _parsePages(json['pages']);
 
-    final List<DocumentPage> pages =
-        _parsePages(json['pages']);
-
-    final int reportedPageCount =
-        _readInteger(json['page_count']);
+    final int reportedPageCount = _readInteger(
+      json['page_count'],
+    );
 
     return ScanDocumentResult(
       model: _readString(json['model']),
-      pipelineVersion:
-          _readString(json['pipeline_version']),
+      pipelineVersion: _readString(
+        json['pipeline_version'],
+      ),
       device: _readString(json['device']),
       pageCount: reportedPageCount > 0
           ? reportedPageCount
           : pages.length,
-      processingTimeMs:
-          _readDouble(json['processing_time_ms']),
+      processingTimeMs: _readDouble(
+        json['processing_time_ms'],
+      ),
       blocks: List<DocumentBlock>.unmodifiable(blocks),
       pages: List<DocumentPage>.unmodifiable(pages),
     );
@@ -60,7 +60,7 @@ class ScanDocumentResult {
 
   bool get hasContent => blocks.any(
         (DocumentBlock block) =>
-            block.content.trim().isNotEmpty,
+            block.normalizedContent.trim().isNotEmpty,
       );
 
   bool get hasText => blocks.any(
@@ -88,13 +88,14 @@ class ScanDocumentResult {
   static List<DocumentBlock> _parseBlocks(
     List<dynamic> values,
   ) {
-    final List<DocumentBlock> blocks =
-        <DocumentBlock>[];
+    final List<DocumentBlock> blocks = <DocumentBlock>[];
 
     for (int index = 0; index < values.length; index++) {
       final dynamic value = values[index];
 
-      if (value is! Map) continue;
+      if (value is! Map) {
+        continue;
+      }
 
       blocks.add(
         DocumentBlock.fromJson(
@@ -105,7 +106,7 @@ class ScanDocumentResult {
       );
     }
 
-    // Preserve the order supplied by the backend.
+    // Preserve the reading order supplied by the backend.
     return blocks;
   }
 
@@ -119,7 +120,9 @@ class ScanDocumentResult {
     for (int index = 0; index < value.length; index++) {
       final dynamic page = value[index];
 
-      if (page is! Map) continue;
+      if (page is! Map) {
+        continue;
+      }
 
       pages.add(
         DocumentPage.fromJson(
@@ -164,10 +167,9 @@ class DocumentPage {
   }) {
     final dynamic rawBlocks = json['blocks'];
 
-    final List<DocumentBlock> blocks =
-        rawBlocks is List
-            ? ScanDocumentResult._parseBlocks(rawBlocks)
-            : const <DocumentBlock>[];
+    final List<DocumentBlock> blocks = rawBlocks is List
+        ? ScanDocumentResult._parseBlocks(rawBlocks)
+        : const <DocumentBlock>[];
 
     return DocumentPage(
       pageIndex: json['page_index'] is num
@@ -189,7 +191,8 @@ class DocumentBlock {
     required this.id,
     required this.order,
     required this.type,
-    required this.content,
+    required this.rawContent,
+    required this.normalizedContent,
     required this.boundingBox,
     required this.polygonPoints,
     required this.isText,
@@ -199,21 +202,59 @@ class DocumentBlock {
   final int id;
   final int order;
   final String type;
-  final String content;
+
+  /// Original, unchanged output produced by PaddleOCR-VL.
+  final String rawContent;
+
+  /// Cleaned content produced by the backend normalizer.
+  final String normalizedContent;
+
   final List<double> boundingBox;
   final List<List<double>> polygonPoints;
   final bool isText;
   final bool isFormula;
+
+  /// Backward-compatible alias.
+  ///
+  /// Existing code using `block.content` will continue to work,
+  /// but it will now receive the normalized content.
+  String get content => normalizedContent;
+
+  bool get hasContent => normalizedContent.trim().isNotEmpty;
+
+  bool get wasNormalized => rawContent != normalizedContent;
 
   factory DocumentBlock.fromJson(
     Map<String, dynamic> json, {
     required int fallbackId,
     required int fallbackOrder,
   }) {
-    final String type =
-        json['type'] is String
-            ? json['type'] as String
-            : 'unknown';
+    final String type = json['type'] is String
+        ? json['type'] as String
+        : 'unknown';
+
+    // `content` supports responses created before raw_content and
+    // normalized_content were added to the backend.
+    final String legacyContent = _readContent(
+      json['content'],
+    );
+
+    final String receivedRawContent = _readContent(
+      json['raw_content'],
+    );
+
+    final String receivedNormalizedContent = _readContent(
+      json['normalized_content'],
+    );
+
+    final String rawContent = receivedRawContent.isNotEmpty
+        ? receivedRawContent
+        : legacyContent;
+
+    final String normalizedContent =
+        receivedNormalizedContent.isNotEmpty
+            ? receivedNormalizedContent
+            : legacyContent;
 
     return DocumentBlock(
       id: json['id'] is num
@@ -223,13 +264,12 @@ class DocumentBlock {
           ? (json['order'] as num).toInt()
           : fallbackOrder,
       type: type,
-      content: json['content'] is String
-          ? (json['content'] as String).trim()
-          : '',
-      boundingBox:
-          _parseNumberList(json['bbox']),
-      polygonPoints:
-          _parsePolygonPoints(json['polygon_points']),
+      rawContent: rawContent,
+      normalizedContent: normalizedContent,
+      boundingBox: _parseNumberList(json['bbox']),
+      polygonPoints: _parsePolygonPoints(
+        json['polygon_points'],
+      ),
       isText: json['is_text'] is bool
           ? json['is_text'] as bool
           : type == 'text',
@@ -239,23 +279,23 @@ class DocumentBlock {
     );
   }
 
+  static String _readContent(dynamic value) {
+    return value is String ? value.trim() : '';
+  }
+
   static bool _isFormulaType(String type) {
     return type == 'formula' ||
         type == 'display_formula' ||
         type == 'inline_formula';
   }
 
-  static List<double> _parseNumberList(
-    dynamic value,
-  ) {
+  static List<double> _parseNumberList(dynamic value) {
     if (value is! List) {
       return const <double>[];
     }
 
     return List<double>.unmodifiable(
-      value
-          .whereType<num>()
-          .map(
+      value.whereType<num>().map(
             (num number) => number.toDouble(),
           ),
     );

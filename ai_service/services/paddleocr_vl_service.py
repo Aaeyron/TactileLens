@@ -6,17 +6,40 @@ from typing import Any
 import numpy as np
 from paddleocr import PaddleOCRVL
 
+from services.ocr_content_normalizer import (
+    OcrContentNormalizer,
+)
+
 
 class PaddleOcrVlService:
-    """Reusable, single-model PaddleOCR-VL document recognition service."""
+    """Reusable PaddleOCR-VL document recognition service."""
+
+    FORMULA_BLOCK_TYPES = frozenset(
+        {
+            "display_formula",
+            "inline_formula",
+            "formula",
+        }
+    )
 
     def __init__(self) -> None:
         self.pipeline_version = os.getenv(
             "PADDLEOCR_PIPELINE_VERSION",
             "v1.6",
         )
-        self.device = os.getenv("PADDLEOCR_DEVICE", "gpu:0")
-        self.model_name = f"PaddleOCR-VL-{self.pipeline_version.lstrip('v')}"
+
+        self.device = os.getenv(
+            "PADDLEOCR_DEVICE",
+            "gpu:0",
+        )
+
+        self.model_name = (
+            "PaddleOCR-VL-"
+            f"{self.pipeline_version.lstrip('v')}"
+        )
+
+        # Prevent simultaneous requests from exhausting
+        # the available 6 GB GPU memory.
         self._inference_lock = threading.Lock()
 
         self._pipeline = PaddleOCRVL(
@@ -30,11 +53,15 @@ class PaddleOcrVlService:
             use_queues=False,
         )
 
-    def scan_document(self, image_path: Path) -> dict[str, Any]:
+    def scan_document(
+        self,
+        image_path: Path,
+    ) -> dict[str, Any]:
         if not image_path.is_file():
-            raise ValueError("The uploaded image could not be found.")
+            raise ValueError(
+                "The uploaded image could not be found."
+            )
 
-        # A single lock avoids concurrent requests exhausting a 6 GB GPU.
         with self._inference_lock:
             predictions = self._pipeline.predict(
                 input=str(image_path),
@@ -43,9 +70,15 @@ class PaddleOcrVlService:
             )
 
         if not predictions:
-            raise ValueError("No document content was recognized.")
+            raise ValueError(
+                "No document content was recognized."
+            )
 
-        pages = [self._serialize_page(result) for result in predictions]
+        pages = [
+            self._serialize_page(result)
+            for result in predictions
+        ]
+
         ordered_blocks = [
             block
             for page in pages
@@ -62,53 +95,113 @@ class PaddleOcrVlService:
             "pages": pages,
         }
 
-    def _serialize_page(self, result: Any) -> dict[str, Any]:
+    def _serialize_page(
+        self,
+        result: Any,
+    ) -> dict[str, Any]:
         json_result = result.json
-        result_data = json_result.get("res", json_result)
+        result_data = json_result.get(
+            "res",
+            json_result,
+        )
+
+        raw_blocks = result_data.get(
+            "parsing_res_list",
+            [],
+        )
 
         blocks = [
             self._serialize_block(block)
-            for block in result_data.get("parsing_res_list", [])
+            for block in raw_blocks
         ]
 
         return {
-            "page_index": result_data.get("page_index"),
+            "page_index": result_data.get(
+                "page_index"
+            ),
             "width": result_data.get("width"),
             "height": result_data.get("height"),
             "blocks": blocks,
         }
 
-    def _serialize_block(self, block: dict[str, Any]) -> dict[str, Any]:
-        block_type = str(block.get("block_label", "unknown"))
+    def _serialize_block(
+        self,
+        block: dict[str, Any],
+    ) -> dict[str, Any]:
+        block_type = str(
+            block.get(
+                "block_label",
+                "unknown",
+            )
+        ).strip()
+
+        raw_content = str(
+            block.get(
+                "block_content",
+                "",
+            )
+        ).strip()
+
+        normalized_content = (
+            OcrContentNormalizer.normalize(
+                content=raw_content,
+                block_type=block_type,
+            )
+        )
+
+        is_formula = (
+            block_type in self.FORMULA_BLOCK_TYPES
+        )
 
         return {
             "id": block.get("block_id"),
             "order": block.get("block_order"),
             "type": block_type,
-            "content": str(block.get("block_content", "")).strip(),
-            "bbox": self._to_builtin(block.get("block_bbox")),
+
+            # Retained for compatibility with the current
+            # Flutter model and existing API consumers.
+            "content": normalized_content,
+
+            # Original PaddleOCR-VL output for debugging,
+            # validation, and traceability.
+            "raw_content": raw_content,
+
+            # Clean content used by previews and future
+            # UEB/Nemeth translation.
+            "normalized_content": normalized_content,
+
+            "bbox": self._to_builtin(
+                block.get("block_bbox")
+            ),
             "polygon_points": self._to_builtin(
-                block.get("block_polygon_points")
+                block.get(
+                    "block_polygon_points"
+                )
             ),
             "is_text": block_type == "text",
-            "is_formula": block_type in {
-                "display_formula",
-                "inline_formula",
-                "formula",
-            },
+            "is_formula": is_formula,
         }
 
-    def _to_builtin(self, value: Any) -> Any:
+    def _to_builtin(
+        self,
+        value: Any,
+    ) -> Any:
         if isinstance(value, np.ndarray):
             return value.tolist()
+
         if isinstance(value, np.generic):
             return value.item()
+
         if isinstance(value, dict):
             return {
                 key: self._to_builtin(item)
                 for key, item in value.items()
             }
-        if isinstance(value, (list, tuple)):
-            return [self._to_builtin(item) for item in value]
-        return value
 
+        if isinstance(value, (list, tuple)):
+            return [
+                self._to_builtin(item)
+                for item in value
+            ]
+
+        return value
