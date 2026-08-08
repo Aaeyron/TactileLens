@@ -16,23 +16,6 @@ class ScanResultScreen extends StatelessWidget {
   final ScanDocumentResult result;
   final File scannedImage;
 
-  static final RegExp _openingDisplayMath =
-      RegExp(r'^\s*\$\$\s*');
-
-  static final RegExp _closingDisplayMath =
-      RegExp(r'\s*\$\$\s*$');
-
-  static final RegExp _openingBracketMath =
-      RegExp(r'^\s*\\\[\s*');
-
-  static final RegExp _closingBracketMath =
-      RegExp(r'\s*\\\]\s*$');
-
-  static final RegExp _openingInlineMath =
-      RegExp(r'^\s*\\\(\s*');
-
-  static final RegExp _closingInlineMath =
-      RegExp(r'\s*\\\)\s*$');
 
   @override
   Widget build(BuildContext context) {
@@ -361,101 +344,80 @@ class ScanResultScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildUnifiedBlocks() {
-    final List<DocumentBlock> contentBlocks =
-        result.blocks
-            .where(
-              (DocumentBlock block) =>
-                  _displayContent(block).isNotEmpty,
-            )
-            .toList(growable: false);
+ List<Widget> _buildUnifiedBlocks() {
+  final List<DocumentBlock> contentBlocks = result.blocks
+      .where(
+        (DocumentBlock block) =>
+            block.normalizedContent.trim().isNotEmpty,
+      )
+      .toList(growable: false);
 
-    return List<Widget>.generate(
-      contentBlocks.length,
-      (int index) {
-        final DocumentBlock block =
-            contentBlocks[index];
+  return List<Widget>.generate(
+    contentBlocks.length,
+    (int index) {
+      final DocumentBlock block = contentBlocks[index];
 
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom:
-                index == contentBlocks.length - 1
-                    ? 0
-                    : ScanResultScreenStyles
-                        .unifiedBlockSpacing,
-          ),
-          child: _buildUnifiedBlock(block),
-        );
-      },
-      growable: false,
-    );
-  }
-
-  String _displayContent(
-    DocumentBlock block,
-  ) {
-    String content = block.content.trim();
-
-    if (!block.isFormula) {
-      return content;
-    }
-
-    content = content
-        .replaceFirst(_openingDisplayMath, '')
-        .replaceFirst(_closingDisplayMath, '')
-        .replaceFirst(_openingBracketMath, '')
-        .replaceFirst(_closingBracketMath, '')
-        .replaceFirst(_openingInlineMath, '')
-        .replaceFirst(_closingInlineMath, '');
-
-    return content.trim();
-  }
-
-  Widget _buildUnifiedBlock(
-    DocumentBlock block,
-  ) {
-    final String displayContent =
-        _displayContent(block);
-
-    if (block.isFormula) {
-      return Container(
-        width: double.infinity,
-        padding: ScanResultScreenStyles
-            .formulaPreviewPadding,
-        decoration: const BoxDecoration(
-          color: ScanResultScreenStyles
-              .formulaBlockBackgroundColor,
-          borderRadius: ScanResultScreenStyles
-              .formulaPreviewRadius,
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: index == contentBlocks.length - 1
+              ? 0
+              : ScanResultScreenStyles.unifiedBlockSpacing,
         ),
-        child: SelectableText(
-          displayContent,
-          style: ScanResultScreenStyles
-              .formulaContentStyle,
-          textAlign: TextAlign.center,
-        ),
+        child: _buildUnifiedBlock(block),
       );
-    }
+    },
+    growable: false,
+  );
+}
 
-    return SelectableText(
-      displayContent,
-      style:
-          ScanResultScreenStyles.blockContentStyle,
-      textAlign: TextAlign.left,
+
+
+ Widget _buildUnifiedBlock(
+  DocumentBlock block,
+) {
+  final String displayContent =
+      block.normalizedContent.trim();
+
+  if (block.isFormula) {
+    return Container(
+      width: double.infinity,
+      padding:
+          ScanResultScreenStyles.formulaPreviewPadding,
+      decoration: const BoxDecoration(
+        color: ScanResultScreenStyles
+            .formulaBlockBackgroundColor,
+        borderRadius:
+            ScanResultScreenStyles.formulaPreviewRadius,
+      ),
+      child: SelectableText(
+        displayContent,
+        style:
+            ScanResultScreenStyles.formulaContentStyle,
+        textAlign: TextAlign.center,
+      ),
     );
   }
 
-  String get _combinedContent {
-    return result.blocks
-        .map(_displayContent)
-        .where(
-          (String content) => content.isNotEmpty,
-        )
-        .join(
-          ScanResultScreenStyles
-              .contentBlockSeparator,
-        );
-  }
+  return SelectableText(
+    displayContent,
+    style: ScanResultScreenStyles.blockContentStyle,
+    textAlign: TextAlign.left,
+  );
+}
+
+ String get _combinedContent {
+  return result.blocks
+      .map(
+        (DocumentBlock block) =>
+            block.normalizedContent.trim(),
+      )
+      .where(
+        (String content) => content.isNotEmpty,
+      )
+      .join(
+        ScanResultScreenStyles.contentBlockSeparator,
+      );
+}
 
   Widget _buildEmptyResult() {
     return Container(

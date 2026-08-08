@@ -12,6 +12,15 @@ class OcrContentNormalizer:
         }
     )
 
+    # Unicode constants are used to avoid file-encoding corruption.
+    PESO_SIGN = "\u20B1"
+    CHECKED_BOX = "\u2611"
+    BALLOT_BOX_WITH_X = "\u2612"
+
+    # ============================================================
+    # MATH DELIMITERS
+    # ============================================================
+
     _opening_display_math = re.compile(
         r"^\s*\$\$\s*"
     )
@@ -36,14 +45,50 @@ class OcrContentNormalizer:
         r"\s*\\\)\s*$"
     )
 
-    # PaddleOCR-VL may recognize the Philippine peso sign
+    # ============================================================
+    # PHILIPPINE PESO NORMALIZATION
+    # ============================================================
+
+    # PaddleOCR-VL may recognize the Philippine peso symbol
     # as an inline LaTeX lowercase or uppercase letter b.
-    # This is intentionally restricted to a value followed by a digit.
     _misrecognized_peso = re.compile(
         r"\$\s*\\text\s*"
         r"\{\s*[bB]\s*\}\s*"
         r"\$\s*(?=\d)"
     )
+
+    # PaddleOCR-VL may recognize the peso symbol as:
+    #
+    # P
+    # Unicode checked box U+2611
+    # Unicode ballot box with X U+2612
+    #
+    # These candidates are replaced only when currency context
+    # is present and they appear before a number or x variable.
+    _peso_symbol_candidate = re.compile(
+        rf"(?<![\w{PESO_SIGN}])"
+        rf"(?:P|{CHECKED_BOX}|{BALLOT_BOX_WITH_X})"
+        r"[ \t]*(?=(?:\d|[xX]\b))"
+    )
+
+    _currency_context = re.compile(
+        r"\b(?:"
+        r"peso|pesos|money|price|prices|"
+        r"cost|costs|costing|"
+        r"buy|buys|buying|bought|"
+        r"purchase|purchases|purchased|"
+        r"pay|pays|paying|paid|"
+        r"spend|spends|spending|spent|"
+        r"cash|change|budget|wallet|"
+        r"sale|worth|amount|"
+        r"notebook|pen|item|items"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    # ============================================================
+    # LATEX FORMATTING
+    # ============================================================
 
     _latex_formatting_command = re.compile(
         r"\\(?:"
@@ -60,6 +105,10 @@ class OcrContentNormalizer:
         r"\\\s+"
     )
 
+    # ============================================================
+    # WHITESPACE
+    # ============================================================
+
     _multiple_horizontal_spaces = re.compile(
         r"[ \t]+"
     )
@@ -67,6 +116,10 @@ class OcrContentNormalizer:
     _excessive_newlines = re.compile(
         r"\n{3,}"
     )
+
+    # ============================================================
+    # PUBLIC NORMALIZATION
+    # ============================================================
 
     @classmethod
     def normalize(
@@ -99,6 +152,10 @@ class OcrContentNormalizer:
             normalized_content
         )
 
+    # ============================================================
+    # FORMULA NORMALIZATION
+    # ============================================================
+
     @classmethod
     def _normalize_formula(
         cls,
@@ -120,13 +177,17 @@ class OcrContentNormalizer:
             normalized
         )
 
+    # ============================================================
+    # TEXT NORMALIZATION
+    # ============================================================
+
     @classmethod
     def _normalize_text(
         cls,
         content: str,
     ) -> str:
         normalized = cls._misrecognized_peso.sub(
-            "₱",
+            cls.PESO_SIGN,
             content,
         )
 
@@ -134,17 +195,45 @@ class OcrContentNormalizer:
             normalized
         )
 
-        # Remove inline LaTeX dollar delimiters from text blocks.
-        # Example: "$5$" becomes "5" and "$x$" becomes "x".
-        normalized = normalized.replace("$", "")
+        # Remove inline LaTeX dollar delimiters.
+        #
+        # "$5$" becomes "5"
+        # "$x$" becomes "x"
+        normalized = normalized.replace(
+            "$",
+            "",
+        )
 
         normalized = cls._replace_spacing_commands(
             normalized
         )
 
-        return cls._normalize_whitespace(
+        normalized = cls._normalize_whitespace(
             normalized
         )
+
+        return cls._restore_contextual_peso_symbols(
+            normalized
+        )
+
+    @classmethod
+    def _restore_contextual_peso_symbols(
+        cls,
+        content: str,
+    ) -> str:
+        """Restore OCR peso candidates when the text indicates money."""
+
+        if not cls._currency_context.search(content):
+            return content
+
+        return cls._peso_symbol_candidate.sub(
+            cls.PESO_SIGN,
+            content,
+        )
+
+    # ============================================================
+    # MATH DELIMITER REMOVAL
+    # ============================================================
 
     @classmethod
     def _remove_outer_math_delimiters(
@@ -191,6 +280,10 @@ class OcrContentNormalizer:
 
         return normalized.strip()
 
+    # ============================================================
+    # LATEX COMMAND CLEANUP
+    # ============================================================
+
     @classmethod
     def _unwrap_formatting_commands(
         cls,
@@ -198,7 +291,7 @@ class OcrContentNormalizer:
     ) -> str:
         normalized = content
 
-        # Repeat because LaTeX formatting commands can be nested.
+        # Repeat because formatting commands can be nested.
         for _ in range(5):
             updated = cls._latex_formatting_command.sub(
                 r"\1",
@@ -227,9 +320,16 @@ class OcrContentNormalizer:
             normalized,
         )
 
-        normalized = normalized.replace("~", " ")
+        normalized = normalized.replace(
+            "~",
+            " ",
+        )
 
         return normalized
+
+    # ============================================================
+    # WHITESPACE NORMALIZATION
+    # ============================================================
 
     @classmethod
     def _normalize_whitespace(
@@ -244,7 +344,9 @@ class OcrContentNormalizer:
             for line in content.splitlines()
         ]
 
-        normalized = "\n".join(normalized_lines)
+        normalized = "\n".join(
+            normalized_lines
+        )
 
         normalized = cls._excessive_newlines.sub(
             "\n\n",

@@ -13,6 +13,14 @@ abstract final class ScanResultScreenStyles {
 
   static const Color textPrimaryColor = Color(0xFF10213A);
   static const Color textSecondaryColor = Color(0xFF5D6B7E);
+
+  static const List<String> recognizedContentFontFallback =
+    <String>[
+  'Roboto',
+  'Noto Sans',
+  'sans-serif',
+];
+
   static const Color outlineColor = Color(0xFFD7E0EC);
   static const Color dividerColor = Color(0xFFE7ECF3);
   static const Color shadowColor = Color(0x14000000);
@@ -264,21 +272,23 @@ static const double unifiedBlockSpacing = 14.0;
     color: primaryColor,
   );
 
-  static const TextStyle blockContentStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 14.0,
-    height: 1.6,
-    fontWeight: FontWeight.w400,
-    color: textPrimaryColor,
-  );
+ static const TextStyle blockContentStyle = TextStyle(
+  fontFamily: 'Poppins',
+  fontFamilyFallback: recognizedContentFontFallback,
+  fontSize: 14.0,
+  height: 1.6,
+  fontWeight: FontWeight.w400,
+  color: textPrimaryColor,
+);
 
   static const TextStyle formulaContentStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 15.0,
-    height: 1.6,
-    fontWeight: FontWeight.w500,
-    color: textPrimaryColor,
-  );
+  fontFamily: 'Poppins',
+  fontFamilyFallback: recognizedContentFontFallback,
+  fontSize: 15.0,
+  height: 1.6,
+  fontWeight: FontWeight.w500,
+  color: textPrimaryColor,
+);
 
   static const Color copyIconColor = primaryColor;
   static const String copyTooltip = 'Copy recognized content';
