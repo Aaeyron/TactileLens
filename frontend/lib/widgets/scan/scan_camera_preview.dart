@@ -5,12 +5,12 @@ import '../../services/scan/camera_service.dart';
 import '../../styles/widgets/scan/scan_widget_styles.dart';
 
 class ScanCameraPreview extends StatefulWidget {
-  final CameraService cameraService;
-
   const ScanCameraPreview({
     super.key,
     required this.cameraService,
   });
+
+  final CameraService cameraService;
 
   @override
   State<ScanCameraPreview> createState() =>
@@ -31,13 +31,12 @@ class _ScanCameraPreviewState
   Future<void> _initializeCamera() async {
     try {
       await widget.cameraService.initialize();
-    } catch (_) {
-      // Camera initialization failed.
+    } catch (error, stackTrace) {
+      debugPrint('Camera initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _isLoading = false;
@@ -63,120 +62,133 @@ class _ScanCameraPreviewState
     return _buildCameraPreview();
   }
 
-  // ============================================================
-  // Loading State
-  // ============================================================
-
   Widget _buildLoadingState() {
     return Container(
+      width: double.infinity,
       height: ScanWidgetStyles.previewHeight,
       alignment: Alignment.center,
-      child: const CircularProgressIndicator(),
-    );
-  }
-
-  // ============================================================
-  // Error State
-  // ============================================================
-
-  Widget _buildErrorState() {
-    return Container(
-      height: ScanWidgetStyles.previewHeight,
-      alignment: Alignment.center,
-      child: const Text(
-        ScanWidgetStyles.cameraErrorText,
+      color: ScanWidgetStyles.previewBackgroundColor,
+      child: const CircularProgressIndicator(
+        color: ScanWidgetStyles.primaryBlue,
       ),
     );
   }
 
-  // ============================================================
-  // Camera Preview
-  // ============================================================
+  Widget _buildErrorState() {
+    return Container(
+      width: double.infinity,
+      height: ScanWidgetStyles.previewHeight,
+      alignment: Alignment.center,
+      color: ScanWidgetStyles.previewBackgroundColor,
+      child: const Text(
+        ScanWidgetStyles.cameraErrorText,
+        style: ScanWidgetStyles.previewPlaceholderStyle,
+      ),
+    );
+  }
 
   Widget _buildCameraPreview() {
+    final CameraController controller =
+        widget.cameraService.controller!;
+
+    final Size cameraPreviewSize =
+        controller.value.previewSize!;
+
     return Container(
       width: double.infinity,
       height: ScanWidgetStyles.previewHeight,
       decoration: BoxDecoration(
         color: ScanWidgetStyles.previewBackgroundColor,
-        borderRadius: ScanWidgetStyles.previewBorderRadius,
+        borderRadius:
+            ScanWidgetStyles.previewBorderRadius,
         border: Border.all(
           color: ScanWidgetStyles.previewBorderColor,
           width: ScanWidgetStyles.previewBorderWidth,
         ),
       ),
-    child: ClipRRect(
-        borderRadius: ScanWidgetStyles.previewBorderRadius,
+      child: ClipRRect(
+        borderRadius:
+            ScanWidgetStyles.previewBorderRadius,
         child: GestureDetector(
-          onTapDown: (details) async {
-            final RenderBox box =
-                context.findRenderObject() as RenderBox;
-
-            final localPoint =
-                box.globalToLocal(details.globalPosition);
-
-            setState(() {
-              _focusPoint = localPoint;
-            });
-
-            await widget.cameraService.focusOnPoint(
-              localPoint,
-              box.size,
-            );
-
-            Future.delayed(
-              const Duration(milliseconds: 800),
-              () {
-                if (mounted) {
-                  setState(() {
-                    _focusPoint = null;
-                  });
-                }
-              },
-            );
-          },
+          behavior: HitTestBehavior.opaque,
+          onTapDown: _handleFocus,
           child: Stack(
             fit: StackFit.expand,
-            children: [
-
+            children: <Widget>[
               FittedBox(
-                fit: BoxFit.cover,
+                fit: ScanWidgetStyles.previewImageFit,
+                alignment: Alignment.center,
                 child: SizedBox(
-                  width: widget.cameraService.controller!.value.previewSize!.height,
-                  height: widget.cameraService.controller!.value.previewSize!.width,
-                  child: FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: widget.cameraService.controller!.value.previewSize!.height,
-                      height: widget.cameraService.controller!.value.previewSize!.width,
-                      child: CameraPreview(
-                        widget.cameraService.controller!,
+                  width: cameraPreviewSize.height,
+                  height: cameraPreviewSize.width,
+                  child: CameraPreview(controller),
+                ),
+              ),
+              if (_focusPoint != null)
+                Positioned(
+                  left: _focusPoint!.dx -
+                      ScanWidgetStyles.focusIndicatorHalfSize,
+                  top: _focusPoint!.dy -
+                      ScanWidgetStyles.focusIndicatorHalfSize,
+                  child: Container(
+                    width:
+                        ScanWidgetStyles.focusIndicatorSize,
+                    height:
+                        ScanWidgetStyles.focusIndicatorSize,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: ScanWidgetStyles
+                            .focusIndicatorColor,
+                        width: ScanWidgetStyles
+                            .focusIndicatorBorderWidth,
                       ),
+                      borderRadius: ScanWidgetStyles
+                          .focusIndicatorRadius,
                     ),
                   ),
                 ),
-              ),
-
-              if (_focusPoint != null)
-                Positioned(
-                  left: _focusPoint!.dx - 30,
-                  top: _focusPoint!.dy - 30,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleFocus(
+    TapDownDetails details,
+  ) async {
+    final RenderObject? renderObject =
+        context.findRenderObject();
+
+    if (renderObject is! RenderBox) return;
+
+    final Offset localPoint =
+        renderObject.globalToLocal(
+      details.globalPosition,
+    );
+
+    setState(() {
+      _focusPoint = localPoint;
+    });
+
+    try {
+      await widget.cameraService.focusOnPoint(
+        localPoint,
+        renderObject.size,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Camera focus failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+
+    await Future<void>.delayed(
+      ScanWidgetStyles.focusIndicatorDuration,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _focusPoint = null;
+    });
   }
 }

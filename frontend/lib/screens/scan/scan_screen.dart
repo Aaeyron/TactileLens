@@ -240,90 +240,86 @@ Future<bool> _confirmImageToScan(
     );
   }
 
-  Rect _mapPreviewRegionToImage({
-    required Rect selectedRegion,
-    required Size previewSize,
-    required Size imageSize,
-  }) {
-    if (previewSize.isEmpty || imageSize.isEmpty) {
-      throw const FormatException(
-        'Invalid image or preview dimensions.',
-      );
-    }
-
-    /*
-     * ScanPreview displays the image using BoxFit.cover.
-     *
-     * BoxFit.cover may crop the displayed image around its edges.
-     * We therefore calculate its scale and offset before mapping
-     * the user's selection back to the original image.
-     */
-    final double widthScale =
-        previewSize.width / imageSize.width;
-
-    final double heightScale =
-        previewSize.height / imageSize.height;
-
-    final double coverScale =
-        widthScale > heightScale ? widthScale : heightScale;
-
-    final Size displayedImageSize = Size(
-      imageSize.width * coverScale,
-      imageSize.height * coverScale,
-    );
-
-    final Offset displayedImageOffset = Offset(
-      (previewSize.width - displayedImageSize.width) / 2,
-      (previewSize.height - displayedImageSize.height) / 2,
-    );
-
-    final Rect previewBounds = Offset.zero & previewSize;
-    final Rect clippedRegion =
-        selectedRegion.intersect(previewBounds);
-
-    if (clippedRegion.isEmpty) {
-      throw const FormatException(
-        'The selected crop area is invalid.',
-      );
-    }
-
-    final double left =
-        ((clippedRegion.left - displayedImageOffset.dx) /
-                coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double top =
-        ((clippedRegion.top - displayedImageOffset.dy) /
-                coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    final double right =
-        ((clippedRegion.right - displayedImageOffset.dx) /
-                coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double bottom =
-        ((clippedRegion.bottom - displayedImageOffset.dy) /
-                coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    if (right <= left || bottom <= top) {
-      throw const FormatException(
-        'The selected crop area is too small.',
-      );
-    }
-
-    return Rect.fromLTRB(
-      left.roundToDouble(),
-      top.roundToDouble(),
-      right.roundToDouble(),
-      bottom.roundToDouble(),
+ Rect _mapPreviewRegionToImage({
+  required Rect selectedRegion,
+  required Size previewSize,
+  required Size imageSize,
+}) {
+  if (previewSize.isEmpty || imageSize.isEmpty) {
+    throw const FormatException(
+      'Invalid image or preview dimensions.',
     );
   }
+
+  final double widthScale =
+      previewSize.width / imageSize.width;
+
+  final double heightScale =
+      previewSize.height / imageSize.height;
+
+  final double coverScale =
+      widthScale > heightScale
+          ? widthScale
+          : heightScale;
+
+  final Size displayedImageSize = Size(
+    imageSize.width * coverScale,
+    imageSize.height * coverScale,
+  );
+
+  final Offset displayedImageOffset = Offset(
+    (previewSize.width - displayedImageSize.width) / 2,
+    (previewSize.height - displayedImageSize.height) / 2,
+  );
+
+  final Rect previewBounds = Offset.zero & previewSize;
+
+  final Rect clippedRegion =
+      selectedRegion.intersect(previewBounds);
+
+  if (clippedRegion.isEmpty) {
+    throw const FormatException(
+      'The selected crop area is invalid.',
+    );
+  }
+
+  final double left =
+      ((clippedRegion.left - displayedImageOffset.dx) /
+              coverScale)
+          .clamp(0.0, imageSize.width)
+          .toDouble();
+
+  final double top =
+      ((clippedRegion.top - displayedImageOffset.dy) /
+              coverScale)
+          .clamp(0.0, imageSize.height)
+          .toDouble();
+
+  final double right =
+      ((clippedRegion.right - displayedImageOffset.dx) /
+              coverScale)
+          .clamp(0.0, imageSize.width)
+          .toDouble();
+
+  final double bottom =
+      ((clippedRegion.bottom - displayedImageOffset.dy) /
+              coverScale)
+          .clamp(0.0, imageSize.height)
+          .toDouble();
+
+  if (right <= left || bottom <= top) {
+    throw const FormatException(
+      'The selected crop area is too small.',
+    );
+  }
+
+  return Rect.fromLTRB(
+    left.roundToDouble(),
+    top.roundToDouble(),
+    right.roundToDouble(),
+    bottom.roundToDouble(),
+  );
+}
 
   void _onRegionSelected(
     Rect selectedRegion,

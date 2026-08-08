@@ -129,7 +129,7 @@ abstract final class ScanWidgetStyles {
   // SCAN PREVIEW
   // ============================================================
 
-  static const double previewHeight = 450.0;
+  static const double previewHeight = 500.0;
   static const Color previewBackgroundColor = white;
 
   static const BorderRadius previewBorderRadius =
@@ -147,7 +147,7 @@ abstract final class ScanWidgetStyles {
     fontWeight: FontWeight.w500,
   );
 
-  static const BoxFit previewImageFit = BoxFit.cover;
+ static const BoxFit previewImageFit = BoxFit.cover;
 
 // ============================================================
 // SELECTION OVERLAY
