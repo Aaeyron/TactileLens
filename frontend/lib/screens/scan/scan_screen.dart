@@ -11,6 +11,7 @@ import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/scan/scan_action_button.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
+import 'scan_result_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({
@@ -137,12 +138,27 @@ class _ScanScreenState extends State<ScanScreen> {
     );
 
     for (final block in scanResult.blocks) {
-      debugPrint(
-        '[${block.type}] ${block.content}',
-      );
-    }
+  debugPrint(
+    '[${block.type}] ${block.content}',
+  );
+}
 
-    // The result screen will be opened here later.
+if (!mounted) return;
+
+setState(() {
+  _isProcessing = false;
+});
+
+await Navigator.of(context).push<void>(
+  MaterialPageRoute<void>(
+    builder: (BuildContext context) {
+      return ScanResultScreen(
+        result: scanResult,
+        scannedImage: imageToScan,
+      );
+    },
+  ),
+);
   } on AIServiceException catch (error, stackTrace) {
     debugPrint('AI service error: ${error.message}');
     debugPrintStack(stackTrace: stackTrace);
