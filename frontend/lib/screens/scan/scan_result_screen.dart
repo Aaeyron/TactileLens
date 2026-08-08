@@ -16,6 +16,24 @@ class ScanResultScreen extends StatelessWidget {
   final ScanDocumentResult result;
   final File scannedImage;
 
+  static final RegExp _openingDisplayMath =
+      RegExp(r'^\s*\$\$\s*');
+
+  static final RegExp _closingDisplayMath =
+      RegExp(r'\s*\$\$\s*$');
+
+  static final RegExp _openingBracketMath =
+      RegExp(r'^\s*\\\[\s*');
+
+  static final RegExp _closingBracketMath =
+      RegExp(r'\s*\\\]\s*$');
+
+  static final RegExp _openingInlineMath =
+      RegExp(r'^\s*\\\(\s*');
+
+  static final RegExp _closingInlineMath =
+      RegExp(r'\s*\\\)\s*$');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,13 +72,8 @@ class ScanResultScreen extends StatelessWidget {
               height:
                   ScanResultScreenStyles.sectionSpacing,
             ),
-            _buildContentHeader(),
-            const SizedBox(
-              height:
-                  ScanResultScreenStyles.itemSpacing,
-            ),
             if (result.hasContent)
-              ..._buildRecognizedBlocks(context)
+              _buildUnifiedContentPreview(context)
             else
               _buildEmptyResult(),
           ],
@@ -121,10 +134,12 @@ class ScanResultScreen extends StatelessWidget {
           width:
               ScanResultScreenStyles.cardBorderWidth,
         ),
-        boxShadow: ScanResultScreenStyles.cardShadow,
+        boxShadow:
+            ScanResultScreenStyles.cardShadow,
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: <Widget>[
           Container(
             width: ScanResultScreenStyles
@@ -178,37 +193,45 @@ class ScanResultScreen extends StatelessWidget {
   }
 
   Widget _buildMetrics() {
-    final String processingTime = result.processingTimeMs > 0
-        ? '${(result.processingTimeMs / 1000).toStringAsFixed(1)}'
-            '${ScanResultScreenStyles.secondUnit}'
-        : '—';
+    final String processingTime =
+        result.processingTimeMs > 0
+            ? '${(result.processingTimeMs / 1000).toStringAsFixed(1)}'
+                '${ScanResultScreenStyles.secondUnit}'
+            : ScanResultScreenStyles
+                .unavailableMetricValue;
 
     return Wrap(
-      spacing: ScanResultScreenStyles.metricSpacing,
+      spacing:
+          ScanResultScreenStyles.metricSpacing,
       runSpacing:
           ScanResultScreenStyles.metricSpacing,
       children: <Widget>[
         _ResultMetric(
-          icon: ScanResultScreenStyles.textMetricIcon,
+          icon:
+              ScanResultScreenStyles.textMetricIcon,
           label:
               ScanResultScreenStyles.textMetricLabel,
-          value: result.textBlocks.length.toString(),
+          value:
+              result.textBlocks.length.toString(),
+        ),
+        _ResultMetric(
+          icon: ScanResultScreenStyles
+              .formulaMetricIcon,
+          label: ScanResultScreenStyles
+              .formulaMetricLabel,
+          value:
+              result.formulaBlocks.length.toString(),
         ),
         _ResultMetric(
           icon:
-              ScanResultScreenStyles.formulaMetricIcon,
-          label:
-              ScanResultScreenStyles.formulaMetricLabel,
-          value: result.formulaBlocks.length.toString(),
-        ),
-        _ResultMetric(
-          icon: ScanResultScreenStyles.pageMetricIcon,
+              ScanResultScreenStyles.pageMetricIcon,
           label:
               ScanResultScreenStyles.pageMetricLabel,
           value: result.pageCount.toString(),
         ),
         _ResultMetric(
-          icon: ScanResultScreenStyles.timeMetricIcon,
+          icon:
+              ScanResultScreenStyles.timeMetricIcon,
           label:
               ScanResultScreenStyles.timeMetricLabel,
           value: processingTime,
@@ -217,71 +240,18 @@ class ScanResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContentHeader() {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          ScanResultScreenStyles.contentSectionTitle,
-          style:
-              ScanResultScreenStyles.sectionTitleStyle,
-        ),
-        SizedBox(
-          height:
-              ScanResultScreenStyles.compactSpacing,
-        ),
-        Text(
-          ScanResultScreenStyles
-              .contentSectionDescription,
-          style: ScanResultScreenStyles
-              .sectionDescriptionStyle,
-        ),
-      ],
-    );
-  }
-
-  List<Widget> _buildRecognizedBlocks(
+  Widget _buildUnifiedContentPreview(
     BuildContext context,
   ) {
-    return List<Widget>.generate(
-      result.blocks.length,
-      (int index) {
-        final DocumentBlock block =
-            result.blocks[index];
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == result.blocks.length - 1
-                ? 0
-                : ScanResultScreenStyles.itemSpacing,
-          ),
-          child: _buildBlockCard(
-            context: context,
-            block: block,
-            position: index + 1,
-          ),
-        );
-      },
-      growable: false,
-    );
-  }
-
-  Widget _buildBlockCard({
-    required BuildContext context,
-    required DocumentBlock block,
-    required int position,
-  }) {
-    final _BlockPresentation presentation =
-        _presentationFor(block);
-
     return Semantics(
       label:
           ScanResultScreenStyles.resultSemanticLabel,
       child: Container(
+        width: double.infinity,
         padding:
             ScanResultScreenStyles.blockContentPadding,
         decoration: BoxDecoration(
-          color: presentation.backgroundColor,
+          color: ScanResultScreenStyles.surfaceColor,
           borderRadius:
               ScanResultScreenStyles.cardRadius,
           border: Border.all(
@@ -312,8 +282,9 @@ class ScanResultScreen extends StatelessWidget {
                             .blockIconRadius,
                   ),
                   alignment: Alignment.center,
-                  child: Icon(
-                    presentation.icon,
+                  child: const Icon(
+                    ScanResultScreenStyles
+                        .unknownBlockIcon,
                     size: ScanResultScreenStyles
                         .blockHeaderIconSize,
                     color: ScanResultScreenStyles
@@ -324,20 +295,26 @@ class ScanResultScreen extends StatelessWidget {
                   width: ScanResultScreenStyles
                       .itemSpacing,
                 ),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment:
                         CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        presentation.label,
+                        ScanResultScreenStyles
+                            .contentSectionTitle,
                         style: ScanResultScreenStyles
-                            .blockLabelStyle,
+                            .sectionTitleStyle,
+                      ),
+                      SizedBox(
+                        height: ScanResultScreenStyles
+                            .compactSpacing,
                       ),
                       Text(
-                        '#$position',
+                        ScanResultScreenStyles
+                            .contentSectionDescription,
                         style: ScanResultScreenStyles
-                            .blockNumberStyle,
+                            .sectionDescriptionStyle,
                       ),
                     ],
                   ),
@@ -348,7 +325,7 @@ class ScanResultScreen extends StatelessWidget {
                   onPressed: () {
                     _copyContent(
                       context,
-                      block.content,
+                      _combinedContent,
                     );
                   },
                   icon: const Icon(
@@ -377,45 +354,139 @@ class ScanResultScreen extends StatelessWidget {
               height:
                   ScanResultScreenStyles.itemSpacing,
             ),
-            SelectableText(
-              block.content,
-              style: block.isFormula
-                  ? ScanResultScreenStyles
-                      .formulaContentStyle
-                  : ScanResultScreenStyles
-                      .blockContentStyle,
-            ),
+            ..._buildUnifiedBlocks(),
           ],
         ),
       ),
     );
   }
 
+  List<Widget> _buildUnifiedBlocks() {
+    final List<DocumentBlock> contentBlocks =
+        result.blocks
+            .where(
+              (DocumentBlock block) =>
+                  _displayContent(block).isNotEmpty,
+            )
+            .toList(growable: false);
+
+    return List<Widget>.generate(
+      contentBlocks.length,
+      (int index) {
+        final DocumentBlock block =
+            contentBlocks[index];
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom:
+                index == contentBlocks.length - 1
+                    ? 0
+                    : ScanResultScreenStyles
+                        .unifiedBlockSpacing,
+          ),
+          child: _buildUnifiedBlock(block),
+        );
+      },
+      growable: false,
+    );
+  }
+
+  String _displayContent(
+    DocumentBlock block,
+  ) {
+    String content = block.content.trim();
+
+    if (!block.isFormula) {
+      return content;
+    }
+
+    content = content
+        .replaceFirst(_openingDisplayMath, '')
+        .replaceFirst(_closingDisplayMath, '')
+        .replaceFirst(_openingBracketMath, '')
+        .replaceFirst(_closingBracketMath, '')
+        .replaceFirst(_openingInlineMath, '')
+        .replaceFirst(_closingInlineMath, '');
+
+    return content.trim();
+  }
+
+  Widget _buildUnifiedBlock(
+    DocumentBlock block,
+  ) {
+    final String displayContent =
+        _displayContent(block);
+
+    if (block.isFormula) {
+      return Container(
+        width: double.infinity,
+        padding: ScanResultScreenStyles
+            .formulaPreviewPadding,
+        decoration: const BoxDecoration(
+          color: ScanResultScreenStyles
+              .formulaBlockBackgroundColor,
+          borderRadius: ScanResultScreenStyles
+              .formulaPreviewRadius,
+        ),
+        child: SelectableText(
+          displayContent,
+          style: ScanResultScreenStyles
+              .formulaContentStyle,
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    return SelectableText(
+      displayContent,
+      style:
+          ScanResultScreenStyles.blockContentStyle,
+      textAlign: TextAlign.left,
+    );
+  }
+
+  String get _combinedContent {
+    return result.blocks
+        .map(_displayContent)
+        .where(
+          (String content) => content.isNotEmpty,
+        )
+        .join(
+          ScanResultScreenStyles
+              .contentBlockSeparator,
+        );
+  }
+
   Widget _buildEmptyResult() {
     return Container(
-      padding: ScanResultScreenStyles.cardPadding,
+      padding:
+          ScanResultScreenStyles.cardPadding,
       decoration: BoxDecoration(
-        color: ScanResultScreenStyles.surfaceColor,
+        color:
+            ScanResultScreenStyles.surfaceColor,
         borderRadius:
             ScanResultScreenStyles.cardRadius,
         border: Border.all(
-          color: ScanResultScreenStyles.outlineColor,
+          color:
+              ScanResultScreenStyles.outlineColor,
           width:
               ScanResultScreenStyles.cardBorderWidth,
         ),
-        boxShadow: ScanResultScreenStyles.cardShadow,
+        boxShadow:
+            ScanResultScreenStyles.cardShadow,
       ),
       child: const Column(
         children: <Widget>[
           Icon(
             ScanResultScreenStyles.emptyResultIcon,
-            size:
-                ScanResultScreenStyles.emptyResultIconSize,
+            size: ScanResultScreenStyles
+                .emptyResultIconSize,
             color:
                 ScanResultScreenStyles.primaryColor,
           ),
           SizedBox(
-            height: ScanResultScreenStyles.itemSpacing,
+            height:
+                ScanResultScreenStyles.itemSpacing,
           ),
           Text(
             ScanResultScreenStyles.emptyResultTitle,
@@ -436,38 +507,6 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-
-  _BlockPresentation _presentationFor(
-    DocumentBlock block,
-  ) {
-    if (block.isFormula) {
-      return const _BlockPresentation(
-        label:
-            ScanResultScreenStyles.formulaBlockLabel,
-        icon:
-            ScanResultScreenStyles.formulaBlockIcon,
-        backgroundColor: ScanResultScreenStyles
-            .formulaBlockBackgroundColor,
-      );
-    }
-
-    if (block.isText) {
-      return const _BlockPresentation(
-        label: ScanResultScreenStyles.textBlockLabel,
-        icon: ScanResultScreenStyles.textBlockIcon,
-        backgroundColor: ScanResultScreenStyles
-            .textBlockBackgroundColor,
-      );
-    }
-
-    return const _BlockPresentation(
-      label:
-          ScanResultScreenStyles.unknownBlockLabel,
-      icon: ScanResultScreenStyles.unknownBlockIcon,
-      backgroundColor: ScanResultScreenStyles
-          .textBlockBackgroundColor,
     );
   }
 
@@ -521,7 +560,8 @@ class _ResultMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: ScanResultScreenStyles.metricPadding,
+      padding:
+          ScanResultScreenStyles.metricPadding,
       decoration: const BoxDecoration(
         color:
             ScanResultScreenStyles.primarySoftColor,
@@ -571,7 +611,8 @@ class _ImageErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Padding(
-        padding: ScanResultScreenStyles.cardPadding,
+        padding:
+            ScanResultScreenStyles.cardPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -597,16 +638,4 @@ class _ImageErrorState extends StatelessWidget {
       ),
     );
   }
-}
-
-class _BlockPresentation {
-  const _BlockPresentation({
-    required this.label,
-    required this.icon,
-    required this.backgroundColor,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color backgroundColor;
 }

@@ -135,6 +135,7 @@ abstract final class ScanResultScreenStyles {
   static const String timeMetricLabel = 'Time';
 
   static const String secondUnit = 's';
+  static const String unavailableMetricValue = '—';
 
   static const IconData textMetricIcon =
       Icons.notes_rounded;
@@ -178,11 +179,26 @@ abstract final class ScanResultScreenStyles {
   // CONTENT SECTION
   // ============================================================
 
-  static const String contentSectionTitle =
-      'Recognized Content';
+ static const String contentSectionTitle =
+    'Recognized Content Preview';
 
-  static const String contentSectionDescription =
-      'Content is displayed in the reading order detected by PaddleOCR-VL.';
+static const String contentSectionDescription =
+    'Review the complete recognized document in its original reading order.';
+
+    static const String contentBlockSeparator = '\n\n';
+
+static const EdgeInsets formulaPreviewPadding =
+    EdgeInsets.symmetric(
+  horizontal: 14.0,
+  vertical: 12.0,
+);
+
+static const BorderRadius formulaPreviewRadius =
+    BorderRadius.all(
+  Radius.circular(12.0),
+);
+
+static const double unifiedBlockSpacing = 14.0;
 
   static const TextStyle sectionTitleStyle = TextStyle(
     fontFamily: 'Poppins',
