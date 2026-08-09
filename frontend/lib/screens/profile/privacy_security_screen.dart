@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/profile/privacy_security_screen_styles.dart';
+import '../../widgets/app_header.dart';
 
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
@@ -104,18 +105,38 @@ class PrivacySecurityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: PrivacySecurityScreenStyles.backgroundColor,
-      appBar: AppBar(
-        elevation: PrivacySecurityScreenStyles.appBarElevation,
-        scrolledUnderElevation:
-            PrivacySecurityScreenStyles.appBarScrolledUnderElevation,
-        backgroundColor: PrivacySecurityScreenStyles.cardColor,
-        foregroundColor: PrivacySecurityScreenStyles.textPrimaryColor,
-        centerTitle: true,
-        title: const Text(
-          'Privacy & Security',
-          style: PrivacySecurityScreenStyles.appBarTitleStyle,
+     appBar: PreferredSize(
+  preferredSize: const Size.fromHeight(100),
+  child: Stack(
+    children: <Widget>[
+      const AppHeader(),
+      SafeArea(
+        child: SizedBox(
+          height: 76,
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  color:
+                      PrivacySecurityScreenStyles.textPrimaryColor,
+                ),
+              ),
+              const Text(
+                'Privacy & Security',
+                style:
+                    PrivacySecurityScreenStyles.appBarTitleStyle,
+              ),
+            ],
+          ),
         ),
       ),
+    ],
+  ),
+),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
