@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+import '../../widgets/app_header.dart';
 
 class ScanResultScreen extends StatelessWidget {
   const ScanResultScreen({
@@ -16,51 +17,236 @@ class ScanResultScreen extends StatelessWidget {
   final ScanDocumentResult result;
   final File scannedImage;
 
+  String get _combinedContent {
+    return result.blocks
+        .map(
+          (DocumentBlock block) =>
+              block.normalizedContent.trim(),
+        )
+        .where(
+          (String content) => content.isNotEmpty,
+        )
+        .join(
+          ScanResultScreenStyles.contentBlockSeparator,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
           ScanResultScreenStyles.backgroundColor,
-      appBar: AppBar(
-        elevation:
-            ScanResultScreenStyles.appBarElevation,
-        backgroundColor:
-            ScanResultScreenStyles.appBarBackgroundColor,
-        foregroundColor:
-            ScanResultScreenStyles.appBarForegroundColor,
-        title: const Text(
-          ScanResultScreenStyles.appBarTitle,
-          style:
-              ScanResultScreenStyles.appBarTitleStyle,
+      appBar: PreferredSize(
+        preferredSize: ScanResultScreenStyles.headerSize,
+        child: Stack(
+          children: <Widget>[
+            const AppHeader(),
+            SafeArea(
+              child: SizedBox(
+                height:
+                    ScanResultScreenStyles.headerContentHeight,
+                child: Row(
+                  children: <Widget>[
+                    IconButton(
+                      tooltip:
+                          ScanResultScreenStyles.backTooltip,
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      icon: const Icon(
+                        ScanResultScreenStyles.backIcon,
+                        size: ScanResultScreenStyles
+                            .headerIconSize,
+                      ),
+                    ),
+                    const SizedBox(
+                      width: ScanResultScreenStyles
+                          .headerTitleSpacing,
+                    ),
+                    const Expanded(
+                      child: Text(
+                        ScanResultScreenStyles.appBarTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ScanResultScreenStyles
+                            .appBarTitleStyle,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      icon: const Icon(
+                        ScanResultScreenStyles.newScanIcon,
+                        size: ScanResultScreenStyles
+                            .actionIconSize,
+                      ),
+                      label: const Text(
+                        ScanResultScreenStyles.newScanLabel,
+                      ),
+                      style: ScanResultScreenStyles
+                          .headerActionStyle,
+                    ),
+                    const SizedBox(
+                      width: ScanResultScreenStyles
+                          .headerRightSpacing,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       body: SafeArea(
+        top: false,
         child: ListView(
-          padding:
-              ScanResultScreenStyles.screenPadding,
+          padding: ScanResultScreenStyles.screenPadding,
           children: <Widget>[
-            _buildImagePreview(),
+            _buildSuccessBanner(),
             const SizedBox(
-              height:
-                  ScanResultScreenStyles.sectionSpacing,
+              height: ScanResultScreenStyles.sectionSpacing,
             ),
-            _buildStatusCard(),
+            _ResultSection(
+              number:
+                  ScanResultScreenStyles.imageSectionNumber,
+              title: ScanResultScreenStyles.imageSectionTitle,
+              child: _buildImagePreview(),
+            ),
             const SizedBox(
-              height:
-                  ScanResultScreenStyles.sectionSpacing,
+              height: ScanResultScreenStyles.sectionSpacing,
             ),
-            _buildMetrics(),
+            _ResultSection(
+              number:
+                  ScanResultScreenStyles.contentSectionNumber,
+              title:
+                  ScanResultScreenStyles.contentSectionTitle,
+              action: result.hasContent
+                  ? _SectionAction(
+                      icon:
+                          ScanResultScreenStyles.copyIcon,
+                      label:
+                          ScanResultScreenStyles.copyLabel,
+                      tooltip:
+                          ScanResultScreenStyles.copyTooltip,
+                      onPressed: () {
+                        _copyToClipboard(
+                          context: context,
+                          content: _combinedContent,
+                          confirmationMessage:
+                              ScanResultScreenStyles
+                                  .contentCopiedMessage,
+                        );
+                      },
+                    )
+                  : null,
+              child: result.hasContent
+                  ? _buildRecognizedContent()
+                  : _buildEmptyResult(),
+            ),
             const SizedBox(
-              height:
-                  ScanResultScreenStyles.sectionSpacing,
+              height: ScanResultScreenStyles.sectionSpacing,
             ),
-            if (result.hasContent)
-              _buildUnifiedContentPreview(context)
-            else
-              _buildEmptyResult(),
+            _ResultSection(
+              number:
+                  ScanResultScreenStyles.brailleSectionNumber,
+              title:
+                  ScanResultScreenStyles.brailleSectionTitle,
+              action: result.hasBraille
+                  ? _SectionAction(
+                      icon:
+                          ScanResultScreenStyles.copyIcon,
+                      label: ScanResultScreenStyles
+                          .copyBrailleLabel,
+                      tooltip: ScanResultScreenStyles
+                          .copyBrailleTooltip,
+                      onPressed: () {
+                        _copyToClipboard(
+                          context: context,
+                          content: result.combinedBraille,
+                          confirmationMessage:
+                              ScanResultScreenStyles
+                                  .brailleCopiedMessage,
+                        );
+                      },
+                    )
+                  : null,
+              child: result.hasBraille
+                  ? _buildBrailleOutput()
+                  : _buildBrailleUnavailable(),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSuccessBanner() {
+    return Container(
+      padding:
+          ScanResultScreenStyles.successBannerPadding,
+      decoration: const BoxDecoration(
+        color:
+            ScanResultScreenStyles.successBackgroundColor,
+        borderRadius:
+            ScanResultScreenStyles.cardRadius,
+        border: ScanResultScreenStyles.successBorder,
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: ScanResultScreenStyles
+                .successIconContainerSize,
+            height: ScanResultScreenStyles
+                .successIconContainerSize,
+            decoration: const BoxDecoration(
+              color: ScanResultScreenStyles
+                  .successIconBackgroundColor,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              ScanResultScreenStyles.successDocumentIcon,
+              color: ScanResultScreenStyles.successColor,
+              size: ScanResultScreenStyles
+                  .successDocumentIconSize,
+            ),
+          ),
+          const SizedBox(
+            width: ScanResultScreenStyles.itemSpacing,
+          ),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  ScanResultScreenStyles.successTitle,
+                  style: ScanResultScreenStyles
+                      .successTitleStyle,
+                ),
+                SizedBox(
+                  height: ScanResultScreenStyles
+                      .compactSpacing,
+                ),
+                Text(
+                  ScanResultScreenStyles
+                      .successDescription,
+                  style: ScanResultScreenStyles
+                      .successDescriptionStyle,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(
+            width: ScanResultScreenStyles.compactSpacing,
+          ),
+          const Icon(
+            ScanResultScreenStyles.successCheckIcon,
+            color: ScanResultScreenStyles.successColor,
+            size:
+                ScanResultScreenStyles.successCheckIconSize,
+          ),
+        ],
       ),
     );
   }
@@ -68,31 +254,21 @@ class ScanResultScreen extends StatelessWidget {
   Widget _buildImagePreview() {
     return Semantics(
       image: true,
-      label:
-          ScanResultScreenStyles.imageSemanticLabel,
+      label: ScanResultScreenStyles.imageSemanticLabel,
       child: Container(
         width: double.infinity,
         height:
             ScanResultScreenStyles.imagePreviewHeight,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: ScanResultScreenStyles
               .imagePreviewBackgroundColor,
           borderRadius:
               ScanResultScreenStyles.imagePreviewRadius,
-          border: Border.all(
-            color: ScanResultScreenStyles
-                .imagePreviewBorderColor,
-            width: ScanResultScreenStyles
-                .imagePreviewBorderWidth,
-          ),
-          boxShadow:
-              ScanResultScreenStyles.cardShadow,
         ),
         clipBehavior: Clip.antiAlias,
         child: Image.file(
           scannedImage,
-          fit:
-              ScanResultScreenStyles.imagePreviewFit,
+          fit: ScanResultScreenStyles.imagePreviewFit,
           errorBuilder: (
             BuildContext context,
             Object error,
@@ -105,377 +281,169 @@ class ScanResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusCard() {
-    return Container(
-      padding: ScanResultScreenStyles.cardPadding,
-      decoration: BoxDecoration(
-        color: ScanResultScreenStyles.surfaceColor,
-        borderRadius:
-            ScanResultScreenStyles.cardRadius,
-        border: Border.all(
-          color: ScanResultScreenStyles.outlineColor,
-          width:
-              ScanResultScreenStyles.cardBorderWidth,
+  Widget _buildRecognizedContent() {
+    final List<DocumentBlock> contentBlocks =
+        result.blocks
+            .where(
+              (DocumentBlock block) =>
+                  block.normalizedContent
+                      .trim()
+                      .isNotEmpty,
+            )
+            .toList(growable: false);
+
+    return Semantics(
+      label: ScanResultScreenStyles.resultSemanticLabel,
+      child: Container(
+        width: double.infinity,
+        padding:
+            ScanResultScreenStyles.contentPreviewPadding,
+        decoration: const BoxDecoration(
+          color: ScanResultScreenStyles.surfaceColor,
+          borderRadius:
+              ScanResultScreenStyles.innerCardRadius,
+          border:
+              ScanResultScreenStyles.innerCardBorder,
         ),
-        boxShadow:
-            ScanResultScreenStyles.cardShadow,
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
+          children: List<Widget>.generate(
+            contentBlocks.length,
+            (int index) {
+              final DocumentBlock block =
+                  contentBlocks[index];
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom:
+                      index == contentBlocks.length - 1
+                          ? ScanResultScreenStyles.zero
+                          : ScanResultScreenStyles
+                              .unifiedBlockSpacing,
+                ),
+                child: _RecognizedBlock(block: block),
+              );
+            },
+            growable: false,
+          ),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildBrailleOutput() {
+    return Semantics(
+      label:
+          ScanResultScreenStyles.brailleSemanticLabel,
+      child: Container(
+        width: double.infinity,
+        padding:
+            ScanResultScreenStyles.braillePreviewPadding,
+        decoration: const BoxDecoration(
+          color: ScanResultScreenStyles
+              .brailleBackgroundColor,
+          borderRadius:
+              ScanResultScreenStyles.innerCardRadius,
+          border:
+              ScanResultScreenStyles.innerCardBorder,
+        ),
+        child: SelectableText(
+          result.combinedBraille,
+          textAlign: TextAlign.left,
+          style:
+              ScanResultScreenStyles.brailleContentStyle,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrailleUnavailable() {
+    final String message = result.hasBrailleErrors
+        ? ScanResultScreenStyles
+            .brailleTranslationFailedDescription
+        : ScanResultScreenStyles
+            .brailleUnavailableDescription;
+
+    return Padding(
+      padding:
+          ScanResultScreenStyles.emptyResultPadding,
+      child: Column(
         children: <Widget>[
-          Container(
-            width: ScanResultScreenStyles
-                .statusIconContainerSize,
-            height: ScanResultScreenStyles
-                .statusIconContainerSize,
-            decoration: const BoxDecoration(
-              color: ScanResultScreenStyles
-                  .primaryTintColor,
-              borderRadius: ScanResultScreenStyles
-                  .statusIconRadius,
-            ),
-            alignment: Alignment.center,
-            child: const Icon(
-              ScanResultScreenStyles.statusIcon,
-              color:
-                  ScanResultScreenStyles.primaryColor,
-              size:
-                  ScanResultScreenStyles.statusIconSize,
-            ),
+          const Icon(
+            ScanResultScreenStyles
+                .brailleUnavailableIcon,
+            size: ScanResultScreenStyles
+                .brailleUnavailableIconSize,
+            color: ScanResultScreenStyles.primaryColor,
           ),
           const SizedBox(
-            width: ScanResultScreenStyles.itemSpacing,
+            height: ScanResultScreenStyles.itemSpacing,
           ),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  ScanResultScreenStyles.statusTitle,
-                  style: ScanResultScreenStyles
-                      .statusTitleStyle,
-                ),
-                SizedBox(
-                  height: ScanResultScreenStyles
-                      .compactSpacing,
-                ),
-                Text(
-                  ScanResultScreenStyles
-                      .statusDescription,
-                  style: ScanResultScreenStyles
-                      .statusDescriptionStyle,
-                ),
-              ],
-            ),
+          const Text(
+            ScanResultScreenStyles
+                .brailleUnavailableTitle,
+            textAlign: TextAlign.center,
+            style: ScanResultScreenStyles
+                .emptyResultTitleStyle,
+          ),
+          const SizedBox(
+            height: ScanResultScreenStyles.compactSpacing,
+          ),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: ScanResultScreenStyles
+                .emptyResultDescriptionStyle,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMetrics() {
-    final String processingTime =
-        result.processingTimeMs > 0
-            ? '${(result.processingTimeMs / 1000).toStringAsFixed(1)}'
-                '${ScanResultScreenStyles.secondUnit}'
-            : ScanResultScreenStyles
-                .unavailableMetricValue;
-
-    return Wrap(
-      spacing:
-          ScanResultScreenStyles.metricSpacing,
-      runSpacing:
-          ScanResultScreenStyles.metricSpacing,
-      children: <Widget>[
-        _ResultMetric(
-          icon:
-              ScanResultScreenStyles.textMetricIcon,
-          label:
-              ScanResultScreenStyles.textMetricLabel,
-          value:
-              result.textBlocks.length.toString(),
-        ),
-        _ResultMetric(
-          icon: ScanResultScreenStyles
-              .formulaMetricIcon,
-          label: ScanResultScreenStyles
-              .formulaMetricLabel,
-          value:
-              result.formulaBlocks.length.toString(),
-        ),
-        _ResultMetric(
-          icon:
-              ScanResultScreenStyles.pageMetricIcon,
-          label:
-              ScanResultScreenStyles.pageMetricLabel,
-          value: result.pageCount.toString(),
-        ),
-        _ResultMetric(
-          icon:
-              ScanResultScreenStyles.timeMetricIcon,
-          label:
-              ScanResultScreenStyles.timeMetricLabel,
-          value: processingTime,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUnifiedContentPreview(
-    BuildContext context,
-  ) {
-    return Semantics(
-      label:
-          ScanResultScreenStyles.resultSemanticLabel,
-      child: Container(
-        width: double.infinity,
-        padding:
-            ScanResultScreenStyles.blockContentPadding,
-        decoration: BoxDecoration(
-          color: ScanResultScreenStyles.surfaceColor,
-          borderRadius:
-              ScanResultScreenStyles.cardRadius,
-          border: Border.all(
-            color:
-                ScanResultScreenStyles.outlineColor,
-            width:
-                ScanResultScreenStyles.cardBorderWidth,
-          ),
-          boxShadow:
-              ScanResultScreenStyles.cardShadow,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Container(
-                  width: ScanResultScreenStyles
-                      .blockIconContainerSize,
-                  height: ScanResultScreenStyles
-                      .blockIconContainerSize,
-                  decoration: const BoxDecoration(
-                    color: ScanResultScreenStyles
-                        .primaryTintColor,
-                    borderRadius:
-                        ScanResultScreenStyles
-                            .blockIconRadius,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    ScanResultScreenStyles
-                        .unknownBlockIcon,
-                    size: ScanResultScreenStyles
-                        .blockHeaderIconSize,
-                    color: ScanResultScreenStyles
-                        .primaryColor,
-                  ),
-                ),
-                const SizedBox(
-                  width: ScanResultScreenStyles
-                      .itemSpacing,
-                ),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        ScanResultScreenStyles
-                            .contentSectionTitle,
-                        style: ScanResultScreenStyles
-                            .sectionTitleStyle,
-                      ),
-                      SizedBox(
-                        height: ScanResultScreenStyles
-                            .compactSpacing,
-                      ),
-                      Text(
-                        ScanResultScreenStyles
-                            .contentSectionDescription,
-                        style: ScanResultScreenStyles
-                            .sectionDescriptionStyle,
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  tooltip:
-                      ScanResultScreenStyles.copyTooltip,
-                  onPressed: () {
-                    _copyContent(
-                      context,
-                      _combinedContent,
-                    );
-                  },
-                  icon: const Icon(
-                    ScanResultScreenStyles.copyIcon,
-                    color: ScanResultScreenStyles
-                        .copyIconColor,
-                    size: ScanResultScreenStyles
-                        .copyIconSize,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(
-              height:
-                  ScanResultScreenStyles.itemSpacing,
-            ),
-            const Divider(
-              height:
-                  ScanResultScreenStyles.cardBorderWidth,
-              thickness:
-                  ScanResultScreenStyles.cardBorderWidth,
-              color:
-                  ScanResultScreenStyles.dividerColor,
-            ),
-            const SizedBox(
-              height:
-                  ScanResultScreenStyles.itemSpacing,
-            ),
-            ..._buildUnifiedBlocks(),
-          ],
-        ),
-      ),
-    );
-  }
-
- List<Widget> _buildUnifiedBlocks() {
-  final List<DocumentBlock> contentBlocks = result.blocks
-      .where(
-        (DocumentBlock block) =>
-            block.normalizedContent.trim().isNotEmpty,
-      )
-      .toList(growable: false);
-
-  return List<Widget>.generate(
-    contentBlocks.length,
-    (int index) {
-      final DocumentBlock block = contentBlocks[index];
-
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: index == contentBlocks.length - 1
-              ? 0
-              : ScanResultScreenStyles.unifiedBlockSpacing,
-        ),
-        child: _buildUnifiedBlock(block),
-      );
-    },
-    growable: false,
-  );
-}
-
-
-
- Widget _buildUnifiedBlock(
-  DocumentBlock block,
-) {
-  final String displayContent =
-      block.normalizedContent.trim();
-
-  if (block.isFormula) {
-    return Container(
-      width: double.infinity,
-      padding:
-          ScanResultScreenStyles.formulaPreviewPadding,
-      decoration: const BoxDecoration(
-        color: ScanResultScreenStyles
-            .formulaBlockBackgroundColor,
-        borderRadius:
-            ScanResultScreenStyles.formulaPreviewRadius,
-      ),
-      child: SelectableText(
-        displayContent,
-        style:
-            ScanResultScreenStyles.formulaContentStyle,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  return SelectableText(
-    displayContent,
-    style: ScanResultScreenStyles.blockContentStyle,
-    textAlign: TextAlign.left,
-  );
-}
-
- String get _combinedContent {
-  return result.blocks
-      .map(
-        (DocumentBlock block) =>
-            block.normalizedContent.trim(),
-      )
-      .where(
-        (String content) => content.isNotEmpty,
-      )
-      .join(
-        ScanResultScreenStyles.contentBlockSeparator,
-      );
-}
-
   Widget _buildEmptyResult() {
-    return Container(
+    return const Padding(
       padding:
-          ScanResultScreenStyles.cardPadding,
-      decoration: BoxDecoration(
-        color:
-            ScanResultScreenStyles.surfaceColor,
-        borderRadius:
-            ScanResultScreenStyles.cardRadius,
-        border: Border.all(
-          color:
-              ScanResultScreenStyles.outlineColor,
-          width:
-              ScanResultScreenStyles.cardBorderWidth,
-        ),
-        boxShadow:
-            ScanResultScreenStyles.cardShadow,
-      ),
-      child: const Column(
+          ScanResultScreenStyles.emptyResultPadding,
+      child: Column(
         children: <Widget>[
           Icon(
             ScanResultScreenStyles.emptyResultIcon,
-            size: ScanResultScreenStyles
-                .emptyResultIconSize,
-            color:
-                ScanResultScreenStyles.primaryColor,
+            size:
+                ScanResultScreenStyles.emptyResultIconSize,
+            color: ScanResultScreenStyles.primaryColor,
           ),
           SizedBox(
-            height:
-                ScanResultScreenStyles.itemSpacing,
+            height: ScanResultScreenStyles.itemSpacing,
           ),
           Text(
             ScanResultScreenStyles.emptyResultTitle,
+            textAlign: TextAlign.center,
             style: ScanResultScreenStyles
                 .emptyResultTitleStyle,
-            textAlign: TextAlign.center,
           ),
           SizedBox(
-            height:
-                ScanResultScreenStyles.compactSpacing,
+            height: ScanResultScreenStyles.compactSpacing,
           ),
           Text(
             ScanResultScreenStyles
                 .emptyResultDescription,
+            textAlign: TextAlign.center,
             style: ScanResultScreenStyles
                 .emptyResultDescriptionStyle,
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _copyContent(
-    BuildContext context,
-    String content,
-  ) async {
+  Future<void> _copyToClipboard({
+    required BuildContext context,
+    required String content,
+    required String confirmationMessage,
+  }) async {
+    if (content.trim().isEmpty) return;
+
     await Clipboard.setData(
       ClipboardData(text: content),
     );
@@ -498,8 +466,8 @@ class ScanResultScreen extends StatelessWidget {
             borderRadius:
                 ScanResultScreenStyles.snackBarRadius,
           ),
-          content: const Text(
-            ScanResultScreenStyles.copiedMessage,
+          content: Text(
+            confirmationMessage,
             style: ScanResultScreenStyles
                 .snackBarTextStyle,
           ),
@@ -508,60 +476,150 @@ class ScanResultScreen extends StatelessWidget {
   }
 }
 
-class _ResultMetric extends StatelessWidget {
-  const _ResultMetric({
-    required this.icon,
-    required this.label,
-    required this.value,
+class _ResultSection extends StatelessWidget {
+  const _ResultSection({
+    required this.number,
+    required this.title,
+    required this.child,
+    this.action,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final String number;
+  final String title;
+  final Widget child;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding:
-          ScanResultScreenStyles.metricPadding,
+          ScanResultScreenStyles.sectionCardPadding,
       decoration: const BoxDecoration(
-        color:
-            ScanResultScreenStyles.primarySoftColor,
+        color: ScanResultScreenStyles.surfaceColor,
         borderRadius:
-            ScanResultScreenStyles.metricRadius,
+            ScanResultScreenStyles.cardRadius,
+        border: ScanResultScreenStyles.cardBorder,
+        boxShadow:
+            ScanResultScreenStyles.cardShadow,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.stretch,
         children: <Widget>[
-          Icon(
-            icon,
-            size:
-                ScanResultScreenStyles.metricIconSize,
-            color:
-                ScanResultScreenStyles.primaryColor,
-          ),
-          const SizedBox(
-            width:
-                ScanResultScreenStyles.compactSpacing,
-          ),
-          Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+          Row(
             children: <Widget>[
-              Text(
-                value,
-                style: ScanResultScreenStyles
-                    .metricValueStyle,
+              Container(
+                width: ScanResultScreenStyles
+                    .sectionNumberSize,
+                height: ScanResultScreenStyles
+                    .sectionNumberSize,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color:
+                      ScanResultScreenStyles.primaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  number,
+                  style: ScanResultScreenStyles
+                      .sectionNumberStyle,
+                ),
               ),
-              Text(
-                label,
-                style: ScanResultScreenStyles
-                    .metricLabelStyle,
+              const SizedBox(
+                width:
+                    ScanResultScreenStyles.itemSpacing,
               ),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: ScanResultScreenStyles
+                      .sectionTitleStyle,
+                ),
+              ),
+              if (action != null) action!,
             ],
           ),
+          const SizedBox(
+            height: ScanResultScreenStyles
+                .sectionHeaderSpacing,
+          ),
+          child,
         ],
       ),
+    );
+  }
+}
+
+class _SectionAction extends StatelessWidget {
+  const _SectionAction({
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: TextButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: ScanResultScreenStyles.actionIconSize,
+        ),
+        label: Text(label),
+        style:
+            ScanResultScreenStyles.sectionActionStyle,
+      ),
+    );
+  }
+}
+
+class _RecognizedBlock extends StatelessWidget {
+  const _RecognizedBlock({
+    required this.block,
+  });
+
+  final DocumentBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    final String content =
+        block.normalizedContent.trim();
+
+    if (block.isFormula) {
+      return Container(
+        width: double.infinity,
+        padding:
+            ScanResultScreenStyles.formulaPreviewPadding,
+        decoration: const BoxDecoration(
+          color: ScanResultScreenStyles
+              .formulaBackgroundColor,
+          borderRadius:
+              ScanResultScreenStyles.formulaRadius,
+        ),
+        child: SelectableText(
+          content,
+          textAlign: TextAlign.center,
+          style:
+              ScanResultScreenStyles.formulaContentStyle,
+        ),
+      );
+    }
+
+    return SelectableText(
+      content,
+      textAlign: TextAlign.left,
+      style: ScanResultScreenStyles
+          .recognizedContentStyle,
     );
   }
 }
@@ -574,7 +632,7 @@ class _ImageErrorState extends StatelessWidget {
     return const Center(
       child: Padding(
         padding:
-            ScanResultScreenStyles.cardPadding,
+            ScanResultScreenStyles.emptyResultPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
@@ -591,9 +649,9 @@ class _ImageErrorState extends StatelessWidget {
             ),
             Text(
               ScanResultScreenStyles.imageErrorText,
+              textAlign: TextAlign.center,
               style: ScanResultScreenStyles
                   .emptyResultDescriptionStyle,
-              textAlign: TextAlign.center,
             ),
           ],
         ),

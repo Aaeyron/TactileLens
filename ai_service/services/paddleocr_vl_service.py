@@ -10,6 +10,10 @@ from services.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
 
+from services.braille_translation_service import (
+    BrailleTranslationService,
+)
+
 
 class PaddleOcrVlService:
     """Reusable PaddleOCR-VL document recognition service."""
@@ -41,6 +45,10 @@ class PaddleOcrVlService:
         # Prevent simultaneous requests from exhausting
         # the available 6 GB GPU memory.
         self._inference_lock = threading.Lock()
+
+        self._braille_translator = (
+            BrailleTranslationService()
+        )
 
         self._pipeline = PaddleOCRVL(
             pipeline_version=self.pipeline_version,
@@ -153,6 +161,13 @@ class PaddleOcrVlService:
             block_type in self.FORMULA_BLOCK_TYPES
         )
 
+        braille_result = (
+            self._braille_translator.translate_block(
+                normalized_content,
+                is_formula=is_formula,
+            )
+        )
+
         return {
             "id": block.get("block_id"),
             "order": block.get("block_order"),
@@ -178,8 +193,14 @@ class PaddleOcrVlService:
                     "block_polygon_points"
                 )
             ),
-            "is_text": block_type == "text",
+           "is_text": block_type == "text",
             "is_formula": is_formula,
+
+            # Liblouis translation result.
+            "braille_content": braille_result["content"],
+            "braille_code": braille_result["code"],
+            "braille_success": braille_result["success"],
+            "braille_error": braille_result["error"],
         }
 
     def _to_builtin(

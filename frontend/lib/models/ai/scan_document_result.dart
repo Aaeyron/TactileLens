@@ -35,7 +35,9 @@ class ScanDocumentResult {
     }
 
     final List<DocumentBlock> blocks = _parseBlocks(rawBlocks);
-    final List<DocumentPage> pages = _parsePages(json['pages']);
+    final List<DocumentPage> pages = _parsePages(
+      json['pages'],
+    );
 
     final int reportedPageCount = _readInteger(
       json['page_count'],
@@ -58,32 +60,90 @@ class ScanDocumentResult {
     );
   }
 
-  bool get hasContent => blocks.any(
-        (DocumentBlock block) =>
-            block.normalizedContent.trim().isNotEmpty,
-      );
+  bool get hasContent {
+    return blocks.any(
+      (DocumentBlock block) => block.hasContent,
+    );
+  }
 
-  bool get hasText => blocks.any(
+  bool get hasText {
+    return blocks.any(
+      (DocumentBlock block) => block.isText,
+    );
+  }
+
+  bool get hasFormulas {
+    return blocks.any(
+      (DocumentBlock block) => block.isFormula,
+    );
+  }
+
+  bool get hasBraille {
+    return blocks.any(
+      (DocumentBlock block) => block.hasBraille,
+    );
+  }
+
+  bool get hasBrailleErrors {
+    return blocks.any(
+      (DocumentBlock block) =>
+          !block.brailleSuccess &&
+          block.brailleError.isNotEmpty,
+    );
+  }
+
+  List<DocumentBlock> get textBlocks {
+    return List<DocumentBlock>.unmodifiable(
+      blocks.where(
         (DocumentBlock block) => block.isText,
-      );
+      ),
+    );
+  }
 
-  bool get hasFormulas => blocks.any(
+  List<DocumentBlock> get formulaBlocks {
+    return List<DocumentBlock>.unmodifiable(
+      blocks.where(
         (DocumentBlock block) => block.isFormula,
-      );
+      ),
+    );
+  }
 
-  List<DocumentBlock> get textBlocks =>
-      List<DocumentBlock>.unmodifiable(
-        blocks.where(
-          (DocumentBlock block) => block.isText,
-        ),
-      );
+  List<DocumentBlock> get brailleBlocks {
+    return List<DocumentBlock>.unmodifiable(
+      blocks.where(
+        (DocumentBlock block) => block.hasBraille,
+      ),
+    );
+  }
 
-  List<DocumentBlock> get formulaBlocks =>
-      List<DocumentBlock>.unmodifiable(
-        blocks.where(
-          (DocumentBlock block) => block.isFormula,
-        ),
-      );
+  List<DocumentBlock> get uebBrailleBlocks {
+    return List<DocumentBlock>.unmodifiable(
+      blocks.where(
+        (DocumentBlock block) =>
+            block.hasBraille && block.isUebBraille,
+      ),
+    );
+  }
+
+  List<DocumentBlock> get nemethBrailleBlocks {
+    return List<DocumentBlock>.unmodifiable(
+      blocks.where(
+        (DocumentBlock block) =>
+            block.hasBraille && block.isNemethBraille,
+      ),
+    );
+  }
+
+  String get combinedBraille {
+    return brailleBlocks
+        .map(
+          (DocumentBlock block) => block.brailleContent,
+        )
+        .where(
+          (String content) => content.trim().isNotEmpty,
+        )
+        .join('\n\n');
+  }
 
   static List<DocumentBlock> _parseBlocks(
     List<dynamic> values,
@@ -110,7 +170,9 @@ class ScanDocumentResult {
     return blocks;
   }
 
-  static List<DocumentPage> _parsePages(dynamic value) {
+  static List<DocumentPage> _parsePages(
+    dynamic value,
+  ) {
     if (value is! List) {
       return const <DocumentPage>[];
     }
@@ -197,6 +259,10 @@ class DocumentBlock {
     required this.polygonPoints,
     required this.isText,
     required this.isFormula,
+    required this.brailleContent,
+    required this.brailleCode,
+    required this.brailleSuccess,
+    required this.brailleError,
   });
 
   final int id;
@@ -214,15 +280,48 @@ class DocumentBlock {
   final bool isText;
   final bool isFormula;
 
+  /// Unicode Braille produced by Liblouis.
+  final String brailleContent;
+
+  /// Braille translation standard used by the backend.
+  ///
+  /// Expected values are `ueb` and `nemeth`.
+  final String brailleCode;
+
+  /// Whether Liblouis successfully translated this block.
+  final bool brailleSuccess;
+
+  /// Translation error returned by the backend.
+  ///
+  /// This is empty when translation succeeds.
+  final String brailleError;
+
   /// Backward-compatible alias.
   ///
-  /// Existing code using `block.content` will continue to work,
-  /// but it will now receive the normalized content.
+  /// Existing code using `block.content` continues to receive
+  /// normalized OCR content.
   String get content => normalizedContent;
 
-  bool get hasContent => normalizedContent.trim().isNotEmpty;
+  bool get hasContent {
+    return normalizedContent.trim().isNotEmpty;
+  }
 
-  bool get wasNormalized => rawContent != normalizedContent;
+  bool get wasNormalized {
+    return rawContent != normalizedContent;
+  }
+
+  bool get hasBraille {
+    return brailleSuccess &&
+        brailleContent.trim().isNotEmpty;
+  }
+
+  bool get isUebBraille {
+    return brailleCode.toLowerCase() == 'ueb';
+  }
+
+  bool get isNemethBraille {
+    return brailleCode.toLowerCase() == 'nemeth';
+  }
 
   factory DocumentBlock.fromJson(
     Map<String, dynamic> json, {
@@ -233,8 +332,8 @@ class DocumentBlock {
         ? json['type'] as String
         : 'unknown';
 
-    // `content` supports responses created before raw_content and
-    // normalized_content were added to the backend.
+    // Supports API responses created before raw_content and
+    // normalized_content were added.
     final String legacyContent = _readContent(
       json['content'],
     );
@@ -256,6 +355,25 @@ class DocumentBlock {
             ? receivedNormalizedContent
             : legacyContent;
 
+    // Braille fields remain backward-compatible with API
+    // responses produced before Liblouis was integrated.
+    final String brailleContent = _readContent(
+      json['braille_content'],
+    );
+
+    final String brailleCode = _readContent(
+      json['braille_code'],
+    );
+
+    final String brailleError = _readContent(
+      json['braille_error'],
+    );
+
+    final bool brailleSuccess =
+        json['braille_success'] is bool
+            ? json['braille_success'] as bool
+            : brailleContent.isNotEmpty;
+
     return DocumentBlock(
       id: json['id'] is num
           ? (json['id'] as num).toInt()
@@ -266,7 +384,9 @@ class DocumentBlock {
       type: type,
       rawContent: rawContent,
       normalizedContent: normalizedContent,
-      boundingBox: _parseNumberList(json['bbox']),
+      boundingBox: _parseNumberList(
+        json['bbox'],
+      ),
       polygonPoints: _parsePolygonPoints(
         json['polygon_points'],
       ),
@@ -276,6 +396,10 @@ class DocumentBlock {
       isFormula: json['is_formula'] is bool
           ? json['is_formula'] as bool
           : _isFormulaType(type),
+      brailleContent: brailleContent,
+      brailleCode: brailleCode,
+      brailleSuccess: brailleSuccess,
+      brailleError: brailleError,
     );
   }
 
@@ -289,7 +413,9 @@ class DocumentBlock {
         type == 'inline_formula';
   }
 
-  static List<double> _parseNumberList(dynamic value) {
+  static List<double> _parseNumberList(
+    dynamic value,
+  ) {
     if (value is! List) {
       return const <double>[];
     }
