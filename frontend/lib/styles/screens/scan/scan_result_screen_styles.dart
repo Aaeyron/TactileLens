@@ -183,8 +183,8 @@ abstract final class ScanResultScreenStyles {
   static const String successTitle =
       'Scan Successful!';
 
-  static const String successDescription =
-      'English text with equations detected';
+ static const String successDescription =
+    'Your scanned content is ready for review.';
 
   static const TextStyle successTitleStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -448,21 +448,4 @@ abstract final class ScanResultScreenStyles {
 
   static const String brailleSemanticLabel =
       'Braille translation output';
-
-  static const String formulaDetectedDescription =
-    'Equation detected';
-
-static const String formulasDetectedDescription =
-    'Equations detected';
-
-static const String textDetectedDescription =
-    'English text detected';
-
-static const String mixedContentDetectedDescription =
-    'English text with equations detected';
-
-static const String documentDetectedDescription =
-    'Document content detected';
-
-
 }
