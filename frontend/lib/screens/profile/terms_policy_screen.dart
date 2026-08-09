@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/profile/terms_policy_screen_styles.dart';
+import '../../widgets/app_header.dart';
 
 class TermsPolicyScreen extends StatefulWidget {
   const TermsPolicyScreen({super.key});
@@ -101,18 +102,36 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: TermsPolicyScreenStyles.backgroundColor,
-      appBar: AppBar(
-        elevation: TermsPolicyScreenStyles.appBarElevation,
-        scrolledUnderElevation:
-            TermsPolicyScreenStyles.appBarScrolledUnderElevation,
-        backgroundColor: TermsPolicyScreenStyles.cardColor,
-        foregroundColor: TermsPolicyScreenStyles.textPrimaryColor,
-        centerTitle: true,
-        title: const Text(
-          'Terms & Policy',
-          style: TermsPolicyScreenStyles.appBarTitleStyle,
+    appBar: PreferredSize(
+  preferredSize: const Size.fromHeight(100),
+  child: Stack(
+    children: <Widget>[
+      const AppHeader(),
+      SafeArea(
+        child: SizedBox(
+          height: 76,
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  color: TermsPolicyScreenStyles.textPrimaryColor,
+                ),
+              ),
+              const Text(
+                'Terms & Policy',
+                style: TermsPolicyScreenStyles.appBarTitleStyle,
+              ),
+            ],
+          ),
         ),
       ),
+    ],
+  ),
+),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
