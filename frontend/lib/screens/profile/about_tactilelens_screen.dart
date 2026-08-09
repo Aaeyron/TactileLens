@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/profile/about_tactilelens_screen_styles.dart';
+import '../../widgets/app_header.dart';
 
 class AboutTactileLensScreen extends StatelessWidget {
   const AboutTactileLensScreen({super.key});
@@ -42,18 +43,38 @@ class AboutTactileLensScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AboutTactileLensScreenStyles.backgroundColor,
-      appBar: AppBar(
-        elevation: AboutTactileLensScreenStyles.appBarElevation,
-        scrolledUnderElevation:
-            AboutTactileLensScreenStyles.appBarScrolledUnderElevation,
-        backgroundColor: AboutTactileLensScreenStyles.cardColor,
-        foregroundColor: AboutTactileLensScreenStyles.textPrimaryColor,
-        centerTitle: true,
-        title: const Text(
-          'About TactileLens',
-          style: AboutTactileLensScreenStyles.appBarTitleStyle,
+     appBar: PreferredSize(
+  preferredSize: const Size.fromHeight(100),
+  child: Stack(
+    children: <Widget>[
+      const AppHeader(),
+      SafeArea(
+        child: SizedBox(
+          height: 76,
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  color:
+                      AboutTactileLensScreenStyles.textPrimaryColor,
+                ),
+              ),
+              const Text(
+                'About TactileLens',
+                style:
+                    AboutTactileLensScreenStyles.appBarTitleStyle,
+              ),
+            ],
+          ),
         ),
       ),
+    ],
+  ),
+),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
