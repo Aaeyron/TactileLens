@@ -3,48 +3,62 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  // TODO:
-  // Replace this with your computer's local IP address.
-static const String baseUrl = "http://192.168.1.5:5000";
+  const AuthService._();
+
+  static const String baseUrl = String.fromEnvironment(
+    'BACKEND_BASE_URL',
+    defaultValue: 'http://10.0.2.2:5000',
+  );
 
   static Future<http.Response> registerUser({
-  required String firstName,
-  required String lastName,
-  required String email,
-  required String password,
-  required String role,
-}) async {
-    final url = Uri.parse("$baseUrl/api/auth/register");
-
-    return await http.post(
-      url,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "first_name": firstName,
-        "last_name": lastName,
-        "email": email,
-        "password": password,
-        "role": role,
-      }),
-    );
-  }
-    static Future<http.Response> loginUser({
+    required String firstName,
+    required String lastName,
     required String email,
     required String password,
-  }) async {
-    final url = Uri.parse("$baseUrl/api/auth/login");
+    required String role,
+  }) {
+    final Uri url = Uri.parse(
+      '$baseUrl/api/auth/register',
+    );
 
-    return await http.post(
+    return http.post(
       url,
-      headers: {
-        "Content-Type": "application/json",
+      headers: const <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
-      body: jsonEncode({
-        "email": email,
-        "password": password,
-      }),
+      body: jsonEncode(
+        <String, dynamic>{
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
+          'email': email.trim().toLowerCase(),
+          'password': password,
+          'role': role,
+        },
+      ),
+    );
+  }
+
+  static Future<http.Response> loginUser({
+    required String email,
+    required String password,
+  }) {
+    final Uri url = Uri.parse(
+      '$baseUrl/api/auth/login',
+    );
+
+    return http.post(
+      url,
+      headers: const <String, String>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(
+        <String, dynamic>{
+          'email': email.trim().toLowerCase(),
+          'password': password,
+        },
+      ),
     );
   }
 }
