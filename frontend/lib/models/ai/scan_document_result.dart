@@ -403,6 +403,24 @@ class DocumentBlock {
     );
   }
 
+  Map<String, dynamic> toJson() {
+  return <String, dynamic>{
+    'id': id,
+    'order': order,
+    'type': type,
+    'raw_content': rawContent,
+    'normalized_content': normalizedContent,
+    'bbox': boundingBox,
+    'polygon_points': polygonPoints,
+    'is_text': isText,
+    'is_formula': isFormula,
+    'braille_content': brailleContent,
+    'braille_code': brailleCode,
+    'braille_success': brailleSuccess,
+    'braille_error': brailleError,
+  };
+}
+
   static String _readContent(dynamic value) {
     return value is String ? value.trim() : '';
   }

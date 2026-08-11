@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../services/history/history_service.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 import '../../widgets/app_header.dart';
 
@@ -19,23 +20,15 @@ class ScanResultScreen extends StatelessWidget {
 
   String get _combinedContent {
     return result.blocks
-        .map(
-          (DocumentBlock block) =>
-              block.normalizedContent.trim(),
-        )
-        .where(
-          (String content) => content.isNotEmpty,
-        )
-        .join(
-          ScanResultScreenStyles.contentBlockSeparator,
-        );
+        .map((DocumentBlock block) => block.normalizedContent.trim())
+        .where((String content) => content.isNotEmpty)
+        .join(ScanResultScreenStyles.contentBlockSeparator);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          ScanResultScreenStyles.backgroundColor,
+      backgroundColor: ScanResultScreenStyles.backgroundColor,
       appBar: PreferredSize(
         preferredSize: ScanResultScreenStyles.headerSize,
         child: Stack(
@@ -43,33 +36,28 @@ class ScanResultScreen extends StatelessWidget {
             const AppHeader(),
             SafeArea(
               child: SizedBox(
-                height:
-                    ScanResultScreenStyles.headerContentHeight,
+                height: ScanResultScreenStyles.headerContentHeight,
                 child: Row(
                   children: <Widget>[
                     IconButton(
-                      tooltip:
-                          ScanResultScreenStyles.backTooltip,
+                      tooltip: ScanResultScreenStyles.backTooltip,
                       onPressed: () {
                         Navigator.maybePop(context);
                       },
                       icon: const Icon(
                         ScanResultScreenStyles.backIcon,
-                        size: ScanResultScreenStyles
-                            .headerIconSize,
+                        size: ScanResultScreenStyles.headerIconSize,
                       ),
                     ),
                     const SizedBox(
-                      width: ScanResultScreenStyles
-                          .headerTitleSpacing,
+                      width: ScanResultScreenStyles.headerTitleSpacing,
                     ),
                     const Expanded(
                       child: Text(
                         ScanResultScreenStyles.appBarTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ScanResultScreenStyles
-                            .appBarTitleStyle,
+                        style: ScanResultScreenStyles.appBarTitleStyle,
                       ),
                     ),
                     TextButton.icon(
@@ -78,18 +66,13 @@ class ScanResultScreen extends StatelessWidget {
                       },
                       icon: const Icon(
                         ScanResultScreenStyles.newScanIcon,
-                        size: ScanResultScreenStyles
-                            .actionIconSize,
+                        size: ScanResultScreenStyles.actionIconSize,
                       ),
-                      label: const Text(
-                        ScanResultScreenStyles.newScanLabel,
-                      ),
-                      style: ScanResultScreenStyles
-                          .headerActionStyle,
+                      label: const Text(ScanResultScreenStyles.newScanLabel),
+                      style: ScanResultScreenStyles.headerActionStyle,
                     ),
                     const SizedBox(
-                      width: ScanResultScreenStyles
-                          .headerRightSpacing,
+                      width: ScanResultScreenStyles.headerRightSpacing,
                     ),
                   ],
                 ),
@@ -104,38 +87,27 @@ class ScanResultScreen extends StatelessWidget {
           padding: ScanResultScreenStyles.screenPadding,
           children: <Widget>[
             _buildSuccessBanner(),
-            const SizedBox(
-              height: ScanResultScreenStyles.sectionSpacing,
-            ),
+            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number:
-                  ScanResultScreenStyles.imageSectionNumber,
+              number: ScanResultScreenStyles.imageSectionNumber,
               title: ScanResultScreenStyles.imageSectionTitle,
               child: _buildImagePreview(),
             ),
-            const SizedBox(
-              height: ScanResultScreenStyles.sectionSpacing,
-            ),
+            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number:
-                  ScanResultScreenStyles.contentSectionNumber,
-              title:
-                  ScanResultScreenStyles.contentSectionTitle,
+              number: ScanResultScreenStyles.contentSectionNumber,
+              title: ScanResultScreenStyles.contentSectionTitle,
               action: result.hasContent
                   ? _SectionAction(
-                      icon:
-                          ScanResultScreenStyles.copyIcon,
-                      label:
-                          ScanResultScreenStyles.copyLabel,
-                      tooltip:
-                          ScanResultScreenStyles.copyTooltip,
+                      icon: ScanResultScreenStyles.copyIcon,
+                      label: ScanResultScreenStyles.copyLabel,
+                      tooltip: ScanResultScreenStyles.copyTooltip,
                       onPressed: () {
                         _copyToClipboard(
                           context: context,
                           content: _combinedContent,
                           confirmationMessage:
-                              ScanResultScreenStyles
-                                  .contentCopiedMessage,
+                              ScanResultScreenStyles.contentCopiedMessage,
                         );
                       },
                     )
@@ -144,29 +116,21 @@ class ScanResultScreen extends StatelessWidget {
                   ? _buildRecognizedContent()
                   : _buildEmptyResult(),
             ),
-            const SizedBox(
-              height: ScanResultScreenStyles.sectionSpacing,
-            ),
+            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number:
-                  ScanResultScreenStyles.brailleSectionNumber,
-              title:
-                  ScanResultScreenStyles.brailleSectionTitle,
+              number: ScanResultScreenStyles.brailleSectionNumber,
+              title: ScanResultScreenStyles.brailleSectionTitle,
               action: result.hasBraille
                   ? _SectionAction(
-                      icon:
-                          ScanResultScreenStyles.copyIcon,
-                      label: ScanResultScreenStyles
-                          .copyBrailleLabel,
-                      tooltip: ScanResultScreenStyles
-                          .copyBrailleTooltip,
+                      icon: ScanResultScreenStyles.copyIcon,
+                      label: ScanResultScreenStyles.copyBrailleLabel,
+                      tooltip: ScanResultScreenStyles.copyBrailleTooltip,
                       onPressed: () {
                         _copyToClipboard(
                           context: context,
                           content: result.combinedBraille,
                           confirmationMessage:
-                              ScanResultScreenStyles
-                                  .brailleCopiedMessage,
+                              ScanResultScreenStyles.brailleCopiedMessage,
                         );
                       },
                     )
@@ -175,6 +139,10 @@ class ScanResultScreen extends StatelessWidget {
                   ? _buildBrailleOutput()
                   : _buildBrailleUnavailable(),
             ),
+            if (result.hasContent) ...<Widget>[
+              const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
+              _SaveHistoryButton(result: result),
+            ],
           ],
         ),
       ),
@@ -183,68 +151,49 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildSuccessBanner() {
     return Container(
-      padding:
-          ScanResultScreenStyles.successBannerPadding,
+      padding: ScanResultScreenStyles.successBannerPadding,
       decoration: const BoxDecoration(
-        color:
-            ScanResultScreenStyles.successBackgroundColor,
-        borderRadius:
-            ScanResultScreenStyles.cardRadius,
+        color: ScanResultScreenStyles.successBackgroundColor,
+        borderRadius: ScanResultScreenStyles.cardRadius,
         border: ScanResultScreenStyles.successBorder,
       ),
       child: Row(
         children: <Widget>[
           Container(
-            width: ScanResultScreenStyles
-                .successIconContainerSize,
-            height: ScanResultScreenStyles
-                .successIconContainerSize,
+            width: ScanResultScreenStyles.successIconContainerSize,
+            height: ScanResultScreenStyles.successIconContainerSize,
             decoration: const BoxDecoration(
-              color: ScanResultScreenStyles
-                  .successIconBackgroundColor,
+              color: ScanResultScreenStyles.successIconBackgroundColor,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               ScanResultScreenStyles.successDocumentIcon,
               color: ScanResultScreenStyles.successColor,
-              size: ScanResultScreenStyles
-                  .successDocumentIconSize,
+              size: ScanResultScreenStyles.successDocumentIconSize,
             ),
           ),
-          const SizedBox(
-            width: ScanResultScreenStyles.itemSpacing,
-          ),
+          const SizedBox(width: ScanResultScreenStyles.itemSpacing),
           const Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   ScanResultScreenStyles.successTitle,
-                  style: ScanResultScreenStyles
-                      .successTitleStyle,
+                  style: ScanResultScreenStyles.successTitleStyle,
                 ),
-                SizedBox(
-                  height: ScanResultScreenStyles
-                      .compactSpacing,
-                ),
+                SizedBox(height: ScanResultScreenStyles.compactSpacing),
                 Text(
-                  ScanResultScreenStyles
-                      .successDescription,
-                  style: ScanResultScreenStyles
-                      .successDescriptionStyle,
+                  ScanResultScreenStyles.successDescription,
+                  style: ScanResultScreenStyles.successDescriptionStyle,
                 ),
               ],
             ),
           ),
-          const SizedBox(
-            width: ScanResultScreenStyles.compactSpacing,
-          ),
+          const SizedBox(width: ScanResultScreenStyles.compactSpacing),
           const Icon(
             ScanResultScreenStyles.successCheckIcon,
             color: ScanResultScreenStyles.successColor,
-            size:
-                ScanResultScreenStyles.successCheckIconSize,
+            size: ScanResultScreenStyles.successCheckIconSize,
           ),
         ],
       ),
@@ -257,76 +206,55 @@ class ScanResultScreen extends StatelessWidget {
       label: ScanResultScreenStyles.imageSemanticLabel,
       child: Container(
         width: double.infinity,
-        height:
-            ScanResultScreenStyles.imagePreviewHeight,
+        height: ScanResultScreenStyles.imagePreviewHeight,
         decoration: const BoxDecoration(
-          color: ScanResultScreenStyles
-              .imagePreviewBackgroundColor,
-          borderRadius:
-              ScanResultScreenStyles.imagePreviewRadius,
+          color: ScanResultScreenStyles.imagePreviewBackgroundColor,
+          borderRadius: ScanResultScreenStyles.imagePreviewRadius,
         ),
         clipBehavior: Clip.antiAlias,
         child: Image.file(
           scannedImage,
           fit: ScanResultScreenStyles.imagePreviewFit,
-          errorBuilder: (
-            BuildContext context,
-            Object error,
-            StackTrace? stackTrace,
-          ) {
-            return const _ImageErrorState();
-          },
+          errorBuilder:
+              (BuildContext context, Object error, StackTrace? stackTrace) {
+                return const _ImageErrorState();
+              },
         ),
       ),
     );
   }
 
   Widget _buildRecognizedContent() {
-    final List<DocumentBlock> contentBlocks =
-        result.blocks
-            .where(
-              (DocumentBlock block) =>
-                  block.normalizedContent
-                      .trim()
-                      .isNotEmpty,
-            )
-            .toList(growable: false);
+    final List<DocumentBlock> contentBlocks = result.blocks
+        .where(
+          (DocumentBlock block) => block.normalizedContent.trim().isNotEmpty,
+        )
+        .toList(growable: false);
 
     return Semantics(
       label: ScanResultScreenStyles.resultSemanticLabel,
       child: Container(
         width: double.infinity,
-        padding:
-            ScanResultScreenStyles.contentPreviewPadding,
+        padding: ScanResultScreenStyles.contentPreviewPadding,
         decoration: const BoxDecoration(
           color: ScanResultScreenStyles.surfaceColor,
-          borderRadius:
-              ScanResultScreenStyles.innerCardRadius,
-          border:
-              ScanResultScreenStyles.innerCardBorder,
+          borderRadius: ScanResultScreenStyles.innerCardRadius,
+          border: ScanResultScreenStyles.innerCardBorder,
         ),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.stretch,
-          children: List<Widget>.generate(
-            contentBlocks.length,
-            (int index) {
-              final DocumentBlock block =
-                  contentBlocks[index];
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: List<Widget>.generate(contentBlocks.length, (int index) {
+            final DocumentBlock block = contentBlocks[index];
 
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom:
-                      index == contentBlocks.length - 1
-                          ? ScanResultScreenStyles.zero
-                          : ScanResultScreenStyles
-                              .unifiedBlockSpacing,
-                ),
-                child: _RecognizedBlock(block: block),
-              );
-            },
-            growable: false,
-          ),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == contentBlocks.length - 1
+                    ? ScanResultScreenStyles.zero
+                    : ScanResultScreenStyles.unifiedBlockSpacing,
+              ),
+              child: _RecognizedBlock(block: block),
+            );
+          }, growable: false),
         ),
       ),
     );
@@ -334,25 +262,19 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildBrailleOutput() {
     return Semantics(
-      label:
-          ScanResultScreenStyles.brailleSemanticLabel,
+      label: ScanResultScreenStyles.brailleSemanticLabel,
       child: Container(
         width: double.infinity,
-        padding:
-            ScanResultScreenStyles.braillePreviewPadding,
+        padding: ScanResultScreenStyles.braillePreviewPadding,
         decoration: const BoxDecoration(
-          color: ScanResultScreenStyles
-              .brailleBackgroundColor,
-          borderRadius:
-              ScanResultScreenStyles.innerCardRadius,
-          border:
-              ScanResultScreenStyles.innerCardBorder,
+          color: ScanResultScreenStyles.brailleBackgroundColor,
+          borderRadius: ScanResultScreenStyles.innerCardRadius,
+          border: ScanResultScreenStyles.innerCardBorder,
         ),
         child: SelectableText(
           result.combinedBraille,
           textAlign: TextAlign.left,
-          style:
-              ScanResultScreenStyles.brailleContentStyle,
+          style: ScanResultScreenStyles.brailleContentStyle,
         ),
       ),
     );
@@ -360,41 +282,29 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildBrailleUnavailable() {
     final String message = result.hasBrailleErrors
-        ? ScanResultScreenStyles
-            .brailleTranslationFailedDescription
-        : ScanResultScreenStyles
-            .brailleUnavailableDescription;
+        ? ScanResultScreenStyles.brailleTranslationFailedDescription
+        : ScanResultScreenStyles.brailleUnavailableDescription;
 
     return Padding(
-      padding:
-          ScanResultScreenStyles.emptyResultPadding,
+      padding: ScanResultScreenStyles.emptyResultPadding,
       child: Column(
         children: <Widget>[
           const Icon(
-            ScanResultScreenStyles
-                .brailleUnavailableIcon,
-            size: ScanResultScreenStyles
-                .brailleUnavailableIconSize,
+            ScanResultScreenStyles.brailleUnavailableIcon,
+            size: ScanResultScreenStyles.brailleUnavailableIconSize,
             color: ScanResultScreenStyles.primaryColor,
           ),
-          const SizedBox(
-            height: ScanResultScreenStyles.itemSpacing,
-          ),
+          const SizedBox(height: ScanResultScreenStyles.itemSpacing),
           const Text(
-            ScanResultScreenStyles
-                .brailleUnavailableTitle,
+            ScanResultScreenStyles.brailleUnavailableTitle,
             textAlign: TextAlign.center,
-            style: ScanResultScreenStyles
-                .emptyResultTitleStyle,
+            style: ScanResultScreenStyles.emptyResultTitleStyle,
           ),
-          const SizedBox(
-            height: ScanResultScreenStyles.compactSpacing,
-          ),
+          const SizedBox(height: ScanResultScreenStyles.compactSpacing),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: ScanResultScreenStyles
-                .emptyResultDescriptionStyle,
+            style: ScanResultScreenStyles.emptyResultDescriptionStyle,
           ),
         ],
       ),
@@ -403,34 +313,25 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildEmptyResult() {
     return const Padding(
-      padding:
-          ScanResultScreenStyles.emptyResultPadding,
+      padding: ScanResultScreenStyles.emptyResultPadding,
       child: Column(
         children: <Widget>[
           Icon(
             ScanResultScreenStyles.emptyResultIcon,
-            size:
-                ScanResultScreenStyles.emptyResultIconSize,
+            size: ScanResultScreenStyles.emptyResultIconSize,
             color: ScanResultScreenStyles.primaryColor,
           ),
-          SizedBox(
-            height: ScanResultScreenStyles.itemSpacing,
-          ),
+          SizedBox(height: ScanResultScreenStyles.itemSpacing),
           Text(
             ScanResultScreenStyles.emptyResultTitle,
             textAlign: TextAlign.center,
-            style: ScanResultScreenStyles
-                .emptyResultTitleStyle,
+            style: ScanResultScreenStyles.emptyResultTitleStyle,
           ),
-          SizedBox(
-            height: ScanResultScreenStyles.compactSpacing,
-          ),
+          SizedBox(height: ScanResultScreenStyles.compactSpacing),
           Text(
-            ScanResultScreenStyles
-                .emptyResultDescription,
+            ScanResultScreenStyles.emptyResultDescription,
             textAlign: TextAlign.center,
-            style: ScanResultScreenStyles
-                .emptyResultDescriptionStyle,
+            style: ScanResultScreenStyles.emptyResultDescriptionStyle,
           ),
         ],
       ),
@@ -444,9 +345,7 @@ class ScanResultScreen extends StatelessWidget {
   }) async {
     if (content.trim().isEmpty) return;
 
-    await Clipboard.setData(
-      ClipboardData(text: content),
-    );
+    await Clipboard.setData(ClipboardData(text: content));
 
     if (!context.mounted) return;
 
@@ -454,25 +353,225 @@ class ScanResultScreen extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          duration:
-              ScanResultScreenStyles.snackBarDuration,
-          behavior:
-              ScanResultScreenStyles.snackBarBehavior,
-          backgroundColor: ScanResultScreenStyles
-              .snackBarBackgroundColor,
-          margin:
-              ScanResultScreenStyles.snackBarMargin,
+          duration: ScanResultScreenStyles.snackBarDuration,
+          behavior: ScanResultScreenStyles.snackBarBehavior,
+          backgroundColor: ScanResultScreenStyles.snackBarBackgroundColor,
+          margin: ScanResultScreenStyles.snackBarMargin,
           shape: const RoundedRectangleBorder(
-            borderRadius:
-                ScanResultScreenStyles.snackBarRadius,
+            borderRadius: ScanResultScreenStyles.snackBarRadius,
           ),
           content: Text(
             confirmationMessage,
-            style: ScanResultScreenStyles
-                .snackBarTextStyle,
+            style: ScanResultScreenStyles.snackBarTextStyle,
           ),
         ),
       );
+  }
+}
+
+class _SaveHistoryButton extends StatefulWidget {
+  const _SaveHistoryButton({required this.result});
+
+  final ScanDocumentResult result;
+
+  @override
+  State<_SaveHistoryButton> createState() => _SaveHistoryButtonState();
+}
+
+class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
+  final HistoryService _historyService = HistoryService();
+
+  bool _isSaving = false;
+  bool _isSaved = false;
+
+  @override
+  void dispose() {
+    _historyService.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveToHistory() async {
+    if (_isSaving || _isSaved) {
+      return;
+    }
+
+    final String? title = await _requestTitle();
+
+    if (!mounted || title == null) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final String recognizedContent = widget.result.blocks
+        .map((DocumentBlock block) => block.normalizedContent.trim())
+        .where((String content) => content.isNotEmpty)
+        .join(ScanResultScreenStyles.contentBlockSeparator);
+
+    try {
+      await _historyService.createHistory(
+        title: title,
+        recognizedContent: recognizedContent,
+        brailleContent: widget.result.combinedBraille,
+        documentBlocks: widget.result.blocks
+            .map((DocumentBlock block) => block.toJson())
+            .toList(growable: false),
+        modelName: widget.result.model,
+        pipelineVersion: widget.result.pipelineVersion,
+        processingTimeMs: widget.result.processingTimeMs,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaving = false;
+        _isSaved = true;
+      });
+
+      _showMessage(ScanResultScreenStyles.historySavedMessage);
+    } on HistoryServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      _showMessage(error.message);
+    }
+  }
+
+  Future<String?> _requestTitle() async {
+    final TextEditingController controller = TextEditingController(
+      text: ScanResultScreenStyles.defaultHistoryTitle,
+    );
+
+    final String? title = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: ScanResultScreenStyles.saveDialogRadius,
+          ),
+          title: const Text(
+            ScanResultScreenStyles.saveDialogTitle,
+            style: ScanResultScreenStyles.saveDialogTitleStyle,
+          ),
+          contentPadding: ScanResultScreenStyles.saveDialogContentPadding,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                ScanResultScreenStyles.saveDialogDescription,
+                style: ScanResultScreenStyles.saveDialogDescriptionStyle,
+              ),
+              const SizedBox(height: ScanResultScreenStyles.itemSpacing),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLength: ScanResultScreenStyles.maximumHistoryTitleLength,
+                textInputAction: TextInputAction.done,
+                style: ScanResultScreenStyles.saveInputTextStyle,
+                decoration: ScanResultScreenStyles.saveTitleInputDecoration,
+                onSubmitted: (String value) {
+                  final String cleanTitle = value.trim();
+
+                  if (cleanTitle.isNotEmpty) {
+                    Navigator.of(dialogContext).pop(cleanTitle);
+                  }
+                },
+              ),
+            ],
+          ),
+          actionsPadding: ScanResultScreenStyles.saveDialogActionsPadding,
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              style: ScanResultScreenStyles.saveDialogCancelStyle,
+              child: const Text(ScanResultScreenStyles.cancelLabel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final String cleanTitle = controller.text.trim();
+
+                if (cleanTitle.isEmpty) {
+                  return;
+                }
+
+                Navigator.of(dialogContext).pop(cleanTitle);
+              },
+              style: ScanResultScreenStyles.saveDialogConfirmStyle,
+              child: const Text(ScanResultScreenStyles.confirmSaveLabel),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    return title;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: ScanResultScreenStyles.snackBarDuration,
+          behavior: ScanResultScreenStyles.snackBarBehavior,
+          backgroundColor: ScanResultScreenStyles.snackBarBackgroundColor,
+          margin: ScanResultScreenStyles.snackBarMargin,
+          shape: const RoundedRectangleBorder(
+            borderRadius: ScanResultScreenStyles.snackBarRadius,
+          ),
+          content: Text(
+            message,
+            style: ScanResultScreenStyles.snackBarTextStyle,
+          ),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String label = _isSaving
+        ? ScanResultScreenStyles.savingHistoryLabel
+        : _isSaved
+        ? ScanResultScreenStyles.savedHistoryLabel
+        : ScanResultScreenStyles.saveHistoryLabel;
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: _isSaving || _isSaved ? null : _saveToHistory,
+        style: ScanResultScreenStyles.saveHistoryButtonStyle,
+        icon: _isSaving
+            ? const SizedBox(
+                width: ScanResultScreenStyles.saveProgressIndicatorSize,
+                height: ScanResultScreenStyles.saveProgressIndicatorSize,
+                child: CircularProgressIndicator(
+                  strokeWidth:
+                      ScanResultScreenStyles.saveProgressIndicatorStrokeWidth,
+                  color: ScanResultScreenStyles.surfaceColor,
+                ),
+              )
+            : Icon(
+                _isSaved
+                    ? ScanResultScreenStyles.savedHistoryIcon
+                    : ScanResultScreenStyles.saveHistoryIcon,
+                size: ScanResultScreenStyles.saveHistoryIconSize,
+              ),
+        label: Text(label),
+      ),
+    );
   }
 }
 
@@ -492,59 +591,44 @@ class _ResultSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          ScanResultScreenStyles.sectionCardPadding,
+      padding: ScanResultScreenStyles.sectionCardPadding,
       decoration: const BoxDecoration(
         color: ScanResultScreenStyles.surfaceColor,
-        borderRadius:
-            ScanResultScreenStyles.cardRadius,
+        borderRadius: ScanResultScreenStyles.cardRadius,
         border: ScanResultScreenStyles.cardBorder,
-        boxShadow:
-            ScanResultScreenStyles.cardShadow,
+        boxShadow: ScanResultScreenStyles.cardShadow,
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
               Container(
-                width: ScanResultScreenStyles
-                    .sectionNumberSize,
-                height: ScanResultScreenStyles
-                    .sectionNumberSize,
+                width: ScanResultScreenStyles.sectionNumberSize,
+                height: ScanResultScreenStyles.sectionNumberSize,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  color:
-                      ScanResultScreenStyles.primaryColor,
+                  color: ScanResultScreenStyles.primaryColor,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   number,
-                  style: ScanResultScreenStyles
-                      .sectionNumberStyle,
+                  style: ScanResultScreenStyles.sectionNumberStyle,
                 ),
               ),
-              const SizedBox(
-                width:
-                    ScanResultScreenStyles.itemSpacing,
-              ),
+              const SizedBox(width: ScanResultScreenStyles.itemSpacing),
               Expanded(
                 child: Text(
                   title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: ScanResultScreenStyles
-                      .sectionTitleStyle,
+                  style: ScanResultScreenStyles.sectionTitleStyle,
                 ),
               ),
               if (action != null) action!,
             ],
           ),
-          const SizedBox(
-            height: ScanResultScreenStyles
-                .sectionHeaderSpacing,
-          ),
+          const SizedBox(height: ScanResultScreenStyles.sectionHeaderSpacing),
           child,
         ],
       ),
@@ -571,46 +655,35 @@ class _SectionAction extends StatelessWidget {
       message: tooltip,
       child: TextButton.icon(
         onPressed: onPressed,
-        icon: Icon(
-          icon,
-          size: ScanResultScreenStyles.actionIconSize,
-        ),
+        icon: Icon(icon, size: ScanResultScreenStyles.actionIconSize),
         label: Text(label),
-        style:
-            ScanResultScreenStyles.sectionActionStyle,
+        style: ScanResultScreenStyles.sectionActionStyle,
       ),
     );
   }
 }
 
 class _RecognizedBlock extends StatelessWidget {
-  const _RecognizedBlock({
-    required this.block,
-  });
+  const _RecognizedBlock({required this.block});
 
   final DocumentBlock block;
 
   @override
   Widget build(BuildContext context) {
-    final String content =
-        block.normalizedContent.trim();
+    final String content = block.normalizedContent.trim();
 
     if (block.isFormula) {
       return Container(
         width: double.infinity,
-        padding:
-            ScanResultScreenStyles.formulaPreviewPadding,
+        padding: ScanResultScreenStyles.formulaPreviewPadding,
         decoration: const BoxDecoration(
-          color: ScanResultScreenStyles
-              .formulaBackgroundColor,
-          borderRadius:
-              ScanResultScreenStyles.formulaRadius,
+          color: ScanResultScreenStyles.formulaBackgroundColor,
+          borderRadius: ScanResultScreenStyles.formulaRadius,
         ),
         child: SelectableText(
           content,
           textAlign: TextAlign.center,
-          style:
-              ScanResultScreenStyles.formulaContentStyle,
+          style: ScanResultScreenStyles.formulaContentStyle,
         ),
       );
     }
@@ -618,8 +691,7 @@ class _RecognizedBlock extends StatelessWidget {
     return SelectableText(
       content,
       textAlign: TextAlign.left,
-      style: ScanResultScreenStyles
-          .recognizedContentStyle,
+      style: ScanResultScreenStyles.recognizedContentStyle,
     );
   }
 }
@@ -631,27 +703,20 @@ class _ImageErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Padding(
-        padding:
-            ScanResultScreenStyles.emptyResultPadding,
+        padding: ScanResultScreenStyles.emptyResultPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(
               ScanResultScreenStyles.imageErrorIcon,
-              size: ScanResultScreenStyles
-                  .imageErrorIconSize,
-              color:
-                  ScanResultScreenStyles.primaryColor,
+              size: ScanResultScreenStyles.imageErrorIconSize,
+              color: ScanResultScreenStyles.primaryColor,
             ),
-            SizedBox(
-              height:
-                  ScanResultScreenStyles.itemSpacing,
-            ),
+            SizedBox(height: ScanResultScreenStyles.itemSpacing),
             Text(
               ScanResultScreenStyles.imageErrorText,
               textAlign: TextAlign.center,
-              style: ScanResultScreenStyles
-                  .emptyResultDescriptionStyle,
+              style: ScanResultScreenStyles.emptyResultDescriptionStyle,
             ),
           ],
         ),

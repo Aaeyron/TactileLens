@@ -15,41 +15,33 @@ abstract final class ScanResultScreenStyles {
   static const Color outlineColor = Color(0xFFDCE4EE);
   static const Color innerOutlineColor = Color(0xFFE4EAF2);
 
-  static const Color imagePreviewBackgroundColor =
-      Color(0xFFF4F6F9);
+  static const Color imagePreviewBackgroundColor = Color(0xFFF4F6F9);
 
-  static const Color formulaBackgroundColor =
-      Color(0xFFF5F8FC);
+  static const Color formulaBackgroundColor = Color(0xFFF5F8FC);
 
-  static const Color brailleBackgroundColor =
-      Color(0xFFF5F8FC);
+  static const Color brailleBackgroundColor = Color(0xFFF5F8FC);
 
   static const Color shadowColor = Color(0x10000000);
 
   static const Color successColor = Color(0xFF1FAE5B);
 
-  static const Color successBackgroundColor =
-      Color(0xFFF5FCF8);
+  static const Color successBackgroundColor = Color(0xFFF5FCF8);
 
-  static const Color successIconBackgroundColor =
-      Color(0xFFE3F6EA);
+  static const Color successIconBackgroundColor = Color(0xFFE3F6EA);
 
-  static const Color successOutlineColor =
-      Color(0xFFCFE9D9);
+  static const Color successOutlineColor = Color(0xFFCFE9D9);
 
   // ============================================================
   // FONT FALLBACKS
   // ============================================================
 
-  static const List<String> recognizedContentFontFallback =
-      <String>[
+  static const List<String> recognizedContentFontFallback = <String>[
     'Roboto',
     'Noto Sans',
     'sans-serif',
   ];
 
-  static const List<String> brailleFontFallback =
-      <String>[
+  static const List<String> brailleFontFallback = <String>[
     'Noto Sans Symbols 2',
     'Noto Sans Symbols',
     'Noto Sans',
@@ -73,8 +65,7 @@ abstract final class ScanResultScreenStyles {
 
   static const IconData backIcon = Icons.arrow_back;
 
-  static const IconData newScanIcon =
-      Icons.center_focus_strong_outlined;
+  static const IconData newScanIcon = Icons.center_focus_strong_outlined;
 
   static const TextStyle appBarTitleStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -83,13 +74,9 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
-  static final ButtonStyle headerActionStyle =
-      TextButton.styleFrom(
+  static final ButtonStyle headerActionStyle = TextButton.styleFrom(
     foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(
-      horizontal: 8,
-      vertical: 6,
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     textStyle: const TextStyle(
       fontFamily: 'Poppins',
       fontSize: 14,
@@ -101,13 +88,7 @@ abstract final class ScanResultScreenStyles {
   // SCREEN LAYOUT
   // ============================================================
 
-  static const EdgeInsets screenPadding =
-      EdgeInsets.fromLTRB(
-    16,
-    18,
-    16,
-    28,
-  );
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(16, 18, 16, 28);
 
   static const double zero = 0;
   static const double sectionSpacing = 16;
@@ -120,71 +101,46 @@ abstract final class ScanResultScreenStyles {
   // SHARED CONTAINERS
   // ============================================================
 
-  static const BorderRadius cardRadius =
-      BorderRadius.all(
-    Radius.circular(18),
-  );
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(18));
 
-  static const BorderRadius innerCardRadius =
-      BorderRadius.all(
+  static const BorderRadius innerCardRadius = BorderRadius.all(
     Radius.circular(14),
   );
 
-  static const Border cardBorder =
-      Border.fromBorderSide(
-    BorderSide(
-      color: outlineColor,
-      width: 1,
-    ),
+  static const Border cardBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: 1),
   );
 
-  static const Border innerCardBorder =
-      Border.fromBorderSide(
-    BorderSide(
-      color: innerOutlineColor,
-      width: 1,
-    ),
+  static const Border innerCardBorder = Border.fromBorderSide(
+    BorderSide(color: innerOutlineColor, width: 1),
   );
 
-  static const List<BoxShadow> cardShadow =
-      <BoxShadow>[
-    BoxShadow(
-      color: shadowColor,
-      blurRadius: 12,
-      offset: Offset(0, 3),
-    ),
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(color: shadowColor, blurRadius: 12, offset: Offset(0, 3)),
   ];
 
   // ============================================================
   // SUCCESS BANNER
   // ============================================================
 
-  static const EdgeInsets successBannerPadding =
-      EdgeInsets.all(14);
+  static const EdgeInsets successBannerPadding = EdgeInsets.all(14);
 
-  static const Border successBorder =
-      Border.fromBorderSide(
-    BorderSide(
-      color: successOutlineColor,
-      width: 1,
-    ),
+  static const Border successBorder = Border.fromBorderSide(
+    BorderSide(color: successOutlineColor, width: 1),
   );
 
   static const double successIconContainerSize = 48;
   static const double successDocumentIconSize = 27;
   static const double successCheckIconSize = 34;
 
-  static const IconData successDocumentIcon =
-      Icons.document_scanner_outlined;
+  static const IconData successDocumentIcon = Icons.document_scanner_outlined;
 
-  static const IconData successCheckIcon =
-      Icons.check_circle_rounded;
+  static const IconData successCheckIcon = Icons.check_circle_rounded;
 
-  static const String successTitle =
-      'Scan Successful!';
+  static const String successTitle = 'Scan Successful!';
 
- static const String successDescription =
-    'Your scanned content is ready for review.';
+  static const String successDescription =
+      'Your scanned content is ready for review.';
 
   static const TextStyle successTitleStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -193,8 +149,7 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
-  static const TextStyle successDescriptionStyle =
-      TextStyle(
+  static const TextStyle successDescriptionStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 13,
     fontWeight: FontWeight.w400,
@@ -206,21 +161,17 @@ abstract final class ScanResultScreenStyles {
   // ============================================================
 
   static const String imageSectionNumber = '1';
-  static const String imageSectionTitle =
-      'Scanned Image';
+  static const String imageSectionTitle = 'Scanned Image';
 
   static const String contentSectionNumber = '2';
 
-  static const String contentSectionTitle =
-      'Scanned Content (Preview)';
+  static const String contentSectionTitle = 'Scanned Content (Preview)';
 
   static const String brailleSectionNumber = '3';
 
-  static const String brailleSectionTitle =
-      'Braille Output (Translation)';
+  static const String brailleSectionTitle = 'Braille Output (Translation)';
 
-  static const EdgeInsets sectionCardPadding =
-      EdgeInsets.all(14);
+  static const EdgeInsets sectionCardPadding = EdgeInsets.all(14);
 
   static const double sectionNumberSize = 30;
 
@@ -244,26 +195,19 @@ abstract final class ScanResultScreenStyles {
 
   static const String copyLabel = 'Copy';
 
-  static const String copyBrailleLabel =
-      'Copy Braille';
+  static const String copyBrailleLabel = 'Copy Braille';
 
-  static const String copyTooltip =
-      'Copy recognized content';
+  static const String copyTooltip = 'Copy recognized content';
 
-  static const String copyBrailleTooltip =
-      'Copy Braille translation';
+  static const String copyBrailleTooltip = 'Copy Braille translation';
 
   static const IconData copyIcon = Icons.copy_rounded;
 
   static const double actionIconSize = 21;
 
-  static final ButtonStyle sectionActionStyle =
-      TextButton.styleFrom(
+  static final ButtonStyle sectionActionStyle = TextButton.styleFrom(
     foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(
-      horizontal: 8,
-      vertical: 6,
-    ),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     textStyle: const TextStyle(
       fontFamily: 'Poppins',
       fontSize: 13,
@@ -278,41 +222,34 @@ abstract final class ScanResultScreenStyles {
   static const double imagePreviewHeight = 230;
   static const BoxFit imagePreviewFit = BoxFit.contain;
 
-  static const BorderRadius imagePreviewRadius =
-      BorderRadius.all(
+  static const BorderRadius imagePreviewRadius = BorderRadius.all(
     Radius.circular(14),
   );
 
-  static const IconData imageErrorIcon =
-      Icons.broken_image_outlined;
+  static const IconData imageErrorIcon = Icons.broken_image_outlined;
 
   static const double imageErrorIconSize = 42;
 
-  static const String imageErrorText =
-      'Unable to display the scanned image.';
+  static const String imageErrorText = 'Unable to display the scanned image.';
 
   // ============================================================
   // RECOGNIZED CONTENT
   // ============================================================
 
-  static const EdgeInsets contentPreviewPadding =
-      EdgeInsets.all(16);
+  static const EdgeInsets contentPreviewPadding = EdgeInsets.all(16);
 
   static const String contentBlockSeparator = '\n\n';
 
-  static const EdgeInsets formulaPreviewPadding =
-      EdgeInsets.symmetric(
+  static const EdgeInsets formulaPreviewPadding = EdgeInsets.symmetric(
     horizontal: 14,
     vertical: 10,
   );
 
-  static const BorderRadius formulaRadius =
-      BorderRadius.all(
+  static const BorderRadius formulaRadius = BorderRadius.all(
     Radius.circular(10),
   );
 
-  static const TextStyle recognizedContentStyle =
-      TextStyle(
+  static const TextStyle recognizedContentStyle = TextStyle(
     fontFamily: 'Poppins',
     fontFamilyFallback: recognizedContentFontFallback,
     fontSize: 14,
@@ -321,8 +258,7 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
-  static const TextStyle formulaContentStyle =
-      TextStyle(
+  static const TextStyle formulaContentStyle = TextStyle(
     fontFamily: 'Poppins',
     fontFamilyFallback: recognizedContentFontFallback,
     fontSize: 17,
@@ -335,14 +271,12 @@ abstract final class ScanResultScreenStyles {
   // BRAILLE OUTPUT
   // ============================================================
 
-  static const EdgeInsets braillePreviewPadding =
-      EdgeInsets.symmetric(
+  static const EdgeInsets braillePreviewPadding = EdgeInsets.symmetric(
     horizontal: 18,
     vertical: 20,
   );
 
-  static const TextStyle brailleContentStyle =
-      TextStyle(
+  static const TextStyle brailleContentStyle = TextStyle(
     fontFamily: 'Noto Sans Symbols 2',
     fontFamilyFallback: brailleFontFallback,
     fontSize: 23,
@@ -351,49 +285,41 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
-  static const IconData brailleUnavailableIcon =
-      Icons.translate_rounded;
+  static const IconData brailleUnavailableIcon = Icons.translate_rounded;
 
   static const double brailleUnavailableIconSize = 44;
 
-  static const String brailleUnavailableTitle =
-      'Braille output unavailable';
+  static const String brailleUnavailableTitle = 'Braille output unavailable';
 
   static const String brailleUnavailableDescription =
       'No Braille translation was returned for this scan.';
 
-  static const String
-      brailleTranslationFailedDescription =
+  static const String brailleTranslationFailedDescription =
       'The recognized content could not be translated into Braille. Please try scanning again.';
 
   // ============================================================
   // EMPTY RESULT
   // ============================================================
 
-  static const EdgeInsets emptyResultPadding =
-      EdgeInsets.all(20);
+  static const EdgeInsets emptyResultPadding = EdgeInsets.all(20);
 
-  static const IconData emptyResultIcon =
-      Icons.find_in_page_outlined;
+  static const IconData emptyResultIcon = Icons.find_in_page_outlined;
 
   static const double emptyResultIconSize = 46;
 
-  static const String emptyResultTitle =
-      'No content recognized';
+  static const String emptyResultTitle = 'No content recognized';
 
   static const String emptyResultDescription =
       'Try scanning again with clearer lighting and a sharper image.';
 
-  static const TextStyle emptyResultTitleStyle =
-      TextStyle(
+  static const TextStyle emptyResultTitleStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: textPrimaryColor,
   );
 
-  static const TextStyle emptyResultDescriptionStyle =
-      TextStyle(
+  static const TextStyle emptyResultDescriptionStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 13,
     height: 1.5,
@@ -402,34 +328,181 @@ abstract final class ScanResultScreenStyles {
   );
 
   // ============================================================
+  // SAVE TO HISTORY
+  // ============================================================
+
+  static const double saveButtonHeight = 54;
+
+  static const BorderRadius saveButtonRadius = BorderRadius.all(
+    Radius.circular(14),
+  );
+
+  static const IconData saveHistoryIcon = Icons.bookmark_add_outlined;
+
+  static const IconData savedHistoryIcon = Icons.check_circle_outline_rounded;
+
+  static const double saveHistoryIconSize = 22;
+
+  static const double saveProgressIndicatorSize = 22;
+
+  static const double saveProgressIndicatorStrokeWidth = 2.5;
+
+  static const String saveHistoryLabel = 'Save to History';
+
+  static const String savingHistoryLabel = 'Saving...';
+
+  static const String savedHistoryLabel = 'Saved to History';
+
+  static const String saveHistoryTooltip = 'Save this scan to your history';
+
+  static const String saveDialogTitle = 'Save Scan';
+
+  static const String saveDialogDescription =
+      'Enter a title to help you identify this scan later.';
+
+  static const String saveTitleLabel = 'Title';
+
+  static const String saveTitleHint = 'Example: Algebra Worksheet';
+
+  static const String defaultHistoryTitle = 'Untitled Scan';
+
+  static const String cancelLabel = 'Cancel';
+
+  static const String confirmSaveLabel = 'Save';
+
+  static const String emptyHistoryTitleError = 'Please enter a title.';
+
+  static const String historySavedMessage = 'Scan saved to your history.';
+
+  static const String historyLoginRequiredMessage =
+      'Please sign in to save scan history.';
+
+  static const int maximumHistoryTitleLength = 150;
+
+  static const EdgeInsets saveButtonPadding = EdgeInsets.symmetric(
+    horizontal: 18,
+    vertical: 12,
+  );
+
+  static const EdgeInsets saveDialogContentPadding = EdgeInsets.fromLTRB(
+    24,
+    8,
+    24,
+    16,
+  );
+
+  static const EdgeInsets saveDialogActionsPadding = EdgeInsets.fromLTRB(
+    16,
+    0,
+    16,
+    12,
+  );
+
+  static const BorderRadius saveDialogRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
+
+  static const TextStyle saveButtonTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle saveDialogTitleStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 18,
+    fontWeight: FontWeight.w600,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle saveDialogDescriptionStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+    color: textSecondaryColor,
+  );
+
+  static const TextStyle saveInputTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    color: textPrimaryColor,
+  );
+
+  static final ButtonStyle saveHistoryButtonStyle = FilledButton.styleFrom(
+    minimumSize: const Size(double.infinity, saveButtonHeight),
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    disabledBackgroundColor: outlineColor,
+    disabledForegroundColor: textSecondaryColor,
+    padding: saveButtonPadding,
+    shape: const RoundedRectangleBorder(borderRadius: saveButtonRadius),
+    textStyle: saveButtonTextStyle,
+  );
+
+  static final ButtonStyle saveDialogCancelStyle = TextButton.styleFrom(
+    foregroundColor: textSecondaryColor,
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  static final ButtonStyle saveDialogConfirmStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(10)),
+    ),
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  static const InputDecoration saveTitleInputDecoration = InputDecoration(
+    labelText: saveTitleLabel,
+    hintText: saveTitleHint,
+    filled: true,
+    fillColor: surfaceColor,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: primaryColor, width: 1.5),
+    ),
+  );
+
+  // ============================================================
   // SNACKBAR
   // ============================================================
 
-  static const String contentCopiedMessage =
-      'Recognized content copied.';
+  static const String contentCopiedMessage = 'Recognized content copied.';
 
-  static const String brailleCopiedMessage =
-      'Braille translation copied.';
+  static const String brailleCopiedMessage = 'Braille translation copied.';
 
-  static const Duration snackBarDuration =
-      Duration(seconds: 2);
+  static const Duration snackBarDuration = Duration(seconds: 2);
 
-  static const SnackBarBehavior snackBarBehavior =
-      SnackBarBehavior.floating;
+  static const SnackBarBehavior snackBarBehavior = SnackBarBehavior.floating;
 
-  static const Color snackBarBackgroundColor =
-      primaryColor;
+  static const Color snackBarBackgroundColor = primaryColor;
 
-  static const EdgeInsets snackBarMargin =
-      EdgeInsets.all(16);
+  static const EdgeInsets snackBarMargin = EdgeInsets.all(16);
 
-  static const BorderRadius snackBarRadius =
-      BorderRadius.all(
+  static const BorderRadius snackBarRadius = BorderRadius.all(
     Radius.circular(12),
   );
 
-  static const TextStyle snackBarTextStyle =
-      TextStyle(
+  static const TextStyle snackBarTextStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 13,
     fontWeight: FontWeight.w500,
@@ -440,12 +513,9 @@ abstract final class ScanResultScreenStyles {
   // ACCESSIBILITY
   // ============================================================
 
-  static const String imageSemanticLabel =
-      'Image processed by PaddleOCR-VL';
+  static const String imageSemanticLabel = 'Image processed by PaddleOCR-VL';
 
-  static const String resultSemanticLabel =
-      'Recognized document content';
+  static const String resultSemanticLabel = 'Recognized document content';
 
-  static const String brailleSemanticLabel =
-      'Braille translation output';
+  static const String brailleSemanticLabel = 'Braille translation output';
 }
