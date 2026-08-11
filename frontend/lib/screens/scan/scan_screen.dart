@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
+import '../../models/ai/scan_document_result.dart';
 import '../../services/ai/ai_service.dart';
+import '../../services/history/history_service.dart';
 import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
 import '../../services/scan/scan_service.dart';
@@ -29,6 +32,7 @@ class _ScanScreenState extends State<ScanScreen> {
   final ScanService _scanService = ScanService();
   final CameraService _cameraService = CameraService();
   final AIService _aiService = AIService();
+  final HistoryService _historyService = HistoryService();
   final ImageCropService _imageCropService = ImageCropService();
 
   File? _selectedImage;
@@ -95,6 +99,75 @@ class _ScanScreenState extends State<ScanScreen> {
     });
   }
 
+  String _createAutomaticHistoryTitle(
+  ScanDocumentResult result,
+) {
+  if (result.hasText && result.hasFormulas) {
+    return ScanScreenStyles.textAndEquationHistoryTitle;
+  }
+
+  if (result.hasFormulas) {
+    return ScanScreenStyles.equationHistoryTitle;
+  }
+
+  if (result.hasText) {
+    return ScanScreenStyles.textHistoryTitle;
+  }
+
+  return ScanScreenStyles.documentHistoryTitle;
+}
+
+Future<void> _saveScanToHistory(
+  ScanDocumentResult result,
+) async {
+  final String recognizedContent = result.blocks
+      .map(
+        (DocumentBlock block) => block.content.trim(),
+      )
+      .where(
+        (String content) => content.isNotEmpty,
+      )
+      .join('\n\n');
+
+  final List<Map<String, dynamic>> documentBlocks = result.blocks
+      .map(
+        (DocumentBlock block) => block.toJson(),
+      )
+      .toList(growable: false);
+
+  try {
+    await _historyService.createHistory(
+      title: _createAutomaticHistoryTitle(result),
+      recognizedContent: recognizedContent,
+      brailleContent: result.combinedBraille,
+      documentBlocks: documentBlocks,
+      modelName: result.model,
+      pipelineVersion: result.pipelineVersion,
+      processingTimeMs: result.processingTimeMs,
+    );
+
+    debugPrint('Scan was automatically added to History.');
+  } on HistoryServiceException catch (error, stackTrace) {
+    debugPrint('Automatic History save failed: ${error.message}');
+    debugPrintStack(stackTrace: stackTrace);
+
+    if (mounted) {
+      _showScanError(
+        ScanScreenStyles.historySaveFailureMessage,
+      );
+    }
+  } catch (error, stackTrace) {
+    debugPrint('Unexpected automatic History save error: $error');
+    debugPrintStack(stackTrace: stackTrace);
+
+    if (mounted) {
+      _showScanError(
+        ScanScreenStyles.historySaveFailureMessage,
+      );
+    }
+  }
+}
+
   Future<void> _scanImage() async {
   final File? selectedImage = _selectedImage;
 
@@ -119,10 +192,14 @@ class _ScanScreenState extends State<ScanScreen> {
       'Sending image to PaddleOCR-VL: ${imageToScan.path}',
     );
 
-    final scanResult =
-        await _aiService.scanDocument(imageToScan);
+    final ScanDocumentResult scanResult =
+    await _aiService.scanDocument(imageToScan);
 
     if (!mounted) return;
+
+    unawaited(
+      _saveScanToHistory(scanResult),
+    );
 
     debugPrint(
       'PaddleOCR-VL scan completed successfully.',
@@ -372,9 +449,10 @@ Future<bool> _confirmImageToScan(
 
   @override
   void dispose() {
-    _aiService.dispose();
-    super.dispose();
-  }
+  _aiService.dispose();
+  _historyService.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {

@@ -1,263 +1,483 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path/path.dart' as p;
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:http/http.dart' as http;
-
-import '../../models/materials/material_model.dart';
 import '../../database/materials/material_database.dart';
+import '../../models/materials/material_model.dart';
 import '../../utils/session_manager.dart';
+import '../auth/auth_service.dart';
 
 class MaterialService {
+  MaterialService({
+    http.Client? client,
+    this.requestTimeout = const Duration(seconds: 60),
+  }) : _client = client ?? http.Client();
 
-  // ==========================
-  // Backend Base URL
-  // ==========================
+  final http.Client _client;
+  final Duration requestTimeout;
 
-  static const String serverUrl =
-      'http://192.168.1.5:5000';
+  static String get serverUrl {
+    return AuthService.baseUrl;
+  }
 
-  static const String baseUrl =
-      '$serverUrl/api/materials';
-
+  static String get baseUrl {
+    return '$serverUrl/api/materials';
+  }
 
   // ==========================
   // File URL Builder
   // ==========================
 
   String getFileUrl(String filePath) {
-  final normalizedPath =
-      filePath.replaceAll('\\', '/');
+    final String normalizedPath = filePath
+        .replaceAll('\\', '/')
+        .replaceFirst(RegExp(r'^/+'), '');
 
-  return '$serverUrl/$normalizedPath';
-}
+    return Uri.parse('$serverUrl/').resolve(normalizedPath).toString();
+  }
 
   // ==========================
   // Get All Materials
   // ==========================
 
   Future<List<MaterialModel>> getMaterials() async {
-    final isGuest = await SessionManager.isGuest();
+    final bool isGuest = await SessionManager.isGuest();
 
-if (isGuest) {
-  return await MaterialDatabase.instance.getAllMaterials();
-}
-
-    final userId = await SessionManager.getUserId();
-
-      if (userId == null) {
-        throw Exception("User ID not found.");
-      }
-
-      print("========== GET MATERIALS ==========");
-      print("Current User ID: $userId");
-      print("Request URL: $baseUrl?user_id=$userId");
-
-      final response = await http.get(
-        Uri.parse(
-          "$baseUrl?user_id=$userId",
-        ),
-      );
-
-      print("Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
-      
-    if (response.statusCode == 200) {
-      final responseData =
-          jsonDecode(response.body);
-
-      final List<dynamic> materialsJson =
-          responseData['data'];
-
-      return materialsJson
-          .map(
-            (json) =>
-                MaterialModel.fromJson(json),
-          )
-          .toList();
+    if (isGuest) {
+      return MaterialDatabase.instance.getAllMaterials();
     }
 
-    throw Exception(
-      'Failed to load materials.',
+    final Uri uri = Uri.parse(baseUrl);
+
+    final http.Response response = await _send(() async {
+      return _client.get(uri, headers: await _authorizedHeaders());
+    });
+
+    final Map<String, dynamic> payload = _decodePayload(response);
+
+    final dynamic rawMaterials = payload['data'];
+
+    if (rawMaterials is! List) {
+      throw const MaterialServiceException(
+        'The server returned invalid material data.',
+      );
+    }
+
+    return List<MaterialModel>.unmodifiable(
+      rawMaterials.whereType<Map>().map((Map material) {
+        return MaterialModel.fromJson(Map<String, dynamic>.from(material));
+      }),
     );
   }
 
   // ==========================
-  // Upload Material
+  // Upload or Save Material
   // ==========================
 
   Future<MaterialModel> uploadMaterial({
     required File file,
-    required int userId,
+
+    // Retained temporarily for compatibility with
+    // existing callers. The authenticated backend now
+    // reads the user ID from the JWT instead.
+    int? userId,
+
     required String title,
     required String subject,
     String? description,
+    String sourceType = MaterialModel.uploadedFileSourceType,
+    String recognizedContent = '',
+    String brailleContent = '',
+    List<Map<String, dynamic>> documentBlocks = const <Map<String, dynamic>>[],
+    String? modelName,
+    String? pipelineVersion,
+    double? processingTimeMs,
   }) async {
+    final String cleanTitle = title.trim();
+    final String cleanSubject = subject.trim();
 
-     final isGuest = await SessionManager.isGuest();
-
-if (isGuest) {
-
-  // Get application documents directory
-  final appDirectory =
-      await getApplicationDocumentsDirectory();
-
-  // Create materials folder
-  final materialsFolder = Directory(
-    p.join(appDirectory.path, "materials"),
-  );
-
-  if (!await materialsFolder.exists()) {
-    await materialsFolder.create(recursive: true);
-  }
-
-  // Create a unique file name
-  final fileName =
-      "${DateTime.now().millisecondsSinceEpoch}_${p.basename(file.path)}";
-
-  final savedFile = await file.copy(
-    p.join(
-      materialsFolder.path,
-      fileName,
-    ),
-  );
-
-  final material = MaterialModel(
-  title: title,
-  subject: subject,
-  description: description ?? "",
-  fileName: fileName,
-  fileType: p.extension(file.path),
-  fileSize: await savedFile.length(),
-  filePath: savedFile.path,
-  uploadDate: DateTime.now(),
-);
-
-  final id =
-      await MaterialDatabase.instance.insertMaterial(material);
-
-  return MaterialModel(
-  id: id,
-  title: material.title,
-  subject: material.subject,
-  description: material.description,
-  fileName: material.fileName,
-  fileType: material.fileType,
-  fileSize: material.fileSize,
-  filePath: material.filePath,
-  uploadDate: material.uploadDate,
-);
-}
-
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/upload'),
-    );
-
-    // ==========================
-    // Material Information
-    // ==========================
-
-    request.fields['user_id'] =
-        userId.toString();
-
-    request.fields['title'] =
-        title;
-
-    request.fields['subject'] =
-        subject;
-
-    if (description != null &&
-        description.isNotEmpty) {
-      request.fields['description'] =
-          description;
+    if (cleanTitle.isEmpty) {
+      throw const MaterialServiceException('The material title is required.');
     }
 
-    // ==========================
-    // File
-    // ==========================
+    if (cleanSubject.isEmpty) {
+      throw const MaterialServiceException('The material subject is required.');
+    }
 
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'file',
-        file.path,
-      ),
-    );
-
-    // ==========================
-    // Send Request
-    // ==========================
-
-    final streamedResponse =
-        await request.send();
-
-    final response =
-        await http.Response.fromStream(
-      streamedResponse,
-    );
-
-    // ==========================
-    // Handle Successful Upload
-    // ==========================
-
-    if (response.statusCode == 201) {
-      final responseData =
-          jsonDecode(response.body);
-
-      return MaterialModel.fromJson(
-        responseData['data'],
+    if (!await file.exists()) {
+      throw const MaterialServiceException(
+        'The selected material file could not be found.',
       );
     }
 
-    // ==========================
-    // Handle Upload Error
-    // ==========================
+    final bool isGuest = await SessionManager.isGuest();
 
-    throw Exception(
-      'Failed to upload material: '
-      '${response.body}',
+    if (isGuest) {
+      return _saveGuestMaterial(
+        file: file,
+        title: cleanTitle,
+        subject: cleanSubject,
+        description: description,
+        sourceType: sourceType,
+        recognizedContent: recognizedContent,
+        brailleContent: brailleContent,
+        documentBlocks: documentBlocks,
+        modelName: modelName,
+        pipelineVersion: pipelineVersion,
+        processingTimeMs: processingTimeMs,
+      );
+    }
+
+    return _uploadAuthenticatedMaterial(
+      file: file,
+      title: cleanTitle,
+      subject: cleanSubject,
+      description: description,
+      sourceType: sourceType,
+      recognizedContent: recognizedContent,
+      brailleContent: brailleContent,
+      documentBlocks: documentBlocks,
+      modelName: modelName,
+      pipelineVersion: pipelineVersion,
+      processingTimeMs: processingTimeMs,
     );
+  }
+
+  // ==========================
+  // Save Guest Material
+  // ==========================
+
+  Future<MaterialModel> _saveGuestMaterial({
+    required File file,
+    required String title,
+    required String subject,
+    required String? description,
+    required String sourceType,
+    required String recognizedContent,
+    required String brailleContent,
+    required List<Map<String, dynamic>> documentBlocks,
+    required String? modelName,
+    required String? pipelineVersion,
+    required double? processingTimeMs,
+  }) async {
+    final Directory appDirectory = await getApplicationDocumentsDirectory();
+
+    final Directory materialsDirectory = Directory(
+      path.join(appDirectory.path, 'materials'),
+    );
+
+    if (!await materialsDirectory.exists()) {
+      await materialsDirectory.create(recursive: true);
+    }
+
+    final String storedFileName =
+        '${DateTime.now().microsecondsSinceEpoch}_'
+        '${path.basename(file.path)}';
+
+    final File savedFile = await file.copy(
+      path.join(materialsDirectory.path, storedFileName),
+    );
+
+    final MaterialModel material = MaterialModel(
+      title: title,
+      subject: subject,
+      description: description?.trim() ?? '',
+      fileName: storedFileName,
+      fileType: path.extension(file.path),
+      fileSize: await savedFile.length(),
+      filePath: savedFile.path,
+      uploadDate: DateTime.now(),
+      sourceType: sourceType,
+      recognizedContent: recognizedContent.trim(),
+      brailleContent: brailleContent.trim(),
+      documentBlocks: List<Map<String, dynamic>>.unmodifiable(documentBlocks),
+      modelName: _nullableText(modelName),
+      pipelineVersion: _nullableText(pipelineVersion),
+      processingTimeMs: processingTimeMs,
+    );
+
+    try {
+      final int id = await MaterialDatabase.instance.insertMaterial(material);
+
+      return MaterialModel(
+        id: id,
+        title: material.title,
+        subject: material.subject,
+        description: material.description,
+        fileName: material.fileName,
+        fileType: material.fileType,
+        fileSize: material.fileSize,
+        filePath: material.filePath,
+        uploadDate: material.uploadDate,
+        sourceType: material.sourceType,
+        recognizedContent: material.recognizedContent,
+        brailleContent: material.brailleContent,
+        documentBlocks: material.documentBlocks,
+        modelName: material.modelName,
+        pipelineVersion: material.pipelineVersion,
+        processingTimeMs: material.processingTimeMs,
+      );
+    } catch (_) {
+      try {
+        if (await savedFile.exists()) {
+          await savedFile.delete();
+        }
+      } catch (_) {
+        // The original database error is more useful.
+      }
+
+      rethrow;
+    }
+  }
+
+  // ==========================
+  // Upload Authenticated Material
+  // ==========================
+
+  Future<MaterialModel> _uploadAuthenticatedMaterial({
+    required File file,
+    required String title,
+    required String subject,
+    required String? description,
+    required String sourceType,
+    required String recognizedContent,
+    required String brailleContent,
+    required List<Map<String, dynamic>> documentBlocks,
+    required String? modelName,
+    required String? pipelineVersion,
+    required double? processingTimeMs,
+  }) async {
+    final Uri uri = Uri.parse('$baseUrl/upload');
+
+    final http.MultipartRequest request = http.MultipartRequest('POST', uri);
+
+    request.headers.addAll(await _authorizedHeaders(includeContentType: false));
+
+    request.fields.addAll(<String, String>{
+      'title': title,
+      'subject': subject,
+      'source_type': sourceType,
+      'recognized_content': recognizedContent.trim(),
+      'braille_content': brailleContent.trim(),
+      'document_blocks': jsonEncode(documentBlocks),
+    });
+
+    final String? cleanDescription = _nullableText(description);
+
+    final String? cleanModelName = _nullableText(modelName);
+
+    final String? cleanPipelineVersion = _nullableText(pipelineVersion);
+
+    if (cleanDescription != null) {
+      request.fields['description'] = cleanDescription;
+    }
+
+    if (cleanModelName != null) {
+      request.fields['model_name'] = cleanModelName;
+    }
+
+    if (cleanPipelineVersion != null) {
+      request.fields['pipeline_version'] = cleanPipelineVersion;
+    }
+
+    if (processingTimeMs != null) {
+      request.fields['processing_time_ms'] = processingTimeMs.toString();
+    }
+
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    final http.Response response = await _send(() async {
+      final http.StreamedResponse streamedResponse = await _client.send(
+        request,
+      );
+
+      return http.Response.fromStream(streamedResponse);
+    });
+
+    final Map<String, dynamic> payload = _decodePayload(response);
+
+    final dynamic materialData = payload['data'];
+
+    if (materialData is! Map) {
+      throw const MaterialServiceException(
+        'The server returned invalid material data.',
+      );
+    }
+
+    return MaterialModel.fromJson(Map<String, dynamic>.from(materialData));
   }
 
   // ==========================
   // Delete Material
   // ==========================
 
-  Future<void> deleteMaterial(
-  int id,
-) async {
+  Future<void> deleteMaterial(int id) async {
+    if (id <= 0) {
+      throw const MaterialServiceException('The material ID is invalid.');
+    }
 
-  final isGuest = await SessionManager.isGuest();
+    final bool isGuest = await SessionManager.isGuest();
 
-  if (isGuest) {
-  final material = await MaterialDatabase.instance.getMaterialById(id);
+    if (isGuest) {
+      await _deleteGuestMaterial(id);
+      return;
+    }
 
-  if (material != null) {
-    final file = File(material.filePath);
+    final Uri uri = Uri.parse('$baseUrl/$id');
 
-   try {
-      if (await file.exists()) {
-        await file.delete();
+    final http.Response response = await _send(() async {
+      return _client.delete(uri, headers: await _authorizedHeaders());
+    });
+
+    _decodePayload(response);
+  }
+
+  // ==========================
+  // Delete Guest Material
+  // ==========================
+
+  Future<void> _deleteGuestMaterial(int id) async {
+    final MaterialModel? material = await MaterialDatabase.instance
+        .getMaterialById(id);
+
+    if (material == null) {
+      throw const MaterialServiceException('Material not found.');
+    }
+
+    final File storedFile = File(material.filePath);
+
+    await MaterialDatabase.instance.deleteMaterial(id);
+
+    try {
+      if (await storedFile.exists()) {
+        await storedFile.delete();
       }
     } catch (_) {
-      // Ignore file deletion errors.
+      // The database record is already removed.
     }
   }
 
-  await MaterialDatabase.instance.deleteMaterial(id);
-  return;
-}
+  // ==========================
+  // Authentication Headers
+  // ==========================
 
-  final response = await http.delete(
-    Uri.parse('$baseUrl/$id'),
-  );
+  Future<Map<String, String>> _authorizedHeaders({
+    bool includeContentType = true,
+  }) async {
+    final String? accessToken = await SessionManager.getAccessToken();
 
-  if (response.statusCode != 200) {
-    throw Exception(
-      'Failed to delete material.',
-    );
+    if (accessToken == null) {
+      throw const MaterialAuthenticationException(
+        'Please sign in to access your materials.',
+      );
+    }
+
+    return <String, String>{
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+      if (includeContentType) 'Content-Type': 'application/json',
+    };
+  }
+
+  // ==========================
+  // HTTP Request Wrapper
+  // ==========================
+
+  Future<http.Response> _send(Future<http.Response> Function() request) async {
+    try {
+      return await request().timeout(requestTimeout);
+    } on TimeoutException {
+      throw const MaterialServiceException(
+        'The materials request took too long. Please try again.',
+      );
+    } on SocketException {
+      throw const MaterialServiceException(
+        'Unable to reach the TactileLens server.',
+      );
+    } on http.ClientException catch (error) {
+      throw MaterialServiceException(
+        'Materials connection failed: '
+        '${error.message}',
+      );
+    }
+  }
+
+  // ==========================
+  // Response Decoder
+  // ==========================
+
+  Map<String, dynamic> _decodePayload(http.Response response) {
+    Map<String, dynamic> payload = <String, dynamic>{};
+
+    if (response.body.trim().isNotEmpty) {
+      try {
+        final dynamic decodedBody = jsonDecode(response.body);
+
+        if (decodedBody is Map) {
+          payload = Map<String, dynamic>.from(decodedBody);
+        }
+      } on FormatException {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          throw const MaterialServiceException(
+            'The server returned invalid data.',
+          );
+        }
+      }
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return payload;
+    }
+
+    final String message =
+        _readErrorMessage(payload) ??
+        'The materials request failed with '
+            'status ${response.statusCode}.';
+
+    if (response.statusCode == 401) {
+      throw MaterialAuthenticationException(message);
+    }
+
+    throw MaterialServiceException(message, statusCode: response.statusCode);
+  }
+
+  String? _readErrorMessage(Map<String, dynamic> payload) {
+    for (final String key in <String>['message', 'detail', 'error']) {
+      final dynamic value = payload[key];
+
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+
+    return null;
+  }
+
+  String? _nullableText(String? value) {
+    final String normalizedValue = value?.trim() ?? '';
+
+    return normalizedValue.isEmpty ? null : normalizedValue;
+  }
+
+  void dispose() {
+    _client.close();
   }
 }
+
+class MaterialServiceException implements Exception {
+  const MaterialServiceException(this.message, {this.statusCode});
+
+  final String message;
+  final int? statusCode;
+
+  @override
+  String toString() => message;
+}
+
+class MaterialAuthenticationException extends MaterialServiceException {
+  const MaterialAuthenticationException(super.message) : super(statusCode: 401);
 }

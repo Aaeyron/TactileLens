@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
-import '../../services/history/history_service.dart';
+import '../../models/materials/material_model.dart';
+import '../../services/materials/material_service.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 import '../../widgets/app_header.dart';
 
@@ -141,7 +142,7 @@ class ScanResultScreen extends StatelessWidget {
             ),
             if (result.hasContent) ...<Widget>[
               const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
-              _SaveHistoryButton(result: result),
+              _SaveMaterialButton(result: result, scannedImage: scannedImage),
             ],
           ],
         ),
@@ -369,35 +370,36 @@ class ScanResultScreen extends StatelessWidget {
   }
 }
 
-class _SaveHistoryButton extends StatefulWidget {
-  const _SaveHistoryButton({required this.result});
+class _SaveMaterialButton extends StatefulWidget {
+  const _SaveMaterialButton({required this.result, required this.scannedImage});
 
   final ScanDocumentResult result;
+  final File scannedImage;
 
   @override
-  State<_SaveHistoryButton> createState() => _SaveHistoryButtonState();
+  State<_SaveMaterialButton> createState() => _SaveMaterialButtonState();
 }
 
-class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
-  final HistoryService _historyService = HistoryService();
+class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
+  final MaterialService _materialService = MaterialService();
 
   bool _isSaving = false;
   bool _isSaved = false;
 
   @override
   void dispose() {
-    _historyService.dispose();
+    _materialService.dispose();
     super.dispose();
   }
 
-  Future<void> _saveToHistory() async {
+  Future<void> _saveToMaterials() async {
     if (_isSaving || _isSaved) {
       return;
     }
 
-    final String? title = await _requestTitle();
+    final _MaterialDetails? details = await _requestMaterialDetails();
 
-    if (!mounted || title == null) {
+    if (!mounted || details == null) {
       return;
     }
 
@@ -411,8 +413,12 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
         .join(ScanResultScreenStyles.contentBlockSeparator);
 
     try {
-      await _historyService.createHistory(
-        title: title,
+      await _materialService.uploadMaterial(
+        file: widget.scannedImage,
+        title: details.title,
+        subject: details.subject,
+        description: details.description,
+        sourceType: MaterialModel.scanResultSourceType,
         recognizedContent: recognizedContent,
         brailleContent: widget.result.combinedBraille,
         documentBlocks: widget.result.blocks
@@ -432,8 +438,8 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
         _isSaved = true;
       });
 
-      _showMessage(ScanResultScreenStyles.historySavedMessage);
-    } on HistoryServiceException catch (error) {
+      _showMessage(ScanResultScreenStyles.materialSavedMessage);
+    } on MaterialServiceException catch (error) {
       if (!mounted) {
         return;
       }
@@ -443,14 +449,24 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
       });
 
       _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      _showMessage(ScanResultScreenStyles.materialSaveFailedMessage);
     }
   }
 
-  Future<String?> _requestTitle() {
-    return showDialog<String>(
+  Future<_MaterialDetails?> _requestMaterialDetails() {
+    return showDialog<_MaterialDetails>(
       context: context,
-      builder: (BuildContext context) {
-        return const _HistoryTitleDialog();
+      builder: (BuildContext dialogContext) {
+        return const _MaterialDetailsDialog();
       },
     );
   }
@@ -478,76 +494,122 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
   @override
   Widget build(BuildContext context) {
     final String label = _isSaving
-        ? ScanResultScreenStyles.savingHistoryLabel
+        ? ScanResultScreenStyles.savingMaterialLabel
         : _isSaved
-        ? ScanResultScreenStyles.savedHistoryLabel
-        : ScanResultScreenStyles.saveHistoryLabel;
+        ? ScanResultScreenStyles.savedMaterialLabel
+        : ScanResultScreenStyles.saveMaterialLabel;
 
     return SizedBox(
       width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: _isSaving || _isSaved ? null : _saveToHistory,
-        style: ScanResultScreenStyles.saveHistoryButtonStyle,
-        icon: _isSaving
-            ? const SizedBox(
-                width: ScanResultScreenStyles.saveProgressIndicatorSize,
-                height: ScanResultScreenStyles.saveProgressIndicatorSize,
-                child: CircularProgressIndicator(
-                  strokeWidth:
-                      ScanResultScreenStyles.saveProgressIndicatorStrokeWidth,
-                  color: ScanResultScreenStyles.surfaceColor,
+      child: Tooltip(
+        message: ScanResultScreenStyles.saveMaterialTooltip,
+        child: FilledButton.icon(
+          onPressed: _isSaving || _isSaved ? null : _saveToMaterials,
+          style: ScanResultScreenStyles.saveMaterialButtonStyle,
+          icon: _isSaving
+              ? const SizedBox(
+                  width: ScanResultScreenStyles.saveProgressIndicatorSize,
+                  height: ScanResultScreenStyles.saveProgressIndicatorSize,
+                  child: CircularProgressIndicator(
+                    strokeWidth:
+                        ScanResultScreenStyles.saveProgressIndicatorStrokeWidth,
+                    color: ScanResultScreenStyles.surfaceColor,
+                  ),
+                )
+              : Icon(
+                  _isSaved
+                      ? ScanResultScreenStyles.savedMaterialIcon
+                      : ScanResultScreenStyles.saveMaterialIcon,
+                  size: ScanResultScreenStyles.saveMaterialIconSize,
                 ),
-              )
-            : Icon(
-                _isSaved
-                    ? ScanResultScreenStyles.savedHistoryIcon
-                    : ScanResultScreenStyles.saveHistoryIcon,
-                size: ScanResultScreenStyles.saveHistoryIconSize,
-              ),
-        label: Text(label),
+          label: Text(label),
+        ),
       ),
     );
   }
 }
 
-class _HistoryTitleDialog extends StatefulWidget {
-  const _HistoryTitleDialog();
+class _MaterialDetails {
+  const _MaterialDetails({
+    required this.title,
+    required this.subject,
+    required this.description,
+  });
 
-  @override
-  State<_HistoryTitleDialog> createState() => _HistoryTitleDialogState();
+  final String title;
+  final String subject;
+  final String description;
 }
 
-class _HistoryTitleDialogState extends State<_HistoryTitleDialog> {
-  late final TextEditingController _controller;
+class _MaterialDetailsDialog extends StatefulWidget {
+  const _MaterialDetailsDialog();
 
-  String? _errorText;
+  @override
+  State<_MaterialDetailsDialog> createState() => _MaterialDetailsDialogState();
+}
+
+class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _subjectController;
+  late final TextEditingController _descriptionController;
+
+  String? _titleError;
+  String? _subjectError;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = TextEditingController(
-      text: ScanResultScreenStyles.defaultHistoryTitle,
+    _titleController = TextEditingController(
+      text: ScanResultScreenStyles.defaultMaterialTitle,
     );
+
+    _subjectController = TextEditingController(
+      text: ScanResultScreenStyles.defaultMaterialSubject,
+    );
+
+    _descriptionController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _titleController.dispose();
+    _subjectController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final String cleanTitle = _controller.text.trim();
+    final String title = _titleController.text.trim();
 
-    if (cleanTitle.isEmpty) {
+    final String subject = _subjectController.text.trim();
+
+    final String description = _descriptionController.text.trim();
+
+    final bool hasTitleError = title.isEmpty;
+    final bool hasSubjectError = subject.isEmpty;
+
+    if (hasTitleError || hasSubjectError) {
       setState(() {
-        _errorText = ScanResultScreenStyles.emptyHistoryTitleError;
+        _titleError = hasTitleError
+            ? ScanResultScreenStyles.emptyMaterialTitleError
+            : null;
+
+        _subjectError = hasSubjectError
+            ? ScanResultScreenStyles.emptyMaterialSubjectError
+            : null;
       });
+
       return;
     }
 
-    Navigator.of(context).pop(cleanTitle);
+    Navigator.of(context).pop(
+      _MaterialDetails(
+        title: title,
+        subject: subject,
+        description: description,
+      ),
+    );
   }
 
   @override
@@ -561,37 +623,71 @@ class _HistoryTitleDialogState extends State<_HistoryTitleDialog> {
         style: ScanResultScreenStyles.saveDialogTitleStyle,
       ),
       contentPadding: ScanResultScreenStyles.saveDialogContentPadding,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text(
-            ScanResultScreenStyles.saveDialogDescription,
-            style: ScanResultScreenStyles.saveDialogDescriptionStyle,
-          ),
-          const SizedBox(height: ScanResultScreenStyles.itemSpacing),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            maxLength: ScanResultScreenStyles.maximumHistoryTitleLength,
-            textInputAction: TextInputAction.done,
-            style: ScanResultScreenStyles.saveInputTextStyle,
-            decoration: ScanResultScreenStyles.saveTitleInputDecoration
-                .copyWith(errorText: _errorText),
-            onChanged: (_) {
-              if (_errorText == null) {
-                return;
-              }
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              ScanResultScreenStyles.saveDialogDescription,
+              style: ScanResultScreenStyles.saveDialogDescriptionStyle,
+            ),
+            const SizedBox(
+              height: ScanResultScreenStyles.saveDialogFieldSpacing,
+            ),
+            TextField(
+              controller: _titleController,
+              autofocus: true,
+              maxLength: ScanResultScreenStyles.maximumMaterialTitleLength,
+              textInputAction: TextInputAction.next,
+              style: ScanResultScreenStyles.saveInputTextStyle,
+              decoration: ScanResultScreenStyles.saveTitleInputDecoration
+                  .copyWith(errorText: _titleError),
+              onChanged: (_) {
+                if (_titleError == null) {
+                  return;
+                }
 
-              setState(() {
-                _errorText = null;
-              });
-            },
-            onSubmitted: (_) {
-              _submit();
-            },
-          ),
-        ],
+                setState(() {
+                  _titleError = null;
+                });
+              },
+            ),
+            const SizedBox(
+              height: ScanResultScreenStyles.saveDialogFieldSpacing,
+            ),
+            TextField(
+              controller: _subjectController,
+              maxLength: ScanResultScreenStyles.maximumMaterialSubjectLength,
+              textInputAction: TextInputAction.next,
+              style: ScanResultScreenStyles.saveInputTextStyle,
+              decoration: ScanResultScreenStyles.saveSubjectInputDecoration
+                  .copyWith(errorText: _subjectError),
+              onChanged: (_) {
+                if (_subjectError == null) {
+                  return;
+                }
+
+                setState(() {
+                  _subjectError = null;
+                });
+              },
+            ),
+            const SizedBox(
+              height: ScanResultScreenStyles.saveDialogFieldSpacing,
+            ),
+            TextField(
+              controller: _descriptionController,
+              maxLength:
+                  ScanResultScreenStyles.maximumMaterialDescriptionLength,
+              minLines: 2,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              style: ScanResultScreenStyles.saveInputTextStyle,
+              decoration: ScanResultScreenStyles.saveDescriptionInputDecoration,
+            ),
+          ],
+        ),
       ),
       actionsPadding: ScanResultScreenStyles.saveDialogActionsPadding,
       actions: <Widget>[

@@ -1,37 +1,25 @@
-
-import '../app_database.dart';
 import '../../models/materials/material_model.dart';
+import '../app_database.dart';
 
 class MaterialDatabase {
   MaterialDatabase._();
 
-  static final MaterialDatabase instance =
-      MaterialDatabase._();
+  static final MaterialDatabase instance = MaterialDatabase._();
+
+  static const String _materialsTable = 'materials';
 
   // ==========================
   // Insert Material
   // ==========================
 
-  Future<int> insertMaterial(
-    MaterialModel material,
-  ) async {
-    final db = await AppDatabase.instance.database;
+  Future<int> insertMaterial(MaterialModel material) async {
+    final database = await AppDatabase.instance.database;
 
-      return await db.insert(
-        "materials",
-        {
-        "user_id": null,
-        "title": material.title,
-        "subject": material.subject,
-        "description": "",
-        "file_name": material.fileName,
-        "file_path": material.filePath,
-        "file_type": material.fileType,
-        "file_size": material.fileSize,
-        "uploaded_at":
-        material.uploadDate.toIso8601String(),
-      },
-    );
+    final Map<String, dynamic> values = material.toJson()
+      ..remove('id')
+      ..['user_id'] = null;
+
+    return database.insert(_materialsTable, values);
   }
 
   // ==========================
@@ -39,58 +27,52 @@ class MaterialDatabase {
   // ==========================
 
   Future<List<MaterialModel>> getAllMaterials() async {
-    final db = await AppDatabase.instance.database;
+    final database = await AppDatabase.instance.database;
 
-    final result = await db.query(
-      "materials",
-      orderBy: "uploaded_at DESC",
+    final List<Map<String, Object?>> queryResult = await database.query(
+      _materialsTable,
+      orderBy: 'uploaded_at DESC, id DESC',
     );
 
-     return result.map((json) {
-      return MaterialModel.fromJson(
-        Map<String, dynamic>.from(json),
-      );
-    }).toList();
+    return List<MaterialModel>.unmodifiable(
+      queryResult.map((Map<String, Object?> record) {
+        return MaterialModel.fromJson(Map<String, dynamic>.from(record));
+      }),
+    );
   }
 
   // ==========================
-// Get Material By ID
-// ==========================
+  // Get Material By ID
+  // ==========================
 
-Future<MaterialModel?> getMaterialById(
-  int id,
-) async {
-  final db = await AppDatabase.instance.database;
+  Future<MaterialModel?> getMaterialById(int id) async {
+    final database = await AppDatabase.instance.database;
 
-  final result = await db.query(
-    "materials",
-    where: "id = ?",
-    whereArgs: [id],
-    limit: 1,
-  );
+    final List<Map<String, Object?>> queryResult = await database.query(
+      _materialsTable,
+      where: 'id = ?',
+      whereArgs: <Object>[id],
+      limit: 1,
+    );
 
-  if (result.isEmpty) {
-    return null;
+    if (queryResult.isEmpty) {
+      return null;
+    }
+
+    return MaterialModel.fromJson(Map<String, dynamic>.from(queryResult.first));
   }
-
-  return MaterialModel.fromJson(
-    Map<String, dynamic>.from(result.first),
-  );
-}
 
   // ==========================
   // Delete Material
   // ==========================
 
-  Future<int> deleteMaterial(
-    int id,
-  ) async {
-    final db = await AppDatabase.instance.database;
+  Future<int> deleteMaterial(int id) async {
+    final database = await AppDatabase.instance.database;
 
-    return await db.delete(
-      "materials",
-      where: "id = ?",
-      whereArgs: [id],
+    return database.delete(
+      _materialsTable,
+      where: 'id = ?',
+      whereArgs: <Object>[id],
     );
   }
 
@@ -98,9 +80,9 @@ Future<MaterialModel?> getMaterialById(
   // Delete All Materials
   // ==========================
 
-  Future<void> deleteAllMaterials() async {
-    final db = await AppDatabase.instance.database;
+  Future<int> deleteAllMaterials() async {
+    final database = await AppDatabase.instance.database;
 
-    await db.delete("materials");
+    return database.delete(_materialsTable);
   }
 }

@@ -3,56 +3,123 @@ const path = require("path");
 
 const materialModel = require("../../models/materials/material_model");
 
+const BACKEND_DIRECTORY = path.resolve(
+  __dirname,
+  "../../..",
+);
+
+const UPLOADS_DIRECTORY = path.join(
+  BACKEND_DIRECTORY,
+  "uploads",
+);
+
 // ==========================
 // Create Material
 // ==========================
 
-const createMaterial = async (materialData) => {
-  return await materialModel.createMaterial(materialData);
+const createMaterial = (materialData) => {
+  return materialModel.createMaterial(materialData);
 };
 
 // ==========================
-// Get All Materials
+// Get All Owned Materials
 // ==========================
 
-const getAllMaterials = async (userId) => {
-  return await materialModel.getAllMaterials(userId);
+const getAllMaterials = (userId) => {
+  return materialModel.getAllMaterials(userId);
 };
 
 // ==========================
-// Get Material By ID
+// Get One Owned Material
 // ==========================
 
-const getMaterialById = async (id) => {
-  return await materialModel.getMaterialById(id);
+const getMaterialById = ({
+  materialId,
+  userId,
+}) => {
+  return materialModel.getMaterialById({
+    materialId,
+    userId,
+  });
 };
 
 // ==========================
-// Delete Material
+// Delete Stored File Safely
 // ==========================
 
-const deleteMaterial = async (id) => {
+const deleteStoredFile = async (storedPath) => {
+  if (
+    typeof storedPath !== "string" ||
+    storedPath.trim().length === 0
+  ) {
+    return;
+  }
 
-  // Find the material first
-  const material = await materialModel.getMaterialById(id);
+  const resolvedFilePath = path.isAbsolute(storedPath)
+    ? path.resolve(storedPath)
+    : path.resolve(
+        BACKEND_DIRECTORY,
+        storedPath,
+      );
+
+  const relativePath = path.relative(
+    UPLOADS_DIRECTORY,
+    resolvedFilePath,
+  );
+
+  const isInsideUploadsDirectory =
+    relativePath.length > 0 &&
+    !relativePath.startsWith("..") &&
+    !path.isAbsolute(relativePath);
+
+  if (!isInsideUploadsDirectory) {
+    console.warn(
+      "Skipped deleting a file outside the uploads directory.",
+    );
+    return;
+  }
+
+  try {
+    await fs.promises.unlink(resolvedFilePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn(
+        "Material record was deleted, but its uploaded file could not be removed:",
+        error.message,
+      );
+    }
+  }
+};
+
+// ==========================
+// Delete One Owned Material
+// ==========================
+
+const deleteMaterial = async ({
+  materialId,
+  userId,
+}) => {
+  const material = await materialModel.getMaterialById({
+    materialId,
+    userId,
+  });
 
   if (!material) {
     return null;
   }
 
-  // Delete the uploaded file
-  console.log("Deleting file:", material.file_path);
-console.log("Exists:", fs.existsSync(material.file_path));
+  const deletedMaterial = await materialModel.deleteMaterial({
+    materialId,
+    userId,
+  });
 
-if (material.file_path && fs.existsSync(material.file_path)) {
-    await fs.promises.unlink(material.file_path);
-    console.log("File deleted successfully.");
-} else {
-    console.log("File not found.");
-}
+  if (!deletedMaterial) {
+    return null;
+  }
 
-  // Delete database record
-  return await materialModel.deleteMaterial(id);
+  await deleteStoredFile(deletedMaterial.file_path);
+
+  return deletedMaterial;
 };
 
 // ==========================

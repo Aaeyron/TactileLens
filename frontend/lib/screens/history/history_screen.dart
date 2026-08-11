@@ -10,10 +10,7 @@ enum _HistoryFilter { all, content, braille }
 enum _HistoryAction { rename, delete }
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({
-    super.key,
-    required this.onBack,
-  });
+  const HistoryScreen({super.key, required this.onBack});
 
   final VoidCallback onBack;
 
@@ -419,7 +416,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     padding: HistoryScreenStyles.backButtonPadding,
                     child: IconButton(
                       tooltip: HistoryScreenStyles.backButtonTooltip,
-                     onPressed: widget.onBack,
+                      onPressed: widget.onBack,
                       icon: const Icon(
                         HistoryScreenStyles.backButtonIcon,
                         size: HistoryScreenStyles.backButtonIconSize,

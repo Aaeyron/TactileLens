@@ -328,7 +328,7 @@ abstract final class ScanResultScreenStyles {
   );
 
   // ============================================================
-  // SAVE TO HISTORY
+  // SAVE TO MATERIALS
   // ============================================================
 
   static const double saveButtonHeight = 54;
@@ -337,47 +337,64 @@ abstract final class ScanResultScreenStyles {
     Radius.circular(14),
   );
 
-  static const IconData saveHistoryIcon = Icons.bookmark_add_outlined;
+  static const IconData saveMaterialIcon = Icons.library_add_outlined;
 
-  static const IconData savedHistoryIcon = Icons.check_circle_outline_rounded;
+  static const IconData savedMaterialIcon = Icons.check_circle_outline_rounded;
 
-  static const double saveHistoryIconSize = 22;
+  static const double saveMaterialIconSize = 22;
 
   static const double saveProgressIndicatorSize = 22;
 
   static const double saveProgressIndicatorStrokeWidth = 2.5;
 
-  static const String saveHistoryLabel = 'Save to History';
+  static const String saveMaterialLabel = 'Save to Materials';
 
-  static const String savingHistoryLabel = 'Saving...';
+  static const String savingMaterialLabel = 'Saving...';
 
-  static const String savedHistoryLabel = 'Saved to History';
+  static const String savedMaterialLabel = 'Saved to Materials';
 
-  static const String saveHistoryTooltip = 'Save this scan to your history';
+  static const String saveMaterialTooltip = 'Save this scan to your materials';
 
-  static const String saveDialogTitle = 'Save Scan';
+  static const String saveDialogTitle = 'Save as Material';
 
   static const String saveDialogDescription =
-      'Enter a title to help you identify this scan later.';
+      'Enter the material details so you can easily find it later.';
 
   static const String saveTitleLabel = 'Title';
 
   static const String saveTitleHint = 'Example: Algebra Worksheet';
 
-  static const String defaultHistoryTitle = 'Untitled Scan';
+  static const String saveSubjectLabel = 'Subject';
+
+  static const String saveSubjectHint = 'Example: General Algebra';
+
+  static const String saveDescriptionLabel = 'Description (Optional)';
+
+  static const String saveDescriptionHint =
+      'Add a short description of this material.';
+
+  static const String defaultMaterialTitle = 'Untitled Scan';
+
+  static const String defaultMaterialSubject = 'Scanned Document';
 
   static const String cancelLabel = 'Cancel';
 
   static const String confirmSaveLabel = 'Save';
 
-  static const String emptyHistoryTitleError = 'Please enter a title.';
+  static const String emptyMaterialTitleError = 'Please enter a title.';
 
-  static const String historySavedMessage = 'Scan saved to your history.';
+  static const String emptyMaterialSubjectError = 'Please enter a subject.';
 
-  static const String historyLoginRequiredMessage =
-      'Please sign in to save scan history.';
+  static const String materialSavedMessage = 'Scan saved to your materials.';
 
-  static const int maximumHistoryTitleLength = 150;
+  static const String materialSaveFailedMessage =
+      'Unable to save this scan to materials.';
+
+  static const int maximumMaterialTitleLength = 150;
+
+  static const int maximumMaterialSubjectLength = 100;
+
+  static const int maximumMaterialDescriptionLength = 500;
 
   static const EdgeInsets saveButtonPadding = EdgeInsets.symmetric(
     horizontal: 18,
@@ -401,6 +418,8 @@ abstract final class ScanResultScreenStyles {
   static const BorderRadius saveDialogRadius = BorderRadius.all(
     Radius.circular(18),
   );
+
+  static const double saveDialogFieldSpacing = 14;
 
   static const TextStyle saveButtonTextStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -430,7 +449,7 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
-  static final ButtonStyle saveHistoryButtonStyle = FilledButton.styleFrom(
+  static final ButtonStyle saveMaterialButtonStyle = FilledButton.styleFrom(
     minimumSize: const Size(double.infinity, saveButtonHeight),
     backgroundColor: primaryColor,
     foregroundColor: surfaceColor,
@@ -466,6 +485,45 @@ abstract final class ScanResultScreenStyles {
   static const InputDecoration saveTitleInputDecoration = InputDecoration(
     labelText: saveTitleLabel,
     hintText: saveTitleHint,
+    filled: true,
+    fillColor: surfaceColor,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: primaryColor, width: 1.5),
+    ),
+  );
+
+  static const InputDecoration saveSubjectInputDecoration = InputDecoration(
+    labelText: saveSubjectLabel,
+    hintText: saveSubjectHint,
+    filled: true,
+    fillColor: surfaceColor,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: primaryColor, width: 1.5),
+    ),
+  );
+
+  static const InputDecoration saveDescriptionInputDecoration = InputDecoration(
+    labelText: saveDescriptionLabel,
+    hintText: saveDescriptionHint,
+    alignLabelWithHint: true,
     filled: true,
     fillColor: surfaceColor,
     border: OutlineInputBorder(

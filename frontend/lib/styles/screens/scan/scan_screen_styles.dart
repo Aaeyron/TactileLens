@@ -52,4 +52,20 @@ class ScanScreenStyles {
     color: onPrimaryColor,
   );
 
+    // Automatic scan history
+  static const String textAndEquationHistoryTitle =
+      'Text and Equation Scan';
+
+  static const String equationHistoryTitle =
+      'Equation Scan';
+
+  static const String textHistoryTitle =
+      'Printed Text Scan';
+
+  static const String documentHistoryTitle =
+      'Document Scan';
+
+  static const String historySaveFailureMessage =
+      'The scan was completed, but it could not be added to History.';
+
 }

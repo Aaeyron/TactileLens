@@ -1,8 +1,23 @@
 const express = require("express");
+
+const materialController = require(
+  "../../controllers/materials/material_controller",
+);
+
+const {
+  authenticateToken,
+} = require(
+  "../../middleware/auth/auth_middleware",
+);
+
+const uploadMaterial = require(
+  "../../middleware/materials/upload_material_middleware",
+);
+
 const router = express.Router();
 
-const materialController = require("../../controllers/materials/material_controller");
-const uploadMaterial = require("../../middleware/materials/upload_material_middleware");
+// Every Materials route requires a valid JWT.
+router.use(authenticateToken);
 
 // ==========================
 // Upload Material
@@ -11,34 +26,34 @@ const uploadMaterial = require("../../middleware/materials/upload_material_middl
 router.post(
   "/upload",
   uploadMaterial.single("file"),
-  materialController.uploadMaterial
+  materialController.uploadMaterial,
 );
 
 // ==========================
-// Get All Materials
+// Get All Owned Materials
 // ==========================
 
 router.get(
   "/",
-  materialController.getAllMaterials
+  materialController.getAllMaterials,
 );
 
 // ==========================
-// Get Material By ID
+// Get One Owned Material
 // ==========================
 
 router.get(
   "/:id",
-  materialController.getMaterialById
+  materialController.getMaterialById,
 );
 
 // ==========================
-// Delete Material
+// Delete One Owned Material
 // ==========================
 
 router.delete(
   "/:id",
-  materialController.deleteMaterial
+  materialController.deleteMaterial,
 );
 
 // ==========================
