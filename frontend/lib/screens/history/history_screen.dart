@@ -10,7 +10,12 @@ enum _HistoryFilter { all, content, braille }
 enum _HistoryAction { rename, delete }
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  const HistoryScreen({
+    super.key,
+    required this.onBack,
+  });
+
+  final VoidCallback onBack;
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -395,10 +400,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Stack(
           children: <Widget>[
             const AppHeader(),
-            SafeArea(
+            Positioned.fill(
               child: Padding(
-                padding: HistoryScreenStyles.headerPadding,
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top,
+                ),
                 child: _buildHeader(),
+              ),
+            ),
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: HistoryScreenStyles.backButtonPadding,
+                    child: IconButton(
+                      tooltip: HistoryScreenStyles.backButtonTooltip,
+                     onPressed: widget.onBack,
+                      icon: const Icon(
+                        HistoryScreenStyles.backButtonIcon,
+                        size: HistoryScreenStyles.backButtonIconSize,
+                        color: HistoryScreenStyles.textPrimaryColor,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -411,8 +440,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: HistoryScreenStyles.screenPadding,
           children: <Widget>[
-            _buildClearAllAction(),
-            const SizedBox(height: HistoryScreenStyles.itemSpacing),
+            _buildHistoryToolbar(),
+            const SizedBox(height: HistoryScreenStyles.toolbarBottomSpacing),
             _buildFilters(),
             const SizedBox(height: HistoryScreenStyles.sectionSpacing),
             _buildSearchField(),
@@ -426,37 +455,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildHeader() {
     return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            HistoryScreenStyles.screenTitle,
-            style: HistoryScreenStyles.titleStyle,
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: HistoryScreenStyles.compactSpacing),
-          Text(
-            HistoryScreenStyles.screenDescription,
-            style: HistoryScreenStyles.descriptionStyle,
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Text(
+        HistoryScreenStyles.screenTitle,
+        style: HistoryScreenStyles.titleStyle,
+        textAlign: TextAlign.center,
       ),
     );
   }
 
-  Widget _buildClearAllAction() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton.icon(
-        onPressed: _records.isEmpty || _isUpdating ? null : _clearAllHistory,
-        icon: const Icon(
-          HistoryScreenStyles.clearAllIcon,
-          size: HistoryScreenStyles.clearAllIconSize,
+  Widget _buildHistoryToolbar() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        const Expanded(
+          child: Text(
+            HistoryScreenStyles.screenDescription,
+            style: HistoryScreenStyles.descriptionStyle,
+          ),
         ),
-        label: const Text(HistoryScreenStyles.clearAllLabel),
-        style: HistoryScreenStyles.clearAllButtonStyle,
-      ),
+        const SizedBox(width: HistoryScreenStyles.compactSpacing),
+        TextButton.icon(
+          onPressed: _records.isEmpty || _isUpdating ? null : _clearAllHistory,
+          icon: const Icon(
+            HistoryScreenStyles.clearAllIcon,
+            size: HistoryScreenStyles.clearAllIconSize,
+          ),
+          label: const Text(HistoryScreenStyles.clearAllLabel),
+          style: HistoryScreenStyles.clearAllButtonStyle,
+        ),
+      ],
     );
   }
 

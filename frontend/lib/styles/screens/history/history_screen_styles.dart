@@ -28,6 +28,7 @@ abstract final class HistoryScreenStyles {
   static const double sectionSpacing = 18;
   static const double itemSpacing = 12;
   static const double compactSpacing = 6;
+  static const double toolbarBottomSpacing = 4;
   static const double zero = 0;
 
   // ============================================================
@@ -47,8 +48,15 @@ abstract final class HistoryScreenStyles {
 
   static const IconData clearAllIcon = Icons.delete_outline_rounded;
 
+  static const IconData backButtonIcon = Icons.arrow_back_rounded;
+
+  static const String backButtonTooltip = 'Go back';
+
   static const double headerIconSize = 30;
   static const double clearAllIconSize = 21;
+  static const double backButtonIconSize = 26;
+
+  static const EdgeInsets backButtonPadding = EdgeInsets.only(left: 8);
 
   static const TextStyle titleStyle = TextStyle(
     fontFamily: 'Poppins',
