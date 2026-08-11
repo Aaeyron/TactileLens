@@ -446,78 +446,13 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
     }
   }
 
-  Future<String?> _requestTitle() async {
-    final TextEditingController controller = TextEditingController(
-      text: ScanResultScreenStyles.defaultHistoryTitle,
-    );
-
-    final String? title = await showDialog<String>(
+  Future<String?> _requestTitle() {
+    return showDialog<String>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: const RoundedRectangleBorder(
-            borderRadius: ScanResultScreenStyles.saveDialogRadius,
-          ),
-          title: const Text(
-            ScanResultScreenStyles.saveDialogTitle,
-            style: ScanResultScreenStyles.saveDialogTitleStyle,
-          ),
-          contentPadding: ScanResultScreenStyles.saveDialogContentPadding,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Text(
-                ScanResultScreenStyles.saveDialogDescription,
-                style: ScanResultScreenStyles.saveDialogDescriptionStyle,
-              ),
-              const SizedBox(height: ScanResultScreenStyles.itemSpacing),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLength: ScanResultScreenStyles.maximumHistoryTitleLength,
-                textInputAction: TextInputAction.done,
-                style: ScanResultScreenStyles.saveInputTextStyle,
-                decoration: ScanResultScreenStyles.saveTitleInputDecoration,
-                onSubmitted: (String value) {
-                  final String cleanTitle = value.trim();
-
-                  if (cleanTitle.isNotEmpty) {
-                    Navigator.of(dialogContext).pop(cleanTitle);
-                  }
-                },
-              ),
-            ],
-          ),
-          actionsPadding: ScanResultScreenStyles.saveDialogActionsPadding,
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              style: ScanResultScreenStyles.saveDialogCancelStyle,
-              child: const Text(ScanResultScreenStyles.cancelLabel),
-            ),
-            FilledButton(
-              onPressed: () {
-                final String cleanTitle = controller.text.trim();
-
-                if (cleanTitle.isEmpty) {
-                  return;
-                }
-
-                Navigator.of(dialogContext).pop(cleanTitle);
-              },
-              style: ScanResultScreenStyles.saveDialogConfirmStyle,
-              child: const Text(ScanResultScreenStyles.confirmSaveLabel),
-            ),
-          ],
-        );
+      builder: (BuildContext context) {
+        return const _HistoryTitleDialog();
       },
     );
-
-    controller.dispose();
-    return title;
   }
 
   void _showMessage(String message) {
@@ -571,6 +506,108 @@ class _SaveHistoryButtonState extends State<_SaveHistoryButton> {
               ),
         label: Text(label),
       ),
+    );
+  }
+}
+
+class _HistoryTitleDialog extends StatefulWidget {
+  const _HistoryTitleDialog();
+
+  @override
+  State<_HistoryTitleDialog> createState() => _HistoryTitleDialogState();
+}
+
+class _HistoryTitleDialogState extends State<_HistoryTitleDialog> {
+  late final TextEditingController _controller;
+
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = TextEditingController(
+      text: ScanResultScreenStyles.defaultHistoryTitle,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final String cleanTitle = _controller.text.trim();
+
+    if (cleanTitle.isEmpty) {
+      setState(() {
+        _errorText = ScanResultScreenStyles.emptyHistoryTitleError;
+      });
+      return;
+    }
+
+    Navigator.of(context).pop(cleanTitle);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: const RoundedRectangleBorder(
+        borderRadius: ScanResultScreenStyles.saveDialogRadius,
+      ),
+      title: const Text(
+        ScanResultScreenStyles.saveDialogTitle,
+        style: ScanResultScreenStyles.saveDialogTitleStyle,
+      ),
+      contentPadding: ScanResultScreenStyles.saveDialogContentPadding,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Text(
+            ScanResultScreenStyles.saveDialogDescription,
+            style: ScanResultScreenStyles.saveDialogDescriptionStyle,
+          ),
+          const SizedBox(height: ScanResultScreenStyles.itemSpacing),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            maxLength: ScanResultScreenStyles.maximumHistoryTitleLength,
+            textInputAction: TextInputAction.done,
+            style: ScanResultScreenStyles.saveInputTextStyle,
+            decoration: ScanResultScreenStyles.saveTitleInputDecoration
+                .copyWith(errorText: _errorText),
+            onChanged: (_) {
+              if (_errorText == null) {
+                return;
+              }
+
+              setState(() {
+                _errorText = null;
+              });
+            },
+            onSubmitted: (_) {
+              _submit();
+            },
+          ),
+        ],
+      ),
+      actionsPadding: ScanResultScreenStyles.saveDialogActionsPadding,
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          style: ScanResultScreenStyles.saveDialogCancelStyle,
+          child: const Text(ScanResultScreenStyles.cancelLabel),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          style: ScanResultScreenStyles.saveDialogConfirmStyle,
+          child: const Text(ScanResultScreenStyles.confirmSaveLabel),
+        ),
+      ],
     );
   }
 }
