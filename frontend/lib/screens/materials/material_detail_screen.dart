@@ -134,36 +134,38 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
         child: Stack(
           children: <Widget>[
             const AppHeader(),
-            SafeArea(
-              child: SizedBox(
-                height: MaterialDetailScreenStyles.headerContentHeight,
-                child: Row(
-                  children: <Widget>[
-                    IconButton(
-                      tooltip: MaterialDetailScreenStyles.backTooltip,
-                      onPressed: () {
-                        Navigator.maybePop(context);
-                      },
-                      icon: const Icon(
-                        MaterialDetailScreenStyles.backIcon,
-                        size: MaterialDetailScreenStyles.headerIconSize,
+            Positioned.fill(
+              child: SafeArea(
+                child: Padding(
+                  padding: MaterialDetailScreenStyles.headerPadding,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: MaterialDetailScreenStyles.backTooltip,
+                          onPressed: () {
+                            Navigator.maybePop(context);
+                          },
+                          icon: const Icon(
+                            MaterialDetailScreenStyles.backIcon,
+                            size: MaterialDetailScreenStyles.headerIconSize,
+                            color: MaterialDetailScreenStyles.primaryColor,
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(
-                      width: MaterialDetailScreenStyles.headerTitleSpacing,
-                    ),
-                    const Expanded(
-                      child: Text(
-                        MaterialDetailScreenStyles.screenTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: MaterialDetailScreenStyles.headerTitleStyle,
+                      const Center(
+                        child: Text(
+                          MaterialDetailScreenStyles.screenTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: MaterialDetailScreenStyles.headerTitleStyle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(
-                      width: MaterialDetailScreenStyles.headerRightSpacing,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

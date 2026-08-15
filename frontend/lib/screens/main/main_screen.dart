@@ -26,7 +26,7 @@ class _MainScreenState extends State<MainScreen> {
 
     pages = <Widget>[
       const HomeScreen(),
-      const MaterialsScreen(),
+      MaterialsScreen(onBack: _returnToPreviousPage),
       ScanScreen(onBack: _returnToPreviousPage),
       HistoryScreen(onBack: _returnToPreviousPage),
       const ProfileScreen(),

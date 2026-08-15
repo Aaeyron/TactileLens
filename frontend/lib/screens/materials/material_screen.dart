@@ -14,7 +14,9 @@ enum _MaterialFilter { all, scanned, uploaded }
 enum _MaterialSort { newest, oldest, title }
 
 class MaterialsScreen extends StatefulWidget {
-  const MaterialsScreen({super.key});
+  const MaterialsScreen({super.key, required this.onBack});
+
+  final VoidCallback onBack;
 
   @override
   State<MaterialsScreen> createState() => _MaterialsScreenState();
@@ -327,15 +329,33 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         child: Stack(
           children: <Widget>[
             const AppHeader(),
-            const Positioned.fill(
+            Positioned.fill(
               child: SafeArea(
                 child: Padding(
                   padding: MaterialScreenStyles.headerPadding,
-                  child: Center(
-                    child: Text(
-                      MaterialScreenStyles.pageTitle,
-                      style: MaterialScreenStyles.pageTitleStyle,
-                    ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: MaterialScreenStyles.backTooltip,
+                          onPressed: widget.onBack,
+                          icon: const Icon(
+                            MaterialScreenStyles.backIcon,
+                            size: MaterialScreenStyles.backIconSize,
+                            color: MaterialScreenStyles.primaryColor,
+                          ),
+                        ),
+                      ),
+                      const Center(
+                        child: Text(
+                          MaterialScreenStyles.pageTitle,
+                          textAlign: TextAlign.center,
+                          style: MaterialScreenStyles.pageTitleStyle,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

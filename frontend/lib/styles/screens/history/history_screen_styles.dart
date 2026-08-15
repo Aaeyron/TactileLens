@@ -54,9 +54,7 @@ abstract final class HistoryScreenStyles {
 
   static const double headerIconSize = 30;
   static const double clearAllIconSize = 21;
-  static const double backButtonIconSize = 26;
-
-  static const EdgeInsets backButtonPadding = EdgeInsets.only(left: 8);
+  static const double backButtonIconSize = 27;
 
   static const TextStyle titleStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -83,9 +81,12 @@ abstract final class HistoryScreenStyles {
     ),
   );
 
-  static const Size headerSize = Size.fromHeight(110);
+  static const Size headerSize = Size.fromHeight(100);
 
-  static const EdgeInsets headerPadding = EdgeInsets.fromLTRB(16, 8, 16, 8);
+  static const EdgeInsets headerPadding = EdgeInsets.symmetric(
+    horizontal: 20,
+    vertical: 12,
+  );
 
   // ============================================================
   // FILTERS

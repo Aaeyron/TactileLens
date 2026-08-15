@@ -30,6 +30,12 @@ abstract final class MaterialScreenStyles {
 
   static const String pageTitle = 'Materials';
 
+  static const String backTooltip = 'Go back to the previous screen';
+
+  static const IconData backIcon = Icons.arrow_back_rounded;
+
+  static const double backIconSize = 27;
+
   static const TextStyle pageTitleStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 21,

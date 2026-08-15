@@ -24,12 +24,15 @@ abstract final class MaterialDetailScreenStyles {
   // ============================================================
 
   static const Size headerSize = Size.fromHeight(100);
-  static const double headerContentHeight = 76;
-  static const double headerIconSize = 27;
-  static const double headerTitleSpacing = 4;
-  static const double headerRightSpacing = 12;
 
-  static const String screenTitle = 'Material Preview';
+  static const EdgeInsets headerPadding = EdgeInsets.symmetric(
+    horizontal: 20,
+    vertical: 12,
+  );
+
+  static const double headerIconSize = 27;
+
+  static const String screenTitle = 'Preview';
   static const String backTooltip = 'Go back to materials';
 
   static const IconData backIcon = Icons.arrow_back_rounded;

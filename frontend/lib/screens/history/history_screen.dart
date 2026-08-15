@@ -398,31 +398,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: <Widget>[
             const AppHeader(),
             Positioned.fill(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.paddingOf(context).top,
-                ),
-                child: _buildHeader(),
-              ),
-            ),
-            Positioned.fill(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.paddingOf(context).top,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: HistoryScreenStyles.backButtonPadding,
-                    child: IconButton(
-                      tooltip: HistoryScreenStyles.backButtonTooltip,
-                      onPressed: widget.onBack,
-                      icon: const Icon(
-                        HistoryScreenStyles.backButtonIcon,
-                        size: HistoryScreenStyles.backButtonIconSize,
-                        color: HistoryScreenStyles.textPrimaryColor,
+              child: SafeArea(
+                child: Padding(
+                  padding: HistoryScreenStyles.headerPadding,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: HistoryScreenStyles.backButtonTooltip,
+                          onPressed: widget.onBack,
+                          icon: const Icon(
+                            HistoryScreenStyles.backButtonIcon,
+                            size: HistoryScreenStyles.backButtonIconSize,
+                            color: HistoryScreenStyles.primaryColor,
+                          ),
+                        ),
                       ),
-                    ),
+                      _buildHeader(),
+                    ],
                   ),
                 ),
               ),
