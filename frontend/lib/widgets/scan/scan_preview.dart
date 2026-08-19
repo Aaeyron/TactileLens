@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../styles/widgets/scan/scan_widget_styles.dart';
+import '../../styles/widgets/scan/scan_preview_styles.dart';
 import 'scan_selection_overlay.dart';
 
 class ScanPreview extends StatelessWidget {
@@ -15,10 +15,7 @@ class ScanPreview extends StatelessWidget {
 
   final File selectedImage;
 
-  final void Function(
-    Rect selectedRegion,
-    Size previewSize,
-  ) onRegionSelected;
+  final void Function(Rect selectedRegion, Size previewSize) onRegionSelected;
 
   final VoidCallback onSelectionCleared;
 
@@ -26,47 +23,39 @@ class ScanPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: ScanWidgetStyles.previewHeight,
+      height: ScanPreviewStyles.previewHeight,
       decoration: BoxDecoration(
-        color: ScanWidgetStyles.previewBackgroundColor,
-        borderRadius:
-            ScanWidgetStyles.previewBorderRadius,
+        color: ScanPreviewStyles.backgroundColor,
+        borderRadius: ScanPreviewStyles.borderRadius,
         border: Border.all(
-          color: ScanWidgetStyles.previewBorderColor,
-          width: ScanWidgetStyles.previewBorderWidth,
+          color: ScanPreviewStyles.borderColor,
+          width: ScanPreviewStyles.borderWidth,
         ),
       ),
       child: ClipRRect(
-        borderRadius:
-            ScanWidgetStyles.previewBorderRadius,
+        borderRadius: ScanPreviewStyles.borderRadius,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
             Image.file(
               selectedImage,
-              fit: ScanWidgetStyles.previewImageFit,
+              fit: ScanPreviewStyles.imageFit,
               width: double.infinity,
               height: double.infinity,
               gaplessPlayback: true,
-              errorBuilder: (
-                BuildContext context,
-                Object error,
-                StackTrace? stackTrace,
-              ) {
-                return const Center(
-                  child: Text(
-                    ScanWidgetStyles.previewPlaceholderText,
-                    style:
-                        ScanWidgetStyles.previewPlaceholderStyle,
-                  ),
-                );
-              },
+              errorBuilder:
+                  (BuildContext context, Object error, StackTrace? stackTrace) {
+                    return const Center(
+                      child: Text(
+                        ScanPreviewStyles.placeholderText,
+                        textAlign: TextAlign.center,
+                        style: ScanPreviewStyles.placeholderStyle,
+                      ),
+                    );
+                  },
             ),
             LayoutBuilder(
-              builder: (
-                BuildContext context,
-                BoxConstraints constraints,
-              ) {
+              builder: (BuildContext context, BoxConstraints constraints) {
                 final Size previewSize = Size(
                   constraints.maxWidth,
                   constraints.maxHeight,
@@ -75,13 +64,9 @@ class ScanPreview extends StatelessWidget {
                 return ScanSelectionOverlay(
                   key: ValueKey<String>(selectedImage.path),
                   onRegionSelected: (Rect selectedRegion) {
-                    onRegionSelected(
-                      selectedRegion,
-                      previewSize,
-                    );
+                    onRegionSelected(selectedRegion, previewSize);
                   },
-                  onSelectionCleared:
-                      onSelectionCleared,
+                  onSelectionCleared: onSelectionCleared,
                 );
               },
             ),

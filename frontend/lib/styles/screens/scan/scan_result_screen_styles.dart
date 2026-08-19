@@ -387,8 +387,7 @@ abstract final class ScanResultScreenStyles {
 
   static const String materialSavedMessage = 'Scan saved to your materials.';
 
-  static const String materialSaveFailedMessage =
-      'Unable to save this scan to materials.';
+  static const String materialSaveFailedMessage = 'Unable to save this scan to materials.';
 
   static const int maximumMaterialTitleLength = 150;
 

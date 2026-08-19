@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ScanMode {
-  ueb,
-  nemeth,
-}
+enum ScanMode { ueb, nemeth }
 
 class ScanModeSelector extends StatelessWidget {
   final ScanMode selectedMode;

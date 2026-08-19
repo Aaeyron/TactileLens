@@ -208,6 +208,12 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
+    final bool shouldScan = await _confirmDocumentScan();
+
+    if (!shouldScan || !mounted) {
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
     });
@@ -216,12 +222,6 @@ class _ScanScreenState extends State<ScanScreen> {
       final File imageToScan = await _prepareImageForScanning(selectedImage);
 
       if (!mounted) {
-        return;
-      }
-
-      final bool shouldSendToAI = await _confirmImageToScan(imageToScan);
-
-      if (!shouldSendToAI || !mounted) {
         return;
       }
 
@@ -274,6 +274,12 @@ class _ScanScreenState extends State<ScanScreen> {
           },
         ),
       );
+
+      if (!mounted) {
+        return;
+      }
+
+      _retakeImage();
     } on AIServiceException catch (error, stackTrace) {
       debugPrint('AI service error: ${error.message}');
 
@@ -302,42 +308,150 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<bool> _confirmImageToScan(File imageToScan) async {
-    final bool? shouldContinue = await showDialog<bool>(
+  Future<bool> _confirmDocumentScan() async {
+    final bool? shouldContinue = await showModalBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          backgroundColor: ScanScreenStyles.dialogBackgroundColor,
-          shape: const RoundedRectangleBorder(
-            borderRadius: ScanScreenStyles.dialogRadius,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: ScanScreenStyles.confirmationSheetColor,
+            borderRadius: ScanScreenStyles.confirmationSheetRadius,
           ),
-          title: const Text(
-            ScanScreenStyles.previewDialogTitle,
-            style: ScanScreenStyles.dialogTitleStyle,
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ClipRRect(
-              borderRadius: ScanScreenStyles.dialogRadius,
-              child: Image.file(imageToScan, fit: BoxFit.contain),
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: ScanScreenStyles.confirmationSheetPadding,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Center(
+                    child: Container(
+                      width: ScanScreenStyles.confirmationHandleWidth,
+                      height: ScanScreenStyles.confirmationHandleHeight,
+                      decoration: const BoxDecoration(
+                        color: ScanScreenStyles.confirmationHandleColor,
+                        borderRadius: ScanScreenStyles.confirmationHandleRadius,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationTopSpacing,
+                  ),
+                  Center(
+                    child: Container(
+                      width: ScanScreenStyles.confirmationIconContainerSize,
+                      height: ScanScreenStyles.confirmationIconContainerSize,
+                      decoration: const BoxDecoration(
+                        color: ScanScreenStyles.confirmationIconBackgroundColor,
+                        borderRadius: ScanScreenStyles.confirmationIconRadius,
+                      ),
+                      child: const Icon(
+                        ScanScreenStyles.confirmationHeaderIcon,
+                        size: ScanScreenStyles.confirmationIconSize,
+                        color: ScanScreenStyles.primaryColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationTitleSpacing,
+                  ),
+                  const Text(
+                    ScanScreenStyles.confirmationTitle,
+                    textAlign: TextAlign.center,
+                    style: ScanScreenStyles.confirmationTitleStyle,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationDescriptionSpacing,
+                  ),
+                  const Text(
+                    ScanScreenStyles.confirmationDescription,
+                    textAlign: TextAlign.center,
+                    style: ScanScreenStyles.confirmationDescriptionStyle,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationDetailsSpacing,
+                  ),
+                  const _ScanConfirmationDetail(
+                    icon: ScanScreenStyles.selectedAreaIcon,
+                    text: ScanScreenStyles.selectedAreaDetail,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationDetailSpacing,
+                  ),
+                  const _ScanConfirmationDetail(
+                    icon: ScanScreenStyles.recognitionIcon,
+                    text: ScanScreenStyles.recognitionDetail,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationDetailSpacing,
+                  ),
+                  const _ScanConfirmationDetail(
+                    icon: ScanScreenStyles.brailleOutputIcon,
+                    text: ScanScreenStyles.brailleDetail,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationDetailSpacing,
+                  ),
+                  const _ScanConfirmationDetail(
+                    icon: ScanScreenStyles.processingTimeIcon,
+                    text: ScanScreenStyles.processingDetail,
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationButtonsSpacing,
+                  ),
+                  SizedBox(
+                    height: ScanScreenStyles.confirmationButtonHeight,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop(false);
+                      },
+                      style: ScanScreenStyles.adjustCropButtonStyle,
+                      icon: const Icon(
+                        ScanScreenStyles.adjustCropIcon,
+                        size: ScanScreenStyles.confirmationButtonIconSize,
+                      ),
+                      label: const Text(
+                        ScanScreenStyles.adjustCropLabel,
+                        style:
+                            ScanScreenStyles.confirmationSecondaryButtonStyle,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: ScanScreenStyles.confirmationButtonGap,
+                  ),
+                  SizedBox(
+                    height: ScanScreenStyles.confirmationButtonHeight,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop(true);
+                      },
+                      style: ScanScreenStyles.scanDocumentButtonStyle,
+                      child: const Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              ScanScreenStyles.scanDocumentLabel,
+                              textAlign: TextAlign.center,
+                              style: ScanScreenStyles
+                                  .confirmationPrimaryButtonStyle,
+                            ),
+                          ),
+                          Icon(
+                            ScanScreenStyles.scanDocumentIcon,
+                            size: ScanScreenStyles.confirmationButtonIconSize,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text(ScanScreenStyles.cancelLabel),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              style: ScanScreenStyles.sendToAiButtonStyle,
-              child: const Text(ScanScreenStyles.sendToAiLabel),
-            ),
-          ],
         );
       },
     );
@@ -670,7 +784,11 @@ class _ScanScreenState extends State<ScanScreen> {
               onRegionSelected: _onRegionSelected,
               onSelectionCleared: _clearSelectedRegion,
             ),
-          const IgnorePointer(child: CustomPaint(painter: _ScanFramePainter())),
+
+          if (!_hasSelectedImage)
+            const IgnorePointer(
+              child: CustomPaint(painter: _ScanFramePainter()),
+            ),
           Positioned(
             top: ScanScreenStyles.cameraOverlayTopSpacing,
             left: ScanScreenStyles.frameHorizontalInset,
@@ -749,6 +867,31 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ScanConfirmationDetail extends StatelessWidget {
+  const _ScanConfirmationDetail({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          icon,
+          size: ScanScreenStyles.confirmationDetailIconSize,
+          color: ScanScreenStyles.primaryColor,
+        ),
+        const SizedBox(width: ScanScreenStyles.confirmationDetailIconSpacing),
+        Expanded(
+          child: Text(text, style: ScanScreenStyles.confirmationDetailStyle),
+        ),
+      ],
     );
   }
 }

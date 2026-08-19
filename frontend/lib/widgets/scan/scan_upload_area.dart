@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../styles/widgets/scan/scan_widget_styles.dart';
+import '../../styles/widgets/scan/scan_upload_area_styles.dart';
 
 class ScanUploadArea extends StatelessWidget {
   const ScanUploadArea({super.key});
@@ -9,18 +9,16 @@ class ScanUploadArea extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: ScanWidgetStyles.uploadAreaHeight,
-
-      decoration: BoxDecoration(
-        color: ScanWidgetStyles.uploadAreaColor,
-        borderRadius: ScanWidgetStyles.uploadAreaRadius,
+      height: ScanUploadAreaStyles.height,
+      decoration: const BoxDecoration(
+        color: ScanUploadAreaStyles.backgroundColor,
+        borderRadius: ScanUploadAreaStyles.borderRadius,
       ),
-
       child: const Center(
         child: Icon(
-          ScanWidgetStyles.uploadAreaIcon,
-          size: ScanWidgetStyles.uploadIconSize,
-          color: ScanWidgetStyles.uploadIconColor,
+          ScanUploadAreaStyles.icon,
+          size: ScanUploadAreaStyles.iconSize,
+          color: ScanUploadAreaStyles.iconColor,
         ),
       ),
     );

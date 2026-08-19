@@ -11,11 +11,11 @@ abstract final class ScanScreenStyles {
       'Align your document within the frame';
 
   static const String cameraReadyLabel = 'Ready to scan';
-  static const String imageReadyLabel = 'Image ready';
+  static const String imageReadyLabel = 'Adjust crop area';
 
   static const String cameraInstruction = 'Position the document in the frame';
 
-  static const String imageInstruction = 'Review the image before scanning';
+  static const String imageInstruction = 'Drag the corners to fit the document';
 
   static const String uploadLabel = 'Upload';
   static const String flashLabel = 'Flash';
@@ -47,10 +47,27 @@ abstract final class ScanScreenStyles {
 
   static const String closeLabel = 'Got it';
 
-  static const String previewDialogTitle = 'Preview image to scan';
+  static const String confirmationTitle = 'Ready to scan?';
 
-  static const String cancelLabel = 'Cancel';
-  static const String sendToAiLabel = 'Send to AI';
+  static const String confirmationDescription =
+      'TactileLens will process the selected area to recognize '
+      'printed text and equations, then generate the available '
+      'Braille translation.';
+
+  static const String selectedAreaDetail =
+      'Only the area inside the crop frame will be processed.';
+
+  static const String recognitionDetail =
+      'Printed text and equations will be recognized.';
+
+  static const String brailleDetail =
+      'Braille output will be generated when translation succeeds.';
+
+  static const String processingDetail = 'Processing may take a few moments.';
+
+  static const String adjustCropLabel = 'Adjust Crop';
+
+  static const String scanDocumentLabel = 'Scan Document';
 
   static const String scanFailureMessage =
       'Unable to scan the document. Please try again.';
@@ -283,21 +300,122 @@ abstract final class ScanScreenStyles {
   );
 
   // ==========================================================
-  // PREVIEW DIALOG
+  // SCAN CONFIRMATION SHEET
   // ==========================================================
 
-  static const BorderRadius dialogRadius = BorderRadius.all(
+  static const Color confirmationSheetColor = Color(0xFFF8FBFF);
+
+  static const Color confirmationTitleColor = Color(0xFF07143D);
+
+  static const Color confirmationBodyColor = Color(0xFF53648F);
+
+  static const Color confirmationIconBackgroundColor = Color(0xFFE8F1FF);
+
+  static const Color confirmationHandleColor = Color(0xFFD1DCEB);
+
+  static const BorderRadius confirmationSheetRadius = BorderRadius.vertical(
+    top: Radius.circular(28),
+  );
+
+  static const BorderRadius confirmationIconRadius = BorderRadius.all(
     Radius.circular(20),
   );
 
-  static const TextStyle dialogTitleStyle = TextStyle(
-    color: Color(0xFF07143D),
-    fontSize: 20,
+  static const BorderRadius confirmationButtonRadius = BorderRadius.all(
+    Radius.circular(15),
+  );
+
+  static const EdgeInsets confirmationSheetPadding = EdgeInsets.fromLTRB(
+    24,
+    14,
+    24,
+    28,
+  );
+
+  static const double confirmationHandleWidth = 46;
+  static const double confirmationHandleHeight = 5;
+
+  static const BorderRadius confirmationHandleRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const double confirmationIconContainerSize = 64;
+  static const double confirmationIconSize = 32;
+
+  static const IconData confirmationHeaderIcon =
+      Icons.document_scanner_outlined;
+
+  static const IconData selectedAreaIcon = Icons.crop_rounded;
+
+  static const IconData recognitionIcon = Icons.text_fields_rounded;
+
+  static const IconData brailleOutputIcon = Icons.translate_rounded;
+
+  static const IconData processingTimeIcon = Icons.schedule_rounded;
+
+  static const IconData adjustCropIcon = Icons.crop_free_rounded;
+
+  static const IconData scanDocumentIcon = Icons.arrow_forward_rounded;
+
+  static const double confirmationTopSpacing = 22;
+  static const double confirmationTitleSpacing = 18;
+  static const double confirmationDescriptionSpacing = 10;
+  static const double confirmationDetailsSpacing = 24;
+
+  static const double confirmationDetailSpacing = 16;
+  static const double confirmationDetailIconSize = 22;
+  static const double confirmationDetailIconSpacing = 13;
+
+  static const double confirmationButtonsSpacing = 24;
+  static const double confirmationButtonGap = 12;
+  static const double confirmationButtonHeight = 52;
+  static const double confirmationButtonIconSize = 20;
+  static const double confirmationButtonIconSpacing = 8;
+
+  static const TextStyle confirmationTitleStyle = TextStyle(
+    color: confirmationTitleColor,
+    fontSize: 23,
+    height: 1.2,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.3,
+  );
+
+  static const TextStyle confirmationDescriptionStyle = TextStyle(
+    color: confirmationBodyColor,
+    fontSize: 14,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  static const TextStyle confirmationDetailStyle = TextStyle(
+    color: Color(0xFF293A61),
+    fontSize: 13.5,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle confirmationSecondaryButtonStyle = TextStyle(
+    fontSize: 15,
     fontWeight: FontWeight.w700,
   );
 
-  static final ButtonStyle sendToAiButtonStyle = TextButton.styleFrom(
+  static const TextStyle confirmationPrimaryButtonStyle = TextStyle(
+    color: onPrimaryColor,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+  );
+
+  static final ButtonStyle adjustCropButtonStyle = OutlinedButton.styleFrom(
     foregroundColor: primaryColor,
+    side: const BorderSide(color: primaryColor, width: 1.4),
+    shape: const RoundedRectangleBorder(borderRadius: confirmationButtonRadius),
+  );
+
+  static final ButtonStyle scanDocumentButtonStyle = ElevatedButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: onPrimaryColor,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(borderRadius: confirmationButtonRadius),
   );
 
   // ==========================================================

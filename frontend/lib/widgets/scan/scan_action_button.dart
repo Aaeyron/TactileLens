@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../styles/widgets/scan/scan_widget_styles.dart';
+import '../../styles/widgets/scan/scan_action_button_styles.dart';
 
 class ScanActionButton extends StatelessWidget {
   const ScanActionButton({
@@ -33,15 +33,14 @@ class ScanActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(
-        bottom: ScanWidgetStyles.actionButtonBottomPadding,
+        bottom: ScanActionButtonStyles.bottomPadding,
       ),
       child: Padding(
-        padding: ScanWidgetStyles.actionButtonHorizontalPadding,
+        padding: ScanActionButtonStyles.horizontalPadding,
         child: Row(
-          mainAxisAlignment: ScanWidgetStyles.actionButtonAlignment,
-          crossAxisAlignment:
-              ScanWidgetStyles.actionButtonCrossAlignment,
-          children: [
+          mainAxisAlignment: ScanActionButtonStyles.alignment,
+          crossAxisAlignment: ScanActionButtonStyles.crossAlignment,
+          children: <Widget>[
             _buildUploadButton(),
             _buildPrimaryButton(),
             _buildFlashButton(),
@@ -52,24 +51,24 @@ class ScanActionButton extends StatelessWidget {
   }
 
   Widget _buildUploadButton() {
-    final isEnabled = !isProcessing;
+    final bool isEnabled = !isProcessing;
 
     return Semantics(
       button: true,
       enabled: isEnabled,
-      label: ScanWidgetStyles.uploadButtonLabel,
+      label: ScanActionButtonStyles.uploadButtonLabel,
       child: AnimatedOpacity(
         opacity: isEnabled
-            ? ScanWidgetStyles.enabledButtonOpacity
-            : ScanWidgetStyles.disabledButtonOpacity,
-        duration: ScanWidgetStyles.buttonOpacityDuration,
+            ? ScanActionButtonStyles.enabledOpacity
+            : ScanActionButtonStyles.disabledOpacity,
+        duration: ScanActionButtonStyles.opacityDuration,
         child: GestureDetector(
           onTap: isEnabled ? onUploadPressed : null,
           child: _buildSecondaryButton(
             child: const Icon(
-              ScanWidgetStyles.galleryButtonIcon,
-              size: ScanWidgetStyles.galleryIconSize,
-              color: ScanWidgetStyles.primaryBlue,
+              ScanActionButtonStyles.galleryIcon,
+              size: ScanActionButtonStyles.galleryIconSize,
+              color: ScanActionButtonStyles.primaryColor,
             ),
           ),
         ),
@@ -78,11 +77,11 @@ class ScanActionButton extends StatelessWidget {
   }
 
   Widget _buildPrimaryButton() {
-    final semanticsLabel = isProcessing
-        ? ScanWidgetStyles.processingButtonLabel
+    final String semanticsLabel = isProcessing
+        ? ScanActionButtonStyles.processingButtonLabel
         : hasCapturedImage
-            ? ScanWidgetStyles.scanButtonLabel
-            : ScanWidgetStyles.cameraButtonLabel;
+        ? ScanActionButtonStyles.scanButtonLabel
+        : ScanActionButtonStyles.cameraButtonLabel;
 
     return Semantics(
       button: true,
@@ -92,38 +91,36 @@ class ScanActionButton extends StatelessWidget {
         onTap: isProcessing
             ? null
             : hasCapturedImage
-                ? onScanPressed
-                : onCameraPressed,
+            ? onScanPressed
+            : onCameraPressed,
         child: Container(
-          width: ScanWidgetStyles.captureButtonSize,
-          height: ScanWidgetStyles.captureButtonSize,
+          width: ScanActionButtonStyles.captureButtonSize,
+          height: ScanActionButtonStyles.captureButtonSize,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: ScanWidgetStyles.primaryBlue,
+            color: ScanActionButtonStyles.primaryColor,
             border: Border.all(
-              color: ScanWidgetStyles.galleryBackgroundColor,
-              width: ScanWidgetStyles.captureBorderWidth,
+              color: ScanActionButtonStyles.secondaryButtonColor,
+              width: ScanActionButtonStyles.captureBorderWidth,
             ),
-            boxShadow: ScanWidgetStyles.captureButtonShadow,
+            boxShadow: ScanActionButtonStyles.captureButtonShadow,
           ),
           alignment: Alignment.center,
           child: isProcessing
               ? const SizedBox.square(
-                  dimension:
-                      ScanWidgetStyles.processingIndicatorSize,
+                  dimension: ScanActionButtonStyles.processingIndicatorSize,
                   child: CircularProgressIndicator(
                     strokeWidth:
-                        ScanWidgetStyles.processingIndicatorStrokeWidth,
-                    color:
-                        ScanWidgetStyles.processingIndicatorColor,
+                        ScanActionButtonStyles.processingIndicatorStrokeWidth,
+                    color: ScanActionButtonStyles.processingIndicatorColor,
                   ),
                 )
               : Icon(
                   hasCapturedImage
-                      ? ScanWidgetStyles.scanButtonIcon
-                      : ScanWidgetStyles.captureButtonIcon,
-                  color: ScanWidgetStyles.captureIconColor,
-                  size: ScanWidgetStyles.captureIconSize,
+                      ? ScanActionButtonStyles.scanIcon
+                      : ScanActionButtonStyles.captureIcon,
+                  color: ScanActionButtonStyles.captureIconColor,
+                  size: ScanActionButtonStyles.captureIconSize,
                 ),
         ),
       ),
@@ -134,23 +131,23 @@ class ScanActionButton extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: _canUseFlash,
-      label: ScanWidgetStyles.flashButtonLabel,
+      label: ScanActionButtonStyles.flashButtonLabel,
       child: AnimatedOpacity(
         opacity: _canUseFlash
-            ? ScanWidgetStyles.enabledButtonOpacity
-            : ScanWidgetStyles.disabledButtonOpacity,
-        duration: ScanWidgetStyles.buttonOpacityDuration,
+            ? ScanActionButtonStyles.enabledOpacity
+            : ScanActionButtonStyles.disabledOpacity,
+        duration: ScanActionButtonStyles.opacityDuration,
         child: GestureDetector(
           onTap: _canUseFlash ? onFlashPressed : null,
           child: _buildSecondaryButton(
             child: Icon(
               flashEnabled
-                  ? ScanWidgetStyles.flashEnabledIcon
-                  : ScanWidgetStyles.flashDisabledIcon,
+                  ? ScanActionButtonStyles.flashEnabledIcon
+                  : ScanActionButtonStyles.flashDisabledIcon,
               color: flashEnabled && _canUseFlash
-                  ? ScanWidgetStyles.flashEnabledColor
-                  : ScanWidgetStyles.flashDisabledColor,
-              size: ScanWidgetStyles.flashIconSize,
+                  ? ScanActionButtonStyles.flashEnabledColor
+                  : ScanActionButtonStyles.flashDisabledColor,
+              size: ScanActionButtonStyles.flashIconSize,
             ),
           ),
         ),
@@ -158,20 +155,18 @@ class ScanActionButton extends StatelessWidget {
     );
   }
 
-  Widget _buildSecondaryButton({
-    required Widget child,
-  }) {
+  Widget _buildSecondaryButton({required Widget child}) {
     return Container(
-      width: ScanWidgetStyles.galleryButtonSize,
-      height: ScanWidgetStyles.galleryButtonSize,
+      width: ScanActionButtonStyles.secondaryButtonSize,
+      height: ScanActionButtonStyles.secondaryButtonSize,
       decoration: BoxDecoration(
-        color: ScanWidgetStyles.galleryBackgroundColor,
+        color: ScanActionButtonStyles.secondaryButtonColor,
         shape: BoxShape.circle,
         border: Border.all(
-          color: ScanWidgetStyles.galleryBorderColor,
-          width: ScanWidgetStyles.galleryBorderWidth,
+          color: ScanActionButtonStyles.secondaryBorderColor,
+          width: ScanActionButtonStyles.secondaryBorderWidth,
         ),
-        boxShadow: ScanWidgetStyles.secondaryButtonShadow,
+        boxShadow: ScanActionButtonStyles.secondaryButtonShadow,
       ),
       alignment: Alignment.center,
       child: child,

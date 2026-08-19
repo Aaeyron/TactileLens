@@ -2,23 +2,20 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/scan/camera_service.dart';
-import '../../styles/widgets/scan/scan_widget_styles.dart';
+import '../../styles/widgets/scan/scan_camera_preview_styles.dart';
 
 class ScanCameraPreview extends StatefulWidget {
-  const ScanCameraPreview({
-    super.key,
-    required this.cameraService,
-  });
+  const ScanCameraPreview({super.key, required this.cameraService});
 
   final CameraService cameraService;
 
   @override
-  State<ScanCameraPreview> createState() =>
-      _ScanCameraPreviewState();
+  State<ScanCameraPreview> createState() {
+    return _ScanCameraPreviewState();
+  }
 }
 
-class _ScanCameraPreviewState
-    extends State<ScanCameraPreview> {
+class _ScanCameraPreviewState extends State<ScanCameraPreview> {
   bool _isLoading = true;
   Offset? _focusPoint;
 
@@ -33,10 +30,13 @@ class _ScanCameraPreviewState
       await widget.cameraService.initialize();
     } catch (error, stackTrace) {
       debugPrint('Camera initialization failed: $error');
+
       debugPrintStack(stackTrace: stackTrace);
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _isLoading = false;
@@ -63,52 +63,51 @@ class _ScanCameraPreviewState
   }
 
   Widget _buildLoadingState() {
-    return Container(
-      width: double.infinity,
-      height: ScanWidgetStyles.previewHeight,
-      alignment: Alignment.center,
-      color: ScanWidgetStyles.previewBackgroundColor,
-      child: const CircularProgressIndicator(
-        color: ScanWidgetStyles.primaryBlue,
+    return const ColoredBox(
+      color: ScanCameraPreviewStyles.backgroundColor,
+      child: Center(
+        child: SizedBox.square(
+          dimension: ScanCameraPreviewStyles.loadingIndicatorSize,
+          child: CircularProgressIndicator(
+            strokeWidth: ScanCameraPreviewStyles.loadingIndicatorStrokeWidth,
+            color: ScanCameraPreviewStyles.primaryColor,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildErrorState() {
-    return Container(
-      width: double.infinity,
-      height: ScanWidgetStyles.previewHeight,
-      alignment: Alignment.center,
-      color: ScanWidgetStyles.previewBackgroundColor,
-      child: const Text(
-        ScanWidgetStyles.cameraErrorText,
-        style: ScanWidgetStyles.previewPlaceholderStyle,
+    return const ColoredBox(
+      color: ScanCameraPreviewStyles.backgroundColor,
+      child: Center(
+        child: Text(
+          ScanCameraPreviewStyles.cameraErrorText,
+          textAlign: TextAlign.center,
+          style: ScanCameraPreviewStyles.placeholderStyle,
+        ),
       ),
     );
   }
 
   Widget _buildCameraPreview() {
-    final CameraController controller =
-        widget.cameraService.controller!;
+    final CameraController controller = widget.cameraService.controller!;
 
-    final Size cameraPreviewSize =
-        controller.value.previewSize!;
+    final Size cameraPreviewSize = controller.value.previewSize!;
 
     return Container(
       width: double.infinity,
-      height: ScanWidgetStyles.previewHeight,
+      height: ScanCameraPreviewStyles.previewHeight,
       decoration: BoxDecoration(
-        color: ScanWidgetStyles.previewBackgroundColor,
-        borderRadius:
-            ScanWidgetStyles.previewBorderRadius,
+        color: ScanCameraPreviewStyles.backgroundColor,
+        borderRadius: ScanCameraPreviewStyles.previewBorderRadius,
         border: Border.all(
-          color: ScanWidgetStyles.previewBorderColor,
-          width: ScanWidgetStyles.previewBorderWidth,
+          color: ScanCameraPreviewStyles.previewBorderColor,
+          width: ScanCameraPreviewStyles.previewBorderWidth,
         ),
       ),
       child: ClipRRect(
-        borderRadius:
-            ScanWidgetStyles.previewBorderRadius,
+        borderRadius: ScanCameraPreviewStyles.previewBorderRadius,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapDown: _handleFocus,
@@ -116,7 +115,7 @@ class _ScanCameraPreviewState
             fit: StackFit.expand,
             children: <Widget>[
               FittedBox(
-                fit: ScanWidgetStyles.previewImageFit,
+                fit: ScanCameraPreviewStyles.previewImageFit,
                 alignment: Alignment.center,
                 child: SizedBox(
                   width: cameraPreviewSize.height,
@@ -126,24 +125,23 @@ class _ScanCameraPreviewState
               ),
               if (_focusPoint != null)
                 Positioned(
-                  left: _focusPoint!.dx -
-                      ScanWidgetStyles.focusIndicatorHalfSize,
-                  top: _focusPoint!.dy -
-                      ScanWidgetStyles.focusIndicatorHalfSize,
+                  left:
+                      _focusPoint!.dx -
+                      ScanCameraPreviewStyles.focusIndicatorHalfSize,
+                  top:
+                      _focusPoint!.dy -
+                      ScanCameraPreviewStyles.focusIndicatorHalfSize,
                   child: Container(
-                    width:
-                        ScanWidgetStyles.focusIndicatorSize,
-                    height:
-                        ScanWidgetStyles.focusIndicatorSize,
+                    width: ScanCameraPreviewStyles.focusIndicatorSize,
+                    height: ScanCameraPreviewStyles.focusIndicatorSize,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: ScanWidgetStyles
-                            .focusIndicatorColor,
-                        width: ScanWidgetStyles
-                            .focusIndicatorBorderWidth,
+                        color: ScanCameraPreviewStyles.focusIndicatorColor,
+                        width:
+                            ScanCameraPreviewStyles.focusIndicatorBorderWidth,
                       ),
-                      borderRadius: ScanWidgetStyles
-                          .focusIndicatorRadius,
+                      borderRadius:
+                          ScanCameraPreviewStyles.focusIndicatorRadius,
                     ),
                   ),
                 ),
@@ -154,16 +152,14 @@ class _ScanCameraPreviewState
     );
   }
 
-  Future<void> _handleFocus(
-    TapDownDetails details,
-  ) async {
-    final RenderObject? renderObject =
-        context.findRenderObject();
+  Future<void> _handleFocus(TapDownDetails details) async {
+    final RenderObject? renderObject = context.findRenderObject();
 
-    if (renderObject is! RenderBox) return;
+    if (renderObject is! RenderBox) {
+      return;
+    }
 
-    final Offset localPoint =
-        renderObject.globalToLocal(
+    final Offset localPoint = renderObject.globalToLocal(
       details.globalPosition,
     );
 
@@ -172,20 +168,17 @@ class _ScanCameraPreviewState
     });
 
     try {
-      await widget.cameraService.focusOnPoint(
-        localPoint,
-        renderObject.size,
-      );
+      await widget.cameraService.focusOnPoint(localPoint, renderObject.size);
     } catch (error, stackTrace) {
       debugPrint('Camera focus failed: $error');
       debugPrintStack(stackTrace: stackTrace);
     }
 
-    await Future<void>.delayed(
-      ScanWidgetStyles.focusIndicatorDuration,
-    );
+    await Future<void>.delayed(ScanCameraPreviewStyles.focusIndicatorDuration);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _focusPoint = null;
