@@ -10,6 +10,10 @@ from services.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
 
+from services.braille_math_normalizer import (
+    BrailleMathNormalizer,
+)
+
 from services.braille_translation_service import (
     BrailleTranslationService,
 )
@@ -37,18 +41,13 @@ class PaddleOcrVlService:
             "gpu:0",
         )
 
-        self.model_name = (
-            "PaddleOCR-VL-"
-            f"{self.pipeline_version.lstrip('v')}"
-        )
+        self.model_name = "PaddleOCR-VL-" f"{self.pipeline_version.lstrip('v')}"
 
         # Prevent simultaneous requests from exhausting
         # the available 6 GB GPU memory.
         self._inference_lock = threading.Lock()
 
-        self._braille_translator = (
-            BrailleTranslationService()
-        )
+        self._braille_translator = BrailleTranslationService()
 
         self._pipeline = PaddleOCRVL(
             pipeline_version=self.pipeline_version,
@@ -66,9 +65,7 @@ class PaddleOcrVlService:
         image_path: Path,
     ) -> dict[str, Any]:
         if not image_path.is_file():
-            raise ValueError(
-                "The uploaded image could not be found."
-            )
+            raise ValueError("The uploaded image could not be found.")
 
         with self._inference_lock:
             predictions = self._pipeline.predict(
@@ -78,20 +75,11 @@ class PaddleOcrVlService:
             )
 
         if not predictions:
-            raise ValueError(
-                "No document content was recognized."
-            )
+            raise ValueError("No document content was recognized.")
 
-        pages = [
-            self._serialize_page(result)
-            for result in predictions
-        ]
+        pages = [self._serialize_page(result) for result in predictions]
 
-        ordered_blocks = [
-            block
-            for page in pages
-            for block in page["blocks"]
-        ]
+        ordered_blocks = [block for page in pages for block in page["blocks"]]
 
         return {
             "success": True,
@@ -118,15 +106,10 @@ class PaddleOcrVlService:
             [],
         )
 
-        blocks = [
-            self._serialize_block(block)
-            for block in raw_blocks
-        ]
+        blocks = [self._serialize_block(block) for block in raw_blocks]
 
         return {
-            "page_index": result_data.get(
-                "page_index"
-            ),
+            "page_index": result_data.get("page_index"),
             "width": result_data.get("width"),
             "height": result_data.get("height"),
             "blocks": blocks,
@@ -150,52 +133,41 @@ class PaddleOcrVlService:
             )
         ).strip()
 
-        normalized_content = (
-            OcrContentNormalizer.normalize(
-                content=raw_content,
-                block_type=block_type,
-            )
+        normalized_content = OcrContentNormalizer.normalize(
+            content=raw_content,
+            block_type=block_type,
         )
 
-        is_formula = (
-            block_type in self.FORMULA_BLOCK_TYPES
+        is_formula = block_type in self.FORMULA_BLOCK_TYPES
+
+        braille_source_content = (
+            BrailleMathNormalizer.normalize(raw_content)
+            if is_formula
+            else normalized_content
         )
 
-        braille_result = (
-            self._braille_translator.translate_block(
-                normalized_content,
-                is_formula=is_formula,
-            )
+        braille_result = self._braille_translator.translate_block(
+            braille_source_content,
+            is_formula=is_formula,
         )
 
         return {
             "id": block.get("block_id"),
             "order": block.get("block_order"),
             "type": block_type,
-
             # Retained for compatibility with the current
             # Flutter model and existing API consumers.
             "content": normalized_content,
-
             # Original PaddleOCR-VL output for debugging,
             # validation, and traceability.
             "raw_content": raw_content,
-
             # Clean content used by previews and future
             # UEB/Nemeth translation.
             "normalized_content": normalized_content,
-
-            "bbox": self._to_builtin(
-                block.get("block_bbox")
-            ),
-            "polygon_points": self._to_builtin(
-                block.get(
-                    "block_polygon_points"
-                )
-            ),
-           "is_text": block_type == "text",
+            "bbox": self._to_builtin(block.get("block_bbox")),
+            "polygon_points": self._to_builtin(block.get("block_polygon_points")),
+            "is_text": block_type == "text",
             "is_formula": is_formula,
-
             # Liblouis translation result.
             "braille_content": braille_result["content"],
             "braille_code": braille_result["code"],
@@ -214,15 +186,9 @@ class PaddleOcrVlService:
             return value.item()
 
         if isinstance(value, dict):
-            return {
-                key: self._to_builtin(item)
-                for key, item in value.items()
-            }
+            return {key: self._to_builtin(item) for key, item in value.items()}
 
         if isinstance(value, (list, tuple)):
-            return [
-                self._to_builtin(item)
-                for item in value
-            ]
+            return [self._to_builtin(item) for item in value]
 
         return value

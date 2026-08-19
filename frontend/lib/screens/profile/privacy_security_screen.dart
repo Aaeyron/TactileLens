@@ -566,8 +566,7 @@ class _PrivacyTopicData {
     required this.icon,
     required this.title,
     required this.description,
-    this.onTap,
-  });
+  }) : onTap = null;
 
   final IconData icon;
   final String title;

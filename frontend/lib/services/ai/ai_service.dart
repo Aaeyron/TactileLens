@@ -11,10 +11,9 @@ class AIService {
   AIService({
     http.Client? client,
     String? baseUrl,
-    Duration requestTimeout = const Duration(minutes: 2),
+    this._requestTimeout = const Duration(minutes: 2),
   })  : _client = client ?? http.Client(),
-        _baseUrl = baseUrl ?? _configuredBaseUrl,
-        _requestTimeout = requestTimeout;
+        _baseUrl = baseUrl ?? _configuredBaseUrl;
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_BASE_URL',

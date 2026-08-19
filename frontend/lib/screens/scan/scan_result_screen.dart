@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
@@ -758,7 +759,7 @@ class _ResultSection extends StatelessWidget {
                   style: ScanResultScreenStyles.sectionTitleStyle,
                 ),
               ),
-              if (action != null) action!,
+              ?action,
             ],
           ),
           const SizedBox(height: ScanResultScreenStyles.sectionHeaderSpacing),
@@ -801,11 +802,42 @@ class _RecognizedBlock extends StatelessWidget {
 
   final DocumentBlock block;
 
+  String _prepareFormula(String value) {
+    String formula = value.trim();
+
+    final List<(String, String)> delimiters = <(String, String)>[
+      (r'$$', r'$$'),
+      (r'\[', r'\]'),
+      (r'\(', r'\)'),
+      (r'$', r'$'),
+    ];
+
+    for (final (String opening, String closing) in delimiters) {
+      if (formula.startsWith(opening) &&
+          formula.endsWith(closing) &&
+          formula.length >= opening.length + closing.length) {
+        formula = formula
+            .substring(opening.length, formula.length - closing.length)
+            .trim();
+
+        break;
+      }
+    }
+
+    return formula;
+  }
+
   @override
   Widget build(BuildContext context) {
     final String content = block.normalizedContent.trim();
 
     if (block.isFormula) {
+      final String rawFormula = block.rawContent.trim();
+
+      final String formula = _prepareFormula(
+        rawFormula.isEmpty ? content : rawFormula,
+      );
+
       return Container(
         width: double.infinity,
         padding: ScanResultScreenStyles.formulaPreviewPadding,
@@ -813,10 +845,20 @@ class _RecognizedBlock extends StatelessWidget {
           color: ScanResultScreenStyles.formulaBackgroundColor,
           borderRadius: ScanResultScreenStyles.formulaRadius,
         ),
-        child: SelectableText(
-          content,
-          textAlign: TextAlign.center,
-          style: ScanResultScreenStyles.formulaContentStyle,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Math.tex(
+            formula,
+            mathStyle: MathStyle.display,
+            textStyle: ScanResultScreenStyles.formulaContentStyle,
+            onErrorFallback: (_) {
+              return SelectableText(
+                content,
+                textAlign: TextAlign.center,
+                style: ScanResultScreenStyles.formulaContentStyle,
+              );
+            },
+          ),
         ),
       );
     }

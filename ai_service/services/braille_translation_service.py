@@ -29,39 +29,19 @@ class BrailleTranslationService:
             self._liblouis_root = Path(configured_root).resolve()
         else:
             self._liblouis_root = (
-                ai_service_directory
-                / "vendor"
-                / "liblouis"
+                ai_service_directory / "vendor" / "liblouis"
             ).resolve()
 
-        self._executable = (
-            self._liblouis_root
-            / "bin"
-            / "lou_translate.exe"
-        )
+        self._executable = self._liblouis_root / "bin" / "lou_translate.exe"
 
-        self._tables_directory = (
-            self._liblouis_root
-            / "share"
-            / "liblouis"
-            / "tables"
-        )
+        self._tables_directory = self._liblouis_root / "share" / "liblouis" / "tables"
 
-        self._display_table = (
-            self._tables_directory
-            / "unicode.dis"
-        )
+        self._display_table = self._tables_directory / "unicode.dis"
 
-        self._ueb_table = (
-            self._tables_directory
-            / "en-ueb-g2.ctb"
-        )
+        self._ueb_table = self._tables_directory / "en-ueb-g2.ctb"
 
         # This table includes the Liblouis Nemeth definitions.
-        self._nemeth_table = (
-            self._tables_directory
-            / "en-us-mathtext.ctb"
-        )
+        self._nemeth_table = self._tables_directory / "en-us-mathtext.ctb"
 
         self._timeout_seconds = timeout_seconds
 
@@ -98,30 +78,18 @@ class BrailleTranslationService:
         if not normalized_content:
             return {
                 "success": True,
-                "code": (
-                    self.NEMETH_CODE
-                    if is_formula
-                    else self.UEB_CODE
-                ),
+                "code": (self.NEMETH_CODE if is_formula else self.UEB_CODE),
                 "content": "",
                 "error": None,
             }
 
-        braille_code = (
-            self.NEMETH_CODE
-            if is_formula
-            else self.UEB_CODE
-        )
+        braille_code = self.NEMETH_CODE if is_formula else self.UEB_CODE
 
         try:
             if is_formula:
-                braille_content = self.translate_formula(
-                    normalized_content
-                )
+                braille_content = self.translate_formula(normalized_content)
             else:
-                braille_content = self.translate_text(
-                    normalized_content
-                )
+                braille_content = self.translate_text(normalized_content)
 
             return {
                 "success": True,
@@ -149,9 +117,7 @@ class BrailleTranslationService:
             return ""
 
         environment = os.environ.copy()
-        environment["LOUIS_TABLEPATH"] = str(
-            self._tables_directory
-        )
+        environment["LOUIS_TABLEPATH"] = str(self._tables_directory)
 
         command = [
             str(self._executable),
@@ -180,13 +146,9 @@ class BrailleTranslationService:
                 ),
             )
         except subprocess.TimeoutExpired as error:
-            raise BrailleTranslationError(
-                "Braille translation timed out."
-            ) from error
+            raise BrailleTranslationError("Braille translation timed out.") from error
         except OSError as error:
-            raise BrailleTranslationError(
-                "Liblouis could not be started."
-            ) from error
+            raise BrailleTranslationError("Liblouis could not be started.") from error
         except UnicodeError as error:
             raise BrailleTranslationError(
                 "Liblouis returned invalid Unicode output."

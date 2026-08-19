@@ -6,22 +6,22 @@ import '../../services/auth/auth_service.dart';
 import '../../styles/screens/auth/signin_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
+import 'guest_setup_screen.dart';
 import 'signup_screen.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
   @override
-  State<SignInScreen> createState() =>
-      _SignInScreenState();
+  State<SignInScreen> createState() {
+    return _SignInScreenState();
+  }
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final TextEditingController emailController =
-      TextEditingController();
+  final TextEditingController emailController = TextEditingController();
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   bool isPasswordVisible = false;
   bool _isSigningIn = false;
@@ -30,17 +30,20 @@ class _SignInScreenState extends State<SignInScreen> {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+
     super.dispose();
   }
 
   Future<void> _signIn() async {
-    if (_isSigningIn) return;
+    if (_isSigningIn) {
+      return;
+    }
 
     final String email = emailController.text.trim();
     final String password = passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Please fill in all fields.');
+      _showMessage(SignInStyles.emptyFieldsMessage);
       return;
     }
 
@@ -54,13 +57,11 @@ class _SignInScreenState extends State<SignInScreen> {
         password: password,
       );
 
-      final Map<String, dynamic> responseData =
-          _decodeResponse(response.body);
+      final Map<String, dynamic> responseData = _decodeResponse(response.body);
 
       if (response.statusCode != 200) {
         throw SignInException(
-          _readServerMessage(responseData) ??
-              'Unable to sign in. Please try again.',
+          _readServerMessage(responseData) ?? SignInStyles.defaultSignInError,
         );
       }
 
@@ -68,41 +69,30 @@ class _SignInScreenState extends State<SignInScreen> {
       final dynamic rawToken = responseData['token'];
 
       if (rawUser is! Map) {
-        throw const SignInException(
-          'The server returned invalid user information.',
-        );
+        throw const SignInException(SignInStyles.invalidUserMessage);
       }
 
-      if (rawToken is! String ||
-          rawToken.trim().isEmpty) {
-        throw const SignInException(
-          'The server did not return an authentication token.',
-        );
+      if (rawToken is! String || rawToken.trim().isEmpty) {
+        throw const SignInException(SignInStyles.missingTokenMessage);
       }
 
-      final Map<String, dynamic> user =
-          Map<String, dynamic>.from(rawUser);
+      final Map<String, dynamic> user = Map<String, dynamic>.from(rawUser);
 
       final dynamic rawUserId = user['id'];
 
       if (rawUserId is! num) {
-        throw const SignInException(
-          'The server returned an invalid user ID.',
-        );
+        throw const SignInException(SignInStyles.invalidUserIdMessage);
       }
 
-      final String firstName =
-          _readRequiredString(user, 'first_name');
-      final String lastName =
-          _readRequiredString(user, 'last_name');
-      final String userEmail =
-          _readRequiredString(user, 'email');
-      final String role =
-          _readRequiredString(user, 'role');
+      final String firstName = _readRequiredString(user, 'first_name');
 
-      await SessionManager.saveAccessToken(
-        rawToken,
-      );
+      final String lastName = _readRequiredString(user, 'last_name');
+
+      final String userEmail = _readRequiredString(user, 'email');
+
+      final String role = _readRequiredString(user, 'role');
+
+      await SessionManager.saveAccessToken(rawToken);
 
       try {
         await SessionManager.saveUser(
@@ -113,14 +103,15 @@ class _SignInScreenState extends State<SignInScreen> {
           role: role,
         );
       } catch (_) {
-        // Prevent a partial session when profile persistence fails.
         await SessionManager.logout();
         rethrow;
       }
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      _showMessage('Login successful!');
+      _showMessage(SignInStyles.loginSuccessMessage);
 
       await Navigator.of(context).pushReplacement<void, void>(
         MaterialPageRoute<void>(
@@ -130,23 +121,26 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
       );
     } on SignInException catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
+
       _showMessage(error.message);
     } on FormatException {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      _showMessage(
-        'The server returned an invalid response.',
-      );
+      _showMessage(SignInStyles.invalidResponseMessage);
     } catch (error, stackTrace) {
       debugPrint('Sign-in failed: $error');
       debugPrintStack(stackTrace: stackTrace);
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      _showMessage(
-        'Unable to sign in. Check your connection and try again.',
-      );
+      _showMessage(SignInStyles.connectionErrorMessage);
     } finally {
       if (mounted) {
         setState(() {
@@ -156,9 +150,7 @@ class _SignInScreenState extends State<SignInScreen> {
     }
   }
 
-  Map<String, dynamic> _decodeResponse(
-    String responseBody,
-  ) {
+  Map<String, dynamic> _decodeResponse(String responseBody) {
     if (responseBody.trim().isEmpty) {
       return <String, dynamic>{};
     }
@@ -166,36 +158,26 @@ class _SignInScreenState extends State<SignInScreen> {
     final dynamic decoded = jsonDecode(responseBody);
 
     if (decoded is! Map) {
-      throw const FormatException(
-        'Invalid server response.',
-      );
+      throw const FormatException(SignInStyles.invalidResponseMessage);
     }
 
     return Map<String, dynamic>.from(decoded);
   }
 
-  String _readRequiredString(
-    Map<String, dynamic> source,
-    String key,
-  ) {
+  String _readRequiredString(Map<String, dynamic> source, String key) {
     final dynamic value = source[key];
 
     if (value is! String || value.trim().isEmpty) {
-      throw const SignInException(
-        'The server returned incomplete user information.',
-      );
+      throw const SignInException(SignInStyles.incompleteUserMessage);
     }
 
     return value.trim();
   }
 
-  String? _readServerMessage(
-    Map<String, dynamic> responseData,
-  ) {
+  String? _readServerMessage(Map<String, dynamic> responseData) {
     final dynamic message = responseData['message'];
 
-    if (message is String &&
-        message.trim().isNotEmpty) {
+    if (message is String && message.trim().isNotEmpty) {
       return message.trim();
     }
 
@@ -203,164 +185,515 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _showMessage(String message) {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message),
+          duration: SignInStyles.snackBarDuration,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: SignInStyles.primaryColor,
+          margin: SignInStyles.snackBarMargin,
+          shape: const RoundedRectangleBorder(
+            borderRadius: SignInStyles.snackBarRadius,
+          ),
+          content: Text(message, style: SignInStyles.snackBarTextStyle),
         ),
       );
+  }
+
+  void _openSignUp() {
+    if (_isSigningIn) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const SignUpScreen();
+        },
+      ),
+    );
+  }
+
+  void _continueAsGuest() {
+    if (_isSigningIn) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const GuestSetupScreen();
+        },
+      ),
+    );
+  }
+
+  void _togglePasswordVisibility() {
+    if (_isSigningIn) {
+      return;
+    }
+
+    setState(() {
+      isPasswordVisible = !isPasswordVisible;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SignInStyles.backgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: SignInStyles.backgroundColor,
-        foregroundColor: Colors.black,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: SignInStyles.pagePadding,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: <Widget>[
-                const SizedBox(height: 20),
-                Text(
-                  'Sign In',
-                  style: SignInStyles.titleStyle,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Sign in to sync your scan history across devices.',
-                  style: SignInStyles.descriptionStyle,
-                ),
-                const SizedBox(height: 40),
-                TextField(
-                  controller: emailController,
-                  enabled: !_isSigningIn,
-                  keyboardType:
-                      TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autofillHints: const <String>[
-                    AutofillHints.email,
-                  ],
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+      body: Stack(
+        children: <Widget>[
+          const Positioned(
+            top: SignInStyles.topDecorationOffset,
+            right: SignInStyles.topDecorationOffset,
+            child: _BackgroundCircle(size: SignInStyles.topDecorationSize),
+          ),
+          const Positioned(
+            bottom: SignInStyles.bottomDecorationOffset,
+            left: SignInStyles.bottomDecorationOffset,
+            child: _BackgroundCircle(size: SignInStyles.bottomDecorationSize),
+          ),
+          const Positioned(
+            top: SignInStyles.leftDotsTop,
+            left: SignInStyles.dotsSideOffset,
+            child: _BrailleDots(),
+          ),
+          const Positioned(
+            top: SignInStyles.rightDotsTop,
+            right: SignInStyles.dotsSideOffset,
+            child: _BrailleDots(),
+          ),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: SignInStyles.pagePadding,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight:
+                          constraints.maxHeight -
+                          SignInStyles.pagePadding.vertical,
                     ),
-                    prefixIcon: const Icon(
-                      Icons.email_outlined,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: passwordController,
-                  enabled: !_isSigningIn,
-                  obscureText: !isPasswordVisible,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: const <String>[
-                    AutofillHints.password,
-                  ],
-                  onSubmitted: (_) {
-                    _signIn();
-                  },
-                  onChanged: (_) {
-                    setState(() {});
-                  },
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                    ),
-                    suffixIcon:
-                        passwordController.text.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(
-                                  isPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                onPressed: _isSigningIn
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          isPasswordVisible =
-                                              !isPasswordVisible;
-                                        });
-                                      },
-                              )
-                            : null,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _isSigningIn
-                        ? null
-                        : () {
-                            // TODO: Forgot password.
-                          },
-                    child: const Text(
-                      'Forgot Password?',
+                    child: AutofillGroup(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          _buildBackButton(context),
+                          const SizedBox(height: SignInStyles.logoTopSpacing),
+                          _buildLogo(),
+                          const SizedBox(
+                            height: SignInStyles.logoBottomSpacing,
+                          ),
+                          const Text(
+                            SignInStyles.title,
+                            textAlign: TextAlign.center,
+                            style: SignInStyles.titleStyle,
+                          ),
+                          const SizedBox(
+                            height: SignInStyles.descriptionSpacing,
+                          ),
+                          _buildDescription(),
+                          const SizedBox(height: SignInStyles.formTopSpacing),
+                          _buildEmailField(),
+                          const SizedBox(height: SignInStyles.fieldSpacing),
+                          _buildPasswordField(),
+                          _buildForgotPasswordButton(),
+                          const SizedBox(height: SignInStyles.signInTopSpacing),
+                          _buildSignInButton(),
+                          const SizedBox(height: SignInStyles.dividerSpacing),
+                          const _OrDivider(),
+                          const SizedBox(height: SignInStyles.dividerSpacing),
+                          _buildGoogleButton(),
+                          const SizedBox(height: SignInStyles.signUpTopSpacing),
+                          _buildSignUpPrompt(),
+                          const SizedBox(height: SignInStyles.guestTopSpacing),
+                          _buildGuestButton(),
+                          const SizedBox(
+                            height: SignInStyles.bottomIllustrationSpacing,
+                          ),
+                          const _BottomIllustration(),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed:
-                        _isSigningIn ? null : _signIn,
-                    child: Text(
-                      _isSigningIn
-                          ? 'Signing In...'
-                          : 'Sign In',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Text(
-                      "Don't have an account?",
-                    ),
-                    TextButton(
-                      onPressed: _isSigningIn
-                          ? null
-                          : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder:
-                                      (BuildContext context) {
-                                    return const SignUpScreen();
-                                  },
-                                ),
-                              );
-                            },
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
-                ),
-              ],
+                );
+              },
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: IconButton(
+        tooltip: SignInStyles.backTooltip,
+        onPressed: _isSigningIn
+            ? null
+            : () {
+                Navigator.of(context).maybePop();
+              },
+        style: SignInStyles.backButtonStyle,
+        icon: const Icon(
+          SignInStyles.backIcon,
+          size: SignInStyles.backIconSize,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogo() {
+    return Center(
+      child: Container(
+        width: SignInStyles.logoContainerSize,
+        height: SignInStyles.logoContainerSize,
+        padding: SignInStyles.logoPadding,
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(
+          gradient: SignInStyles.logoGradient,
+          borderRadius: SignInStyles.logoRadius,
+          boxShadow: SignInStyles.logoShadow,
+        ),
+        child: Image.asset(
+          SignInStyles.logoAsset,
+          fit: BoxFit.contain,
+          semanticLabel: SignInStyles.logoSemanticLabel,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Text.rich(
+      const TextSpan(
+        children: <InlineSpan>[
+          TextSpan(text: SignInStyles.descriptionFirstPart),
+          TextSpan(
+            text: SignInStyles.appName,
+            style: SignInStyles.descriptionHighlightStyle,
+          ),
+          TextSpan(text: SignInStyles.descriptionLastPart),
+        ],
+      ),
+      textAlign: TextAlign.center,
+      style: SignInStyles.descriptionStyle,
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          SignInStyles.emailLabel,
+          style: SignInStyles.fieldLabelStyle,
+        ),
+        const SizedBox(height: SignInStyles.labelFieldSpacing),
+        TextField(
+          controller: emailController,
+          enabled: !_isSigningIn,
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+          autofillHints: const <String>[AutofillHints.email],
+          style: SignInStyles.inputTextStyle,
+          decoration: SignInStyles.emailDecoration,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Text(
+          SignInStyles.passwordLabel,
+          style: SignInStyles.fieldLabelStyle,
+        ),
+        const SizedBox(height: SignInStyles.labelFieldSpacing),
+        TextField(
+          controller: passwordController,
+          enabled: !_isSigningIn,
+          obscureText: !isPasswordVisible,
+          textInputAction: TextInputAction.done,
+          autofillHints: const <String>[AutofillHints.password],
+          style: SignInStyles.inputTextStyle,
+          onSubmitted: (_) {
+            _signIn();
+          },
+          decoration: SignInStyles.passwordDecoration.copyWith(
+            suffixIcon: IconButton(
+              tooltip: isPasswordVisible
+                  ? SignInStyles.hidePasswordTooltip
+                  : SignInStyles.showPasswordTooltip,
+              onPressed: _isSigningIn ? null : _togglePasswordVisibility,
+              icon: Icon(
+                isPasswordVisible
+                    ? SignInStyles.visiblePasswordIcon
+                    : SignInStyles.hiddenPasswordIcon,
+                color: SignInStyles.fieldSuffixIconColor,
+                size: SignInStyles.fieldIconSize,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForgotPasswordButton() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: _isSigningIn
+            ? null
+            : () {
+                // Forgot-password functionality will be added later.
+              },
+        style: SignInStyles.forgotPasswordButtonStyle,
+        child: const Text(SignInStyles.forgotPasswordLabel),
+      ),
+    );
+  }
+
+  Widget _buildSignInButton() {
+    return SizedBox(
+      height: SignInStyles.buttonHeight,
+      child: ElevatedButton(
+        onPressed: _isSigningIn ? null : _signIn,
+        style: SignInStyles.signInButtonStyle,
+        child: _isSigningIn
+            ? const SizedBox.square(
+                dimension: SignInStyles.loadingIndicatorSize,
+                child: CircularProgressIndicator(
+                  strokeWidth: SignInStyles.loadingStrokeWidth,
+                  color: SignInStyles.surfaceColor,
+                ),
+              )
+            : const Row(
+                children: <Widget>[
+                  Icon(
+                    SignInStyles.signInIcon,
+                    size: SignInStyles.buttonIconSize,
+                  ),
+                  Expanded(
+                    child: Text(
+                      SignInStyles.signInLabel,
+                      textAlign: TextAlign.center,
+                      style: SignInStyles.primaryButtonTextStyle,
+                    ),
+                  ),
+                  Icon(
+                    SignInStyles.forwardIcon,
+                    size: SignInStyles.forwardIconSize,
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return SizedBox(
+      height: SignInStyles.buttonHeight,
+      child: OutlinedButton(
+        // Google authentication is intentionally disabled for now.
+        onPressed: null,
+        style: SignInStyles.googleButtonStyle,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              SignInStyles.googleIconLetter,
+              style: SignInStyles.googleIconStyle,
+            ),
+            SizedBox(width: SignInStyles.googleIconSpacing),
+            Text(
+              SignInStyles.googleLabel,
+              style: SignInStyles.googleButtonTextStyle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignUpPrompt() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        const Text(
+          SignInStyles.noAccountLabel,
+          style: SignInStyles.accountPromptStyle,
+        ),
+        TextButton(
+          onPressed: _isSigningIn ? null : _openSignUp,
+          style: SignInStyles.signUpLinkButtonStyle,
+          child: const Text(SignInStyles.signUpLabel),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuestButton() {
+    return SizedBox(
+      height: SignInStyles.buttonHeight,
+      child: OutlinedButton(
+        onPressed: _isSigningIn ? null : _continueAsGuest,
+        style: SignInStyles.guestButtonStyle,
+        child: const Row(
+          children: <Widget>[
+            Icon(SignInStyles.guestIcon, size: SignInStyles.buttonIconSize),
+            Expanded(
+              child: Text(
+                SignInStyles.guestLabel,
+                textAlign: TextAlign.center,
+                style: SignInStyles.guestButtonTextStyle,
+              ),
+            ),
+            Icon(
+              SignInStyles.forwardIcon,
+              size: SignInStyles.forwardIconSize,
+              color: SignInStyles.forwardIconColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BackgroundCircle extends StatelessWidget {
+  const _BackgroundCircle({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: SignInStyles.backgroundDecorationGradient,
+        ),
+      ),
+    );
+  }
+}
+
+class _BrailleDots extends StatelessWidget {
+  const _BrailleDots();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Wrap(
+        direction: Axis.vertical,
+        spacing: SignInStyles.decorationDotSpacing,
+        runSpacing: SignInStyles.decorationDotSpacing,
+        children: List<Widget>.generate(SignInStyles.decorationDotCount, (
+          int index,
+        ) {
+          return const DecoratedBox(
+            decoration: BoxDecoration(
+              color: SignInStyles.decorationDotColor,
+              shape: BoxShape.circle,
+              boxShadow: SignInStyles.decorationDotShadow,
+            ),
+            child: SizedBox.square(dimension: SignInStyles.decorationDotSize),
+          );
+        }, growable: false),
+      ),
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: <Widget>[
+        Expanded(
+          child: Divider(
+            color: SignInStyles.dividerColor,
+            thickness: SignInStyles.dividerThickness,
+          ),
+        ),
+        Padding(
+          padding: SignInStyles.orLabelPadding,
+          child: Text(SignInStyles.orLabel, style: SignInStyles.orLabelStyle),
+        ),
+        Expanded(
+          child: Divider(
+            color: SignInStyles.dividerColor,
+            thickness: SignInStyles.dividerThickness,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BottomIllustration extends StatelessWidget {
+  const _BottomIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: SignInStyles.illustrationWidth,
+        height: SignInStyles.illustrationHeight,
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              left: 0,
+              bottom: 0,
+              child: Icon(
+                SignInStyles.illustrationBookIcon,
+                size: SignInStyles.illustrationBookSize,
+                color: SignInStyles.illustrationColor,
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: SignInStyles.illustrationBackgroundColor,
+                  shape: BoxShape.circle,
+                  border: Border.fromBorderSide(
+                    BorderSide(
+                      color: SignInStyles.illustrationColor,
+                      width: SignInStyles.illustrationBorderWidth,
+                    ),
+                  ),
+                ),
+                child: SizedBox.square(
+                  dimension: SignInStyles.illustrationBadgeSize,
+                  child: Center(
+                    child: Text(
+                      SignInStyles.aiLabel,
+                      style: SignInStyles.illustrationAiStyle,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

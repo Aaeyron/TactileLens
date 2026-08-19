@@ -13,7 +13,7 @@ class OcrContentNormalizer:
     )
 
     # Unicode constants are used to avoid file-encoding corruption.
-    PESO_SIGN = "\u20B1"
+    PESO_SIGN = "\u20b1"
     CHECKED_BOX = "\u2611"
     BALLOT_BOX_WITH_X = "\u2612"
 
@@ -21,29 +21,17 @@ class OcrContentNormalizer:
     # MATH DELIMITERS
     # ============================================================
 
-    _opening_display_math = re.compile(
-        r"^\s*\$\$\s*"
-    )
+    _opening_display_math = re.compile(r"^\s*\$\$\s*")
 
-    _closing_display_math = re.compile(
-        r"\s*\$\$\s*$"
-    )
+    _closing_display_math = re.compile(r"\s*\$\$\s*$")
 
-    _opening_bracket_math = re.compile(
-        r"^\s*\\\[\s*"
-    )
+    _opening_bracket_math = re.compile(r"^\s*\\\[\s*")
 
-    _closing_bracket_math = re.compile(
-        r"\s*\\\]\s*$"
-    )
+    _closing_bracket_math = re.compile(r"\s*\\\]\s*$")
 
-    _opening_inline_math = re.compile(
-        r"^\s*\\\(\s*"
-    )
+    _opening_inline_math = re.compile(r"^\s*\\\(\s*")
 
-    _closing_inline_math = re.compile(
-        r"\s*\\\)\s*$"
-    )
+    _closing_inline_math = re.compile(r"\s*\\\)\s*$")
 
     # ============================================================
     # PHILIPPINE PESO NORMALIZATION
@@ -52,9 +40,7 @@ class OcrContentNormalizer:
     # PaddleOCR-VL may recognize the Philippine peso symbol
     # as an inline LaTeX lowercase or uppercase letter b.
     _misrecognized_peso = re.compile(
-        r"\$\s*\\text\s*"
-        r"\{\s*[bB]\s*\}\s*"
-        r"\$\s*(?=\d)"
+        r"\$\s*\\text\s*" r"\{\s*[bB]\s*\}\s*" r"\$\s*(?=\d)"
     )
 
     # PaddleOCR-VL may recognize the peso symbol as:
@@ -97,25 +83,46 @@ class OcrContentNormalizer:
         r")\s*\{([^{}]*)\}"
     )
 
-    _latex_spacing_command = re.compile(
-        r"\\[,;:!]"
+    _latex_spacing_command = re.compile(r"\\[,;:!]")
+
+    _escaped_space = re.compile(r"\\\s+")
+
+    # Convert LaTeX integer exponents into Unicode superscripts.
+    #
+    # x^{2} becomes x²
+    # x^{-2} becomes x⁻²
+    # x^{+2} becomes x⁺²
+    # x^{12} becomes x¹²
+    #
+    # Algebraic expressions such as x^{n + 1} remain unchanged.
+    _integer_exponent = re.compile(
+        r"\^\s*(?:" r"\{\s*([+-]?\s*\d+)\s*\}" r"|" r"([+-]?\s*\d+)" r")"
     )
 
-    _escaped_space = re.compile(
-        r"\\\s+"
+    _superscript_translation = str.maketrans(
+        {
+            "0": "\u2070",
+            "1": "\u00b9",
+            "2": "\u00b2",
+            "3": "\u00b3",
+            "4": "\u2074",
+            "5": "\u2075",
+            "6": "\u2076",
+            "7": "\u2077",
+            "8": "\u2078",
+            "9": "\u2079",
+            "+": "\u207a",
+            "-": "\u207b",
+        }
     )
 
     # ============================================================
     # WHITESPACE
     # ============================================================
 
-    _multiple_horizontal_spaces = re.compile(
-        r"[ \t]+"
-    )
+    _multiple_horizontal_spaces = re.compile(r"[ \t]+")
 
-    _excessive_newlines = re.compile(
-        r"\n{3,}"
-    )
+    _excessive_newlines = re.compile(r"\n{3,}")
 
     # ============================================================
     # PUBLIC NORMALIZATION
@@ -133,9 +140,7 @@ class OcrContentNormalizer:
             return ""
 
         normalized_type = (
-            block_type.strip().lower()
-            if isinstance(block_type, str)
-            else ""
+            block_type.strip().lower() if isinstance(block_type, str) else ""
         )
 
         normalized_content = content.strip()
@@ -144,13 +149,9 @@ class OcrContentNormalizer:
             return ""
 
         if normalized_type in cls.FORMULA_BLOCK_TYPES:
-            return cls._normalize_formula(
-                normalized_content
-            )
+            return cls._normalize_formula(normalized_content)
 
-        return cls._normalize_text(
-            normalized_content
-        )
+        return cls._normalize_text(normalized_content)
 
     # ============================================================
     # FORMULA NORMALIZATION
@@ -161,21 +162,15 @@ class OcrContentNormalizer:
         cls,
         content: str,
     ) -> str:
-        normalized = cls._remove_outer_math_delimiters(
-            content
-        )
+        normalized = cls._remove_outer_math_delimiters(content)
 
-        normalized = cls._unwrap_formatting_commands(
-            normalized
-        )
+        normalized = cls._unwrap_formatting_commands(normalized)
 
-        normalized = cls._replace_spacing_commands(
-            normalized
-        )
+        normalized = cls._replace_spacing_commands(normalized)
 
-        return cls._normalize_whitespace(
-            normalized
-        )
+        normalized = cls._replace_integer_exponents(normalized)
+
+        return cls._normalize_whitespace(normalized)
 
     # ============================================================
     # TEXT NORMALIZATION
@@ -191,9 +186,7 @@ class OcrContentNormalizer:
             content,
         )
 
-        normalized = cls._unwrap_formatting_commands(
-            normalized
-        )
+        normalized = cls._unwrap_formatting_commands(normalized)
 
         # Remove inline LaTeX dollar delimiters.
         #
@@ -204,17 +197,16 @@ class OcrContentNormalizer:
             "",
         )
 
-        normalized = cls._replace_spacing_commands(
-            normalized
-        )
+        normalized = cls._replace_spacing_commands(normalized)
 
-        normalized = cls._normalize_whitespace(
-            normalized
-        )
+        # PaddleOCR-VL may return handwritten formulas as text
+        # blocks instead of formula blocks.
 
-        return cls._restore_contextual_peso_symbols(
-            normalized
-        )
+        normalized = cls._replace_integer_exponents(normalized)
+
+        normalized = cls._normalize_whitespace(normalized)
+
+        return cls._restore_contextual_peso_symbols(normalized)
 
     @classmethod
     def _restore_contextual_peso_symbols(
@@ -327,6 +319,30 @@ class OcrContentNormalizer:
 
         return normalized
 
+    @classmethod
+    def _replace_integer_exponents(
+        cls,
+        content: str,
+    ) -> str:
+        """Convert signed integer exponents to Unicode superscripts."""
+
+        def replace_exponent(
+            match: re.Match,
+        ) -> str:
+            exponent = match.group(1) if match.group(1) is not None else match.group(2)
+
+            normalized_exponent = exponent.replace(
+                " ",
+                "",
+            )
+
+            return normalized_exponent.translate(cls._superscript_translation)
+
+        return cls._integer_exponent.sub(
+            replace_exponent,
+            content,
+        )
+
     # ============================================================
     # WHITESPACE NORMALIZATION
     # ============================================================
@@ -344,9 +360,7 @@ class OcrContentNormalizer:
             for line in content.splitlines()
         ]
 
-        normalized = "\n".join(
-            normalized_lines
-        )
+        normalized = "\n".join(normalized_lines)
 
         normalized = cls._excessive_newlines.sub(
             "\n\n",
