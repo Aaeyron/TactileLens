@@ -25,7 +25,14 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
 
     pages = <Widget>[
-      const HomeScreen(),
+      HomeScreen(
+        onScanPressed: () {
+          _selectPage(2);
+        },
+        onMaterialsPressed: () {
+          _selectPage(1);
+        },
+      ),
       MaterialsScreen(onBack: _returnToPreviousPage),
       ScanScreen(onBack: _returnToPreviousPage),
       HistoryScreen(onBack: _returnToPreviousPage),

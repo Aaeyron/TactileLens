@@ -1,68 +1,36 @@
 import 'package:flutter/material.dart';
 
 abstract final class MaterialScreenStyles {
-  // ============================================================
-  // COLORS
-  // ============================================================
+  // Text
+  static const String logoAsset = 'assets/icons/tactilelens_app_icon.png';
 
-  static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color backgroundColor = Color(0xFFF8F9FC);
-  static const Color surfaceColor = Colors.white;
-  static const Color textPrimaryColor = Color(0xFF111827);
-  static const Color textSecondaryColor = Color(0xFF667085);
-  static const Color textMutedColor = Color(0xFF98A2B3);
-  static const Color outlineColor = Color(0xFFE2E8F0);
-  static const Color selectedBackgroundColor = Color(0xFFEFF4FF);
-  static const Color summaryBackgroundColor = Color(0xFFF4F7FF);
-  static const Color destructiveColor = Color(0xFFD92D20);
-  static const Color shadowColor = Color(0x0D000000);
-
-  // ============================================================
-  // HEADER
-  // ============================================================
-
-  static const Size headerSize = Size.fromHeight(100);
-
-  static const EdgeInsets headerPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 12,
-  );
+  static const String appName = 'TactileLens';
 
   static const String pageTitle = 'Materials';
 
+  static const String pageDescription =
+      'View, manage, and organize your saved learning materials in one place.';
+
   static const String backTooltip = 'Go back to the previous screen';
 
-  static const IconData backIcon = Icons.arrow_back_rounded;
-
-  static const double backIconSize = 27;
-
-  static const TextStyle pageTitleStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 21,
-    fontWeight: FontWeight.w600,
-    color: textPrimaryColor,
-  );
-
-  // ============================================================
-  // TEXT
-  // ============================================================
-
-  static const String pageDescription =
-      'Manage your saved scans and uploaded learning materials.';
-
-  static const String searchHint = 'Search your materials...';
+  static const String searchHint = 'Search materials...';
 
   static const String allFilterLabel = 'All';
-  static const String scannedFilterLabel = 'Scanned';
-  static const String uploadedFilterLabel = 'Uploaded';
+  static const String pdfFilterLabel = 'PDF';
+  static const String imageFilterLabel = 'Image';
+  static const String documentFilterLabel = 'Document';
 
   static const String newestSortLabel = 'Newest first';
+
   static const String oldestSortLabel = 'Oldest first';
+
   static const String titleSortLabel = 'Title A–Z';
 
-  static const String totalMaterialsLabel = 'Total';
-  static const String scannedMaterialsLabel = 'Scanned';
-  static const String uploadedMaterialsLabel = 'Uploaded';
+  static const String materialsSectionTitle = 'Your Materials';
+
+  static const String materialCountSingular = 'material';
+
+  static const String materialCountPlural = 'materials';
 
   static const String loadingLabel = 'Loading your materials...';
 
@@ -73,14 +41,14 @@ abstract final class MaterialScreenStyles {
   static const String emptySearchTitle = 'No matching materials';
 
   static const String emptySearchDescription =
-      'Try another search term or filter.';
+      'Try another search term or file type.';
 
   static const String retryLabel = 'Try Again';
 
   static const String deleteDialogTitle = 'Delete Material';
 
   static const String deleteDialogDescription =
-      'Are you sure you want to permanently delete this material?';
+      'Are you sure you want to permanently delete this material? This action cannot be undone.';
 
   static const String cancelLabel = 'Cancel';
   static const String deleteLabel = 'Delete';
@@ -93,227 +61,204 @@ abstract final class MaterialScreenStyles {
 
   static const String sortTooltip = 'Sort materials';
 
-  // ============================================================
-  // ICONS
-  // ============================================================
+  static const String pdfType = 'pdf';
+  static const String imageType = 'image';
+  static const String jpgType = 'jpg';
+  static const String jpegType = 'jpeg';
+  static const String pngType = 'png';
+
+  // Colors
+  static const Color backgroundColor = Colors.white;
+  static const Color surfaceColor = Colors.white;
+
+  static const Color primaryColor = Color(0xFF0D47A1);
+
+  static const Color primaryBrightColor = Color(0xFF1268F3);
+
+  static const Color textPrimaryColor = Color(0xFF07143D);
+
+  static const Color textSecondaryColor = Color(0xFF53658F);
+
+  static const Color textMutedColor = Color(0xFF8291B1);
+
+  static const Color outlineColor = Color(0xFFBCD0EA);
+
+  static const Color dividerColor = Color(0xFFDCE6F3);
+
+  static const Color softBlueColor = Color(0xFFEDF4FF);
+
+  // Icons
+  static const IconData headerStatusIcon = Icons.folder_copy_outlined;
+
+  static const IconData heroIcon = Icons.folder_rounded;
+
+  static const IconData backIcon = Icons.arrow_back_rounded;
 
   static const IconData searchIcon = Icons.search_rounded;
+
   static const IconData clearSearchIcon = Icons.close_rounded;
+
   static const IconData allFilterIcon = Icons.folder_copy_outlined;
-  static const IconData scannedFilterIcon = Icons.document_scanner_outlined;
-  static const IconData uploadedFilterIcon = Icons.upload_file_outlined;
-  static const IconData sortIcon = Icons.sort_rounded;
+
+  static const IconData pdfFilterIcon = Icons.picture_as_pdf_outlined;
+
+  static const IconData imageFilterIcon = Icons.image_outlined;
+
+  static const IconData documentFilterIcon = Icons.description_outlined;
+
+  static const IconData sortIcon = Icons.tune_rounded;
+
   static const IconData errorIcon = Icons.cloud_off_outlined;
+
   static const IconData emptySearchIcon = Icons.search_off_rounded;
 
-  // ============================================================
-  // LAYOUT
-  // ============================================================
+  static const IconData deleteIcon = Icons.delete_outline_rounded;
 
-  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(16, 18, 16, 28);
+  // General layout
+  static const double zero = 0;
 
-  static const double sectionSpacing = 18;
-  static const double itemSpacing = 12;
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(20, 20, 20, 28);
+
+  static const double heroTopSpacing = 34;
+  static const double searchTopSpacing = 28;
+  static const double filterTopSpacing = 18;
+  static const double sectionSpacing = 28;
+  static const double materialsHeaderSpacing = 14;
+  static const double uploadTopSpacing = 24;
+  static const double bottomSpacing = 24;
+  static const double itemSpacing = 14;
   static const double compactSpacing = 8;
   static const double filterSpacing = 10;
   static const double cardSpacing = 14;
-  static const double zero = 0;
 
-  // ============================================================
-  // DESCRIPTION TOOLBAR
-  // ============================================================
+  // Brand header
+  static const double logoSize = 52;
+  static const double logoTextSpacing = 14;
 
-  static const TextStyle pageDescriptionStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    height: 1.45,
-    fontWeight: FontWeight.w400,
-    color: textSecondaryColor,
+  static const BorderRadius logoRadius = BorderRadius.all(Radius.circular(14));
+
+  static const double headerStatusButtonSize = 44;
+  static const double headerStatusIconSize = 23;
+
+  // Page introduction
+  static const double heroContentSpacing = 18;
+
+  static const double heroIconContainerSize = 112;
+  static const double heroIconSize = 70;
+
+  static const BorderRadius heroIconRadius = BorderRadius.all(
+    Radius.circular(26),
   );
 
-  // ============================================================
-  // SUMMARY
-  // ============================================================
+  static const double backIconSize = 25;
+  static const double backTitleSpacing = 8;
+  static const double pageDescriptionSpacing = 14;
 
-  static const EdgeInsets summaryPadding = EdgeInsets.symmetric(
-    horizontal: 14,
-    vertical: 14,
+  // Shared containers
+  static const double cardBorderWidth = 1.2;
+
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(20));
+
+  static const Border cardBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: cardBorderWidth),
   );
 
-  static const BorderRadius summaryRadius = BorderRadius.all(
-    Radius.circular(16),
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x180D47A1),
+      blurRadius: 18,
+      spreadRadius: 1,
+      offset: Offset(0, 6),
+    ),
+  ];
+
+  static const Border smallContainerBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: 1),
   );
 
-  static const Border summaryBorder = Border.fromBorderSide(
-    BorderSide(color: outlineColor),
-  );
+  static const List<BoxShadow> smallContainerShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x100D47A1), blurRadius: 10, offset: Offset(0, 3)),
+  ];
 
-  static const TextStyle summaryValueStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 18,
-    fontWeight: FontWeight.w700,
-    color: primaryColor,
-  );
-
-  static const TextStyle summaryLabelStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    color: textSecondaryColor,
-  );
-
-  static const Color summaryDividerColor = outlineColor;
-  static const double summaryDividerHeight = 34;
-
-  // ============================================================
-  // SEARCH
-  // ============================================================
-
-  static const double searchHeight = 52;
+  // Search
+  static const double searchHeight = 64;
 
   static const BorderRadius searchRadius = BorderRadius.all(
-    Radius.circular(14),
+    Radius.circular(20),
   );
 
+  static const double searchDividerWidth = 1;
+  static const double searchDividerIndent = 14;
+
+  static const List<BoxShadow> searchShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x180D47A1), blurRadius: 18, offset: Offset(0, 6)),
+  ];
+
   static const TextStyle searchTextStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w400,
     color: textPrimaryColor,
   );
 
   static const InputDecoration searchDecoration = InputDecoration(
     hintText: searchHint,
-    hintStyle: TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 14,
-      color: textMutedColor,
-    ),
+    hintStyle: TextStyle(fontSize: 15, color: textMutedColor),
     prefixIcon: Icon(searchIcon, color: textSecondaryColor),
     filled: true,
-    fillColor: surfaceColor,
-    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    border: OutlineInputBorder(
-      borderRadius: searchRadius,
-      borderSide: BorderSide(color: outlineColor),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: searchRadius,
-      borderSide: BorderSide(color: outlineColor),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: searchRadius,
-      borderSide: BorderSide(color: primaryColor, width: 1.5),
-    ),
+    fillColor: Colors.transparent,
+    contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
   );
 
-  // ============================================================
-  // FILTERS
-  // ============================================================
+  // Filters
+  static const double filterHeight = 48;
+  static const double filterIconSize = 20;
+  static const double filterBorderWidth = 1.2;
 
-  static const double filterHeight = 44;
-  static const double filterIconSize = 19;
-
-  static const EdgeInsets filterPadding = EdgeInsets.symmetric(horizontal: 16);
+  static const EdgeInsets filterPadding = EdgeInsets.symmetric(horizontal: 18);
 
   static const BorderRadius filterRadius = BorderRadius.all(
-    Radius.circular(22),
+    Radius.circular(24),
   );
 
-  static const TextStyle selectedFilterTextStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: surfaceColor,
-  );
+  static const List<BoxShadow> filterShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x100D47A1), blurRadius: 10, offset: Offset(0, 3)),
+  ];
 
-  static const TextStyle filterTextStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    color: textSecondaryColor,
-  );
-
-  // ============================================================
-  // SORT
-  // ============================================================
-
-  static const double sortIconSize = 22;
-
-  static const BorderRadius sortButtonRadius = BorderRadius.all(
-    Radius.circular(12),
-  );
+  // Sort
+  static const double sortIconSize = 24;
 
   static final ButtonStyle sortButtonStyle = IconButton.styleFrom(
-    foregroundColor: primaryColor,
-    backgroundColor: selectedBackgroundColor,
-    shape: const RoundedRectangleBorder(borderRadius: sortButtonRadius),
+    foregroundColor: primaryBrightColor,
+    backgroundColor: surfaceColor,
+    minimumSize: const Size(54, 54),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(16)),
+    ),
   );
 
-  // ============================================================
-  // STATES
-  // ============================================================
-
+  // States
   static const EdgeInsets statePadding = EdgeInsets.symmetric(
     horizontal: 24,
-    vertical: 56,
+    vertical: 48,
+  );
+
+  static const BorderRadius stateCardRadius = BorderRadius.all(
+    Radius.circular(20),
   );
 
   static const double stateIconSize = 52;
 
-  static const TextStyle stateTitleStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 17,
-    fontWeight: FontWeight.w600,
-    color: textPrimaryColor,
-  );
-
-  static const TextStyle stateDescriptionStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    height: 1.5,
-    color: textSecondaryColor,
-  );
-
-  static final ButtonStyle retryButtonStyle = FilledButton.styleFrom(
-    backgroundColor: primaryColor,
-    foregroundColor: surfaceColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(12)),
-    ),
-  );
-
-  // ============================================================
-  // DIALOG
-  // ============================================================
-
+  // Dialog
   static const BorderRadius dialogRadius = BorderRadius.all(
-    Radius.circular(18),
+    Radius.circular(20),
   );
 
-  static const TextStyle dialogTitleStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: textPrimaryColor,
-  );
+  static const double dialogButtonIconSize = 19;
 
-  static const TextStyle dialogDescriptionStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 13,
-    height: 1.5,
-    color: textSecondaryColor,
-  );
-
-  static final ButtonStyle deleteButtonStyle = FilledButton.styleFrom(
-    backgroundColor: destructiveColor,
-    foregroundColor: surfaceColor,
-  );
-
-  // ============================================================
-  // SNACKBAR
-  // ============================================================
-
+  // Snackbar
   static const Duration snackBarDuration = Duration(seconds: 2);
 
   static const SnackBarBehavior snackBarBehavior = SnackBarBehavior.floating;
@@ -321,13 +266,113 @@ abstract final class MaterialScreenStyles {
   static const EdgeInsets snackBarMargin = EdgeInsets.all(16);
 
   static const BorderRadius snackBarRadius = BorderRadius.all(
-    Radius.circular(12),
+    Radius.circular(14),
+  );
+
+  // Text styles
+  static const TextStyle appNameStyle = TextStyle(
+    fontSize: 25,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.4,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle pageTitleStyle = TextStyle(
+    fontSize: 34,
+    height: 1.1,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.8,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle pageDescriptionStyle = TextStyle(
+    fontSize: 16,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+    color: textSecondaryColor,
+  );
+
+  static const TextStyle sectionTitleStyle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle countTextStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: textMutedColor,
+  );
+
+  static const TextStyle selectedFilterTextStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: surfaceColor,
+  );
+
+  static const TextStyle filterTextStyle = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle stateTitleStyle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle stateDescriptionStyle = TextStyle(
+    fontSize: 13,
+    height: 1.5,
+    color: textSecondaryColor,
+  );
+
+  static const TextStyle dialogTitleStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle dialogDescriptionStyle = TextStyle(
+    fontSize: 14,
+    height: 1.5,
+    color: textSecondaryColor,
   );
 
   static const TextStyle snackBarTextStyle = TextStyle(
-    fontFamily: 'Poppins',
     fontSize: 13,
     fontWeight: FontWeight.w500,
     color: surfaceColor,
+  );
+
+  // Buttons
+  static final ButtonStyle backButtonStyle = IconButton.styleFrom(
+    foregroundColor: primaryColor,
+    backgroundColor: surfaceColor,
+    side: const BorderSide(color: outlineColor, width: 1),
+    shape: const CircleBorder(),
+  );
+
+  static final ButtonStyle retryButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+    ),
+  );
+
+  static final ButtonStyle dialogCancelButtonStyle = TextButton.styleFrom(
+    foregroundColor: primaryColor,
+  );
+
+  static final ButtonStyle deleteButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
   );
 }
