@@ -11,13 +11,9 @@ const storage = multer.diskStorage({
   },
 
   filename: (req, file, cb) => {
-    const uniqueName =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
 
-    cb(
-    null,
-    uniqueName + path.extname(file.originalname).toLowerCase()
-  );
+    cb(null, uniqueName + path.extname(file.originalname).toLowerCase());
   },
 });
 
@@ -26,33 +22,19 @@ const storage = multer.diskStorage({
 // ==========================
 
 const fileFilter = (req, file, cb) => {
-  const allowedExtensions = [
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-  ];
+  const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
 
-  const extension = path
-    .extname(file.originalname)
-    .toLowerCase();
+  const extension = path.extname(file.originalname).toLowerCase();
 
   if (allowedExtensions.includes(extension)) {
-
     file.mimetype =
       extension === ".pdf"
         ? "application/pdf"
         : "image/" + extension.replace(".", "");
 
     cb(null, true);
-
   } else {
-    cb(
-      new Error(
-        "Only PDF, JPG, JPEG, and PNG files are allowed."
-      ),
-      false
-    );
+    cb(new Error("Only PDF, JPG, JPEG, and PNG files are allowed."), false);
   }
 };
 

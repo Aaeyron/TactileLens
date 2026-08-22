@@ -59,9 +59,11 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+
     return Scaffold(
       body: pages[currentIndex],
-      floatingActionButton: currentIndex == 2
+      floatingActionButton: currentIndex == 2 || isKeyboardVisible
           ? null
           : Transform.translate(
               offset: MainStyles.fabOffset,
@@ -80,7 +82,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
       floatingActionButtonLocation: MainStyles.fabLocation,
-      bottomNavigationBar: currentIndex == 2
+      bottomNavigationBar: currentIndex == 2 || isKeyboardVisible
           ? null
           : Container(
               decoration: BoxDecoration(

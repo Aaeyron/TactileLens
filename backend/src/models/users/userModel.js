@@ -1,12 +1,6 @@
-const pool = require("../config/database");
+const pool = require("../../config/database");
 
-const createUser = async (
-  firstName,
-  lastName,
-  email,
-  hashedPassword,
-  role,
-) => {
+const createUser = async (firstName, lastName, email, hashedPassword, role) => {
   const query = `
     INSERT INTO users (
   first_name,
@@ -18,13 +12,7 @@ const createUser = async (
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id, first_name, last_name, email, role, created_at; `;
 
-  const values = [
-  firstName,
-  lastName,
-  email,
-  hashedPassword,
-  role,
-];
+  const values = [firstName, lastName, email, hashedPassword, role];
 
   const result = await pool.query(query, values);
 

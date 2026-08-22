@@ -74,11 +74,7 @@ const createHistory = async ({
 // Get User History
 // ==========================
 
-const getHistoryByUser = async ({
-  userId,
-  limit,
-  offset,
-}) => {
+const getHistoryByUser = async ({ userId, limit, offset }) => {
   const query = `
     SELECT
       id,
@@ -100,11 +96,7 @@ const getHistoryByUser = async ({
     OFFSET $3;
   `;
 
-  const result = await pool.query(query, [
-    userId,
-    limit,
-    offset,
-  ]);
+  const result = await pool.query(query, [userId, limit, offset]);
 
   return result.rows;
 };
@@ -129,10 +121,7 @@ const countHistoryByUser = async (userId) => {
 // Get One Owned History Record
 // ==========================
 
-const getHistoryById = async ({
-  historyId,
-  userId,
-}) => {
+const getHistoryById = async ({ historyId, userId }) => {
   const query = `
     SELECT
       id,
@@ -152,10 +141,7 @@ const getHistoryById = async ({
       AND user_id = $2;
   `;
 
-  const result = await pool.query(query, [
-    historyId,
-    userId,
-  ]);
+  const result = await pool.query(query, [historyId, userId]);
 
   return result.rows[0] ?? null;
 };
@@ -164,11 +150,7 @@ const getHistoryById = async ({
 // Update Owned History Title
 // ==========================
 
-const updateHistoryTitle = async ({
-  historyId,
-  userId,
-  title,
-}) => {
+const updateHistoryTitle = async ({ historyId, userId, title }) => {
   const query = `
     UPDATE scan_history
     SET
@@ -191,11 +173,7 @@ const updateHistoryTitle = async ({
       updated_at;
   `;
 
-  const result = await pool.query(query, [
-    title,
-    historyId,
-    userId,
-  ]);
+  const result = await pool.query(query, [title, historyId, userId]);
 
   return result.rows[0] ?? null;
 };
@@ -204,10 +182,7 @@ const updateHistoryTitle = async ({
 // Delete Owned History Record
 // ==========================
 
-const deleteHistory = async ({
-  historyId,
-  userId,
-}) => {
+const deleteHistory = async ({ historyId, userId }) => {
   const query = `
     DELETE FROM scan_history
     WHERE id = $1
@@ -218,10 +193,7 @@ const deleteHistory = async ({
       source_image_path;
   `;
 
-  const result = await pool.query(query, [
-    historyId,
-    userId,
-  ]);
+  const result = await pool.query(query, [historyId, userId]);
 
   return result.rows[0] ?? null;
 };

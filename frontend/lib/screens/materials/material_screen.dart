@@ -357,8 +357,6 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: MaterialScreenStyles.contentPadding,
             children: <Widget>[
-              _buildBrandHeader(),
-              const SizedBox(height: MaterialScreenStyles.heroTopSpacing),
               _buildPageIntroduction(),
               const SizedBox(height: MaterialScreenStyles.searchTopSpacing),
               _buildSearchAndSort(),
@@ -377,44 +375,6 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildBrandHeader() {
-    return Row(
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: MaterialScreenStyles.logoRadius,
-          child: Image.asset(
-            MaterialScreenStyles.logoAsset,
-            width: MaterialScreenStyles.logoSize,
-            height: MaterialScreenStyles.logoSize,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: MaterialScreenStyles.logoTextSpacing),
-        const Expanded(
-          child: Text(
-            MaterialScreenStyles.appName,
-            style: MaterialScreenStyles.appNameStyle,
-          ),
-        ),
-        Container(
-          width: MaterialScreenStyles.headerStatusButtonSize,
-          height: MaterialScreenStyles.headerStatusButtonSize,
-          decoration: const BoxDecoration(
-            color: MaterialScreenStyles.surfaceColor,
-            shape: BoxShape.circle,
-            border: MaterialScreenStyles.smallContainerBorder,
-            boxShadow: MaterialScreenStyles.smallContainerShadow,
-          ),
-          child: const Icon(
-            MaterialScreenStyles.headerStatusIcon,
-            size: MaterialScreenStyles.headerStatusIconSize,
-            color: MaterialScreenStyles.primaryColor,
-          ),
-        ),
-      ],
     );
   }
 

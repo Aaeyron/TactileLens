@@ -1,6 +1,4 @@
-const historyService = require(
-  "../../services/history/history_service",
-);
+const historyService = require("../../services/history/history_service");
 
 // ==========================
 // Create History
@@ -25,11 +23,7 @@ const createHistory = async (req, res) => {
       data: record,
     });
   } catch (error) {
-    return handleHistoryError(
-      error,
-      res,
-      "Failed to save scan history.",
-    );
+    return handleHistoryError(error, res, "Failed to save scan history.");
   }
 };
 
@@ -51,11 +45,7 @@ const listHistory = async (req, res) => {
       pagination: result.pagination,
     });
   } catch (error) {
-    return handleHistoryError(
-      error,
-      res,
-      "Failed to retrieve scan history.",
-    );
+    return handleHistoryError(error, res, "Failed to retrieve scan history.");
   }
 };
 
@@ -138,11 +128,7 @@ const deleteHistory = async (req, res) => {
 // Error Handler
 // ==========================
 
-const handleHistoryError = (
-  error,
-  res,
-  fallbackMessage,
-) => {
+const handleHistoryError = (error, res, fallbackMessage) => {
   if (
     error instanceof historyService.HistoryValidationError ||
     error instanceof historyService.HistoryNotFoundError

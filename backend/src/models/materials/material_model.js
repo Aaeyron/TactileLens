@@ -105,10 +105,7 @@ const getAllMaterials = async (userId) => {
 // Get One Owned Material
 // ==========================
 
-const getMaterialById = async ({
-  materialId,
-  userId,
-}) => {
+const getMaterialById = async ({ materialId, userId }) => {
   const query = `
     SELECT *
     FROM materials
@@ -116,10 +113,7 @@ const getMaterialById = async ({
       AND user_id = $2;
   `;
 
-  const result = await db.query(query, [
-    materialId,
-    userId,
-  ]);
+  const result = await db.query(query, [materialId, userId]);
 
   return result.rows[0] ?? null;
 };
@@ -128,10 +122,7 @@ const getMaterialById = async ({
 // Delete One Owned Material
 // ==========================
 
-const deleteMaterial = async ({
-  materialId,
-  userId,
-}) => {
+const deleteMaterial = async ({ materialId, userId }) => {
   const query = `
     DELETE FROM materials
     WHERE id = $1
@@ -139,10 +130,7 @@ const deleteMaterial = async ({
     RETURNING *;
   `;
 
-  const result = await db.query(query, [
-    materialId,
-    userId,
-  ]);
+  const result = await db.query(query, [materialId, userId]);
 
   return result.rows[0] ?? null;
 };

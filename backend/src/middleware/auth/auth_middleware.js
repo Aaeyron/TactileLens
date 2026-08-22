@@ -16,10 +16,7 @@ const authenticateToken = (req, res, next) => {
 
   const [scheme, token] = authorizationHeader.trim().split(/\s+/);
 
-  if (
-    scheme?.toLowerCase() !== "bearer" ||
-    !token
-  ) {
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
     return res.status(401).json({
       success: false,
       message: "A valid Bearer token is required.",
@@ -40,10 +37,7 @@ const authenticateToken = (req, res, next) => {
   try {
     const decodedToken = jwt.verify(token, jwtSecret);
 
-    if (
-      typeof decodedToken !== "object" ||
-      !decodedToken.sub
-    ) {
+    if (typeof decodedToken !== "object" || !decodedToken.sub) {
       return res.status(401).json({
         success: false,
         message: "The access token is invalid.",
@@ -61,10 +55,7 @@ const authenticateToken = (req, res, next) => {
 
     req.user = {
       id: userId,
-      role:
-          typeof decodedToken.role === "string"
-              ? decodedToken.role
-              : null,
+      role: typeof decodedToken.role === "string" ? decodedToken.role : null,
     };
 
     return next();

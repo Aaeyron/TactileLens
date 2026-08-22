@@ -1,387 +1,484 @@
 import 'package:flutter/material.dart';
-import '../../widgets/app_header.dart';
+
 import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/profile/logout_dialog.dart';
-import 'account_information_screen.dart';
 import 'about_tactilelens_screen.dart';
-import 'terms_policy_screen.dart';
+import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
-
+import 'terms_policy_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() {
+    return _ProfileScreenState();
+  }
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String _firstName = '';
+  String _lastName = '';
+  String _email = '';
+  String _role = '';
+  String _guestNickname = '';
 
-  String firstName = "";
-  String lastName = "";
-  String email = "";
-  String role = "";
-
-  bool isGuest = false;
-  String guestNickname = "";
+  bool _isGuest = false;
+  bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
-    loadUser();
+
+    _loadUser();
   }
 
-  Future<void> loadUser() async {
-  isGuest = await SessionManager.isGuest();
+  Future<void> _loadUser() async {
+    final bool isGuest = await SessionManager.isGuest();
 
-  if (isGuest) {
-    guestNickname =
-        await SessionManager.getGuestNickname() ?? "";
+    if (isGuest) {
+      final String guestNickname =
+          await SessionManager.getGuestNickname() ?? '';
 
-    role = await SessionManager.getRole() ?? "";
-  } else {
-    firstName =
-        await SessionManager.getFirstName() ?? "";
+      final String role = await SessionManager.getRole() ?? '';
 
-    lastName =
-        await SessionManager.getLastName() ?? "";
+      if (!mounted) {
+        return;
+      }
 
-    email =
-        await SessionManager.getEmail() ?? "";
+      setState(() {
+        _isGuest = true;
+        _guestNickname = guestNickname.trim();
+        _role = role.trim();
+        _isLoadingProfile = false;
+      });
 
-    role =
-        await SessionManager.getRole() ?? "";
+      return;
+    }
+
+    final String firstName = await SessionManager.getFirstName() ?? '';
+
+    final String lastName = await SessionManager.getLastName() ?? '';
+
+    final String email = await SessionManager.getEmail() ?? '';
+
+    final String role = await SessionManager.getRole() ?? '';
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isGuest = false;
+      _firstName = firstName.trim();
+      _lastName = lastName.trim();
+      _email = email.trim();
+      _role = role.trim();
+      _isLoadingProfile = false;
+    });
   }
 
-  setState(() {});
-}
+  String get _displayName {
+    if (_isGuest) {
+      return _guestNickname.isEmpty
+          ? ProfileStyles.defaultGuestName
+          : _guestNickname;
+    }
+
+    final String fullName = <String>[
+      _firstName,
+      _lastName,
+    ].where((String value) => value.isNotEmpty).join(' ');
+
+    return fullName.isEmpty ? ProfileStyles.defaultUserName : fullName;
+  }
+
+  String get _displayRole {
+    final String normalizedRole = _role.trim();
+
+    if (normalizedRole.isEmpty) {
+      return _isGuest
+          ? ProfileStyles.defaultGuestRole
+          : ProfileStyles.defaultRole;
+    }
+
+    final String formattedRole =
+        '${normalizedRole[0].toUpperCase()}'
+        '${normalizedRole.substring(1).toLowerCase()}';
+
+    if (_isGuest) {
+      return '$formattedRole'
+          '${ProfileStyles.guestRoleSeparator}'
+          '${ProfileStyles.guestModeLabel}';
+    }
+
+    return formattedRole;
+  }
+
+  void _openAccountInformation() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const AccountInformationScreen();
+        },
+      ),
+    );
+  }
+
+  void _openAboutTactileLens() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const AboutTactileLensScreen();
+        },
+      ),
+    );
+  }
+
+  void _openTermsPolicy() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const TermsPolicyScreen();
+        },
+      ),
+    );
+  }
+
+  void _openPrivacySecurity() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const PrivacySecurityScreen();
+        },
+      ),
+    );
+  }
+
+  void _openSettings() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: ProfileStyles.snackBarDuration,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: ProfileStyles.primaryColor,
+          margin: ProfileStyles.snackBarMargin,
+          shape: const RoundedRectangleBorder(
+            borderRadius: ProfileStyles.snackBarRadius,
+          ),
+          content: const Text(
+            ProfileStyles.settingsUnavailableMessage,
+            style: ProfileStyles.snackBarTextStyle,
+          ),
+        ),
+      );
+  }
+
+  void _requestLogout() {
+    showLogoutDialog(context);
+  }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-  body: Column(
-    children: [
-      const AppHeader(),
-
-      Expanded(
-        child: SingleChildScrollView(
-          child: Padding(
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ProfileStyles.backgroundColor,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: ProfileStyles.primaryColor,
+          onRefresh: _loadUser,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: ProfileStyles.screenPadding,
-            child: Column(
-              children: [
-                SizedBox(
-                  height: ProfileStyles.profileAvatarTopSpacing,
-                ),
+            children: <Widget>[
+              _buildBrandHeader(),
+              const SizedBox(height: ProfileStyles.profileTopSpacing),
+              _buildProfileIdentity(),
+              const SizedBox(height: ProfileStyles.menuTopSpacing),
+              _ProfileMenuGroup(
+                children: <Widget>[
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.accountInformationIcon,
+                    title: ProfileStyles.accountInformationTitle,
+                    onPressed: _openAccountInformation,
+                  ),
+                  const _ProfileMenuDivider(),
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.aboutTactileLensIcon,
+                    title: ProfileStyles.aboutTactileLensTitle,
+                    onPressed: _openAboutTactileLens,
+                  ),
+                  const _ProfileMenuDivider(),
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.termsIcon,
+                    title: ProfileStyles.termsTitle,
+                    onPressed: _openTermsPolicy,
+                  ),
+                ],
+              ),
+              const SizedBox(height: ProfileStyles.menuGroupSpacing),
+              _ProfileMenuGroup(
+                children: <Widget>[
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.settingsIcon,
+                    title: ProfileStyles.settingsTitle,
+                    onPressed: _openSettings,
+                  ),
+                  const _ProfileMenuDivider(),
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.privacyIcon,
+                    title: ProfileStyles.privacyTitle,
+                    onPressed: _openPrivacySecurity,
+                  ),
+                ],
+              ),
+              const SizedBox(height: ProfileStyles.menuGroupSpacing),
+              _ProfileMenuGroup(
+                children: <Widget>[
+                  _ProfileMenuItem(
+                    icon: ProfileStyles.logoutIcon,
+                    title: ProfileStyles.logoutTitle,
+                    iconColor: ProfileStyles.logoutColor,
+                    titleStyle: ProfileStyles.logoutTitleStyle,
+                    arrowColor: ProfileStyles.logoutColor,
+                    iconBackgroundColor:
+                        ProfileStyles.logoutIconBackgroundColor,
+                    onPressed: _requestLogout,
+                  ),
+                ],
+              ),
+              const SizedBox(height: ProfileStyles.bottomSpacing),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            CircleAvatar(
-              radius: ProfileStyles.profileAvatarRadius,
-              backgroundColor: ProfileStyles.profileAvatarBackgroundColor,
-              child: Icon(
-               ProfileStyles.profileAvatarIcon,
+  Widget _buildBrandHeader() {
+    return Row(
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: ProfileStyles.logoRadius,
+          child: Image.asset(
+            ProfileStyles.logoAsset,
+            width: ProfileStyles.logoSize,
+            height: ProfileStyles.logoSize,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: ProfileStyles.logoTextSpacing),
+        const Expanded(
+          child: Text(ProfileStyles.appName, style: ProfileStyles.appNameStyle),
+        ),
+        Container(
+          width: ProfileStyles.headerIconContainerSize,
+          height: ProfileStyles.headerIconContainerSize,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: ProfileStyles.surfaceColor,
+            shape: BoxShape.circle,
+            border: ProfileStyles.smallContainerBorder,
+            boxShadow: ProfileStyles.smallContainerShadow,
+          ),
+          child: const Icon(
+            ProfileStyles.profileHeaderIcon,
+            size: ProfileStyles.headerIconSize,
+            color: ProfileStyles.primaryColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileIdentity() {
+    if (_isLoadingProfile) {
+      return const SizedBox(
+        height: ProfileStyles.profileLoadingHeight,
+        child: Center(
+          child: CircularProgressIndicator(color: ProfileStyles.primaryColor),
+        ),
+      );
+    }
+
+    return Column(
+      children: <Widget>[
+        Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            Container(
+              width: ProfileStyles.profileAvatarSize,
+              height: ProfileStyles.profileAvatarSize,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: ProfileStyles.profileAvatarBackgroundColor,
+                shape: BoxShape.circle,
+                border: ProfileStyles.avatarBorder,
+                boxShadow: ProfileStyles.avatarShadow,
+              ),
+              child: const Icon(
+                ProfileStyles.profileAvatarIcon,
                 size: ProfileStyles.profileAvatarIconSize,
                 color: ProfileStyles.profileAvatarIconColor,
               ),
             ),
-
-            SizedBox(
-                height: ProfileStyles.profileNameTopSpacing,
+            Positioned(
+              right: ProfileStyles.editButtonRight,
+              bottom: ProfileStyles.editButtonBottom,
+              child: Material(
+                color: ProfileStyles.surfaceColor,
+                shape: const CircleBorder(
+                  side: BorderSide(color: ProfileStyles.outlineColor),
+                ),
+                elevation: ProfileStyles.editButtonElevation,
+                child: InkWell(
+                  onTap: _openAccountInformation,
+                  customBorder: const CircleBorder(),
+                  child: const SizedBox(
+                    width: ProfileStyles.editButtonSize,
+                    height: ProfileStyles.editButtonSize,
+                    child: Icon(
+                      ProfileStyles.editIcon,
+                      size: ProfileStyles.editIconSize,
+                      color: ProfileStyles.primaryBrightColor,
+                    ),
+                  ),
+                ),
               ),
-
-              Text(
-              isGuest
-                  ? guestNickname
-                  : "$firstName $lastName",
-              style: ProfileStyles.profileNameStyle,
-            ),
-
-              SizedBox(
-              height: ProfileStyles.profileEmailTopSpacing,
-            ),
-
-            Text(
-              role,
-              style: ProfileStyles.profileEmailStyle,
-            ),
-
-            if (isGuest) ...[
-            SizedBox(
-              height: ProfileStyles.guestBadgeTopSpacing,
-            ),
-
-            Text(
-              "Guest",
-              style: ProfileStyles.guestBadgeStyle,
             ),
           ],
-              SizedBox(
-                height: ProfileStyles.menuTopSpacing,
+        ),
+        const SizedBox(height: ProfileStyles.profileNameSpacing),
+        Text(
+          _displayName,
+          textAlign: TextAlign.center,
+          style: ProfileStyles.profileNameStyle,
+        ),
+        if (!_isGuest && _email.isNotEmpty) ...<Widget>[
+          const SizedBox(height: ProfileStyles.profileEmailSpacing),
+          Text(
+            _email,
+            textAlign: TextAlign.center,
+            style: ProfileStyles.profileEmailStyle,
+          ),
+        ],
+        const SizedBox(height: ProfileStyles.profileRoleSpacing),
+        Container(
+          padding: ProfileStyles.roleBadgePadding,
+          decoration: const BoxDecoration(
+            color: ProfileStyles.roleBadgeBackgroundColor,
+            borderRadius: ProfileStyles.roleBadgeRadius,
+            border: ProfileStyles.roleBadgeBorder,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Icon(
+                ProfileStyles.roleIcon,
+                size: ProfileStyles.roleIconSize,
+                color: ProfileStyles.primaryBrightColor,
               ),
+              const SizedBox(width: ProfileStyles.roleIconSpacing),
+              Text(_displayRole, style: ProfileStyles.roleBadgeTextStyle),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
+class _ProfileMenuGroup extends StatelessWidget {
+  const _ProfileMenuGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: ProfileStyles.surfaceColor,
+        borderRadius: ProfileStyles.menuRadius,
+        border: ProfileStyles.cardBorder,
+        boxShadow: ProfileStyles.cardShadow,
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _ProfileMenuItem extends StatelessWidget {
+  const _ProfileMenuItem({
+    required this.icon,
+    required this.title,
+    required this.onPressed,
+    this.iconColor = ProfileStyles.primaryBrightColor,
+    this.arrowColor = ProfileStyles.primaryBrightColor,
+    this.iconBackgroundColor = ProfileStyles.menuIconBackgroundColor,
+    this.titleStyle = ProfileStyles.menuTitleStyle,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onPressed;
+  final Color iconColor;
+  final Color arrowColor;
+  final Color iconBackgroundColor;
+  final TextStyle titleStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: ProfileStyles.surfaceColor,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: ProfileStyles.menuItemPadding,
+          child: Row(
+            children: <Widget>[
               Container(
+                width: ProfileStyles.menuIconContainerSize,
+                height: ProfileStyles.menuIconContainerSize,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    ProfileStyles.menuBorderRadius,
-                  ),
-                  boxShadow: ProfileStyles.menuShadow,
+                  color: iconBackgroundColor,
+                  shape: BoxShape.circle,
+                  border: ProfileStyles.smallContainerBorder,
                 ),
-                child: Material(
-                  color: ProfileStyles.menuBackgroundColor,
-                  borderRadius: BorderRadius.circular(
-                    ProfileStyles.menuBorderRadius,
-                  ),
-                 clipBehavior: ProfileStyles.menuClipBehavior, // Ripple clipping
-                  child: Column(
-                    children: [
-                      ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                        horizontal: ProfileStyles.menuHorizontalPadding,
-                        vertical: ProfileStyles.menuVerticalPadding,
-                      ),
-
-                      minTileHeight: ProfileStyles.menuTileHeight,
-                        leading: Icon(
-                          ProfileStyles.accountInformationIcon,
-                          size: ProfileStyles.menuIconSize,
-                          color: ProfileStyles.menuIconColor,
-                        ),
-                        title: Text(
-                          ProfileStyles.accountInformationTitle,
-                          style: ProfileStyles.menuTitleStyle,
-                        ),
-                       trailing: Icon(
-                          ProfileStyles.menuArrowIcon,
-                          size: ProfileStyles.menuArrowSize,
-                          color: ProfileStyles.menuArrowColor,
-                        ),
-                       onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AccountInformationScreen(),
-                            ),
-                          );
-                        },
-                      ),
-
-                      Divider(
-                      indent: ProfileStyles.menuDividerIndent,
-                      endIndent: ProfileStyles.menuDividerIndent,
-                      height: 1,
-                      color: ProfileStyles.menuDividerColor,
-                    ),
-
-                      ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                        horizontal: ProfileStyles.menuHorizontalPadding,
-                        vertical: ProfileStyles.menuVerticalPadding,
-                      ),
-
-                      minTileHeight: ProfileStyles.menuTileHeight,
-                        leading: Icon(
-                        ProfileStyles.aboutTactileLensIcon,
-                        size: ProfileStyles.menuIconSize,
-                        color: ProfileStyles.menuIconColor,
-                      ),
-                        title: Text(
-                        ProfileStyles.aboutTactileLensTitle,
-                        style: ProfileStyles.menuTitleStyle,
-                      ),
-                        trailing: Icon(
-                        ProfileStyles.menuArrowIcon,
-                        size: ProfileStyles.menuArrowSize,
-                        color: ProfileStyles.menuArrowColor,
-                      ),
-                        onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AboutTactileLensScreen(),
-                          ),
-                        );
-                       },
-                      ),
-
-                      Divider(
-                      indent: ProfileStyles.menuDividerIndent,
-                      endIndent: ProfileStyles.menuDividerIndent,
-                      height: 1,
-                      color: ProfileStyles.menuDividerColor,
-                    ),
-
-                      ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                        horizontal: ProfileStyles.menuHorizontalPadding,
-                        vertical: ProfileStyles.menuVerticalPadding,
-                      ),
-
-                      minTileHeight: ProfileStyles.menuTileHeight,
-                       leading: Icon(
-                          ProfileStyles.termsIcon,
-                          size: ProfileStyles.menuIconSize,
-                          color: ProfileStyles.menuIconColor,
-                        ),
-                        title: Text(
-                        ProfileStyles.termsTitle,
-                          style: ProfileStyles.menuTitleStyle,
-                        ),
-                       trailing: Icon(
-                          ProfileStyles.menuArrowIcon,
-                          size: ProfileStyles.menuArrowSize,
-                          color: ProfileStyles.menuArrowColor,
-                        ),
-                       onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TermsPolicyScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                child: Icon(
+                  icon,
+                  size: ProfileStyles.menuIconSize,
+                  color: iconColor,
                 ),
               ),
-
-              SizedBox(
-              height: ProfileStyles.secondaryMenuTopSpacing,
-            ),
-
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(
-                  ProfileStyles.menuBorderRadius,
-                ),
-                boxShadow: ProfileStyles.menuShadow,
+              const SizedBox(width: ProfileStyles.menuContentSpacing),
+              Expanded(child: Text(title, style: titleStyle)),
+              Icon(
+                ProfileStyles.menuArrowIcon,
+                size: ProfileStyles.menuArrowSize,
+                color: arrowColor,
               ),
-              child: Material(
-                color: ProfileStyles.menuBackgroundColor,
-                borderRadius: BorderRadius.circular(
-                  ProfileStyles.menuBorderRadius,
-                ),
-                clipBehavior: ProfileStyles.menuClipBehavior,
-                child: Column(
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: ProfileStyles.menuHorizontalPadding,
-                        vertical: ProfileStyles.menuVerticalPadding,
-                      ),
-                      minTileHeight: ProfileStyles.menuTileHeight,
-                      leading: Icon(
-                        ProfileStyles.settingsIcon,
-                        size: ProfileStyles.menuIconSize,
-                        color: ProfileStyles.menuIconColor,
-                      ),
-                      title: Text(
-                        ProfileStyles.settingsTitle,
-                        style: ProfileStyles.menuTitleStyle,
-                      ),
-                      trailing: Icon(
-                        ProfileStyles.menuArrowIcon,
-                        size: ProfileStyles.menuArrowSize,
-                        color: ProfileStyles.menuArrowColor,
-                      ),
-                      onTap: () {},
-                    ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-                    Divider(
-                      indent: ProfileStyles.menuDividerIndent,
-                      endIndent: ProfileStyles.menuDividerIndent,
-                      height: 1,
-                      color: ProfileStyles.menuDividerColor,
-                    ),
+class _ProfileMenuDivider extends StatelessWidget {
+  const _ProfileMenuDivider();
 
-                    ListTile(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: ProfileStyles.menuHorizontalPadding,
-                        vertical: ProfileStyles.menuVerticalPadding,
-                      ),
-                      minTileHeight: ProfileStyles.menuTileHeight,
-                      leading: Icon(
-                        ProfileStyles.privacyIcon,
-                        size: ProfileStyles.menuIconSize,
-                        color: ProfileStyles.menuIconColor,
-                      ),
-                      title: Text(
-                        ProfileStyles.privacyTitle,
-                        style: ProfileStyles.menuTitleStyle,
-                      ),
-                      trailing: Icon(
-                        ProfileStyles.menuArrowIcon,
-                        size: ProfileStyles.menuArrowSize,
-                        color: ProfileStyles.menuArrowColor,
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PrivacySecurityScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-                              SizedBox(
-                                height: ProfileStyles.logoutMenuTopSpacing,
-                              ),
-
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  ProfileStyles.menuBorderRadius,
-                                ),
-                                boxShadow: ProfileStyles.menuShadow,
-                              ),
-                              child: Material(
-                                color: ProfileStyles.menuBackgroundColor,
-                                borderRadius: BorderRadius.circular(
-                                  ProfileStyles.menuBorderRadius,
-                                ),
-                                clipBehavior: ProfileStyles.menuClipBehavior,
-                              child: ListTile(
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: ProfileStyles.menuHorizontalPadding,
-                                vertical: ProfileStyles.menuVerticalPadding,
-                              ),
-                              minTileHeight: ProfileStyles.menuTileHeight,
-
-                             leading: Icon(
-                              ProfileStyles.logoutIcon,
-                              size: ProfileStyles.menuIconSize,
-                              color: ProfileStyles.logoutIconColor,
-                            ),
-
-                              title: Text(
-                                ProfileStyles.logoutTitle,
-                                style: ProfileStyles.logoutTitleStyle,
-                              ),
-
-                              trailing: Icon(
-                                ProfileStyles.menuArrowIcon,
-                                size: ProfileStyles.menuArrowSize,
-                                color: ProfileStyles.logoutIconColor,
-                              ),
-
-                              onTap: () {
-                                showLogoutDialog(context);
-                              },
-                            ),
-                          ),
-                        ),
-
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-             ],
-            ),
-          );
-        }
-      }
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: ProfileStyles.dividerHeight,
+      indent: ProfileStyles.dividerIndent,
+      endIndent: ProfileStyles.dividerEndIndent,
+      color: ProfileStyles.dividerColor,
+    );
+  }
+}

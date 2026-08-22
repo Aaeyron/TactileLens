@@ -5,13 +5,9 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-const authRoutes = require("./routes/authRoutes");
-const materialRoutes = require(
-  "./routes/materials/material_routes",
-);
-const historyRoutes = require(
-  "./routes/history/history_routes",
-);
+const authRoutes = require("./routes/auth/authRoutes");
+const materialRoutes = require("./routes/materials/material_routes");
+const historyRoutes = require("./routes/history/history_routes");
 
 const app = express();
 
@@ -38,10 +34,7 @@ app.use(
 // Static Files
 // ==========================
 
-app.use(
-  "/uploads",
-  express.static(path.join(__dirname, "../uploads")),
-);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // ==========================
 // Routes

@@ -30,6 +30,16 @@ class PaddleOcrVlService:
         }
     )
 
+    LATEX_FORMULA_MARKERS = (
+        r"\frac",
+        r"\sqrt",
+        r"\sum",
+        r"\int",
+        r"\begin",
+        r"\left",
+        r"\right",
+    )
+
     def __init__(self) -> None:
         self.pipeline_version = os.getenv(
             "PADDLEOCR_PIPELINE_VERSION",
@@ -106,6 +116,18 @@ class PaddleOcrVlService:
             [],
         )
 
+        for index, block in enumerate(raw_blocks):
+            print(
+                "OCR BLOCK",
+                index,
+                {
+                    "label": block.get("block_label"),
+                    "content": block.get("block_content"),
+                    "bbox": self._to_builtin(block.get("block_bbox")),
+                    "polygon": self._to_builtin(block.get("block_polygon_points")),
+                },
+            )
+
         blocks = [self._serialize_block(block) for block in raw_blocks]
 
         return {
@@ -138,7 +160,9 @@ class PaddleOcrVlService:
             block_type=block_type,
         )
 
-        is_formula = block_type in self.FORMULA_BLOCK_TYPES
+        is_formula = block_type in self.FORMULA_BLOCK_TYPES or any(
+            marker in raw_content for marker in self.LATEX_FORMULA_MARKERS
+        )
 
         braille_source_content = (
             BrailleMathNormalizer.normalize(raw_content)

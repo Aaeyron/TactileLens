@@ -805,6 +805,13 @@ class _RecognizedBlock extends StatelessWidget {
   String _prepareFormula(String value) {
     String formula = value.trim();
 
+    formula = formula
+        .replaceAll('```latex', '')
+        .replaceAll('```tex', '')
+        .replaceAll('```math', '')
+        .replaceAll('```', '')
+        .trim();
+
     final List<(String, String)> delimiters = <(String, String)>[
       (r'$$', r'$$'),
       (r'\[', r'\]'),
@@ -824,19 +831,34 @@ class _RecognizedBlock extends StatelessWidget {
       }
     }
 
+    formula = formula
+        .replaceAll('\\\\', '\\')
+        .replaceAll(r'\qquad', r'\;')
+        .trim();
+
     return formula;
   }
 
   @override
   Widget build(BuildContext context) {
     final String content = block.normalizedContent.trim();
+    final String rawContent = block.rawContent.trim();
 
-    if (block.isFormula) {
-      final String rawFormula = block.rawContent.trim();
+    final String displayContent = rawContent.isEmpty ? content : rawContent;
 
-      final String formula = _prepareFormula(
-        rawFormula.isEmpty ? content : rawFormula,
-      );
+    final bool containsLatexFormula =
+        displayContent.contains(r'\frac') ||
+        displayContent.contains(r'\sqrt') ||
+        displayContent.contains(r'\sum') ||
+        displayContent.contains(r'\int') ||
+        displayContent.contains(r'\begin') ||
+        displayContent.contains(r'\left') ||
+        displayContent.contains(r'\right');
+
+    final bool shouldRenderAsFormula = block.isFormula || containsLatexFormula;
+
+    if (shouldRenderAsFormula) {
+      final String formula = _prepareFormula(displayContent);
 
       return Container(
         width: double.infinity,
@@ -851,9 +873,12 @@ class _RecognizedBlock extends StatelessWidget {
             formula,
             mathStyle: MathStyle.display,
             textStyle: ScanResultScreenStyles.formulaContentStyle,
-            onErrorFallback: (_) {
+            onErrorFallback: (FlutterMathException error) {
+              debugPrint('MATH RENDER ERROR: $error');
+              debugPrint('MATH INPUT: $formula');
+
               return SelectableText(
-                content,
+                formula,
                 textAlign: TextAlign.center,
                 style: ScanResultScreenStyles.formulaContentStyle,
               );

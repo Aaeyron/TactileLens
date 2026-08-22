@@ -1,214 +1,241 @@
 import 'package:flutter/material.dart';
 
-class ProfileStyles {
-  const ProfileStyles._();
+abstract final class ProfileStyles {
+  // Text
+  static const String logoAsset = 'assets/icons/tactilelens_app_icon.png';
 
-  // ==========================================================
-  // SHARED COLORS
-  // ==========================================================
+  static const String appName = 'TactileLens';
 
-  static const Color primaryTextColor = Colors.black87;
-  static const Color menuBackgroundColor = Colors.white;
+  static const String defaultUserName = 'TactileLens User';
+  static const String defaultGuestName = 'Guest';
+  static const String defaultRole = 'Learner';
+  static const String defaultGuestRole = 'Learner';
 
-  static const Color backIconColor = Colors.black87;
+  static const String guestModeLabel = 'Offline';
+  static const String guestRoleSeparator = ' · ';
 
-  static const Color profileAvatarBackgroundColor =
-      Color(0xFFE5E7EB);
+  static const String accountInformationTitle = 'Account Information';
 
-  static const Color profileAvatarIconColor =
-      Color(0xFF6B7280);
+  static const String aboutTactileLensTitle = 'About TactileLens';
 
-  static const Color menuIconColor =
-      Color(0xFF4B5563);
+  static const String termsTitle = 'Terms & Policy';
+  static const String settingsTitle = 'Settings';
 
-  static const Color menuArrowColor =
-      Color(0xFF9CA3AF);
+  static const String privacyTitle = 'Privacy & Security';
 
-  static const Color menuDividerColor =
-      Color(0xFFE5E7EB);
+  static const String logoutTitle = 'Logout';
 
-  static const Color logoutTextColor =
-      Color(0xFFDC2626);
+  static const String settingsUnavailableMessage =
+      'Additional settings will be available soon.';
 
-  static const Color logoutIconColor =
-      Color(0xFFDC2626);
+  // Colors
+  static const Color backgroundColor = Colors.white;
+  static const Color surfaceColor = Colors.white;
 
-  // ==========================================================
-  // SCREEN LAYOUT
-  // ==========================================================
+  static const Color primaryColor = Color(0xFF0D47A1);
 
-  static const EdgeInsets screenPadding =
-      EdgeInsets.all(20);
+  static const Color primaryBrightColor = Color(0xFF1268F3);
 
-  // ==========================================================
-  // SCREEN TITLE
-  // ==========================================================
+  static const Color titleColor = Color(0xFF07143D);
 
-  static const String screenTitle = "Profile";
+  static const Color bodyColor = Color(0xFF53658F);
 
-  static const TextStyle titleStyle = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.w600,
-    color: primaryTextColor,
-    letterSpacing: 0.2,
+  static const Color mutedColor = Color(0xFF8291B1);
+
+  static const Color outlineColor = Color(0xFFBCD0EA);
+
+  static const Color dividerColor = Color(0xFFDCE6F3);
+
+  static const Color profileAvatarBackgroundColor = Color(0xFFEAF2FF);
+
+  static const Color profileAvatarIconColor = Color(0xFF4C8DF6);
+
+  static const Color roleBadgeBackgroundColor = Color(0xFFEDF4FF);
+
+  static const Color menuIconBackgroundColor = Color(0xFFEDF4FF);
+
+  static const Color logoutColor = Color(0xFFF04438);
+
+  static const Color logoutIconBackgroundColor = Color(0xFFFFEEEE);
+
+  // Icons
+  static const IconData profileHeaderIcon = Icons.person_outline_rounded;
+
+  static const IconData profileAvatarIcon = Icons.person_rounded;
+
+  static const IconData editIcon = Icons.edit_outlined;
+
+  static const IconData roleIcon = Icons.school_outlined;
+
+  static const IconData accountInformationIcon = Icons.person_outline_rounded;
+
+  static const IconData aboutTactileLensIcon = Icons.info_outline_rounded;
+
+  static const IconData termsIcon = Icons.description_outlined;
+
+  static const IconData settingsIcon = Icons.settings_outlined;
+
+  static const IconData privacyIcon = Icons.shield_outlined;
+
+  static const IconData logoutIcon = Icons.logout_rounded;
+
+  static const IconData menuArrowIcon = Icons.chevron_right_rounded;
+
+  // Screen layout
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(20, 20, 20, 30);
+
+  static const double profileTopSpacing = 42;
+  static const double menuTopSpacing = 40;
+  static const double menuGroupSpacing = 18;
+  static const double bottomSpacing = 30;
+
+  // Header
+  static const double logoSize = 52;
+  static const double logoTextSpacing = 14;
+
+  static const BorderRadius logoRadius = BorderRadius.all(Radius.circular(14));
+
+  static const double headerIconContainerSize = 44;
+  static const double headerIconSize = 23;
+
+  // Profile identity
+  static const double profileLoadingHeight = 220;
+
+  static const double profileAvatarSize = 176;
+  static const double profileAvatarIconSize = 108;
+
+  static const double profileNameSpacing = 24;
+  static const double profileEmailSpacing = 7;
+  static const double profileRoleSpacing = 16;
+
+  static const double editButtonSize = 52;
+  static const double editButtonRight = -2;
+  static const double editButtonBottom = 4;
+  static const double editButtonElevation = 5;
+  static const double editIconSize = 23;
+
+  static const Border avatarBorder = Border.fromBorderSide(
+    BorderSide(color: Colors.white, width: 8),
   );
 
-  static const double titleRightSpacing = 52;
+  static const List<BoxShadow> avatarShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x1F0D47A1),
+      blurRadius: 24,
+      spreadRadius: 2,
+      offset: Offset(0, 8),
+    ),
+  ];
 
-  // ==========================================================
-  // BACK BUTTON
-  // ==========================================================
+  // Role badge
+  static const EdgeInsets roleBadgePadding = EdgeInsets.symmetric(
+    horizontal: 18,
+    vertical: 10,
+  );
 
-  static const Alignment backButtonAlignment =
-      Alignment.topLeft;
+  static const BorderRadius roleBadgeRadius = BorderRadius.all(
+    Radius.circular(24),
+  );
 
-  static const double backIconSize = 28;
+  static const Border roleBadgeBorder = Border.fromBorderSide(
+    BorderSide(color: Color(0xFFD5E5FF)),
+  );
 
-  static const IconData backIcon =
-      Icons.arrow_back;
+  static const double roleIconSize = 21;
+  static const double roleIconSpacing = 9;
 
-  // ==========================================================
-  // PROFILE AVATAR
-  // ==========================================================
+  // Shared containers
+  static const double cardBorderWidth = 1.1;
 
-  static const double profileAvatarTopSpacing = 30;
+  static const Border cardBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: cardBorderWidth),
+  );
 
-  static const double profileAvatarRadius = 60;
+  static const Border smallContainerBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor),
+  );
 
-  static const double profileAvatarIconSize = 64;
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x180D47A1),
+      blurRadius: 18,
+      spreadRadius: 1,
+      offset: Offset(0, 6),
+    ),
+  ];
 
-  static const IconData profileAvatarIcon =
-      Icons.person;
+  static const List<BoxShadow> smallContainerShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x100D47A1), blurRadius: 10, offset: Offset(0, 3)),
+  ];
 
-  // ==========================================================
-  // PROFILE INFORMATION
-  // ==========================================================
+  // Menu
+  static const BorderRadius menuRadius = BorderRadius.all(Radius.circular(20));
 
-  static const double profileNameTopSpacing = 20;
+  static const EdgeInsets menuItemPadding = EdgeInsets.symmetric(
+    horizontal: 18,
+    vertical: 16,
+  );
 
-  static const double profileEmailTopSpacing = 6;
+  static const double menuIconContainerSize = 52;
+  static const double menuIconSize = 27;
+  static const double menuContentSpacing = 16;
+  static const double menuArrowSize = 28;
 
-  static const TextStyle profileNameStyle =
-      TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.w600,
-        color: primaryTextColor,
-      );
+  static const double dividerHeight = 1;
+  static const double dividerIndent = 76;
+  static const double dividerEndIndent = 18;
 
-  static const TextStyle profileEmailStyle =
-      TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: primaryTextColor,
-      );
+  // Snackbar
+  static const Duration snackBarDuration = Duration(seconds: 2);
 
-  // Guest Badge
+  static const EdgeInsets snackBarMargin = EdgeInsets.all(16);
 
-  static const double guestBadgeTopSpacing = 6;
+  static const BorderRadius snackBarRadius = BorderRadius.all(
+    Radius.circular(14),
+  );
 
-  static const TextStyle guestBadgeStyle = TextStyle(
-    fontFamily: "Poppins",
-    fontSize: 13,
-    fontStyle: FontStyle.italic,
+  // Text styles
+  static const TextStyle appNameStyle = TextStyle(
+    color: titleColor,
+    fontSize: 25,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.4,
+  );
+
+  static const TextStyle profileNameStyle = TextStyle(
+    color: titleColor,
+    fontSize: 29,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+  );
+
+  static const TextStyle profileEmailStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
-    color: Colors.grey,
   );
 
-  // ==========================================================
-  // MENU LAYOUT
-  // ==========================================================
+  static const TextStyle roleBadgeTextStyle = TextStyle(
+    color: primaryBrightColor,
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+  );
 
-// Section spacing
-static const double menuTopSpacing = 40;
+  static const TextStyle menuTitleStyle = TextStyle(
+    color: titleColor,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+  );
 
-static const double secondaryMenuTopSpacing = 20;
+  static const TextStyle logoutTitleStyle = TextStyle(
+    color: logoutColor,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+  );
 
-static const double logoutMenuTopSpacing = 20;
-
-  static const double menuBorderRadius = 10;
-
-  static const double menuHorizontalPadding = 20;
-  static const double menuVerticalPadding = 6;
-  static const double menuTileHeight = 62;
-
-  static const double menuIconSize = 26;
-  static const double menuArrowSize = 22;
-
-  static const double menuDividerIndent = 20;
-
-  static final List<BoxShadow> menuShadow = [
-  BoxShadow(
-    color: Colors.black.withValues(alpha: 0.05),
-    blurRadius: 12,
-    offset: const Offset(0, 4),
-  ),
-];
-
-static const Clip menuClipBehavior =
-    Clip.antiAlias;
-
-  // ==========================================================
-  // MENU STYLES
-  // ==========================================================
-
-  static const TextStyle menuTitleStyle =
-      TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: primaryTextColor,
-      );
-
-  static const TextStyle logoutTitleStyle =
-      TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: logoutTextColor,
-      );
-
-  // ==========================================================
-  // MENU TITLES
-  // ==========================================================
-
-static const String accountInformationTitle =
-    "Account Information";
-
-static const String aboutTactileLensTitle =
-    "About TactileLens";
-
-static const String termsTitle =
-    "Terms & Policy";
-
-static const String settingsTitle =
-    "Settings";
-
-static const String privacyTitle =
-    "Privacy & Security";
-
-static const String logoutTitle =
-    "Log Out";
-
-  // ==========================================================
-  // MENU ICONS
-  // ==========================================================
-
- static const IconData accountInformationIcon =
-    Icons.manage_accounts_outlined;
-
-static const IconData aboutTactileLensIcon =
-    Icons.info_outline;
-
-static const IconData termsIcon =
-    Icons.description_outlined;
-
-static const IconData settingsIcon =
-    Icons.settings_outlined;
-
-static const IconData privacyIcon =
-    Icons.shield_outlined;
-
-static const IconData logoutIcon =
-    Icons.logout_rounded;
-
-static const IconData menuArrowIcon =
-    Icons.chevron_right;
+  static const TextStyle snackBarTextStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+  );
 }

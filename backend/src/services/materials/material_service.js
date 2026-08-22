@@ -3,15 +3,9 @@ const path = require("path");
 
 const materialModel = require("../../models/materials/material_model");
 
-const BACKEND_DIRECTORY = path.resolve(
-  __dirname,
-  "../../..",
-);
+const BACKEND_DIRECTORY = path.resolve(__dirname, "../../..");
 
-const UPLOADS_DIRECTORY = path.join(
-  BACKEND_DIRECTORY,
-  "uploads",
-);
+const UPLOADS_DIRECTORY = path.join(BACKEND_DIRECTORY, "uploads");
 
 // ==========================
 // Create Material
@@ -33,10 +27,7 @@ const getAllMaterials = (userId) => {
 // Get One Owned Material
 // ==========================
 
-const getMaterialById = ({
-  materialId,
-  userId,
-}) => {
+const getMaterialById = ({ materialId, userId }) => {
   return materialModel.getMaterialById({
     materialId,
     userId,
@@ -48,24 +39,15 @@ const getMaterialById = ({
 // ==========================
 
 const deleteStoredFile = async (storedPath) => {
-  if (
-    typeof storedPath !== "string" ||
-    storedPath.trim().length === 0
-  ) {
+  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
     return;
   }
 
   const resolvedFilePath = path.isAbsolute(storedPath)
     ? path.resolve(storedPath)
-    : path.resolve(
-        BACKEND_DIRECTORY,
-        storedPath,
-      );
+    : path.resolve(BACKEND_DIRECTORY, storedPath);
 
-  const relativePath = path.relative(
-    UPLOADS_DIRECTORY,
-    resolvedFilePath,
-  );
+  const relativePath = path.relative(UPLOADS_DIRECTORY, resolvedFilePath);
 
   const isInsideUploadsDirectory =
     relativePath.length > 0 &&
@@ -73,9 +55,7 @@ const deleteStoredFile = async (storedPath) => {
     !path.isAbsolute(relativePath);
 
   if (!isInsideUploadsDirectory) {
-    console.warn(
-      "Skipped deleting a file outside the uploads directory.",
-    );
+    console.warn("Skipped deleting a file outside the uploads directory.");
     return;
   }
 
@@ -95,10 +75,7 @@ const deleteStoredFile = async (storedPath) => {
 // Delete One Owned Material
 // ==========================
 
-const deleteMaterial = async ({
-  materialId,
-  userId,
-}) => {
+const deleteMaterial = async ({ materialId, userId }) => {
   const material = await materialModel.getMaterialById({
     materialId,
     userId,

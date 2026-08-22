@@ -43,10 +43,7 @@ const createHistory = async ({
   pipelineVersion,
   processingTimeMs,
 }) => {
-  const validUserId = parsePositiveInteger(
-    userId,
-    "Authenticated user ID",
-  );
+  const validUserId = parsePositiveInteger(userId, "Authenticated user ID");
 
   const cleanTitle = normalizeOptionalString(
     title,
@@ -68,15 +65,9 @@ const createHistory = async ({
     "Braille content",
   );
 
-  const cleanDocumentBlocks = normalizeDocumentBlocks(
-    documentBlocks,
-  );
+  const cleanDocumentBlocks = normalizeDocumentBlocks(documentBlocks);
 
-  const cleanModelName = normalizeNullableString(
-    modelName,
-    100,
-    "Model name",
-  );
+  const cleanModelName = normalizeNullableString(modelName, 100, "Model name");
 
   const cleanPipelineVersion = normalizeNullableString(
     pipelineVersion,
@@ -84,9 +75,7 @@ const createHistory = async ({
     "Pipeline version",
   );
 
-  const cleanProcessingTimeMs = normalizeProcessingTime(
-    processingTimeMs,
-  );
+  const cleanProcessingTimeMs = normalizeProcessingTime(processingTimeMs);
 
   return historyModel.createHistory({
     userId: validUserId,
@@ -110,10 +99,7 @@ const listHistory = async ({
   page = DEFAULT_PAGE,
   limit = DEFAULT_LIMIT,
 }) => {
-  const validUserId = parsePositiveInteger(
-    userId,
-    "Authenticated user ID",
-  );
+  const validUserId = parsePositiveInteger(userId, "Authenticated user ID");
 
   const validPage = normalizePaginationNumber(
     page,
@@ -146,10 +132,7 @@ const listHistory = async ({
       page: validPage,
       limit: validLimit,
       total,
-      totalPages:
-          total === 0
-              ? 0
-              : Math.ceil(total / validLimit),
+      totalPages: total === 0 ? 0 : Math.ceil(total / validLimit),
     },
   };
 };
@@ -158,19 +141,10 @@ const listHistory = async ({
 // Get One History Record
 // ==========================
 
-const getHistory = async ({
-  historyId,
-  userId,
-}) => {
-  const validHistoryId = parsePositiveInteger(
-    historyId,
-    "History ID",
-  );
+const getHistory = async ({ historyId, userId }) => {
+  const validHistoryId = parsePositiveInteger(historyId, "History ID");
 
-  const validUserId = parsePositiveInteger(
-    userId,
-    "Authenticated user ID",
-  );
+  const validUserId = parsePositiveInteger(userId, "Authenticated user ID");
 
   const record = await historyModel.getHistoryById({
     historyId: validHistoryId,
@@ -188,26 +162,12 @@ const getHistory = async ({
 // Rename History
 // ==========================
 
-const renameHistory = async ({
-  historyId,
-  userId,
-  title,
-}) => {
-  const validHistoryId = parsePositiveInteger(
-    historyId,
-    "History ID",
-  );
+const renameHistory = async ({ historyId, userId, title }) => {
+  const validHistoryId = parsePositiveInteger(historyId, "History ID");
 
-  const validUserId = parsePositiveInteger(
-    userId,
-    "Authenticated user ID",
-  );
+  const validUserId = parsePositiveInteger(userId, "Authenticated user ID");
 
-  const cleanTitle = normalizeRequiredString(
-    title,
-    MAX_TITLE_LENGTH,
-    "Title",
-  );
+  const cleanTitle = normalizeRequiredString(title, MAX_TITLE_LENGTH, "Title");
 
   const record = await historyModel.updateHistoryTitle({
     historyId: validHistoryId,
@@ -226,19 +186,10 @@ const renameHistory = async ({
 // Delete History
 // ==========================
 
-const removeHistory = async ({
-  historyId,
-  userId,
-}) => {
-  const validHistoryId = parsePositiveInteger(
-    historyId,
-    "History ID",
-  );
+const removeHistory = async ({ historyId, userId }) => {
+  const validHistoryId = parsePositiveInteger(historyId, "History ID");
 
-  const validUserId = parsePositiveInteger(
-    userId,
-    "Authenticated user ID",
-  );
+  const validUserId = parsePositiveInteger(userId, "Authenticated user ID");
 
   const deletedRecord = await historyModel.deleteHistory({
     historyId: validHistoryId,
@@ -259,10 +210,7 @@ const removeHistory = async ({
 const parsePositiveInteger = (value, fieldName) => {
   const parsedValue = Number(value);
 
-  if (
-    !Number.isSafeInteger(parsedValue) ||
-    parsedValue <= 0
-  ) {
+  if (!Number.isSafeInteger(parsedValue) || parsedValue <= 0) {
     throw new HistoryValidationError(
       `${fieldName} must be a positive integer.`,
     );
@@ -271,23 +219,15 @@ const parsePositiveInteger = (value, fieldName) => {
   return parsedValue;
 };
 
-const normalizeRequiredString = (
-  value,
-  maximumLength,
-  fieldName,
-) => {
+const normalizeRequiredString = (value, maximumLength, fieldName) => {
   if (typeof value !== "string") {
-    throw new HistoryValidationError(
-      `${fieldName} is required.`,
-    );
+    throw new HistoryValidationError(`${fieldName} is required.`);
   }
 
   const cleanValue = value.trim();
 
   if (!cleanValue) {
-    throw new HistoryValidationError(
-      `${fieldName} must not be empty.`,
-    );
+    throw new HistoryValidationError(`${fieldName} must not be empty.`);
   }
 
   if (cleanValue.length > maximumLength) {
@@ -310,9 +250,7 @@ const normalizeOptionalString = (
   }
 
   if (typeof value !== "string") {
-    throw new HistoryValidationError(
-      `${fieldName} must be text.`,
-    );
+    throw new HistoryValidationError(`${fieldName} must be text.`);
   }
 
   const cleanValue = value.trim();
@@ -330,19 +268,13 @@ const normalizeOptionalString = (
   return cleanValue;
 };
 
-const normalizeNullableString = (
-  value,
-  maximumLength,
-  fieldName,
-) => {
+const normalizeNullableString = (value, maximumLength, fieldName) => {
   if (value === undefined || value === null) {
     return null;
   }
 
   if (typeof value !== "string") {
-    throw new HistoryValidationError(
-      `${fieldName} must be text.`,
-    );
+    throw new HistoryValidationError(`${fieldName} must be text.`);
   }
 
   const cleanValue = value.trim();
@@ -366,9 +298,7 @@ const normalizeDocumentBlocks = (value) => {
   }
 
   if (!Array.isArray(value)) {
-    throw new HistoryValidationError(
-      "Document blocks must be an array.",
-    );
+    throw new HistoryValidationError("Document blocks must be an array.");
   }
 
   if (value.length > MAX_DOCUMENT_BLOCKS) {
@@ -379,23 +309,17 @@ const normalizeDocumentBlocks = (value) => {
 
   const containsInvalidBlock = value.some(
     (block) =>
-      block === null ||
-      typeof block !== "object" ||
-      Array.isArray(block),
+      block === null || typeof block !== "object" || Array.isArray(block),
   );
 
   if (containsInvalidBlock) {
-    throw new HistoryValidationError(
-      "Every document block must be an object.",
-    );
+    throw new HistoryValidationError("Every document block must be an object.");
   }
 
   try {
     return JSON.parse(JSON.stringify(value));
   } catch {
-    throw new HistoryValidationError(
-      "Document blocks contain invalid data.",
-    );
+    throw new HistoryValidationError("Document blocks contain invalid data.");
   }
 };
 

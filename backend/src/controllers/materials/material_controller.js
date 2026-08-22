@@ -1,66 +1,42 @@
 const fs = require("fs");
 
-const materialService = require(
-  "../../services/materials/material_service",
-);
+const materialService = require("../../services/materials/material_service");
 
-const ALLOWED_SOURCE_TYPES = new Set([
-  "uploaded_file",
-  "scan_result",
-]);
+const ALLOWED_SOURCE_TYPES = new Set(["uploaded_file", "scan_result"]);
 
 // ==========================
 // Helpers
 // ==========================
 
 const readRequiredText = (value) => {
-  return typeof value === "string"
-    ? value.trim()
-    : "";
+  return typeof value === "string" ? value.trim() : "";
 };
 
 const readOptionalText = (value) => {
   const normalizedValue = readRequiredText(value);
 
-  return normalizedValue.length > 0
-    ? normalizedValue
-    : null;
+  return normalizedValue.length > 0 ? normalizedValue : null;
 };
 
 const readOptionalNumber = (value) => {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
+  if (value === undefined || value === null || value === "") {
     return null;
   }
 
   const parsedValue = Number(value);
 
-  return Number.isFinite(parsedValue)
-    ? parsedValue
-    : null;
+  return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
 const readDocumentBlocks = (value) => {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
+  if (value === undefined || value === null || value === "") {
     return [];
   }
 
-  const parsedValue =
-    typeof value === "string"
-      ? JSON.parse(value)
-      : value;
+  const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
 
   if (!Array.isArray(parsedValue)) {
-    throw new TypeError(
-      "document_blocks must be a JSON array.",
-    );
+    throw new TypeError("document_blocks must be a JSON array.");
   }
 
   return parsedValue;
@@ -69,10 +45,7 @@ const readDocumentBlocks = (value) => {
 const readMaterialId = (value) => {
   const materialId = Number(value);
 
-  if (
-    !Number.isInteger(materialId) ||
-    materialId <= 0
-  ) {
+  if (!Number.isInteger(materialId) || materialId <= 0) {
     return null;
   }
 
@@ -124,8 +97,7 @@ const uploadMaterial = async (req, res) => {
     }
 
     const sourceType =
-      readOptionalText(req.body.source_type) ??
-      "uploaded_file";
+      readOptionalText(req.body.source_type) ?? "uploaded_file";
 
     if (!ALLOWED_SOURCE_TYPES.has(sourceType)) {
       await removeUploadedFile(req.file);
@@ -139,9 +111,7 @@ const uploadMaterial = async (req, res) => {
     let documentBlocks;
 
     try {
-      documentBlocks = readDocumentBlocks(
-        req.body.document_blocks,
-      );
+      documentBlocks = readDocumentBlocks(req.body.document_blocks);
     } catch (error) {
       await removeUploadedFile(req.file);
 
@@ -155,38 +125,21 @@ const uploadMaterial = async (req, res) => {
       user_id: req.user.id,
       title,
       subject,
-      description: readOptionalText(
-        req.body.description,
-      ),
+      description: readOptionalText(req.body.description),
       file_name: req.file.filename,
       file_path: req.file.path,
       file_type: req.file.mimetype,
       file_size: req.file.size,
       source_type: sourceType,
-      recognized_content:
-        readRequiredText(
-          req.body.recognized_content,
-        ),
-      braille_content:
-        readRequiredText(
-          req.body.braille_content,
-        ),
+      recognized_content: readRequiredText(req.body.recognized_content),
+      braille_content: readRequiredText(req.body.braille_content),
       document_blocks: documentBlocks,
-      model_name: readOptionalText(
-        req.body.model_name,
-      ),
-      pipeline_version: readOptionalText(
-        req.body.pipeline_version,
-      ),
-      processing_time_ms: readOptionalNumber(
-        req.body.processing_time_ms,
-      ),
+      model_name: readOptionalText(req.body.model_name),
+      pipeline_version: readOptionalText(req.body.pipeline_version),
+      processing_time_ms: readOptionalNumber(req.body.processing_time_ms),
     };
 
-    const material =
-      await materialService.createMaterial(
-        materialData,
-      );
+    const material = await materialService.createMaterial(materialData);
 
     materialCreated = true;
 
@@ -200,10 +153,7 @@ const uploadMaterial = async (req, res) => {
       await removeUploadedFile(req.file);
     }
 
-    console.error(
-      "Failed to upload material:",
-      error,
-    );
+    console.error("Failed to upload material:", error);
 
     return res.status(500).json({
       success: false,
@@ -218,20 +168,14 @@ const uploadMaterial = async (req, res) => {
 
 const getAllMaterials = async (req, res) => {
   try {
-    const materials =
-      await materialService.getAllMaterials(
-        req.user.id,
-      );
+    const materials = await materialService.getAllMaterials(req.user.id);
 
     return res.status(200).json({
       success: true,
       data: materials,
     });
   } catch (error) {
-    console.error(
-      "Failed to retrieve materials:",
-      error,
-    );
+    console.error("Failed to retrieve materials:", error);
 
     return res.status(500).json({
       success: false,
@@ -246,9 +190,7 @@ const getAllMaterials = async (req, res) => {
 
 const getMaterialById = async (req, res) => {
   try {
-    const materialId = readMaterialId(
-      req.params.id,
-    );
+    const materialId = readMaterialId(req.params.id);
 
     if (materialId === null) {
       return res.status(400).json({
@@ -257,11 +199,10 @@ const getMaterialById = async (req, res) => {
       });
     }
 
-    const material =
-      await materialService.getMaterialById({
-        materialId,
-        userId: req.user.id,
-      });
+    const material = await materialService.getMaterialById({
+      materialId,
+      userId: req.user.id,
+    });
 
     if (!material) {
       return res.status(404).json({
@@ -275,10 +216,7 @@ const getMaterialById = async (req, res) => {
       data: material,
     });
   } catch (error) {
-    console.error(
-      "Failed to retrieve material:",
-      error,
-    );
+    console.error("Failed to retrieve material:", error);
 
     return res.status(500).json({
       success: false,
@@ -293,9 +231,7 @@ const getMaterialById = async (req, res) => {
 
 const deleteMaterial = async (req, res) => {
   try {
-    const materialId = readMaterialId(
-      req.params.id,
-    );
+    const materialId = readMaterialId(req.params.id);
 
     if (materialId === null) {
       return res.status(400).json({
@@ -304,11 +240,10 @@ const deleteMaterial = async (req, res) => {
       });
     }
 
-    const material =
-      await materialService.deleteMaterial({
-        materialId,
-        userId: req.user.id,
-      });
+    const material = await materialService.deleteMaterial({
+      materialId,
+      userId: req.user.id,
+    });
 
     if (!material) {
       return res.status(404).json({
@@ -323,10 +258,7 @@ const deleteMaterial = async (req, res) => {
       data: material,
     });
   } catch (error) {
-    console.error(
-      "Failed to delete material:",
-      error,
-    );
+    console.error("Failed to delete material:", error);
 
     return res.status(500).json({
       success: false,

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 
 abstract final class MaterialScreenStyles {
   // Text
-  static const String logoAsset = 'assets/icons/tactilelens_app_icon.png';
-
-  static const String appName = 'TactileLens';
 
   static const String pageTitle = 'Materials';
 
@@ -88,7 +85,6 @@ abstract final class MaterialScreenStyles {
   static const Color softBlueColor = Color(0xFFEDF4FF);
 
   // Icons
-  static const IconData headerStatusIcon = Icons.folder_copy_outlined;
 
   static const IconData heroIcon = Icons.folder_rounded;
 
@@ -119,7 +115,6 @@ abstract final class MaterialScreenStyles {
 
   static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(20, 20, 20, 28);
 
-  static const double heroTopSpacing = 34;
   static const double searchTopSpacing = 28;
   static const double filterTopSpacing = 18;
   static const double sectionSpacing = 28;
@@ -130,15 +125,6 @@ abstract final class MaterialScreenStyles {
   static const double compactSpacing = 8;
   static const double filterSpacing = 10;
   static const double cardSpacing = 14;
-
-  // Brand header
-  static const double logoSize = 52;
-  static const double logoTextSpacing = 14;
-
-  static const BorderRadius logoRadius = BorderRadius.all(Radius.circular(14));
-
-  static const double headerStatusButtonSize = 44;
-  static const double headerStatusIconSize = 23;
 
   // Page introduction
   static const double heroContentSpacing = 18;
@@ -269,13 +255,6 @@ abstract final class MaterialScreenStyles {
     Radius.circular(14),
   );
 
-  // Text styles
-  static const TextStyle appNameStyle = TextStyle(
-    fontSize: 25,
-    fontWeight: FontWeight.w800,
-    letterSpacing: -0.4,
-    color: textPrimaryColor,
-  );
 
   static const TextStyle pageTitleStyle = TextStyle(
     fontSize: 34,

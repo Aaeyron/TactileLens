@@ -1,18 +1,10 @@
 const express = require("express");
 
-const materialController = require(
-  "../../controllers/materials/material_controller",
-);
+const materialController = require("../../controllers/materials/material_controller");
 
-const {
-  authenticateToken,
-} = require(
-  "../../middleware/auth/auth_middleware",
-);
+const { authenticateToken } = require("../../middleware/auth/auth_middleware");
 
-const uploadMaterial = require(
-  "../../middleware/materials/upload_material_middleware",
-);
+const uploadMaterial = require("../../middleware/materials/upload_material_middleware");
 
 const router = express.Router();
 
@@ -33,28 +25,19 @@ router.post(
 // Get All Owned Materials
 // ==========================
 
-router.get(
-  "/",
-  materialController.getAllMaterials,
-);
+router.get("/", materialController.getAllMaterials);
 
 // ==========================
 // Get One Owned Material
 // ==========================
 
-router.get(
-  "/:id",
-  materialController.getMaterialById,
-);
+router.get("/:id", materialController.getMaterialById);
 
 // ==========================
 // Delete One Owned Material
 // ==========================
 
-router.delete(
-  "/:id",
-  materialController.deleteMaterial,
-);
+router.delete("/:id", materialController.deleteMaterial);
 
 // ==========================
 // Export
