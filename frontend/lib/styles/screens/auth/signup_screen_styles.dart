@@ -545,4 +545,7 @@ abstract final class SignUpStyles {
   static const BorderRadius snackBarRadius = BorderRadius.all(
     Radius.circular(14),
   );
+
+  static const String roleSelectionRequiredMessage =
+      'Please choose Student or Educator before continuing.';
 }

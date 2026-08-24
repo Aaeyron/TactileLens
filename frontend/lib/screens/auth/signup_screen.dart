@@ -40,7 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _isRegistering || _isGoogleAuthenticating;
   }
 
-  String selectedRole = SignUpStyles.studentRole;
+  String? selectedRole;
 
   @override
   void dispose() {
@@ -55,6 +55,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _register() async {
     if (_isBusy) {
+      return;
+    }
+
+    final String? role = selectedRole;
+
+    if (role == null) {
+      _showMessage(SignUpStyles.roleSelectionRequiredMessage);
       return;
     }
 
@@ -95,7 +102,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         lastName: lastName,
         email: email,
         password: password,
-        role: selectedRole,
+        role: role,
       );
 
       if (!mounted) {
@@ -145,6 +152,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    final String? role = selectedRole;
+
+    if (role == null) {
+      _showMessage(SignUpStyles.roleSelectionRequiredMessage);
+      return;
+    }
+
     setState(() {
       _isGoogleAuthenticating = true;
     });
@@ -154,7 +168,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final response = await AuthService.continueWithGoogle(
         idToken: idToken,
-        role: selectedRole,
+        role: role,
       );
 
       debugPrint(
@@ -164,6 +178,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       final dynamic decodedBody = jsonDecode(response.body);
+
       if (decodedBody is! Map<String, dynamic>) {
         throw const FormatException('Invalid authentication response.');
       }
@@ -202,8 +217,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final String email = rawUser['email']?.toString().trim() ?? '';
 
-      final String accountRole =
-          rawUser['role']?.toString().trim() ?? selectedRole;
+      final String accountRole = rawUser['role']?.toString().trim() ?? role;
 
       if (userId == null || firstName.isEmpty || email.isEmpty) {
         throw const FormatException('Incomplete Google account information.');
@@ -234,7 +248,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     } on GoogleSignInServiceException catch (error) {
       debugPrint(
         'Google sign-in service error: '
-        'code=${error.code}, message=${error.message}',
+        'code=${error.code}, '
+        'message=${error.message}, '
+        'description=${error.description}, '
+        'details=${error.details}',
       );
 
       if (!mounted) {
