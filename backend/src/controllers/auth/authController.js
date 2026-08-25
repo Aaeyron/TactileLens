@@ -98,10 +98,19 @@ const register = async (req, res) => {
     const existingUser = await findUserByEmail(normalizedEmail);
 
     if (existingUser) {
+      if (existingUser.google_sub) {
+        return res.status(409).json({
+          success: false,
+          code: "google_email_already_registered",
+          message:
+            "This email is already registered with Google. Please sign in with Google instead.",
+        });
+      }
+
       return res.status(409).json({
         success: false,
         code: "email_already_registered",
-        message: "Email is already registered.",
+        message: "This email is already registered. Please sign in instead.",
       });
     }
 
@@ -197,12 +206,136 @@ const login = async (req, res) => {
 };
 
 // ==========================
-// Continue With Google
+// Google Authentication Error Handler
 // ==========================
 
-const continueWithGoogle = async (req, res) => {
+const handleGoogleAuthenticationError = (error, res, fallbackMessage) => {
+  console.error("Google authentication failed:", error);
+
+  if (error instanceof GoogleAuthServiceError) {
+    if (error.code === "google_not_configured") {
+      return res.status(503).json({
+        success: false,
+        code: error.code,
+        message: "Google authentication is temporarily unavailable.",
+      });
+    }
+
+    if (error.code === "missing_google_token") {
+      return res.status(400).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      code: error.code,
+      message: "The Google account could not be verified.",
+    });
+  }
+
+  if (error.code === "23505") {
+    return res.status(409).json({
+      success: false,
+      code: "google_account_conflict",
+      message: "This Google account or email is already registered.",
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    code: "google_authentication_failed",
+    message: fallbackMessage,
+  });
+};
+
+// ==========================
+// Register With Google
+// ==========================
+
+const registerWithGoogle = async (req, res) => {
   try {
     const { id_token, role } = req.body;
+
+    if (!id_token) {
+      return res.status(400).json({
+        success: false,
+        code: "missing_google_token",
+        message: "A Google ID token is required.",
+      });
+    }
+
+    const normalizedRole = normalizeRole(role);
+
+    if (!normalizedRole) {
+      return res.status(400).json({
+        success: false,
+        code: "role_required",
+        message: "Choose Student or Educator to create your account.",
+      });
+    }
+
+    const googleIdentity = await verifyGoogleIdToken(id_token);
+
+    const existingGoogleUser = await findUserByGoogleSub(
+      googleIdentity.googleSub,
+    );
+
+    if (existingGoogleUser) {
+      return res.status(409).json({
+        success: false,
+        code: "google_account_already_registered",
+        message:
+          "This Google account is already registered. Please sign in instead.",
+      });
+    }
+
+    const existingEmailUser = await findUserByEmail(googleIdentity.email);
+
+    if (existingEmailUser) {
+      return res.status(409).json({
+        success: false,
+        code: "account_link_required",
+        message:
+          "An account already uses this email. Please sign in using your password.",
+      });
+    }
+
+    const user = await createGoogleUser({
+      firstName: googleIdentity.firstName,
+      lastName: googleIdentity.lastName,
+      email: googleIdentity.email,
+      role: normalizedRole,
+      googleSub: googleIdentity.googleSub,
+    });
+
+    return res
+      .status(201)
+      .json(
+        createAuthenticationResponse(
+          user,
+          "Google account created successfully.",
+          true,
+        ),
+      );
+  } catch (error) {
+    return handleGoogleAuthenticationError(
+      error,
+      res,
+      "Unable to create an account with Google.",
+    );
+  }
+};
+
+// ==========================
+// Sign In With Google
+// ==========================
+
+const loginWithGoogle = async (req, res) => {
+  try {
+    const { id_token } = req.body;
 
     if (!id_token) {
       return res.status(400).json({
@@ -235,83 +368,30 @@ const continueWithGoogle = async (req, res) => {
     if (existingEmailUser) {
       return res.status(409).json({
         success: false,
-        code: "account_link_required",
+        code: "google_account_not_linked",
         message:
-          "An account already uses this email. Sign in with your password before linking Google.",
+          "This email uses password sign-in and is not linked to Google.",
       });
     }
 
-    const normalizedRole = normalizeRole(role);
-
-    if (!normalizedRole) {
-      return res.status(400).json({
-        success: false,
-        code: "role_required",
-        message: "Choose Student or Educator to create your account.",
-      });
-    }
-
-    const user = await createGoogleUser({
-      firstName: googleIdentity.firstName,
-      lastName: googleIdentity.lastName,
-      email: googleIdentity.email,
-      role: normalizedRole,
-      googleSub: googleIdentity.googleSub,
-    });
-
-    return res
-      .status(201)
-      .json(
-        createAuthenticationResponse(
-          user,
-          "Google account created successfully.",
-          true,
-        ),
-      );
-  } catch (error) {
-    console.error("Google authentication failed:", error);
-
-    if (error instanceof GoogleAuthServiceError) {
-      if (error.code === "google_not_configured") {
-        return res.status(503).json({
-          success: false,
-          code: error.code,
-          message: "Google authentication is temporarily unavailable.",
-        });
-      }
-
-      if (error.code === "missing_google_token") {
-        return res.status(400).json({
-          success: false,
-          code: error.code,
-          message: error.message,
-        });
-      }
-
-      return res.status(401).json({
-        success: false,
-        code: error.code,
-        message: "The Google account could not be verified.",
-      });
-    }
-
-    if (error.code === "23505") {
-      return res.status(409).json({
-        success: false,
-        code: "google_account_conflict",
-        message: "This Google account or email is already registered.",
-      });
-    }
-
-    return res.status(500).json({
+    return res.status(404).json({
       success: false,
-      message: "Unable to continue with Google.",
+      code: "google_account_not_found",
+      message:
+        "No TactileLens account was found for this Google account. Please sign up first.",
     });
+  } catch (error) {
+    return handleGoogleAuthenticationError(
+      error,
+      res,
+      "Unable to sign in with Google.",
+    );
   }
 };
 
 module.exports = {
   register,
   login,
-  continueWithGoogle,
+  registerWithGoogle,
+  loginWithGoogle,
 };

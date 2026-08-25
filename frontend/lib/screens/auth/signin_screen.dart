@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../services/auth/auth_service.dart';
+import '../../services/auth/google_sign_in_service.dart';
 import '../../styles/screens/auth/signin_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
@@ -24,7 +25,13 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool isPasswordVisible = false;
+
   bool _isSigningIn = false;
+  bool _isGoogleSigningIn = false;
+
+  bool get _isBusy {
+    return _isSigningIn || _isGoogleSigningIn;
+  }
 
   @override
   void dispose() {
@@ -34,8 +41,140 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  Future<void> _signInWithGoogle() async {
+    if (_isBusy) {
+      return;
+    }
+
+    setState(() {
+      _isGoogleSigningIn = true;
+    });
+
+    try {
+      final String idToken = await GoogleSignInService.authenticate();
+
+      final response = await AuthService.loginWithGoogle(idToken: idToken);
+
+      debugPrint(
+        'Google login response: '
+        'status=${response.statusCode}, '
+        'body=${response.body}',
+      );
+
+      final Map<String, dynamic> responseData = _decodeResponse(response.body);
+
+      if (response.statusCode != 200) {
+        throw SignInException(
+          _readServerMessage(responseData) ?? SignInStyles.defaultSignInError,
+        );
+      }
+
+      final dynamic rawUser = responseData['user'];
+      final dynamic rawToken = responseData['token'];
+
+      if (rawUser is! Map) {
+        throw const SignInException(SignInStyles.invalidUserMessage);
+      }
+
+      if (rawToken is! String || rawToken.trim().isEmpty) {
+        throw const SignInException(SignInStyles.missingTokenMessage);
+      }
+
+      final Map<String, dynamic> user = Map<String, dynamic>.from(rawUser);
+
+      final dynamic rawUserId = user['id'];
+
+      final int? userId = rawUserId is num
+          ? rawUserId.toInt()
+          : int.tryParse(rawUserId?.toString() ?? '');
+
+      if (userId == null) {
+        throw const SignInException(SignInStyles.invalidUserIdMessage);
+      }
+
+      final String firstName = _readRequiredString(user, 'first_name');
+
+      final String lastName = _readRequiredString(user, 'last_name');
+
+      final String userEmail = _readRequiredString(user, 'email');
+
+      final String role = _readRequiredString(user, 'role');
+
+      await SessionManager.saveAccessToken(rawToken.trim());
+
+      try {
+        await SessionManager.saveUser(
+          id: userId,
+          firstName: firstName,
+          lastName: lastName,
+          email: userEmail,
+          role: role,
+        );
+      } catch (_) {
+        await SessionManager.logout();
+        rethrow;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(SignInStyles.loginSuccessMessage);
+
+      Navigator.of(context).pushAndRemoveUntil<void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) {
+            return const MainScreen();
+          },
+        ),
+        (Route<dynamic> route) => false,
+      );
+    } on GoogleSignInServiceException catch (error) {
+      debugPrint(
+        'Google sign-in service error: '
+        'code=${error.code}, '
+        'message=${error.message}, '
+        'description=${error.description}, '
+        'details=${error.details}',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(error.message);
+    } on SignInException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(error.message);
+    } on FormatException {
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(SignInStyles.invalidResponseMessage);
+    } catch (error, stackTrace) {
+      debugPrint('Google sign-in failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(SignInStyles.connectionErrorMessage);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleSigningIn = false;
+        });
+      }
+    }
+  }
+
   Future<void> _signIn() async {
-    if (_isSigningIn) {
+    if (_isBusy) {
       return;
     }
 
@@ -60,6 +199,27 @@ class _SignInScreenState extends State<SignInScreen> {
       final Map<String, dynamic> responseData = _decodeResponse(response.body);
 
       if (response.statusCode != 200) {
+        final String? serverCode = _readServerCode(responseData);
+
+        if (serverCode == 'google_sign_in_required') {
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            _isSigningIn = false;
+          });
+
+          final bool continueWithGoogle =
+              await _showGoogleSignInRequiredDialog();
+
+          if (continueWithGoogle && mounted) {
+            await _signInWithGoogle();
+          }
+
+          return;
+        }
+
         throw SignInException(
           _readServerMessage(responseData) ?? SignInStyles.defaultSignInError,
         );
@@ -182,6 +342,88 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     return null;
+  }
+
+  String? _readServerCode(Map<String, dynamic> responseData) {
+    final dynamic code = responseData['code'];
+
+    if (code is String && code.trim().isNotEmpty) {
+      return code.trim();
+    }
+
+    return null;
+  }
+
+  Future<bool> _showGoogleSignInRequiredDialog() async {
+    if (!mounted) {
+      return false;
+    }
+
+    final bool? shouldContinue = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: SignInStyles.surfaceColor,
+          shape: const RoundedRectangleBorder(
+            borderRadius: SignInStyles.accountDialogRadius,
+          ),
+          titlePadding: SignInStyles.accountDialogTitlePadding,
+          contentPadding: SignInStyles.accountDialogContentPadding,
+          actionsPadding: SignInStyles.accountDialogActionsPadding,
+          title: Row(
+            children: <Widget>[
+              Container(
+                width: SignInStyles.accountDialogIconContainerSize,
+                height: SignInStyles.accountDialogIconContainerSize,
+                decoration: const BoxDecoration(
+                  color: SignInStyles.accountDialogIconBackgroundColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  SignInStyles.googleAccountIcon,
+                  color: SignInStyles.brightPrimaryColor,
+                  size: SignInStyles.accountDialogIconSize,
+                ),
+              ),
+              const SizedBox(width: SignInStyles.accountDialogIconSpacing),
+              const Expanded(
+                child: Text(
+                  SignInStyles.googleAccountDialogTitle,
+                  style: SignInStyles.accountDialogTitleStyle,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            SignInStyles.googleAccountDialogMessage,
+            style: SignInStyles.accountDialogMessageStyle,
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              style: SignInStyles.accountDialogCancelButtonStyle,
+              child: const Text(SignInStyles.cancelLabel),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              style: SignInStyles.accountDialogGoogleButtonStyle,
+              icon: const Text(
+                SignInStyles.googleIconLetter,
+                style: SignInStyles.accountDialogGoogleIconStyle,
+              ),
+              label: const Text(SignInStyles.continueWithGoogleLabel),
+            ),
+          ],
+        );
+      },
+    );
+
+    return shouldContinue ?? false;
   }
 
   void _showMessage(String message) {
@@ -469,7 +711,7 @@ class _SignInScreenState extends State<SignInScreen> {
     return SizedBox(
       height: SignInStyles.buttonHeight,
       child: ElevatedButton(
-        onPressed: _isSigningIn ? null : _signIn,
+        onPressed: _isBusy ? null : _signIn,
         style: SignInStyles.signInButtonStyle,
         child: _isSigningIn
             ? const SizedBox.square(
@@ -506,23 +748,30 @@ class _SignInScreenState extends State<SignInScreen> {
     return SizedBox(
       height: SignInStyles.buttonHeight,
       child: OutlinedButton(
-        // Google authentication is intentionally disabled for now.
-        onPressed: null,
+        onPressed: _isBusy ? null : _signInWithGoogle,
         style: SignInStyles.googleButtonStyle,
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              SignInStyles.googleIconLetter,
-              style: SignInStyles.googleIconStyle,
-            ),
-            SizedBox(width: SignInStyles.googleIconSpacing),
-            Text(
-              SignInStyles.googleLabel,
-              style: SignInStyles.googleButtonTextStyle,
-            ),
-          ],
-        ),
+        child: _isGoogleSigningIn
+            ? const SizedBox.square(
+                dimension: SignInStyles.loadingIndicatorSize,
+                child: CircularProgressIndicator(
+                  strokeWidth: SignInStyles.loadingStrokeWidth,
+                  color: SignInStyles.primaryColor,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    SignInStyles.googleIconLetter,
+                    style: SignInStyles.googleIconStyle,
+                  ),
+                  SizedBox(width: SignInStyles.googleIconSpacing),
+                  Text(
+                    SignInStyles.googleLabel,
+                    style: SignInStyles.googleButtonTextStyle,
+                  ),
+                ],
+              ),
       ),
     );
   }

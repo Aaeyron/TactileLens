@@ -3,7 +3,8 @@ const express = require("express");
 const {
   register,
   login,
-  continueWithGoogle,
+  registerWithGoogle,
+  loginWithGoogle,
 } = require("../../controllers/auth/authController");
 
 const router = express.Router();
@@ -21,9 +22,15 @@ router.post("/register", register);
 router.post("/login", login);
 
 // ==========================
-// Continue With Google
+// Register With Google
 // ==========================
 
-router.post("/google", continueWithGoogle);
+router.post("/google/register", registerWithGoogle);
+
+// ==========================
+// Sign In With Google
+// ==========================
+
+router.post("/google/login", loginWithGoogle);
 
 module.exports = router;

@@ -4,19 +4,24 @@ import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/app_header.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.onScanPressed,
     required this.onMaterialsPressed,
+    required this.onHistoryPressed,
   });
 
   final VoidCallback onScanPressed;
   final VoidCallback onMaterialsPressed;
+  final VoidCallback onHistoryPressed;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() {
+    return _HomeScreenState();
+  }
 }
 
 class _HomeScreenState extends State<HomeScreen>
@@ -32,15 +37,12 @@ class _HomeScreenState extends State<HomeScreen>
   String _displayName = HomeStyles.defaultUserName;
   String _role = HomeStyles.defaultRole;
 
-  bool _isGuest = false;
   bool _isLoading = true;
-
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-
     _initializeEntranceAnimation();
     _loadHomeData();
   }
@@ -51,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen>
       duration: HomeStyles.entranceAnimationDuration,
     );
 
-    final CurvedAnimation entranceCurve = CurvedAnimation(
+    final CurvedAnimation curve = CurvedAnimation(
       parent: _entranceController,
       curve: HomeStyles.entranceAnimationCurve,
     );
@@ -59,12 +61,12 @@ class _HomeScreenState extends State<HomeScreen>
     _fadeAnimation = Tween<double>(
       begin: HomeStyles.entranceFadeBegin,
       end: HomeStyles.entranceFadeEnd,
-    ).animate(entranceCurve);
+    ).animate(curve);
 
     _slideAnimation = Tween<Offset>(
       begin: HomeStyles.entranceSlideBegin,
       end: Offset.zero,
-    ).animate(entranceCurve);
+    ).animate(curve);
 
     Future<void>.delayed(HomeStyles.entranceAnimationDelay, () {
       if (mounted) {
@@ -77,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _entranceController.dispose();
     _materialService.dispose();
-
     super.dispose();
   }
 
@@ -98,16 +99,6 @@ class _HomeScreenState extends State<HomeScreen>
 
       final String? storedRole = await SessionManager.getRole();
 
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isGuest = isGuest;
-        _displayName = _normalizeDisplayName(storedName);
-        _role = _normalizeRole(storedRole);
-      });
-
       final List<MaterialModel> materials = await _materialService
           .getMaterials();
 
@@ -116,6 +107,8 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       setState(() {
+        _displayName = _normalizeValue(storedName, HomeStyles.defaultUserName);
+        _role = _normalizeValue(storedRole, HomeStyles.defaultRole);
         _materials = materials;
         _isLoading = false;
       });
@@ -140,82 +133,63 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  String _normalizeDisplayName(String? value) {
+  String _normalizeValue(String? value, String fallback) {
     final String normalizedValue = value?.trim() ?? '';
 
-    return normalizedValue.isEmpty
-        ? HomeStyles.defaultUserName
-        : normalizedValue;
-  }
-
-  String _normalizeRole(String? value) {
-    final String normalizedValue = value?.trim() ?? '';
-
-    if (normalizedValue.isEmpty) {
-      return HomeStyles.defaultRole;
-    }
-
-    return '${normalizedValue[0].toUpperCase()}'
-        '${normalizedValue.substring(1).toLowerCase()}';
-  }
-
-  String get _initial {
-    final String normalizedName = _displayName.trim();
-
-    if (normalizedName.isEmpty) {
-      return HomeStyles.defaultInitial;
-    }
-
-    return normalizedName[0].toUpperCase();
+    return normalizedValue.isEmpty ? fallback : normalizedValue;
   }
 
   List<MaterialModel> get _recentMaterials {
-    return _materials
+    final List<MaterialModel> materials = List<MaterialModel>.from(_materials);
+
+    materials.sort((MaterialModel first, MaterialModel second) {
+      return second.uploadDate.compareTo(first.uploadDate);
+    });
+
+    return materials
         .take(HomeStyles.maximumRecentMaterials)
         .toList(growable: false);
   }
 
-  String _formatFileSize(int sizeInBytes) {
-    if (sizeInBytes < HomeStyles.bytesPerKilobyte) {
-      return '$sizeInBytes ${HomeStyles.byteLabel}';
-    }
-
-    final double sizeInKilobytes = sizeInBytes / HomeStyles.bytesPerKilobyte;
-
-    if (sizeInKilobytes < HomeStyles.bytesPerKilobyte) {
-      return '${sizeInKilobytes.toStringAsFixed(1)} '
-          '${HomeStyles.kilobyteLabel}';
-    }
-
-    final double sizeInMegabytes =
-        sizeInKilobytes / HomeStyles.bytesPerKilobyte;
-
-    return '${sizeInMegabytes.toStringAsFixed(1)} '
-        '${HomeStyles.megabyteLabel}';
-  }
-
-  String _formatDate(BuildContext context, DateTime date) {
-    final MaterialLocalizations localizations = MaterialLocalizations.of(
-      context,
-    );
-
+  String _formatRelativeTime(DateTime value) {
+    final DateTime date = value.toLocal();
     final DateTime now = DateTime.now();
 
-    final DateTime currentDate = DateTime(now.year, now.month, now.day);
+    final Duration difference = now.difference(date);
 
-    final DateTime materialDate = DateTime(date.year, date.month, date.day);
-
-    final int difference = currentDate.difference(materialDate).inDays;
-
-    if (difference == 0) {
-      return HomeStyles.todayLabel;
+    if (difference.isNegative) {
+      return HomeStyles.justNowLabel;
     }
 
-    if (difference == 1) {
-      return HomeStyles.yesterdayLabel;
+    if (difference.inMinutes < 1) {
+      return HomeStyles.justNowLabel;
     }
 
-    return localizations.formatMediumDate(date);
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}${HomeStyles.minuteSuffix}';
+    }
+
+    if (difference.inHours < 24) {
+      return '${difference.inHours}${HomeStyles.hourSuffix}';
+    }
+
+    if (difference.inDays < 7) {
+      return '${difference.inDays}${HomeStyles.daySuffix}';
+    }
+
+    return MaterialLocalizations.of(context).formatMediumDate(date);
+  }
+
+  String _getMaterialCategory(MaterialModel material) {
+    final String content = material.recognizedContent.toLowerCase();
+
+    final bool containsMath =
+        content.contains(r'\frac') ||
+        content.contains(r'\sqrt') ||
+        content.contains('=') ||
+        content.contains('^');
+
+    return containsMath ? HomeStyles.mathNemethLabel : HomeStyles.textUebLabel;
   }
 
   IconData _getMaterialIcon(MaterialModel material) {
@@ -235,214 +209,86 @@ class _HomeScreenState extends State<HomeScreen>
     return HomeStyles.documentIcon;
   }
 
-  Color _getMaterialAccent(MaterialModel material) {
-    final String type = material.fileType.toLowerCase();
-
-    if (type.contains(HomeStyles.pdfFileType)) {
-      return HomeStyles.pdfColor;
-    }
-
-    if (type.contains(HomeStyles.imageFileType) ||
-        type.contains(HomeStyles.jpgFileType) ||
-        type.contains(HomeStyles.jpegFileType) ||
-        type.contains(HomeStyles.pngFileType)) {
-      return HomeStyles.imageColor;
-    }
-
-    return HomeStyles.primaryColor;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: HomeStyles.backgroundColor,
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: SafeArea(
-            bottom: false,
-            child: RefreshIndicator(
-              color: HomeStyles.primaryColor,
-              onRefresh: _loadHomeData,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverPadding(
-                    padding: HomeStyles.screenPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildBrandHeader(),
-                        const SizedBox(height: HomeStyles.greetingTopSpacing),
-                        _buildWelcomeSection(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        _buildProfileCard(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        const Text(
-                          HomeStyles.quickActionsTitle,
-                          style: HomeStyles.sectionTitleStyle,
-                        ),
-                        const SizedBox(height: HomeStyles.sectionTitleSpacing),
-                        _buildQuickActions(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        _buildRecentHeader(),
-                        const SizedBox(height: HomeStyles.sectionTitleSpacing),
-                        _buildRecentMaterials(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        _buildEncouragementCard(),
-                        const SizedBox(height: HomeStyles.bottomContentSpacing),
-                      ]),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBrandHeader() {
-    return Row(
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: HomeStyles.logoRadius,
-          child: Image.asset(
-            HomeStyles.logoAsset,
-            width: HomeStyles.logoSize,
-            height: HomeStyles.logoSize,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: HomeStyles.logoTextSpacing),
-        const Expanded(
-          child: Text(HomeStyles.appName, style: HomeStyles.appNameStyle),
-        ),
-        Container(
-          width: HomeStyles.statusButtonSize,
-          height: HomeStyles.statusButtonSize,
-          decoration: const BoxDecoration(
-            color: HomeStyles.surfaceColor,
-            shape: BoxShape.circle,
-            border: HomeStyles.smallContainerBorder,
-            boxShadow: HomeStyles.smallContainerShadow,
-          ),
-          child: Icon(
-            _isGuest ? HomeStyles.offlineIcon : HomeStyles.syncedIcon,
-            size: HomeStyles.statusIconSize,
-            color: HomeStyles.primaryColor,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWelcomeSection() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: <Widget>[
-        Expanded(
-          flex: HomeStyles.welcomeTextFlex,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                '${HomeStyles.greetingPrefix}, $_displayName!',
-                style: HomeStyles.greetingStyle,
-              ),
-              const SizedBox(height: HomeStyles.greetingDescriptionSpacing),
-              Text(
-                _isGuest
-                    ? HomeStyles.guestWelcomeDescription
-                    : HomeStyles.welcomeDescription,
-                style: HomeStyles.welcomeDescriptionStyle,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: HomeStyles.welcomeContentSpacing),
-        Expanded(
-          flex: HomeStyles.welcomeIllustrationFlex,
-          child: Container(
-            height: HomeStyles.illustrationHeight,
-            decoration: const BoxDecoration(
-              color: HomeStyles.illustrationBackgroundColor,
-              borderRadius: HomeStyles.illustrationRadius,
-              border: HomeStyles.cardBorder,
-              boxShadow: HomeStyles.cardShadow,
-            ),
-            child: const Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                Icon(
-                  HomeStyles.illustrationBookIcon,
-                  size: HomeStyles.illustrationBookIconSize,
-                  color: HomeStyles.illustrationBookColor,
-                ),
-                Positioned(
-                  right: HomeStyles.illustrationSearchRight,
-                  bottom: HomeStyles.illustrationSearchBottom,
-                  child: Icon(
-                    HomeStyles.illustrationSearchIcon,
-                    size: HomeStyles.illustrationSearchIconSize,
-                    color: HomeStyles.primaryColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileCard() {
-    return Container(
-      padding: HomeStyles.profileCardPadding,
-      decoration: const BoxDecoration(
-        color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.cardRadius,
-        border: HomeStyles.cardBorder,
-        boxShadow: HomeStyles.cardShadow,
-      ),
-      child: Row(
+      body: Column(
         children: <Widget>[
-          Container(
-            width: HomeStyles.avatarSize,
-            height: HomeStyles.avatarSize,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: HomeStyles.avatarBackgroundColor,
-              shape: BoxShape.circle,
-              border: HomeStyles.smallContainerBorder,
-              boxShadow: HomeStyles.smallContainerShadow,
-            ),
-            child: Text(_initial, style: HomeStyles.avatarTextStyle),
-          ),
-          const SizedBox(width: HomeStyles.profileContentSpacing),
+          const AppHeader(),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  _displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: HomeStyles.profileNameStyle,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: RefreshIndicator(
+                  color: HomeStyles.primaryColor,
+                  onRefresh: _loadHomeData,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: <Widget>[
+                      SliverPadding(
+                        padding: HomeStyles.screenPadding,
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate.fixed(<Widget>[
+                            _buildGreeting(),
+                            const SizedBox(
+                              height: HomeStyles.greetingBottomSpacing,
+                            ),
+                            const Text(
+                              HomeStyles.quickActionsTitle,
+                              style: HomeStyles.sectionTitleStyle,
+                            ),
+                            const SizedBox(
+                              height: HomeStyles.quickActionsTitleSpacing,
+                            ),
+                            _buildQuickActions(),
+                            const SizedBox(height: HomeStyles.sectionSpacing),
+                            _buildRecentHeader(),
+                            const SizedBox(
+                              height: HomeStyles.recentHeaderSpacing,
+                            ),
+                            _buildRecentActivity(),
+                            const SizedBox(height: HomeStyles.bottomSpacing),
+                          ]),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: HomeStyles.profileRoleSpacing),
-                Text(
-                  _isGuest ? '${HomeStyles.offlineRolePrefix} · $_role' : _role,
-                  style: HomeStyles.profileRoleStyle,
-                ),
-              ],
+              ),
             ),
           ),
-          const Icon(
-            HomeStyles.profileStatusIcon,
-            color: HomeStyles.primaryColor,
-            size: HomeStyles.profileStatusIconSize,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGreeting() {
+    return Container(
+      width: double.infinity,
+      padding: HomeStyles.greetingCardPadding,
+      decoration: const BoxDecoration(
+        color: HomeStyles.greetingCardBackgroundColor,
+        borderRadius: HomeStyles.greetingCardRadius,
+        border: HomeStyles.greetingCardBorder,
+        boxShadow: HomeStyles.greetingCardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '${HomeStyles.greetingPrefix}, $_displayName!',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: HomeStyles.greetingStyle,
+          ),
+          const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
+          Text(
+            _role.toLowerCase() == HomeStyles.educatorRole
+                ? HomeStyles.educatorGreetingDescription
+                : HomeStyles.greetingDescription,
+            style: HomeStyles.greetingDescriptionStyle,
           ),
         ],
       ),
@@ -450,70 +296,50 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildQuickActions() {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final List<Widget> actionCards = <Widget>[
-          _HomeActionCard(
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: HomeStyles.surfaceColor,
+        borderRadius: HomeStyles.quickActionsRadius,
+        border: HomeStyles.quickActionsBorder,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: <Widget>[
+          _QuickActionRow(
             icon: HomeStyles.scanIcon,
-            iconColor: HomeStyles.primaryColor,
-            iconBackgroundColor: HomeStyles.scanIconBackgroundColor,
-            title: HomeStyles.scanTitle,
-            description: HomeStyles.scanDescription,
+            title: HomeStyles.scanActionTitle,
+            description: HomeStyles.scanActionDescription,
             onPressed: widget.onScanPressed,
           ),
-          _HomeActionCard(
-            icon: HomeStyles.uploadIcon,
-            iconColor: HomeStyles.uploadColor,
-            iconBackgroundColor: HomeStyles.uploadIconBackgroundColor,
-            title: HomeStyles.uploadTitle,
-            description: HomeStyles.uploadDescription,
-            onPressed: widget.onScanPressed,
+          const Divider(
+            height: HomeStyles.quickActionDividerHeight,
+            thickness: HomeStyles.quickActionDividerThickness,
+            indent: HomeStyles.quickActionDividerIndent,
+            endIndent: HomeStyles.quickActionDividerEndIndent,
+            color: HomeStyles.quickActionDividerColor,
           ),
-          _HomeActionCard(
+          _QuickActionRow(
             icon: HomeStyles.materialsIcon,
-            iconColor: HomeStyles.materialsColor,
-            iconBackgroundColor: HomeStyles.materialsIconBackgroundColor,
-            title: HomeStyles.materialsTitle,
-            description: HomeStyles.materialsDescription,
+            title: HomeStyles.materialsActionTitle,
+            description: HomeStyles.materialsActionDescription,
             onPressed: widget.onMaterialsPressed,
           ),
-        ];
-
-        if (constraints.maxWidth >= HomeStyles.wideQuickActionsBreakpoint) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List<Widget>.generate(actionCards.length, (int index) {
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: index == actionCards.length - 1
-                        ? HomeStyles.zero
-                        : HomeStyles.quickActionSpacing,
-                  ),
-                  child: actionCards[index],
-                ),
-              );
-            }),
-          );
-        }
-
-        return SizedBox(
-          height: HomeStyles.quickActionCardHeight,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: actionCards.length,
-            separatorBuilder: (BuildContext context, int index) {
-              return const SizedBox(width: HomeStyles.quickActionSpacing);
-            },
-            itemBuilder: (BuildContext context, int index) {
-              return SizedBox(
-                width: HomeStyles.compactQuickActionWidth,
-                child: actionCards[index],
-              );
-            },
+          const Divider(
+            height: HomeStyles.quickActionDividerHeight,
+            thickness: HomeStyles.quickActionDividerThickness,
+            indent: HomeStyles.quickActionDividerIndent,
+            endIndent: HomeStyles.quickActionDividerEndIndent,
+            color: HomeStyles.quickActionDividerColor,
           ),
-        );
-      },
+          _QuickActionRow(
+            icon: HomeStyles.historyIcon,
+            title: HomeStyles.historyActionTitle,
+            description: HomeStyles.historyActionDescription,
+            onPressed: widget.onHistoryPressed,
+          ),
+        ],
+      ),
     );
   }
 
@@ -522,141 +348,83 @@ class _HomeScreenState extends State<HomeScreen>
       children: <Widget>[
         const Expanded(
           child: Text(
-            HomeStyles.recentMaterialsTitle,
+            HomeStyles.recentActivityTitle,
             style: HomeStyles.sectionTitleStyle,
           ),
         ),
-        TextButton.icon(
-          onPressed: widget.onMaterialsPressed,
+        TextButton(
+          onPressed: widget.onHistoryPressed,
           style: HomeStyles.viewAllButtonStyle,
-          label: const Text(HomeStyles.viewAllLabel),
-          icon: const Icon(
-            HomeStyles.forwardIcon,
-            size: HomeStyles.viewAllIconSize,
-          ),
+          child: const Text(HomeStyles.viewAllLabel),
         ),
       ],
     );
   }
 
-  Widget _buildRecentMaterials() {
+  Widget _buildRecentActivity() {
     if (_isLoading) {
-      return const _HomeStateCard(
+      return const _StateCard(
         showProgress: true,
-        icon: HomeStyles.materialsIcon,
-        title: HomeStyles.loadingMaterialsTitle,
-        description: HomeStyles.loadingMaterialsDescription,
+        icon: HomeStyles.historyIcon,
+        title: HomeStyles.loadingTitle,
+        description: HomeStyles.loadingDescription,
       );
     }
 
     if (_errorMessage != null) {
-      return _HomeStateCard(
+      return _StateCard(
         icon: HomeStyles.errorIcon,
-        title: HomeStyles.materialsErrorTitle,
+        title: HomeStyles.errorTitle,
         description: _errorMessage!,
         actionLabel: HomeStyles.retryLabel,
         onActionPressed: _loadHomeData,
       );
     }
 
-    final List<MaterialModel> recentMaterials = _recentMaterials;
+    final List<MaterialModel> materials = _recentMaterials;
 
-    if (recentMaterials.isEmpty) {
-      return _HomeStateCard(
-        icon: HomeStyles.emptyMaterialsIcon,
-        title: HomeStyles.emptyMaterialsTitle,
-        description: HomeStyles.emptyMaterialsDescription,
+    if (materials.isEmpty) {
+      return _StateCard(
+        icon: HomeStyles.emptyIcon,
+        title: HomeStyles.emptyTitle,
+        description: HomeStyles.emptyDescription,
         actionLabel: HomeStyles.scanNowLabel,
         onActionPressed: widget.onScanPressed,
       );
     }
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.cardRadius,
-        border: HomeStyles.cardBorder,
-        boxShadow: HomeStyles.cardShadow,
-      ),
-      child: Column(
-        children: List<Widget>.generate(recentMaterials.length, (int index) {
-          final MaterialModel material = recentMaterials[index];
+    return Column(
+      children: List<Widget>.generate(materials.length, (int index) {
+        final MaterialModel material = materials[index];
 
-          return Column(
-            children: <Widget>[
-              _RecentMaterialTile(
-                material: material,
-                icon: _getMaterialIcon(material),
-                accentColor: _getMaterialAccent(material),
-                fileSize: _formatFileSize(material.fileSize),
-                date: _formatDate(context, material.uploadDate),
-                onPressed: widget.onMaterialsPressed,
-              ),
-              if (index != recentMaterials.length - 1)
-                const Divider(
-                  height: HomeStyles.dividerHeight,
-                  indent: HomeStyles.recentDividerIndent,
-                  color: HomeStyles.dividerColor,
-                ),
-            ],
-          );
-        }, growable: false),
-      ),
-    );
-  }
-
-  Widget _buildEncouragementCard() {
-    return Container(
-      width: double.infinity,
-      padding: HomeStyles.encouragementPadding,
-      decoration: const BoxDecoration(
-        color: HomeStyles.encouragementBackgroundColor,
-        borderRadius: HomeStyles.cardRadius,
-        border: HomeStyles.encouragementBorder,
-      ),
-      child: const Row(
-        children: <Widget>[
-          Icon(
-            HomeStyles.encouragementIcon,
-            size: HomeStyles.encouragementIconSize,
-            color: HomeStyles.primaryColor,
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: index == materials.length - 1
+                ? 0
+                : HomeStyles.recentItemSpacing,
           ),
-          SizedBox(width: HomeStyles.encouragementContentSpacing),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  HomeStyles.encouragementTitle,
-                  style: HomeStyles.encouragementTitleStyle,
-                ),
-                SizedBox(height: HomeStyles.encouragementDescriptionSpacing),
-                Text(
-                  HomeStyles.encouragementDescription,
-                  style: HomeStyles.encouragementDescriptionStyle,
-                ),
-              ],
-            ),
+          child: _RecentActivityCard(
+            material: material,
+            icon: _getMaterialIcon(material),
+            category: _getMaterialCategory(material),
+            relativeTime: _formatRelativeTime(material.uploadDate),
+            onPressed: widget.onMaterialsPressed,
           ),
-        ],
-      ),
+        );
+      }, growable: false),
     );
   }
 }
 
-class _HomeActionCard extends StatelessWidget {
-  const _HomeActionCard({
+class _QuickActionRow extends StatelessWidget {
+  const _QuickActionRow({
     required this.icon,
-    required this.iconColor,
-    required this.iconBackgroundColor,
     required this.title,
     required this.description,
     required this.onPressed,
   });
 
   final IconData icon;
-  final Color iconColor;
-  final Color iconBackgroundColor;
   final String title;
   final String description;
   final VoidCallback onPressed;
@@ -664,54 +432,58 @@ class _HomeActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: HomeStyles.surfaceColor,
-      borderRadius: HomeStyles.cardRadius,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onPressed,
-        borderRadius: HomeStyles.cardRadius,
-        child: Container(
-          height: HomeStyles.quickActionCardHeight,
-          padding: HomeStyles.quickActionPadding,
-          decoration: const BoxDecoration(
-            borderRadius: HomeStyles.cardRadius,
-            border: HomeStyles.cardBorder,
-            boxShadow: HomeStyles.cardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: HomeStyles.quickActionRowPadding,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: HomeStyles.actionIconContainerSize,
-                height: HomeStyles.actionIconContainerSize,
+                width: HomeStyles.quickActionIconContainerSize,
+                height: HomeStyles.quickActionIconContainerSize,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: iconBackgroundColor,
-                  shape: BoxShape.circle,
-                  border: HomeStyles.smallContainerBorder,
-                  boxShadow: HomeStyles.smallContainerShadow,
+                decoration: const BoxDecoration(
+                  color: HomeStyles.quickActionIconBackgroundColor,
+                  borderRadius: HomeStyles.quickActionIconRadius,
+                  border: HomeStyles.quickActionIconBorder,
                 ),
                 child: Icon(
                   icon,
-                  size: HomeStyles.actionIconSize,
-                  color: iconColor,
+                  size: HomeStyles.quickActionIconSize,
+                  color: HomeStyles.primaryColor,
                 ),
               ),
-              const Spacer(),
-              Text(title, style: HomeStyles.actionTitleStyle),
-              const SizedBox(height: HomeStyles.actionDescriptionSpacing),
-              Text(
-                description,
-                maxLines: HomeStyles.actionDescriptionMaximumLines,
-                overflow: TextOverflow.ellipsis,
-                style: HomeStyles.actionDescriptionStyle,
+              const SizedBox(width: HomeStyles.quickActionContentSpacing),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(title, style: HomeStyles.quickActionTitleStyle),
+                    const SizedBox(
+                      height: HomeStyles.quickActionDescriptionSpacing,
+                    ),
+                    Text(
+                      description,
+                      style: HomeStyles.quickActionDescriptionStyle,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: HomeStyles.actionArrowSpacing),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Icon(
+              const SizedBox(width: HomeStyles.quickActionArrowSpacing),
+              Container(
+                width: HomeStyles.quickActionArrowContainerSize,
+                height: HomeStyles.quickActionArrowContainerSize,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: HomeStyles.quickActionArrowBackgroundColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
                   HomeStyles.forwardIcon,
-                  size: HomeStyles.actionArrowSize,
-                  color: iconColor,
+                  size: HomeStyles.quickActionArrowIconSize,
+                  color: HomeStyles.primaryColor,
                 ),
               ),
             ],
@@ -722,88 +494,92 @@ class _HomeActionCard extends StatelessWidget {
   }
 }
 
-class _RecentMaterialTile extends StatelessWidget {
-  const _RecentMaterialTile({
+class _RecentActivityCard extends StatelessWidget {
+  const _RecentActivityCard({
     required this.material,
     required this.icon,
-    required this.accentColor,
-    required this.fileSize,
-    required this.date,
+    required this.category,
+    required this.relativeTime,
     required this.onPressed,
   });
 
   final MaterialModel material;
   final IconData icon;
-  final Color accentColor;
-  final String fileSize;
-  final String date;
+  final String category;
+  final String relativeTime;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: HomeStyles.cardRadius,
-      child: Padding(
-        padding: HomeStyles.recentMaterialPadding,
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: HomeStyles.recentFileIconContainerSize,
-              height: HomeStyles.recentFileIconContainerSize,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: HomeStyles.surfaceColor,
-                borderRadius: HomeStyles.fileIconRadius,
-                border: HomeStyles.smallContainerBorder,
-                boxShadow: HomeStyles.smallContainerShadow,
-              ),
-              child: Icon(
-                icon,
-                size: HomeStyles.recentFileIconSize,
-                color: accentColor,
-              ),
-            ),
-            const SizedBox(width: HomeStyles.recentMaterialContentSpacing),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    material.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeStyles.recentMaterialTitleStyle,
+    final String title = material.title.trim().isEmpty
+        ? material.fileName
+        : material.title.trim();
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: HomeStyles.surfaceColor,
+        borderRadius: HomeStyles.recentCardRadius,
+        border: HomeStyles.cardBorder,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: HomeStyles.recentCardRadius,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: HomeStyles.recentCardRadius,
+          child: Padding(
+            padding: HomeStyles.recentCardPadding,
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: HomeStyles.thumbnailSize,
+                  height: HomeStyles.thumbnailSize,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: HomeStyles.thumbnailBackgroundColor,
+                    borderRadius: HomeStyles.thumbnailRadius,
+                    border: HomeStyles.thumbnailBorder,
                   ),
-                  const SizedBox(height: HomeStyles.recentMetadataSpacing),
-                  Text(
-                    '${material.subject}'
-                    '${HomeStyles.metadataSeparator}'
-                    '$fileSize'
-                    '${HomeStyles.metadataSeparator}'
-                    '$date',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: HomeStyles.recentMetadataStyle,
+                  child: Icon(
+                    icon,
+                    color: HomeStyles.primaryColor,
+                    size: HomeStyles.thumbnailIconSize,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: HomeStyles.recentContentSpacing),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeStyles.recentTitleStyle,
+                      ),
+                      const SizedBox(height: HomeStyles.recentMetadataSpacing),
+                      Text(
+                        category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeStyles.recentMetadataStyle,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: HomeStyles.recentContentSpacing),
+                Text(relativeTime, style: HomeStyles.relativeTimeStyle),
+              ],
             ),
-            const SizedBox(width: HomeStyles.recentMaterialContentSpacing),
-            const Icon(
-              HomeStyles.viewMaterialIcon,
-              size: HomeStyles.viewMaterialIconSize,
-              color: HomeStyles.primaryColor,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _HomeStateCard extends StatelessWidget {
-  const _HomeStateCard({
+class _StateCard extends StatelessWidget {
+  const _StateCard({
     required this.icon,
     required this.title,
     required this.description,
@@ -826,9 +602,8 @@ class _HomeStateCard extends StatelessWidget {
       padding: HomeStyles.stateCardPadding,
       decoration: const BoxDecoration(
         color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.cardRadius,
+        borderRadius: HomeStyles.recentCardRadius,
         border: HomeStyles.cardBorder,
-        boxShadow: HomeStyles.cardShadow,
       ),
       child: Column(
         children: <Widget>[
@@ -854,11 +629,7 @@ class _HomeStateCard extends StatelessWidget {
           ),
           if (actionLabel != null && onActionPressed != null) ...<Widget>[
             const SizedBox(height: HomeStyles.stateActionSpacing),
-            FilledButton(
-              onPressed: onActionPressed,
-              style: HomeStyles.stateButtonStyle,
-              child: Text(actionLabel!),
-            ),
+            FilledButton(onPressed: onActionPressed, child: Text(actionLabel!)),
           ],
         ],
       ),

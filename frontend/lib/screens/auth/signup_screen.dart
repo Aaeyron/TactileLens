@@ -124,7 +124,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (response.statusCode == 409) {
-        _showMessage(SignUpStyles.emailExistsMessage);
+        String serverMessage = '';
+
+        try {
+          final dynamic decodedBody = jsonDecode(response.body);
+
+          if (decodedBody is Map<String, dynamic>) {
+            serverMessage = decodedBody['message']?.toString().trim() ?? '';
+          }
+        } on FormatException {
+          serverMessage = '';
+        }
+
+        _showMessage(
+          serverMessage.isNotEmpty
+              ? serverMessage
+              : SignUpStyles.emailExistsMessage,
+        );
+
         return;
       }
 
@@ -166,7 +183,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       final String idToken = await GoogleSignInService.authenticate();
 
-      final response = await AuthService.continueWithGoogle(
+      final response = await AuthService.registerWithGoogle(
         idToken: idToken,
         role: role,
       );

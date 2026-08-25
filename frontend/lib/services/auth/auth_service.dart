@@ -62,14 +62,14 @@ class AuthService {
   }
 
   // ==========================
-  // Continue With Google
+  // Register With Google
   // ==========================
 
-  static Future<http.Response> continueWithGoogle({
+  static Future<http.Response> registerWithGoogle({
     required String idToken,
     required String role,
   }) {
-    final Uri url = Uri.parse('$baseUrl/api/auth/google');
+    final Uri url = Uri.parse('$baseUrl/api/auth/google/register');
 
     return http.post(
       url,
@@ -78,6 +78,20 @@ class AuthService {
         'id_token': idToken.trim(),
         'role': role.trim(),
       }),
+    );
+  }
+
+  // ==========================
+  // Sign In With Google
+  // ==========================
+
+  static Future<http.Response> loginWithGoogle({required String idToken}) {
+    final Uri url = Uri.parse('$baseUrl/api/auth/google/login');
+
+    return http.post(
+      url,
+      headers: _jsonHeaders,
+      body: jsonEncode(<String, dynamic>{'id_token': idToken.trim()}),
     );
   }
 }

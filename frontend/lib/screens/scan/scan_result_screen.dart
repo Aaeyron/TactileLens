@@ -8,7 +8,6 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
-import '../../widgets/app_header.dart';
 
 class ScanResultScreen extends StatelessWidget {
   const ScanResultScreen({
@@ -33,54 +32,55 @@ class ScanResultScreen extends StatelessWidget {
       backgroundColor: ScanResultScreenStyles.backgroundColor,
       appBar: PreferredSize(
         preferredSize: ScanResultScreenStyles.headerSize,
-        child: Stack(
-          children: <Widget>[
-            const AppHeader(),
-            SafeArea(
-              child: SizedBox(
-                height: ScanResultScreenStyles.headerContentHeight,
-                child: Row(
-                  children: <Widget>[
-                    IconButton(
-                      tooltip: ScanResultScreenStyles.backTooltip,
-                      onPressed: () {
-                        Navigator.maybePop(context);
-                      },
-                      icon: const Icon(
-                        ScanResultScreenStyles.backIcon,
-                        size: ScanResultScreenStyles.headerIconSize,
-                      ),
+        child: Material(
+          color: ScanResultScreenStyles.surfaceColor,
+          elevation: 1,
+          shadowColor: Colors.black12,
+          child: SafeArea(
+            child: SizedBox(
+              height: ScanResultScreenStyles.headerContentHeight,
+              child: Row(
+                children: <Widget>[
+                  IconButton(
+                    tooltip: ScanResultScreenStyles.backTooltip,
+                    onPressed: () {
+                      Navigator.maybePop(context);
+                    },
+                    icon: const Icon(
+                      ScanResultScreenStyles.backIcon,
+                      size: ScanResultScreenStyles.headerIconSize,
+                      color: ScanResultScreenStyles.primaryColor,
                     ),
-                    const SizedBox(
-                      width: ScanResultScreenStyles.headerTitleSpacing,
+                  ),
+                  const SizedBox(
+                    width: ScanResultScreenStyles.headerTitleSpacing,
+                  ),
+                  const Expanded(
+                    child: Text(
+                      ScanResultScreenStyles.appBarTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ScanResultScreenStyles.appBarTitleStyle,
                     ),
-                    const Expanded(
-                      child: Text(
-                        ScanResultScreenStyles.appBarTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: ScanResultScreenStyles.appBarTitleStyle,
-                      ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.maybePop(context);
+                    },
+                    icon: const Icon(
+                      ScanResultScreenStyles.newScanIcon,
+                      size: ScanResultScreenStyles.actionIconSize,
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.maybePop(context);
-                      },
-                      icon: const Icon(
-                        ScanResultScreenStyles.newScanIcon,
-                        size: ScanResultScreenStyles.actionIconSize,
-                      ),
-                      label: const Text(ScanResultScreenStyles.newScanLabel),
-                      style: ScanResultScreenStyles.headerActionStyle,
-                    ),
-                    const SizedBox(
-                      width: ScanResultScreenStyles.headerRightSpacing,
-                    ),
-                  ],
-                ),
+                    label: const Text(ScanResultScreenStyles.newScanLabel),
+                    style: ScanResultScreenStyles.headerActionStyle,
+                  ),
+                  const SizedBox(
+                    width: ScanResultScreenStyles.headerRightSpacing,
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
       body: SafeArea(

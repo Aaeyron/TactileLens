@@ -5,17 +5,22 @@ import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
 import '../../widgets/app_header.dart';
 
-enum _HistoryFilter { all, content, braille }
+enum _HistoryFilter { all, text, math, ueb, nemeth }
 
 enum _HistoryAction { rename, delete }
+
+enum _HistorySort { newest, oldest, title }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key, required this.onBack});
 
+  // Retained for compatibility with MainScreen.
   final VoidCallback onBack;
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() {
+    return _HistoryScreenState();
+  }
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
@@ -23,10 +28,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   List<HistoryRecord> _records = <HistoryRecord>[];
+
   _HistoryFilter _selectedFilter = _HistoryFilter.all;
+  _HistorySort _selectedSort = _HistorySort.newest;
 
   bool _isLoading = true;
   bool _isUpdating = false;
+
   String? _errorMessage;
 
   @override
@@ -44,6 +52,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ..dispose();
 
     _historyService.dispose();
+
     super.dispose();
   }
 
@@ -51,19 +60,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() {});
   }
 
+  bool _containsMath(HistoryRecord record) {
+    final String content = record.recognizedContent.toLowerCase();
+
+    return content.contains(r'\frac') ||
+        content.contains(r'\sqrt') ||
+        content.contains(r'\sum') ||
+        content.contains(r'\int') ||
+        content.contains('=') ||
+        content.contains('^') ||
+        RegExp(r'\d+\s*[+\-*/]\s*\d+').hasMatch(content);
+  }
+
+  bool _hasBraille(HistoryRecord record) {
+    return record.brailleContent.trim().isNotEmpty;
+  }
+
+  bool _matchesSelectedFilter(HistoryRecord record) {
+    final bool containsMath = _containsMath(record);
+    final bool hasBraille = _hasBraille(record);
+
+    return switch (_selectedFilter) {
+      _HistoryFilter.all => true,
+      _HistoryFilter.text => !containsMath,
+      _HistoryFilter.math => containsMath,
+      _HistoryFilter.ueb => !containsMath && hasBraille,
+      _HistoryFilter.nemeth => containsMath && hasBraille,
+    };
+  }
+
   List<HistoryRecord> get _visibleRecords {
     final String searchQuery = _searchController.text.trim().toLowerCase();
 
-    return _records
+    final List<HistoryRecord> records = _records
         .where((HistoryRecord record) {
-          final bool matchesFilter = switch (_selectedFilter) {
-            _HistoryFilter.all => true,
-            _HistoryFilter.content =>
-              record.recognizedContent.trim().isNotEmpty,
-            _HistoryFilter.braille => record.brailleContent.trim().isNotEmpty,
-          };
-
-          if (!matchesFilter) {
+          if (!_matchesSelectedFilter(record)) {
             return false;
           }
 
@@ -76,6 +107,79 @@ class _HistoryScreenState extends State<HistoryScreen> {
               record.brailleContent.toLowerCase().contains(searchQuery);
         })
         .toList(growable: false);
+
+    switch (_selectedSort) {
+      case _HistorySort.newest:
+        records.sort((HistoryRecord first, HistoryRecord second) {
+          return second.createdAt.compareTo(first.createdAt);
+        });
+
+      case _HistorySort.oldest:
+        records.sort((HistoryRecord first, HistoryRecord second) {
+          return first.createdAt.compareTo(second.createdAt);
+        });
+
+      case _HistorySort.title:
+        records.sort((HistoryRecord first, HistoryRecord second) {
+          return first.title.toLowerCase().compareTo(
+            second.title.toLowerCase(),
+          );
+        });
+    }
+
+    return records;
+  }
+
+  Map<String, List<HistoryRecord>> get _groupedRecords {
+    final Map<String, List<HistoryRecord>> groups =
+        <String, List<HistoryRecord>>{};
+
+    for (final HistoryRecord record in _visibleRecords) {
+      final String group = _dateGroupLabel(record.createdAt);
+
+      groups.putIfAbsent(group, () => <HistoryRecord>[]);
+
+      groups[group]!.add(record);
+    }
+
+    return groups;
+  }
+
+  String _dateGroupLabel(DateTime value) {
+    final DateTime localDate = value.toLocal();
+    final DateTime now = DateTime.now();
+
+    final DateTime today = DateTime(now.year, now.month, now.day);
+
+    final DateTime recordDate = DateTime(
+      localDate.year,
+      localDate.month,
+      localDate.day,
+    );
+
+    final int difference = today.difference(recordDate).inDays;
+
+    if (difference == 0) {
+      return HistoryScreenStyles.todayLabel;
+    }
+
+    if (difference == 1) {
+      return HistoryScreenStyles.yesterdayLabel;
+    }
+
+    return MaterialLocalizations.of(context).formatMediumDate(localDate);
+  }
+
+  String _recordBadge(HistoryRecord record) {
+    return _containsMath(record)
+        ? HistoryScreenStyles.mathBadgeLabel
+        : HistoryScreenStyles.textBadgeLabel;
+  }
+
+  String _brailleCode(HistoryRecord record) {
+    return _containsMath(record)
+        ? HistoryScreenStyles.nemethLabel
+        : HistoryScreenStyles.uebLabel;
   }
 
   Future<void> _loadHistory() async {
@@ -104,6 +208,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isLoading = false;
         _errorMessage = error.message;
       });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = HistoryScreenStyles.errorTitle;
+      });
     }
   }
 
@@ -120,11 +233,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _errorMessage = null;
       });
     } on HistoryServiceException catch (error) {
-      if (!mounted) {
-        return;
+      if (mounted) {
+        _showMessage(error.message);
       }
-
-      _showMessage(error.message);
+    } catch (_) {
+      if (mounted) {
+        _showMessage(HistoryScreenStyles.errorTitle);
+      }
     }
   }
 
@@ -179,6 +294,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _deleteRecord(HistoryRecord record) async {
+    if (_isUpdating) {
+      return;
+    }
+
     final bool confirmed = await _showConfirmationDialog(
       title: HistoryScreenStyles.deleteDialogTitle,
       description: HistoryScreenStyles.deleteDialogDescription,
@@ -202,7 +321,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       setState(() {
         _records = _records
-            .where((HistoryRecord item) => item.id != record.id)
+            .where((HistoryRecord item) {
+              return item.id != record.id;
+            })
             .toList(growable: false);
 
         _isUpdating = false;
@@ -335,7 +456,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     HistoryScreenStyles.recognizedContentTitle,
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
-                  const SizedBox(height: HistoryScreenStyles.compactSpacing),
+                  const SizedBox(height: 7),
                   SelectableText(
                     record.recognizedContent,
                     style: HistoryScreenStyles.detailContentStyle,
@@ -345,7 +466,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     HistoryScreenStyles.brailleContentTitle,
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
-                  const SizedBox(height: HistoryScreenStyles.compactSpacing),
+                  const SizedBox(height: 7),
                   SelectableText(
                     record.brailleContent.trim().isEmpty
                         ? HistoryScreenStyles.noBrailleContent
@@ -391,89 +512,107 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: HistoryScreenStyles.backgroundColor,
-      appBar: PreferredSize(
-        preferredSize: HistoryScreenStyles.headerSize,
-        child: Stack(
-          children: <Widget>[
-            const AppHeader(),
-            Positioned.fill(
-              child: SafeArea(
-                child: Padding(
-                  padding: HistoryScreenStyles.headerPadding,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: <Widget>[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: HistoryScreenStyles.backButtonTooltip,
-                          onPressed: widget.onBack,
-                          icon: const Icon(
-                            HistoryScreenStyles.backButtonIcon,
-                            size: HistoryScreenStyles.backButtonIconSize,
-                            color: HistoryScreenStyles.primaryColor,
-                          ),
-                        ),
-                      ),
-                      _buildHeader(),
-                    ],
-                  ),
-                ),
+      body: Column(
+        children: <Widget>[
+          // Shared logo-and-notification header.
+          // No back arrow is added here.
+          const AppHeader(),
+          Expanded(
+            child: RefreshIndicator(
+              color: HistoryScreenStyles.primaryColor,
+              onRefresh: _refreshHistory,
+              child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: HistoryScreenStyles.screenPadding,
+                children: <Widget>[
+                  _buildTitle(),
+                  const SizedBox(height: HistoryScreenStyles.searchTopSpacing),
+                  _buildSearchAndSort(),
+                  const SizedBox(height: HistoryScreenStyles.filterTopSpacing),
+                  _buildFilters(),
+                  const SizedBox(height: HistoryScreenStyles.sectionSpacing),
+                  _buildContent(),
+                  const SizedBox(height: HistoryScreenStyles.bottomSpacing),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
-      body: RefreshIndicator(
-        color: HistoryScreenStyles.primaryColor,
-        onRefresh: _refreshHistory,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: HistoryScreenStyles.screenPadding,
-          children: <Widget>[
-            _buildHistoryToolbar(),
-            const SizedBox(height: HistoryScreenStyles.toolbarBottomSpacing),
-            _buildFilters(),
-            const SizedBox(height: HistoryScreenStyles.sectionSpacing),
-            _buildSearchField(),
-            const SizedBox(height: HistoryScreenStyles.sectionSpacing),
-            _buildContent(),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return const Center(
-      child: Text(
-        HistoryScreenStyles.screenTitle,
-        style: HistoryScreenStyles.titleStyle,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildHistoryToolbar() {
+  Widget _buildTitle() {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         const Expanded(
           child: Text(
-            HistoryScreenStyles.screenDescription,
-            style: HistoryScreenStyles.descriptionStyle,
+            HistoryScreenStyles.screenTitle,
+            style: HistoryScreenStyles.titleStyle,
           ),
         ),
-        const SizedBox(width: HistoryScreenStyles.compactSpacing),
-        TextButton.icon(
+        TextButton(
           onPressed: _records.isEmpty || _isUpdating ? null : _clearAllHistory,
-          icon: const Icon(
-            HistoryScreenStyles.clearAllIcon,
-            size: HistoryScreenStyles.clearAllIconSize,
+          child: const Text(HistoryScreenStyles.confirmClearLabel),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchAndSort() {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: SizedBox(
+            height: HistoryScreenStyles.searchHeight,
+            child: TextField(
+              controller: _searchController,
+              style: HistoryScreenStyles.searchTextStyle,
+              decoration: HistoryScreenStyles.searchDecoration.copyWith(
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: HistoryScreenStyles.clearSearchTooltip,
+                        onPressed: _searchController.clear,
+                        icon: const Icon(HistoryScreenStyles.clearSearchIcon),
+                      ),
+              ),
+            ),
           ),
-          label: const Text(HistoryScreenStyles.clearAllLabel),
-          style: HistoryScreenStyles.clearAllButtonStyle,
+        ),
+        const SizedBox(width: HistoryScreenStyles.sortSpacing),
+        PopupMenuButton<_HistorySort>(
+          tooltip: HistoryScreenStyles.sortTooltip,
+          initialValue: _selectedSort,
+          onSelected: (_HistorySort sort) {
+            setState(() {
+              _selectedSort = sort;
+            });
+          },
+          icon: const Icon(
+            HistoryScreenStyles.sortIcon,
+            color: HistoryScreenStyles.textMutedColor,
+          ),
+          itemBuilder: (BuildContext context) {
+            return const <PopupMenuEntry<_HistorySort>>[
+              PopupMenuItem<_HistorySort>(
+                value: _HistorySort.newest,
+                child: Text(HistoryScreenStyles.newestLabel),
+              ),
+              PopupMenuItem<_HistorySort>(
+                value: _HistorySort.oldest,
+                child: Text(HistoryScreenStyles.oldestLabel),
+              ),
+              PopupMenuItem<_HistorySort>(
+                value: _HistorySort.title,
+                child: Text(HistoryScreenStyles.titleSortLabel),
+              ),
+            ];
+          },
         ),
       ],
     );
@@ -483,62 +622,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: <Widget>[
-          _HistoryFilterButton(
-            label: HistoryScreenStyles.allFilterLabel,
-            icon: HistoryScreenStyles.allFilterIcon,
-            isSelected: _selectedFilter == _HistoryFilter.all,
-            onPressed: () {
-              setState(() {
-                _selectedFilter = _HistoryFilter.all;
-              });
-            },
-          ),
-          const SizedBox(width: HistoryScreenStyles.filterSpacing),
-          _HistoryFilterButton(
-            label: HistoryScreenStyles.contentFilterLabel,
-            icon: HistoryScreenStyles.contentFilterIcon,
-            isSelected: _selectedFilter == _HistoryFilter.content,
-            onPressed: () {
-              setState(() {
-                _selectedFilter = _HistoryFilter.content;
-              });
-            },
-          ),
-          const SizedBox(width: HistoryScreenStyles.filterSpacing),
-          _HistoryFilterButton(
-            label: HistoryScreenStyles.brailleFilterLabel,
-            icon: HistoryScreenStyles.brailleFilterIcon,
-            isSelected: _selectedFilter == _HistoryFilter.braille,
-            onPressed: () {
-              setState(() {
-                _selectedFilter = _HistoryFilter.braille;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
+        children: _HistoryFilter.values
+            .map((_HistoryFilter filter) {
+              final String label = switch (filter) {
+                _HistoryFilter.all => HistoryScreenStyles.allFilterLabel,
+                _HistoryFilter.text => HistoryScreenStyles.textFilterLabel,
+                _HistoryFilter.math => HistoryScreenStyles.mathFilterLabel,
+                _HistoryFilter.ueb => HistoryScreenStyles.uebFilterLabel,
+                _HistoryFilter.nemeth => HistoryScreenStyles.nemethFilterLabel,
+              };
 
-  Widget _buildSearchField() {
-    return SizedBox(
-      height: HistoryScreenStyles.searchHeight,
-      child: TextField(
-        controller: _searchController,
-        style: HistoryScreenStyles.searchTextStyle,
-        decoration: HistoryScreenStyles.searchDecoration.copyWith(
-          suffixIcon: _searchController.text.isEmpty
-              ? null
-              : IconButton(
-                  tooltip: HistoryScreenStyles.searchTooltip,
-                  onPressed: _searchController.clear,
-                  icon: const Icon(
-                    HistoryScreenStyles.clearSearchIcon,
-                    color: HistoryScreenStyles.textSecondaryColor,
-                  ),
+              return Padding(
+                padding: const EdgeInsets.only(
+                  right: HistoryScreenStyles.filterSpacing,
                 ),
-        ),
+                child: _HistoryFilterButton(
+                  label: label,
+                  isSelected: _selectedFilter == filter,
+                  onPressed: () {
+                    setState(() {
+                      _selectedFilter = filter;
+                    });
+                  },
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
@@ -582,33 +691,55 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
 
+    final Map<String, List<HistoryRecord>> groups = _groupedRecords;
+
     return Semantics(
       label: HistoryScreenStyles.historyListSemanticLabel,
       child: Column(
-        children: List<Widget>.generate(visibleRecords.length, (int index) {
-          final HistoryRecord record = visibleRecords[index];
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: groups.entries
+            .map((MapEntry<String, List<HistoryRecord>> group) {
+              return Padding(
+                padding: const EdgeInsets.only(
+                  bottom: HistoryScreenStyles.groupSpacing,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(group.key, style: HistoryScreenStyles.groupTitleStyle),
+                    const SizedBox(
+                      height: HistoryScreenStyles.groupTitleSpacing,
+                    ),
+                    ...List<Widget>.generate(group.value.length, (int index) {
+                      final HistoryRecord record = group.value[index];
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: index == visibleRecords.length - 1
-                  ? HistoryScreenStyles.zero
-                  : HistoryScreenStyles.cardSpacing,
-            ),
-            child: _HistoryCard(
-              record: record,
-              showBraille: _selectedFilter == _HistoryFilter.braille,
-              onView: () {
-                _showRecordDetails(record);
-              },
-              onRename: () {
-                _renameRecord(record);
-              },
-              onDelete: () {
-                _deleteRecord(record);
-              },
-            ),
-          );
-        }, growable: false),
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == group.value.length - 1
+                              ? 0
+                              : HistoryScreenStyles.cardSpacing,
+                        ),
+                        child: _HistoryCard(
+                          record: record,
+                          badge: _recordBadge(record),
+                          brailleCode: _brailleCode(record),
+                          onView: () {
+                            _showRecordDetails(record);
+                          },
+                          onRename: () {
+                            _renameRecord(record);
+                          },
+                          onDelete: () {
+                            _deleteRecord(record);
+                          },
+                        ),
+                      );
+                    }, growable: false),
+                  ],
+                ),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
@@ -617,53 +748,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
 class _HistoryFilterButton extends StatelessWidget {
   const _HistoryFilterButton({
     required this.label,
-    required this.icon,
     required this.isSelected,
     required this.onPressed,
   });
 
   final String label;
-  final IconData icon;
   final bool isSelected;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPressed,
+    return Material(
+      color: isSelected
+          ? HistoryScreenStyles.primaryColor
+          : HistoryScreenStyles.filterBackgroundColor,
       borderRadius: HistoryScreenStyles.filterRadius,
-      child: Container(
-        height: HistoryScreenStyles.filterHeight,
-        padding: HistoryScreenStyles.filterPadding,
-        decoration: BoxDecoration(
-          color: isSelected
-              ? HistoryScreenStyles.primaryColor
-              : HistoryScreenStyles.surfaceColor,
-          borderRadius: HistoryScreenStyles.filterRadius,
-          border: Border.all(
-            color: isSelected
-                ? HistoryScreenStyles.primaryColor
-                : HistoryScreenStyles.outlineColor,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: HistoryScreenStyles.filterRadius,
+        child: Container(
+          height: HistoryScreenStyles.filterHeight,
+          padding: HistoryScreenStyles.filterPadding,
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: isSelected
+                ? HistoryScreenStyles.selectedFilterTextStyle
+                : HistoryScreenStyles.unselectedFilterTextStyle,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              icon,
-              size: HistoryScreenStyles.filterIconSize,
-              color: isSelected
-                  ? HistoryScreenStyles.surfaceColor
-                  : HistoryScreenStyles.textSecondaryColor,
-            ),
-            const SizedBox(width: HistoryScreenStyles.compactSpacing),
-            Text(
-              label,
-              style: isSelected
-                  ? HistoryScreenStyles.selectedFilterTextStyle
-                  : HistoryScreenStyles.unselectedFilterTextStyle,
-            ),
-          ],
         ),
       ),
     );
@@ -673,180 +785,164 @@ class _HistoryFilterButton extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.record,
-    required this.showBraille,
+    required this.badge,
+    required this.brailleCode,
     required this.onView,
     required this.onRename,
     required this.onDelete,
   });
 
   final HistoryRecord record;
-  final bool showBraille;
+  final String badge;
+  final String brailleCode;
+
   final VoidCallback onView;
   final VoidCallback onRename;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final MaterialLocalizations localizations = MaterialLocalizations.of(
-      context,
-    );
+    final String recognizedContent = record.recognizedContent.trim();
 
-    final String date = localizations.formatMediumDate(record.createdAt);
+    final String previewContent = recognizedContent.isEmpty
+        ? HistoryScreenStyles.emptyRecognizedContent
+        : recognizedContent;
 
-    final String time = localizations.formatTimeOfDay(
-      TimeOfDay.fromDateTime(record.createdAt),
-    );
-
-    final bool displayBraille =
-        showBraille && record.brailleContent.trim().isNotEmpty;
-
-    final String previewContent = displayBraille
-        ? record.brailleContent
-        : record.recognizedContent;
-
-    return Container(
-      padding: HistoryScreenStyles.cardPadding,
-      decoration: const BoxDecoration(
-        color: HistoryScreenStyles.surfaceColor,
+    return Material(
+      color: HistoryScreenStyles.cardBackgroundColor,
+      borderRadius: HistoryScreenStyles.cardRadius,
+      child: InkWell(
+        onTap: onView,
         borderRadius: HistoryScreenStyles.cardRadius,
-        border: HistoryScreenStyles.cardBorder,
-        boxShadow: HistoryScreenStyles.cardShadow,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: HistoryScreenStyles.previewWidth,
-            height: HistoryScreenStyles.previewHeight,
-            padding: HistoryScreenStyles.previewPadding,
-            decoration: const BoxDecoration(
-              color: HistoryScreenStyles.softBackgroundColor,
-              borderRadius: HistoryScreenStyles.previewRadius,
-            ),
-            child: Text(
-              previewContent,
-              maxLines: HistoryScreenStyles.previewMaximumLines,
-              overflow: TextOverflow.ellipsis,
-              style: displayBraille
-                  ? HistoryScreenStyles.previewBrailleStyle
-                  : HistoryScreenStyles.previewTextStyle,
-            ),
+        child: Container(
+          padding: HistoryScreenStyles.cardPadding,
+          decoration: const BoxDecoration(
+            borderRadius: HistoryScreenStyles.cardRadius,
+            border: HistoryScreenStyles.cardBorder,
           ),
-          const SizedBox(width: HistoryScreenStyles.itemSpacing),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Container(
-                      padding: HistoryScreenStyles.badgePadding,
-                      decoration: const BoxDecoration(
-                        color: HistoryScreenStyles.selectedBackgroundColor,
-                        borderRadius: HistoryScreenStyles.badgeRadius,
-                      ),
-                      child: Text(
-                        displayBraille
-                            ? HistoryScreenStyles.brailleBadgeLabel
-                            : HistoryScreenStyles.contentBadgeLabel,
-                        style: HistoryScreenStyles.badgeTextStyle,
-                      ),
-                    ),
-                    const Spacer(),
-                    PopupMenuButton<_HistoryAction>(
-                      tooltip: HistoryScreenStyles.moreActionsTooltip,
-                      icon: const Icon(
-                        HistoryScreenStyles.moreActionsIcon,
-                        size: HistoryScreenStyles.moreActionIconSize,
-                        color: HistoryScreenStyles.textSecondaryColor,
-                      ),
-                      onSelected: (_HistoryAction action) {
-                        switch (action) {
-                          case _HistoryAction.rename:
-                            onRename();
-                          case _HistoryAction.delete:
-                            onDelete();
-                        }
-                      },
-                      itemBuilder: (BuildContext context) {
-                        return const <PopupMenuEntry<_HistoryAction>>[
-                          PopupMenuItem<_HistoryAction>(
-                            value: _HistoryAction.rename,
-                            child: ListTile(
-                              leading: Icon(HistoryScreenStyles.renameIcon),
-                              title: Text(HistoryScreenStyles.renameLabel),
-                            ),
-                          ),
-                          PopupMenuItem<_HistoryAction>(
-                            value: _HistoryAction.delete,
-                            child: ListTile(
-                              leading: Icon(
-                                HistoryScreenStyles.deleteIcon,
-                                color: HistoryScreenStyles.destructiveColor,
-                              ),
-                              title: Text(HistoryScreenStyles.deleteLabel),
-                            ),
-                          ),
-                        ];
-                      },
-                    ),
-                  ],
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: HistoryScreenStyles.previewWidth,
+                height: HistoryScreenStyles.previewHeight,
+                padding: HistoryScreenStyles.previewPadding,
+                decoration: const BoxDecoration(
+                  color: HistoryScreenStyles.previewBackgroundColor,
+                  borderRadius: HistoryScreenStyles.previewRadius,
                 ),
-                const SizedBox(height: HistoryScreenStyles.compactSpacing),
-                Text(
-                  record.title,
-                  maxLines: HistoryScreenStyles.cardTitleMaximumLines,
-                  overflow: TextOverflow.ellipsis,
-                  style: HistoryScreenStyles.cardTitleStyle,
-                ),
-                const SizedBox(height: HistoryScreenStyles.compactSpacing),
-                Text(
+                child: Text(
                   previewContent,
-                  maxLines: HistoryScreenStyles.cardDescriptionMaximumLines,
+                  maxLines: HistoryScreenStyles.previewMaximumLines,
                   overflow: TextOverflow.ellipsis,
-                  style: HistoryScreenStyles.cardDescriptionStyle,
+                  style: HistoryScreenStyles.previewTextStyle,
                 ),
-                const SizedBox(height: HistoryScreenStyles.itemSpacing),
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: HistoryScreenStyles.metadataSpacing,
+              ),
+              const SizedBox(width: HistoryScreenStyles.cardContentSpacing),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    const Icon(
-                      HistoryScreenStyles.calendarIcon,
-                      size: HistoryScreenStyles.metadataIconSize,
-                      color: HistoryScreenStyles.textMutedColor,
+                    Row(
+                      children: <Widget>[
+                        Flexible(
+                          child: Container(
+                            padding: HistoryScreenStyles.badgePadding,
+                            decoration: const BoxDecoration(
+                              color: HistoryScreenStyles.primaryColor,
+                              borderRadius: HistoryScreenStyles.badgeRadius,
+                            ),
+                            child: Text(
+                              badge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: HistoryScreenStyles.badgeTextStyle,
+                            ),
+                          ),
+                        ),
+                        PopupMenuButton<_HistoryAction>(
+                          tooltip: HistoryScreenStyles.moreActionsTooltip,
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            HistoryScreenStyles.moreActionsIcon,
+                            size: HistoryScreenStyles.moreActionIconSize,
+                          ),
+                          onSelected: (_HistoryAction action) {
+                            switch (action) {
+                              case _HistoryAction.rename:
+                                onRename();
+
+                              case _HistoryAction.delete:
+                                onDelete();
+                            }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return const <PopupMenuEntry<_HistoryAction>>[
+                              PopupMenuItem<_HistoryAction>(
+                                value: _HistoryAction.rename,
+                                child: ListTile(
+                                  leading: Icon(HistoryScreenStyles.renameIcon),
+                                  title: Text(HistoryScreenStyles.renameLabel),
+                                ),
+                              ),
+                              PopupMenuItem<_HistoryAction>(
+                                value: _HistoryAction.delete,
+                                child: ListTile(
+                                  leading: Icon(
+                                    HistoryScreenStyles.deleteIcon,
+                                    color: HistoryScreenStyles.primaryColor,
+                                  ),
+                                  title: Text(HistoryScreenStyles.deleteLabel),
+                                ),
+                              ),
+                            ];
+                          },
+                        ),
+                      ],
                     ),
-                    Text(date, style: HistoryScreenStyles.metadataTextStyle),
+                    Text(
+                      previewContent,
+                      maxLines: HistoryScreenStyles.contentMaximumLines,
+                      overflow: TextOverflow.ellipsis,
+                      style: HistoryScreenStyles.contentStyle,
+                    ),
+                    const SizedBox(
+                      height: HistoryScreenStyles.brailleLabelSpacing,
+                    ),
                     const Text(
-                      HistoryScreenStyles.metadataSeparator,
-                      style: HistoryScreenStyles.metadataTextStyle,
+                      '${HistoryScreenStyles.brailleTranslationLabel}:',
+                      style: HistoryScreenStyles.brailleLabelStyle,
                     ),
-                    const Icon(
-                      HistoryScreenStyles.timeIcon,
-                      size: HistoryScreenStyles.metadataIconSize,
-                      color: HistoryScreenStyles.textMutedColor,
-                    ),
-                    Text(time, style: HistoryScreenStyles.metadataTextStyle),
+                    if (_hasVisibleBraille)
+                      Text(
+                        record.brailleContent,
+                        maxLines: HistoryScreenStyles.brailleMaximumLines,
+                        overflow: TextOverflow.ellipsis,
+                        style: HistoryScreenStyles.brailleStyle,
+                      )
+                    else
+                      Text(
+                        '$brailleCode '
+                        '${HistoryScreenStyles.notAvailableLabel}',
+                        style: HistoryScreenStyles.brailleUnavailableStyle,
+                      ),
                   ],
                 ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: onView,
-                    icon: const Icon(
-                      HistoryScreenStyles.viewIcon,
-                      size: HistoryScreenStyles.actionIconSize,
-                    ),
-                    label: const Text(HistoryScreenStyles.viewLabel),
-                    style: HistoryScreenStyles.viewButtonStyle,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                tooltip: HistoryScreenStyles.favoriteTooltip,
+                onPressed: null,
+                icon: const Icon(HistoryScreenStyles.favoriteIcon),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  bool get _hasVisibleBraille {
+    return record.brailleContent.trim().isNotEmpty;
   }
 }
 
@@ -883,14 +979,14 @@ class _HistoryStateView extends StatelessWidget {
               size: HistoryScreenStyles.stateIconSize,
               color: HistoryScreenStyles.primaryColor,
             ),
-          const SizedBox(height: HistoryScreenStyles.itemSpacing),
+          const SizedBox(height: 14),
           Text(
             title,
             textAlign: TextAlign.center,
             style: HistoryScreenStyles.stateTitleStyle,
           ),
           if (description != null) ...<Widget>[
-            const SizedBox(height: HistoryScreenStyles.compactSpacing),
+            const SizedBox(height: 7),
             Text(
               description!,
               textAlign: TextAlign.center,
@@ -898,7 +994,7 @@ class _HistoryStateView extends StatelessWidget {
             ),
           ],
           if (actionLabel != null && onActionPressed != null) ...<Widget>[
-            const SizedBox(height: HistoryScreenStyles.itemSpacing),
+            const SizedBox(height: 18),
             FilledButton(
               onPressed: onActionPressed,
               style: HistoryScreenStyles.retryButtonStyle,
@@ -917,7 +1013,9 @@ class _RenameHistoryDialog extends StatefulWidget {
   final String currentTitle;
 
   @override
-  State<_RenameHistoryDialog> createState() => _RenameHistoryDialogState();
+  State<_RenameHistoryDialog> createState() {
+    return _RenameHistoryDialogState();
+  }
 }
 
 class _RenameHistoryDialogState extends State<_RenameHistoryDialog> {

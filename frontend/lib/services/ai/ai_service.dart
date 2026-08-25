@@ -11,9 +11,9 @@ class AIService {
   AIService({
     http.Client? client,
     String? baseUrl,
-    this._requestTimeout = const Duration(minutes: 2),
-  })  : _client = client ?? http.Client(),
-        _baseUrl = baseUrl ?? _configuredBaseUrl;
+    this.requestTimeout = const Duration(minutes: 5),
+  }) : _client = client ?? http.Client(),
+       _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl);
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_BASE_URL',
@@ -22,41 +22,73 @@ class AIService {
 
   final http.Client _client;
   final String _baseUrl;
-  final Duration _requestTimeout;
+  final Duration requestTimeout;
 
   Future<ScanDocumentResult> scanDocument(File imageFile) async {
     if (!await imageFile.exists()) {
       throw const AIServiceException('The selected image could not be found.');
     }
 
-    final uri = Uri.parse('$_baseUrl/api/scan-document');
-    final request = http.MultipartRequest('POST', uri)
-      ..files.add(
-        await http.MultipartFile.fromPath('image', imageFile.path),
-      );
+    final int imageSize = await imageFile.length();
+
+    debugPrint(
+      'Sending scan to AI: ${imageFile.path} '
+      '(${_formatBytes(imageSize)})',
+    );
+
+    debugPrint(
+      'AI endpoint: '
+      '$_baseUrl/api/scan-document',
+    );
+
+    final Stopwatch stopwatch = Stopwatch()..start();
+
+    final Uri uri = Uri.parse('$_baseUrl/api/scan-document');
+
+    final http.MultipartRequest request = http.MultipartRequest('POST', uri)
+      ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
     try {
-      final streamedResponse = await _client
+      final http.StreamedResponse streamedResponse = await _client
           .send(request)
-          .timeout(_requestTimeout);
-      final response = await http.Response.fromStream(streamedResponse);
-      final payload = _decodePayload(response.body);
+          .timeout(requestTimeout);
+
+      final http.Response response = await http.Response.fromStream(
+        streamedResponse,
+      ).timeout(requestTimeout);
+
+      final Map<String, dynamic> payload = _decodePayload(response.body);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw AIServiceException(
           _readErrorMessage(payload) ??
-              'The AI service returned status ${response.statusCode}.',
+              'The AI service returned status '
+                  '${response.statusCode}.',
         );
       }
 
+      debugPrint(
+        'AI scan completed in '
+        '${stopwatch.elapsed.inSeconds} seconds.',
+      );
+
       return ScanDocumentResult.fromJson(payload);
     } on TimeoutException {
-      throw const AIServiceException(
-        'Document scanning took too long. Please try again.',
+      debugPrint(
+        'AI scan timed out after '
+        '${requestTimeout.inMinutes} minutes.',
       );
-    } on SocketException {
+
       throw const AIServiceException(
-        'Unable to reach the AI service. Check the server and network.',
+        'The document is taking longer than expected to process. '
+        'Try cropping the image or scanning it again with clearer lighting.',
+      );
+    } on SocketException catch (error) {
+      debugPrint('AI socket connection failed: $error');
+
+      throw const AIServiceException(
+        'Unable to reach the AI service. '
+        'Check that the AI server is running.',
       );
     } on FormatException catch (error) {
       throw AIServiceException(error.message);
@@ -66,10 +98,15 @@ class AIService {
       rethrow;
     } catch (error, stackTrace) {
       debugPrint('Unexpected AI service error: $error');
+
       debugPrintStack(stackTrace: stackTrace);
+
       throw const AIServiceException(
-        'An unexpected error occurred while scanning the document.',
+        'An unexpected error occurred while scanning '
+        'the document.',
       );
+    } finally {
+      stopwatch.stop();
     }
   }
 
@@ -78,7 +115,7 @@ class AIService {
       throw const FormatException('The AI service returned an empty response.');
     }
 
-    final decoded = jsonDecode(responseBody);
+    final dynamic decoded = jsonDecode(responseBody);
 
     if (decoded is! Map) {
       throw const FormatException('The AI service returned invalid data.');
@@ -88,14 +125,43 @@ class AIService {
   }
 
   String? _readErrorMessage(Map<String, dynamic> payload) {
-    final detail = payload['detail'];
-    final message = payload['message'];
-    final error = payload['error'];
+    final dynamic detail = payload['detail'];
+    final dynamic message = payload['message'];
+    final dynamic error = payload['error'];
 
-    if (detail is String && detail.isNotEmpty) return detail;
-    if (message is String && message.isNotEmpty) return message;
-    if (error is String && error.isNotEmpty) return error;
+    if (detail is String && detail.trim().isNotEmpty) {
+      return detail.trim();
+    }
+
+    if (message is String && message.trim().isNotEmpty) {
+      return message.trim();
+    }
+
+    if (error is String && error.trim().isNotEmpty) {
+      return error.trim();
+    }
+
     return null;
+  }
+
+  static String _normalizeBaseUrl(String value) {
+    final String normalized = value.trim();
+
+    if (normalized.endsWith('/')) {
+      return normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
+  }
+
+  static String _formatBytes(int bytes) {
+    const int megabyte = 1024 * 1024;
+
+    if (bytes >= megabyte) {
+      return '${(bytes / megabyte).toStringAsFixed(1)} MB';
+    }
+
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
   }
 
   void dispose() {
@@ -109,6 +175,7 @@ class AIServiceException implements Exception {
   final String message;
 
   @override
-  String toString() => message;
+  String toString() {
+    return message;
+  }
 }
-

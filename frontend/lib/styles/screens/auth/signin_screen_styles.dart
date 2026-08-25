@@ -434,4 +434,85 @@ abstract final class SignInStyles {
   static const BorderRadius snackBarRadius = BorderRadius.all(
     Radius.circular(14),
   );
+
+  // ==========================
+  // Google account dialog
+  // ==========================
+
+  static const String googleAccountDialogTitle = 'Use Google to sign in';
+
+  static const String googleAccountDialogMessage =
+      'This account was created with Google. Continue with Google to securely access your TactileLens account.';
+
+  static const String continueWithGoogleLabel = 'Continue with Google';
+
+  static const String cancelLabel = 'Cancel';
+
+  static const Color accountDialogIconBackgroundColor = Color(0xFFEAF2FF);
+
+  static const IconData googleAccountIcon = Icons.g_mobiledata_rounded;
+
+  static const TextStyle accountDialogTitleStyle = TextStyle(
+    color: darkTitleColor,
+    fontSize: 19,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle accountDialogMessageStyle = TextStyle(
+    color: descriptionColor,
+    fontSize: 14,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  static const TextStyle accountDialogGoogleIconStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 19,
+    fontWeight: FontWeight.w900,
+  );
+
+  static const BorderRadius accountDialogRadius = BorderRadius.all(
+    Radius.circular(22),
+  );
+
+  static const EdgeInsets accountDialogTitlePadding = EdgeInsets.fromLTRB(
+    24,
+    24,
+    24,
+    12,
+  );
+
+  static const EdgeInsets accountDialogContentPadding = EdgeInsets.fromLTRB(
+    24,
+    0,
+    24,
+    20,
+  );
+
+  static const EdgeInsets accountDialogActionsPadding = EdgeInsets.fromLTRB(
+    16,
+    0,
+    16,
+    16,
+  );
+
+  static const double accountDialogIconContainerSize = 44;
+  static const double accountDialogIconSize = 30;
+  static const double accountDialogIconSpacing = 12;
+
+  static final ButtonStyle accountDialogCancelButtonStyle =
+      TextButton.styleFrom(
+        foregroundColor: descriptionColor,
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      );
+
+  static final ButtonStyle accountDialogGoogleButtonStyle =
+      ElevatedButton.styleFrom(
+        backgroundColor: brightPrimaryColor,
+        foregroundColor: surfaceColor,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: const RoundedRectangleBorder(borderRadius: buttonRadius),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+      );
 }
