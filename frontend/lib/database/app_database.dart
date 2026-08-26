@@ -8,7 +8,7 @@ class AppDatabase {
 
   static const String _databaseName = 'tactilelens.db';
 
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   Database? _database;
 
@@ -34,16 +34,34 @@ class AppDatabase {
     return openDatabase(
       databasePath,
       version: _databaseVersion,
+      onConfigure: _configureDatabase,
       onCreate: _createDatabase,
       onUpgrade: _upgradeDatabase,
     );
   }
 
+  Future<void> _configureDatabase(Database database) async {
+    await database.execute('PRAGMA foreign_keys = ON');
+  }
+
   Future<void> _createDatabase(Database database, int version) async {
+    await database.execute('''
+      CREATE TABLE material_folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        CHECK (
+          LENGTH(TRIM(name)) BETWEEN 1 AND 80
+        )
+      )
+    ''');
+
     await database.execute('''
       CREATE TABLE materials (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
+        folder_id INTEGER,
         title TEXT NOT NULL,
         subject TEXT NOT NULL,
         description TEXT,
@@ -58,9 +76,14 @@ class AppDatabase {
         document_blocks TEXT NOT NULL DEFAULT '[]',
         model_name TEXT,
         pipeline_version TEXT,
-        processing_time_ms REAL
+        processing_time_ms REAL,
+        FOREIGN KEY (folder_id)
+          REFERENCES material_folders(id)
+          ON DELETE SET NULL
       )
     ''');
+
+    await _createFolderIndexes(database);
   }
 
   Future<void> _upgradeDatabase(
@@ -112,6 +135,55 @@ class AppDatabase {
 
       await migration.commit(noResult: true);
     }
+
+    if (oldVersion < 3) {
+      await database.transaction((Transaction transaction) async {
+        await transaction.execute('''
+          CREATE TABLE IF NOT EXISTS material_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            CHECK (
+              LENGTH(TRIM(name)) BETWEEN 1 AND 80
+            )
+          )
+        ''');
+
+        await transaction.execute('''
+          ALTER TABLE materials
+          ADD COLUMN folder_id INTEGER
+          REFERENCES material_folders(id)
+          ON DELETE SET NULL
+        ''');
+
+        await transaction.execute('''
+          CREATE INDEX IF NOT EXISTS
+            materials_folder_id_index
+          ON materials (folder_id)
+        ''');
+
+        await transaction.execute('''
+          CREATE INDEX IF NOT EXISTS
+            material_folders_name_index
+          ON material_folders (name)
+        ''');
+      });
+    }
+  }
+
+  Future<void> _createFolderIndexes(Database database) async {
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS
+        materials_folder_id_index
+      ON materials (folder_id)
+    ''');
+
+    await database.execute('''
+      CREATE INDEX IF NOT EXISTS
+        material_folders_name_index
+      ON material_folders (name)
+    ''');
   }
 
   Future<void> close() async {

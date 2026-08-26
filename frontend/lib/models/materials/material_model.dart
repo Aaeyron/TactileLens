@@ -3,6 +3,7 @@ import 'dart:convert';
 class MaterialModel {
   const MaterialModel({
     this.id,
+    this.folderId,
     required this.title,
     required this.subject,
     required this.description,
@@ -21,10 +22,11 @@ class MaterialModel {
   });
 
   static const String uploadedFileSourceType = 'uploaded_file';
-
   static const String scanResultSourceType = 'scan_result';
 
   final int? id;
+  final int? folderId;
+
   final String title;
   final String subject;
   final String description;
@@ -58,9 +60,14 @@ class MaterialModel {
     return brailleContent.trim().isNotEmpty;
   }
 
+  bool get isInFolder {
+    return folderId != null;
+  }
+
   factory MaterialModel.fromJson(Map<String, dynamic> json) {
     return MaterialModel(
       id: _readOptionalInteger(json['id']),
+      folderId: _readOptionalInteger(json['folder_id']),
       title: _readString(json['title']),
       subject: _readString(json['subject']),
       description: _readString(json['description']),
@@ -85,6 +92,7 @@ class MaterialModel {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
+      'folder_id': folderId,
       'title': title,
       'subject': subject,
       'description': description,
@@ -101,6 +109,28 @@ class MaterialModel {
       'pipeline_version': pipelineVersion,
       'processing_time_ms': processingTimeMs,
     };
+  }
+
+  MaterialModel copyWithFolderId(int? folderId) {
+    return MaterialModel(
+      id: id,
+      folderId: folderId,
+      title: title,
+      subject: subject,
+      description: description,
+      fileName: fileName,
+      fileType: fileType,
+      fileSize: fileSize,
+      filePath: filePath,
+      uploadDate: uploadDate,
+      sourceType: sourceType,
+      recognizedContent: recognizedContent,
+      brailleContent: brailleContent,
+      documentBlocks: documentBlocks,
+      modelName: modelName,
+      pipelineVersion: pipelineVersion,
+      processingTimeMs: processingTimeMs,
+    );
   }
 
   static String _readString(dynamic value, {String fallback = ''}) {
@@ -183,9 +213,9 @@ class MaterialModel {
     }
 
     return List<Map<String, dynamic>>.unmodifiable(
-      parsedValue.whereType<Map>().map(
-        (Map block) => Map<String, dynamic>.from(block),
-      ),
+      parsedValue.whereType<Map>().map((Map block) {
+        return Map<String, dynamic>.from(block);
+      }),
     );
   }
 }

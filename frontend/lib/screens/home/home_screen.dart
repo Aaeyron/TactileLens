@@ -6,6 +6,65 @@ import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/app_header.dart';
 
+abstract final class _HomeText {
+  static const String greetingPrefix = 'Hi';
+  static const String defaultUserName = 'Learner';
+  static const String defaultRole = 'Student';
+  static const String educatorRole = 'educator';
+
+  static const String greetingDescription = 'Let’s make learning accessible.';
+
+  static const String educatorGreetingDescription =
+      'Let’s make teaching accessible.';
+
+  static const String quickActionsTitle = 'Quick Actions';
+
+  static const String scanActionTitle = 'Scan Material';
+  static const String scanActionDescription =
+      'Use your camera to capture printed text and mathematical equations.';
+
+  static const String materialsActionTitle = 'Materials';
+  static const String materialsActionDescription =
+      'Open, organize, and review your saved accessible learning materials.';
+
+  static const String historyActionTitle = 'Scan History';
+  static const String historyActionDescription =
+      'Review your previous scans, recognized content, and Braille results.';
+
+  static const String recentActivityTitle = 'Recent Activity';
+  static const String viewAllLabel = 'See all';
+
+  static const String mathNemethLabel = 'Math • Nemeth';
+  static const String textUebLabel = 'Text • UEB';
+
+  static const String loadingTitle = 'Loading activity';
+  static const String loadingDescription =
+      'Your recent materials are being prepared.';
+
+  static const String errorTitle = 'Activity unavailable';
+  static const String loadFailureMessage =
+      'Unable to load your recent activity.';
+
+  static const String retryLabel = 'Try Again';
+
+  static const String emptyTitle = 'No recent activity';
+  static const String emptyDescription =
+      'Scan your first learning material to see it here.';
+
+  static const String scanNowLabel = 'Scan Now';
+
+  static const String justNowLabel = 'Now';
+  static const String minuteSuffix = 'm ago';
+  static const String hourSuffix = 'h ago';
+  static const String daySuffix = 'd ago';
+
+  static const String pdfFileType = 'pdf';
+  static const String imageFileType = 'image';
+  static const String jpgFileType = 'jpg';
+  static const String jpegFileType = 'jpeg';
+  static const String pngFileType = 'png';
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -34,8 +93,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   List<MaterialModel> _materials = <MaterialModel>[];
 
-  String _displayName = HomeStyles.defaultUserName;
-  String _role = HomeStyles.defaultRole;
+  String _displayName = _HomeText.defaultUserName;
+  String _role = _HomeText.defaultRole;
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -107,8 +166,10 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       setState(() {
-        _displayName = _normalizeValue(storedName, HomeStyles.defaultUserName);
-        _role = _normalizeValue(storedRole, HomeStyles.defaultRole);
+        _displayName = _normalizeValue(storedName, _HomeText.defaultUserName);
+
+        _role = _normalizeValue(storedRole, _HomeText.defaultRole);
+
         _materials = materials;
         _isLoading = false;
       });
@@ -128,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       setState(() {
         _isLoading = false;
-        _errorMessage = HomeStyles.loadFailureMessage;
+        _errorMessage = _HomeText.loadFailureMessage;
       });
     }
   }
@@ -158,23 +219,23 @@ class _HomeScreenState extends State<HomeScreen>
     final Duration difference = now.difference(date);
 
     if (difference.isNegative) {
-      return HomeStyles.justNowLabel;
+      return _HomeText.justNowLabel;
     }
 
     if (difference.inMinutes < 1) {
-      return HomeStyles.justNowLabel;
+      return _HomeText.justNowLabel;
     }
 
     if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}${HomeStyles.minuteSuffix}';
+      return '${difference.inMinutes}${_HomeText.minuteSuffix}';
     }
 
     if (difference.inHours < 24) {
-      return '${difference.inHours}${HomeStyles.hourSuffix}';
+      return '${difference.inHours}${_HomeText.hourSuffix}';
     }
 
     if (difference.inDays < 7) {
-      return '${difference.inDays}${HomeStyles.daySuffix}';
+      return '${difference.inDays}${_HomeText.daySuffix}';
     }
 
     return MaterialLocalizations.of(context).formatMediumDate(date);
@@ -189,20 +250,20 @@ class _HomeScreenState extends State<HomeScreen>
         content.contains('=') ||
         content.contains('^');
 
-    return containsMath ? HomeStyles.mathNemethLabel : HomeStyles.textUebLabel;
+    return containsMath ? _HomeText.mathNemethLabel : _HomeText.textUebLabel;
   }
 
   IconData _getMaterialIcon(MaterialModel material) {
     final String type = material.fileType.toLowerCase();
 
-    if (type.contains(HomeStyles.pdfFileType)) {
+    if (type.contains(_HomeText.pdfFileType)) {
       return HomeStyles.pdfIcon;
     }
 
-    if (type.contains(HomeStyles.imageFileType) ||
-        type.contains(HomeStyles.jpgFileType) ||
-        type.contains(HomeStyles.jpegFileType) ||
-        type.contains(HomeStyles.pngFileType)) {
+    if (type.contains(_HomeText.imageFileType) ||
+        type.contains(_HomeText.jpgFileType) ||
+        type.contains(_HomeText.jpegFileType) ||
+        type.contains(_HomeText.pngFileType)) {
       return HomeStyles.imageIcon;
     }
 
@@ -236,7 +297,7 @@ class _HomeScreenState extends State<HomeScreen>
                               height: HomeStyles.greetingBottomSpacing,
                             ),
                             const Text(
-                              HomeStyles.quickActionsTitle,
+                              _HomeText.quickActionsTitle,
                               style: HomeStyles.sectionTitleStyle,
                             ),
                             const SizedBox(
@@ -278,16 +339,16 @@ class _HomeScreenState extends State<HomeScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            '${HomeStyles.greetingPrefix}, $_displayName!',
+            '${_HomeText.greetingPrefix}, $_displayName!',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: HomeStyles.greetingStyle,
           ),
           const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
           Text(
-            _role.toLowerCase() == HomeStyles.educatorRole
-                ? HomeStyles.educatorGreetingDescription
-                : HomeStyles.greetingDescription,
+            _role.toLowerCase() == _HomeText.educatorRole
+                ? _HomeText.educatorGreetingDescription
+                : _HomeText.greetingDescription,
             style: HomeStyles.greetingDescriptionStyle,
           ),
         ],
@@ -308,8 +369,8 @@ class _HomeScreenState extends State<HomeScreen>
         children: <Widget>[
           _QuickActionRow(
             icon: HomeStyles.scanIcon,
-            title: HomeStyles.scanActionTitle,
-            description: HomeStyles.scanActionDescription,
+            title: _HomeText.scanActionTitle,
+            description: _HomeText.scanActionDescription,
             onPressed: widget.onScanPressed,
           ),
           const Divider(
@@ -321,8 +382,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           _QuickActionRow(
             icon: HomeStyles.materialsIcon,
-            title: HomeStyles.materialsActionTitle,
-            description: HomeStyles.materialsActionDescription,
+            title: _HomeText.materialsActionTitle,
+            description: _HomeText.materialsActionDescription,
             onPressed: widget.onMaterialsPressed,
           ),
           const Divider(
@@ -334,8 +395,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           _QuickActionRow(
             icon: HomeStyles.historyIcon,
-            title: HomeStyles.historyActionTitle,
-            description: HomeStyles.historyActionDescription,
+            title: _HomeText.historyActionTitle,
+            description: _HomeText.historyActionDescription,
             onPressed: widget.onHistoryPressed,
           ),
         ],
@@ -348,14 +409,14 @@ class _HomeScreenState extends State<HomeScreen>
       children: <Widget>[
         const Expanded(
           child: Text(
-            HomeStyles.recentActivityTitle,
+            _HomeText.recentActivityTitle,
             style: HomeStyles.sectionTitleStyle,
           ),
         ),
         TextButton(
           onPressed: widget.onHistoryPressed,
           style: HomeStyles.viewAllButtonStyle,
-          child: const Text(HomeStyles.viewAllLabel),
+          child: const Text(_HomeText.viewAllLabel),
         ),
       ],
     );
@@ -366,17 +427,17 @@ class _HomeScreenState extends State<HomeScreen>
       return const _StateCard(
         showProgress: true,
         icon: HomeStyles.historyIcon,
-        title: HomeStyles.loadingTitle,
-        description: HomeStyles.loadingDescription,
+        title: _HomeText.loadingTitle,
+        description: _HomeText.loadingDescription,
       );
     }
 
     if (_errorMessage != null) {
       return _StateCard(
         icon: HomeStyles.errorIcon,
-        title: HomeStyles.errorTitle,
+        title: _HomeText.errorTitle,
         description: _errorMessage!,
-        actionLabel: HomeStyles.retryLabel,
+        actionLabel: _HomeText.retryLabel,
         onActionPressed: _loadHomeData,
       );
     }
@@ -386,9 +447,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (materials.isEmpty) {
       return _StateCard(
         icon: HomeStyles.emptyIcon,
-        title: HomeStyles.emptyTitle,
-        description: HomeStyles.emptyDescription,
-        actionLabel: HomeStyles.scanNowLabel,
+        title: _HomeText.emptyTitle,
+        description: _HomeText.emptyDescription,
+        actionLabel: _HomeText.scanNowLabel,
         onActionPressed: widget.onScanPressed,
       );
     }

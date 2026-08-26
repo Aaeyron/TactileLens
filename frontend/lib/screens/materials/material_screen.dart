@@ -1,13 +1,70 @@
 import 'package:flutter/material.dart';
 
 import '../../models/materials/material_model.dart';
+import '../../models/materials/material_folder_model.dart';
 import '../../services/materials/material_service.dart';
+import '../../services/materials/material_folder_service.dart';
 import '../../styles/screens/materials/material_screen_styles.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/materials/materials_empty_state.dart';
-import 'material_detail_screen.dart';
+import 'material_preview_screen.dart';
 
-enum _MaterialFilter { all, text, math, ueb, nemeth }
+abstract final class _MaterialText {
+  static const String pageTitle = 'Materials';
+  static const String pageDescription =
+      'View, organize, and manage your accessible learning materials.';
+  static const String searchHint = 'Search Materials';
+
+  static const String allFilterLabel = 'All';
+  static const String imagesFilterLabel = 'Images';
+  static const String pdfFilterLabel = 'PDF';
+  static const String documentsFilterLabel = 'Documents';
+
+  static const String foldersTitle = 'Folders';
+  static const String noFoldersLabel = 'No folders created yet.';
+  static const String recentMaterialsTitle = 'Materials';
+  static const String viewAllLabel = 'Clear filters';
+  static const String itemSingular = 'Item';
+  static const String itemPlural = 'Items';
+
+  static const String mathNemethLabel = 'Math • Nemeth';
+  static const String textUebLabel = 'Text • UEB';
+
+  static const String loadingLabel = 'Loading your materials...';
+  static const String errorTitle = 'Unable to load materials';
+  static const String errorDescription = 'Check your connection and try again.';
+  static const String emptySearchTitle = 'No matching materials';
+  static const String emptySearchDescription =
+      'Try another search term or material type.';
+  static const String retryLabel = 'Try Again';
+
+  static const String createFolderDialogTitle = 'Create Folder';
+  static const String folderNameHint = 'Enter a folder name';
+  static const String createFolderLabel = 'Create';
+  static const String createFolderSuccessMessage =
+      'Folder created successfully.';
+  static const String createFolderFailureMessage =
+      'Unable to create the folder.';
+
+  static const String deleteDialogTitle = 'Delete Material';
+  static const String deleteDialogDescription =
+      'Are you sure you want to permanently delete this material? '
+      'This action cannot be undone.';
+  static const String cancelLabel = 'Cancel';
+  static const String deleteLabel = 'Delete';
+  static const String previewLabel = 'Preview';
+  static const String deleteSuccessMessage = 'Material deleted successfully.';
+  static const String deleteFailureMessage = 'Unable to delete the material.';
+
+  static const String clearSearchTooltip = 'Clear material search';
+  static const String sortTooltip = 'Sort materials';
+  static const String materialOptionsTooltip = 'Material options';
+  static const String newestSortLabel = 'Newest first';
+  static const String oldestSortLabel = 'Oldest first';
+  static const String titleSortLabel = 'Title A–Z';
+}
+
+enum _MaterialFilter { all, images, pdf, documents }
 
 enum _MaterialSort { newest, oldest, title }
 
@@ -24,17 +81,27 @@ class MaterialsScreen extends StatefulWidget {
   }
 }
 
-class _MaterialsScreenState extends State<MaterialsScreen> {
+class _MaterialsScreenState extends State<MaterialsScreen>
+    with SingleTickerProviderStateMixin {
   final MaterialService _materialService = MaterialService();
+  final MaterialFolderService _folderService = MaterialFolderService();
+  late final AnimationController _entranceController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
   final TextEditingController _searchController = TextEditingController();
 
   List<MaterialModel> _materials = <MaterialModel>[];
+  List<MaterialFolderModel> _folders = <MaterialFolderModel>[];
+
+  int? _selectedFolderId;
 
   _MaterialFilter _selectedFilter = _MaterialFilter.all;
   _MaterialSort _selectedSort = _MaterialSort.newest;
 
   bool _isLoading = true;
   bool _isDeleting = false;
+  bool _isCreatingFolder = false;
 
   String? _errorMessage;
 
@@ -42,17 +109,49 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   void initState() {
     super.initState();
 
+    _initializeEntranceAnimation();
     _searchController.addListener(_handleSearchChanged);
     _loadMaterials();
   }
 
+  void _initializeEntranceAnimation() {
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: MaterialScreenStyles.entranceAnimationDuration,
+    );
+
+    final CurvedAnimation curve = CurvedAnimation(
+      parent: _entranceController,
+      curve: MaterialScreenStyles.entranceAnimationCurve,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: MaterialScreenStyles.entranceFadeBegin,
+      end: MaterialScreenStyles.entranceFadeEnd,
+    ).animate(curve);
+
+    _slideAnimation = Tween<Offset>(
+      begin: MaterialScreenStyles.entranceSlideBegin,
+      end: Offset.zero,
+    ).animate(curve);
+
+    Future<void>.delayed(MaterialScreenStyles.entranceAnimationDelay, () {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _entranceController.dispose();
+
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
 
     _materialService.dispose();
+    _folderService.dispose();
 
     super.dispose();
   }
@@ -73,20 +172,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         RegExp(r'\d+\s*[+\-*/]\s*\d+').hasMatch(content);
   }
 
-  bool _hasBraille(MaterialModel material) {
-    return material.brailleContent.trim().isNotEmpty;
-  }
-
   bool _matchesSelectedFilter(MaterialModel material) {
-    final bool containsMath = _containsMath(material);
-    final bool hasBraille = _hasBraille(material);
-
     return switch (_selectedFilter) {
       _MaterialFilter.all => true,
-      _MaterialFilter.text => !containsMath,
-      _MaterialFilter.math => containsMath,
-      _MaterialFilter.ueb => !containsMath && hasBraille,
-      _MaterialFilter.nemeth => containsMath && hasBraille,
+      _MaterialFilter.images => _isImageMaterial(material),
+      _MaterialFilter.pdf => _isPdfMaterial(material),
+      _MaterialFilter.documents =>
+        !_isImageMaterial(material) && !_isPdfMaterial(material),
     };
   }
 
@@ -96,6 +188,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     final List<MaterialModel> filtered = _materials
         .where((MaterialModel material) {
           if (!_matchesSelectedFilter(material)) {
+            return false;
+          }
+
+          if (_selectedFolderId != null &&
+              material.folderId != _selectedFolderId) {
             return false;
           }
 
@@ -133,39 +230,6 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     return filtered;
   }
 
-  List<_SubjectFolder> get _subjectFolders {
-    final Map<String, int> counts = <String, int>{};
-
-    for (final MaterialModel material in _materials) {
-      final String subject = material.subject.trim();
-
-      if (subject.isEmpty) {
-        continue;
-      }
-
-      counts.update(subject, (int count) => count + 1, ifAbsent: () => 1);
-    }
-
-    final List<MapEntry<String, int>> entries = counts.entries.toList()
-      ..sort((MapEntry<String, int> first, MapEntry<String, int> second) {
-        final int countComparison = second.value.compareTo(first.value);
-
-        if (countComparison != 0) {
-          return countComparison;
-        }
-
-        return first.key.toLowerCase().compareTo(second.key.toLowerCase());
-      });
-
-    return entries
-        .take(MaterialScreenStyles.maximumVisibleFolders)
-        .map(
-          (MapEntry<String, int> entry) =>
-              _SubjectFolder(name: entry.key, itemCount: entry.value),
-        )
-        .toList(growable: false);
-  }
-
   Future<void> _loadMaterials() async {
     setState(() {
       _isLoading = true;
@@ -176,15 +240,28 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       final List<MaterialModel> materials = await _materialService
           .getMaterials();
 
+      final List<MaterialFolderModel> folders = await _folderService
+          .getFolders();
+
       if (!mounted) {
         return;
       }
 
       setState(() {
         _materials = materials;
+        _folders = folders;
         _isLoading = false;
       });
     } on MaterialServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = error.message;
+      });
+    } on MaterialFolderServiceException catch (error) {
       if (!mounted) {
         return;
       }
@@ -200,7 +277,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = MaterialScreenStyles.errorDescription;
+        _errorMessage = _MaterialText.errorDescription;
       });
     }
   }
@@ -210,21 +287,29 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       final List<MaterialModel> materials = await _materialService
           .getMaterials();
 
+      final List<MaterialFolderModel> folders = await _folderService
+          .getFolders();
+
       if (!mounted) {
         return;
       }
 
       setState(() {
         _materials = materials;
+        _folders = folders;
         _errorMessage = null;
       });
     } on MaterialServiceException catch (error) {
       if (mounted) {
         _showMessage(error.message);
       }
+    } on MaterialFolderServiceException catch (error) {
+      if (mounted) {
+        _showMessage(error.message);
+      }
     } catch (_) {
       if (mounted) {
-        _showMessage(MaterialScreenStyles.errorDescription);
+        _showMessage(_MaterialText.errorDescription);
       }
     }
   }
@@ -268,11 +353,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             side: BorderSide(color: MaterialScreenStyles.outlineColor),
           ),
           title: const Text(
-            MaterialScreenStyles.deleteDialogTitle,
+            _MaterialText.deleteDialogTitle,
             style: MaterialScreenStyles.dialogTitleStyle,
           ),
           content: const Text(
-            MaterialScreenStyles.deleteDialogDescription,
+            _MaterialText.deleteDialogDescription,
             style: MaterialScreenStyles.dialogDescriptionStyle,
           ),
           actions: <Widget>[
@@ -280,7 +365,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text(MaterialScreenStyles.cancelLabel),
+              child: const Text(_MaterialText.cancelLabel),
             ),
             FilledButton.icon(
               onPressed: () {
@@ -291,7 +376,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 MaterialScreenStyles.deleteIcon,
                 size: MaterialScreenStyles.dialogButtonIconSize,
               ),
-              label: const Text(MaterialScreenStyles.deleteLabel),
+              label: const Text(_MaterialText.deleteLabel),
             ),
           ],
         );
@@ -320,7 +405,13 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         _isDeleting = false;
       });
 
-      _showMessage(MaterialScreenStyles.deleteSuccessMessage);
+      await _refreshMaterials();
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(_MaterialText.deleteSuccessMessage);
     } on MaterialServiceException catch (error) {
       if (!mounted) {
         return;
@@ -340,7 +431,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         _isDeleting = false;
       });
 
-      _showMessage(MaterialScreenStyles.deleteFailureMessage);
+      _showMessage(_MaterialText.deleteFailureMessage);
     }
   }
 
@@ -357,19 +448,171 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       );
   }
 
-  void _selectFolder(String subject) {
-    _searchController.text = subject;
-    _searchController.selection = TextSelection.collapsed(
-      offset: subject.length,
+  void _selectFolder(int folderId) {
+    setState(() {
+      _selectedFolderId = _selectedFolderId == folderId ? null : folderId;
+    });
+  }
+
+  Future<void> _showCreateFolderDialog() async {
+    if (_isCreatingFolder) {
+      return;
+    }
+
+    String enteredFolderName = '';
+
+    final String? folderName = await showGeneralDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: MaterialScreenStyles.dialogBarrierColor,
+      transitionDuration: MaterialScreenStyles.dialogAnimationDuration,
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return AlertDialog(
+              backgroundColor: MaterialScreenStyles.surfaceColor,
+              shape: const RoundedRectangleBorder(
+                borderRadius: MaterialScreenStyles.dialogRadius,
+                side: BorderSide(color: MaterialScreenStyles.outlineColor),
+              ),
+              title: const Text(
+                _MaterialText.createFolderDialogTitle,
+                style: MaterialScreenStyles.dialogTitleStyle,
+              ),
+              content: TextField(
+                autofocus: true,
+                maxLength: MaterialScreenStyles.maximumFolderNameLength,
+                textCapitalization: TextCapitalization.words,
+                decoration: MaterialScreenStyles.folderNameDecoration.copyWith(
+                  hintText: _MaterialText.folderNameHint,
+                ),
+                onChanged: (String value) {
+                  enteredFolderName = value;
+                },
+                onSubmitted: (String value) {
+                  final String normalizedName = value.trim();
+
+                  if (normalizedName.isEmpty) {
+                    return;
+                  }
+
+                  Navigator.of(dialogContext).pop(normalizedName);
+                },
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text(_MaterialText.cancelLabel),
+                ),
+                FilledButton(
+                  style: MaterialScreenStyles.createFolderButtonStyle,
+                  onPressed: () {
+                    final String normalizedName = enteredFolderName.trim();
+
+                    if (normalizedName.isEmpty) {
+                      return;
+                    }
+
+                    Navigator.of(dialogContext).pop(normalizedName);
+                  },
+                  child: const Text(_MaterialText.createFolderLabel),
+                ),
+              ],
+            );
+          },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final CurvedAnimation curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: MaterialScreenStyles.dialogEntranceCurve,
+              reverseCurve: MaterialScreenStyles.dialogExitCurve,
+            );
+
+            final Animation<double> scaleAnimation = Tween<double>(
+              begin: MaterialScreenStyles.dialogInitialScale,
+              end: 1,
+            ).animate(curvedAnimation);
+
+            return FadeTransition(
+              opacity: curvedAnimation,
+              child: ScaleTransition(scale: scaleAnimation, child: child),
+            );
+          },
     );
+
+    if (!mounted || folderName == null || folderName.trim().isEmpty) {
+      return;
+    }
+
+    await _createFolder(folderName);
+  }
+
+  Future<void> _createFolder(String name) async {
+    setState(() {
+      _isCreatingFolder = true;
+    });
+
+    try {
+      final MaterialFolderModel folder = await _folderService.createFolder(
+        name,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _folders = <MaterialFolderModel>[..._folders, folder]
+          ..sort((MaterialFolderModel first, MaterialFolderModel second) {
+            return first.name.toLowerCase().compareTo(
+              second.name.toLowerCase(),
+            );
+          });
+
+        _isCreatingFolder = false;
+      });
+
+      _showMessage(_MaterialText.createFolderSuccessMessage);
+    } on MaterialFolderServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isCreatingFolder = false;
+      });
+
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isCreatingFolder = false;
+      });
+
+      _showMessage(_MaterialText.createFolderFailureMessage);
+    }
   }
 
   String _formatMaterialType(MaterialModel material) {
     if (_containsMath(material)) {
-      return MaterialScreenStyles.mathNemethLabel;
+      return _MaterialText.mathNemethLabel;
     }
 
-    return MaterialScreenStyles.textUebLabel;
+    return _MaterialText.textUebLabel;
   }
 
   String _formatDateTime(BuildContext context, DateTime value) {
@@ -402,33 +645,72 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         children: <Widget>[
           const AppHeader(),
           Expanded(
-            child: RefreshIndicator(
-              color: MaterialScreenStyles.primaryColor,
-              onRefresh: _refreshMaterials,
-              child: ListView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: MaterialScreenStyles.contentPadding,
-                children: <Widget>[
-                  const Text(
-                    MaterialScreenStyles.pageTitle,
-                    style: MaterialScreenStyles.pageTitleStyle,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: RefreshIndicator(
+                  color: MaterialScreenStyles.primaryColor,
+                  onRefresh: _refreshMaterials,
+                  child: ListView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: MaterialScreenStyles.contentPadding,
+                    children: <Widget>[
+                      Container(
+                        width: double.infinity,
+                        padding: MaterialScreenStyles.pageHeaderPadding,
+                        decoration: const BoxDecoration(
+                          color: MaterialScreenStyles.pageHeaderBackgroundColor,
+                          borderRadius: MaterialScreenStyles.pageHeaderRadius,
+                          border: MaterialScreenStyles.pageHeaderBorder,
+                          boxShadow: MaterialScreenStyles.pageHeaderShadow,
+                        ),
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              _MaterialText.pageTitle,
+                              style: MaterialScreenStyles.pageTitleStyle,
+                            ),
+                            SizedBox(
+                              height:
+                                  MaterialScreenStyles.pageDescriptionSpacing,
+                            ),
+                            Text(
+                              _MaterialText.pageDescription,
+                              style: MaterialScreenStyles.pageDescriptionStyle,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(
+                        height: MaterialScreenStyles.searchTopSpacing,
+                      ),
+                      _buildSearchAndSort(),
+                      const SizedBox(
+                        height: MaterialScreenStyles.filterTopSpacing,
+                      ),
+                      _buildFilters(),
+                      const SizedBox(
+                        height: MaterialScreenStyles.sectionSpacing,
+                      ),
+                      _buildFoldersSection(),
+                      const SizedBox(
+                        height: MaterialScreenStyles.sectionSpacing,
+                      ),
+                      _buildRecentHeader(),
+                      const SizedBox(
+                        height: MaterialScreenStyles.sectionContentSpacing,
+                      ),
+                      _buildContent(),
+                      const SizedBox(
+                        height: MaterialScreenStyles.bottomSpacing,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: MaterialScreenStyles.searchTopSpacing),
-                  _buildSearchAndSort(),
-                  const SizedBox(height: MaterialScreenStyles.filterTopSpacing),
-                  _buildFilters(),
-                  const SizedBox(height: MaterialScreenStyles.sectionSpacing),
-                  _buildFoldersSection(),
-                  const SizedBox(height: MaterialScreenStyles.sectionSpacing),
-                  _buildRecentHeader(),
-                  const SizedBox(
-                    height: MaterialScreenStyles.sectionContentSpacing,
-                  ),
-                  _buildContent(),
-                  const SizedBox(height: MaterialScreenStyles.bottomSpacing),
-                ],
+                ),
               ),
             ),
           ),
@@ -447,10 +729,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
               controller: _searchController,
               style: MaterialScreenStyles.searchTextStyle,
               decoration: MaterialScreenStyles.searchDecoration.copyWith(
+                hintText: _MaterialText.searchHint,
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: MaterialScreenStyles.clearSearchTooltip,
+                        tooltip: _MaterialText.clearSearchTooltip,
                         onPressed: _searchController.clear,
                         icon: const Icon(MaterialScreenStyles.clearSearchIcon),
                       ),
@@ -458,35 +741,49 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             ),
           ),
         ),
-        const SizedBox(width: MaterialScreenStyles.sortButtonSpacing),
-        PopupMenuButton<_MaterialSort>(
-          tooltip: MaterialScreenStyles.sortTooltip,
-          initialValue: _selectedSort,
-          onSelected: (_MaterialSort value) {
-            setState(() {
-              _selectedSort = value;
-            });
-          },
-          icon: const Icon(
-            MaterialScreenStyles.sortIcon,
-            color: MaterialScreenStyles.textMutedColor,
+        const SizedBox(width: 8),
+        Container(
+          width: MaterialScreenStyles.searchHeight,
+          height: MaterialScreenStyles.searchHeight,
+          decoration: BoxDecoration(
+            color: MaterialScreenStyles.surfaceColor,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: MaterialScreenStyles.outlineColor,
+              width: 1,
+            ),
           ),
-          itemBuilder: (BuildContext context) {
-            return const <PopupMenuEntry<_MaterialSort>>[
-              PopupMenuItem<_MaterialSort>(
-                value: _MaterialSort.newest,
-                child: Text(MaterialScreenStyles.newestSortLabel),
-              ),
-              PopupMenuItem<_MaterialSort>(
-                value: _MaterialSort.oldest,
-                child: Text(MaterialScreenStyles.oldestSortLabel),
-              ),
-              PopupMenuItem<_MaterialSort>(
-                value: _MaterialSort.title,
-                child: Text(MaterialScreenStyles.titleSortLabel),
-              ),
-            ];
-          },
+          child: PopupMenuButton<_MaterialSort>(
+            tooltip: _MaterialText.sortTooltip,
+            initialValue: _selectedSort,
+            padding: EdgeInsets.zero,
+            onSelected: (_MaterialSort value) {
+              setState(() {
+                _selectedSort = value;
+              });
+            },
+            icon: const Icon(
+              MaterialScreenStyles.sortIcon,
+              color: MaterialScreenStyles.textSecondaryColor,
+              size: 21,
+            ),
+            itemBuilder: (BuildContext context) {
+              return const <PopupMenuEntry<_MaterialSort>>[
+                PopupMenuItem<_MaterialSort>(
+                  value: _MaterialSort.newest,
+                  child: Text(_MaterialText.newestSortLabel),
+                ),
+                PopupMenuItem<_MaterialSort>(
+                  value: _MaterialSort.oldest,
+                  child: Text(_MaterialText.oldestSortLabel),
+                ),
+                PopupMenuItem<_MaterialSort>(
+                  value: _MaterialSort.title,
+                  child: Text(_MaterialText.titleSortLabel),
+                ),
+              ];
+            },
+          ),
         ),
       ],
     );
@@ -500,21 +797,19 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
             .map((_MaterialFilter filter) {
               final bool isSelected = filter == _selectedFilter;
 
+              final String label = switch (filter) {
+                _MaterialFilter.all => _MaterialText.allFilterLabel,
+                _MaterialFilter.images => _MaterialText.imagesFilterLabel,
+                _MaterialFilter.pdf => _MaterialText.pdfFilterLabel,
+                _MaterialFilter.documents => _MaterialText.documentsFilterLabel,
+              };
+
               return Padding(
                 padding: const EdgeInsets.only(
                   right: MaterialScreenStyles.filterSpacing,
                 ),
                 child: _FilterButton(
-                  label: switch (filter) {
-                    _MaterialFilter.all => MaterialScreenStyles.allFilterLabel,
-                    _MaterialFilter.text =>
-                      MaterialScreenStyles.textFilterLabel,
-                    _MaterialFilter.math =>
-                      MaterialScreenStyles.mathFilterLabel,
-                    _MaterialFilter.ueb => MaterialScreenStyles.uebFilterLabel,
-                    _MaterialFilter.nemeth =>
-                      MaterialScreenStyles.nemethFilterLabel,
-                  },
+                  label: label,
                   isSelected: isSelected,
                   onPressed: () {
                     setState(() {
@@ -530,41 +825,97 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
   }
 
   Widget _buildFoldersSection() {
-    final List<_SubjectFolder> folders = _subjectFolders;
-
-    if (_isLoading || folders.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Text(
-          MaterialScreenStyles.foldersTitle,
-          style: MaterialScreenStyles.sectionTitleStyle,
+        Row(
+          children: <Widget>[
+            const Expanded(
+              child: Text(
+                _MaterialText.foldersTitle,
+                style: MaterialScreenStyles.sectionTitleStyle,
+              ),
+            ),
+            Tooltip(
+              message: _MaterialText.createFolderDialogTitle,
+              child: _isCreatingFolder
+                  ? const SizedBox.square(
+                      dimension: MaterialScreenStyles.addFolderButtonSize,
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: MaterialScreenStyles.primaryColor,
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      tooltip: _MaterialText.createFolderDialogTitle,
+                      onPressed: _showCreateFolderDialog,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: MaterialScreenStyles.addFolderButtonSize,
+                        height: MaterialScreenStyles.addFolderButtonSize,
+                      ),
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        size: MaterialScreenStyles.addFolderButtonIconSize,
+                        color: MaterialScreenStyles.primaryColor,
+                      ),
+                    ),
+            ),
+          ],
         ),
-        const SizedBox(height: MaterialScreenStyles.sectionContentSpacing),
-        SizedBox(
-          height: MaterialScreenStyles.folderCardHeight,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: folders.length,
-            separatorBuilder: (BuildContext context, int index) {
-              return const SizedBox(width: MaterialScreenStyles.folderSpacing);
-            },
-            itemBuilder: (BuildContext context, int index) {
-              final _SubjectFolder folder = folders[index];
+        const SizedBox(
+          height: MaterialScreenStyles.folderSectionContentSpacing,
+        ),
+        if (_folders.isEmpty)
+          Container(
+            width: double.infinity,
+            height: MaterialScreenStyles.emptyFolderHeight,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: MaterialScreenStyles.surfaceColor,
+              borderRadius: MaterialScreenStyles.folderSectionRadius,
+              border: MaterialScreenStyles.cardBorder,
+            ),
+            child: const Text(
+              _MaterialText.noFoldersLabel,
+              textAlign: TextAlign.center,
+              style: MaterialScreenStyles.emptyFolderStyle,
+            ),
+          )
+        else
+          SizedBox(
+            height: MaterialScreenStyles.folderCardHeight,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _folders.length,
+              separatorBuilder: (BuildContext context, int index) {
+                return const SizedBox(
+                  width: MaterialScreenStyles.folderSpacing,
+                );
+              },
+              itemBuilder: (BuildContext context, int index) {
+                final MaterialFolderModel folder = _folders[index];
 
-              return _FolderCard(
-                folder: folder,
-                index: index,
-                onPressed: () {
-                  _selectFolder(folder.name);
-                },
-              );
-            },
+                return _FolderCard(
+                  folder: folder,
+                  cardIndex: index,
+                  isSelected: folder.id == _selectedFolderId,
+                  onPressed: () {
+                    final int? folderId = folder.id;
+
+                    if (folderId != null) {
+                      _selectFolder(folderId);
+                    }
+                  },
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
@@ -574,7 +925,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
       children: <Widget>[
         const Expanded(
           child: Text(
-            MaterialScreenStyles.recentMaterialsTitle,
+            _MaterialText.recentMaterialsTitle,
             style: MaterialScreenStyles.sectionTitleStyle,
           ),
         ),
@@ -582,11 +933,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           onPressed: () {
             setState(() {
               _selectedFilter = _MaterialFilter.all;
+              _selectedFolderId = null;
               _searchController.clear();
             });
           },
           style: MaterialScreenStyles.viewAllButtonStyle,
-          child: const Text(MaterialScreenStyles.viewAllLabel),
+          child: const Text(_MaterialText.viewAllLabel),
         ),
       ],
     );
@@ -596,7 +948,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     if (_isLoading) {
       return const _MaterialStateView(
         icon: MaterialScreenStyles.folderIcon,
-        title: MaterialScreenStyles.loadingLabel,
+        title: _MaterialText.loadingLabel,
         showProgressIndicator: true,
       );
     }
@@ -604,9 +956,9 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     if (_errorMessage != null) {
       return _MaterialStateView(
         icon: MaterialScreenStyles.errorIcon,
-        title: MaterialScreenStyles.errorTitle,
+        title: _MaterialText.errorTitle,
         description: _errorMessage,
-        actionLabel: MaterialScreenStyles.retryLabel,
+        actionLabel: _MaterialText.retryLabel,
         onActionPressed: _loadMaterials,
       );
     }
@@ -620,8 +972,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     if (materials.isEmpty) {
       return const _MaterialStateView(
         icon: MaterialScreenStyles.emptySearchIcon,
-        title: MaterialScreenStyles.emptySearchTitle,
-        description: MaterialScreenStyles.emptySearchDescription,
+        title: _MaterialText.emptySearchTitle,
+        description: _MaterialText.emptySearchDescription,
       );
     }
 
@@ -666,13 +1018,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         type.contains('jpeg') ||
         type.contains('png');
   }
-}
 
-class _SubjectFolder {
-  const _SubjectFolder({required this.name, required this.itemCount});
+  bool _isPdfMaterial(MaterialModel material) {
+    final String type = material.fileType.toLowerCase();
 
-  final String name;
-  final int itemCount;
+    return type.contains('pdf');
+  }
 }
 
 class _FilterButton extends StatelessWidget {
@@ -692,7 +1043,16 @@ class _FilterButton extends StatelessWidget {
       color: isSelected
           ? MaterialScreenStyles.primaryColor
           : MaterialScreenStyles.filterBackgroundColor,
-      borderRadius: MaterialScreenStyles.filterRadius,
+      shape: RoundedRectangleBorder(
+        borderRadius: MaterialScreenStyles.filterRadius,
+        side: BorderSide(
+          color: isSelected
+              ? MaterialScreenStyles.primaryColor
+              : MaterialScreenStyles.outlineColor,
+          width: 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,
         borderRadius: MaterialScreenStyles.filterRadius,
@@ -715,35 +1075,63 @@ class _FilterButton extends StatelessWidget {
 class _FolderCard extends StatelessWidget {
   const _FolderCard({
     required this.folder,
-    required this.index,
+    required this.cardIndex,
+    required this.isSelected,
     required this.onPressed,
   });
 
-  final _SubjectFolder folder;
-  final int index;
+  final MaterialFolderModel folder;
+  final int cardIndex;
+  final bool isSelected;
   final VoidCallback onPressed;
+
+  bool get _usesWarmPalette => cardIndex % 3 == 0;
+
+  Color get _backgroundColor {
+    if (isSelected) {
+      return MaterialScreenStyles.selectedFolderBackgroundColor;
+    }
+
+    return _usesWarmPalette
+        ? MaterialScreenStyles.warmFolderBackgroundColor
+        : MaterialScreenStyles.purpleFolderBackgroundColor;
+  }
+
+  Color get _outlineColor {
+    if (isSelected) {
+      return MaterialScreenStyles.primaryBrightColor;
+    }
+
+    return _usesWarmPalette
+        ? MaterialScreenStyles.warmFolderOutlineColor
+        : MaterialScreenStyles.purpleFolderOutlineColor;
+  }
+
+  Color get _folderIconColor {
+    return _usesWarmPalette
+        ? MaterialScreenStyles.warmFolderColor
+        : MaterialScreenStyles.purpleFolderColor;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool highlighted = index > 0;
-
     return Material(
-      color: highlighted
-          ? MaterialScreenStyles.blueFolderBackgroundColor
-          : MaterialScreenStyles.yellowFolderBackgroundColor,
+      color: Colors.transparent,
       borderRadius: MaterialScreenStyles.folderRadius,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onPressed,
         borderRadius: MaterialScreenStyles.folderRadius,
-        child: Container(
+        child: AnimatedContainer(
+          duration: MaterialScreenStyles.folderSelectionDuration,
           width: MaterialScreenStyles.folderCardWidth,
           padding: MaterialScreenStyles.folderPadding,
           decoration: BoxDecoration(
+            color: _backgroundColor,
             borderRadius: MaterialScreenStyles.folderRadius,
             border: Border.all(
-              color: highlighted
-                  ? MaterialScreenStyles.blueFolderOutlineColor
-                  : MaterialScreenStyles.yellowFolderOutlineColor,
+              color: _outlineColor,
+              width: isSelected ? 1.8 : 1,
             ),
           ),
           child: Column(
@@ -752,9 +1140,7 @@ class _FolderCard extends StatelessWidget {
               Icon(
                 MaterialScreenStyles.folderIcon,
                 size: MaterialScreenStyles.folderIconSize,
-                color: highlighted
-                    ? MaterialScreenStyles.primaryBrightColor
-                    : MaterialScreenStyles.yellowFolderColor,
+                color: _folderIconColor,
               ),
               const SizedBox(height: MaterialScreenStyles.folderIconSpacing),
               Text(
@@ -767,7 +1153,9 @@ class _FolderCard extends StatelessWidget {
               const SizedBox(height: MaterialScreenStyles.folderCountSpacing),
               Text(
                 '${folder.itemCount} '
-                '${folder.itemCount == 1 ? MaterialScreenStyles.itemSingular : MaterialScreenStyles.itemPlural}',
+                '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
+                maxLines: 1,
+                textAlign: TextAlign.center,
                 style: MaterialScreenStyles.folderCountStyle,
               ),
             ],
@@ -810,6 +1198,7 @@ class _RecentMaterialCard extends StatelessWidget {
             border: MaterialScreenStyles.cardBorder,
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Container(
                 width: MaterialScreenStyles.thumbnailWidth,
@@ -866,34 +1255,37 @@ class _RecentMaterialCard extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<_MaterialMenuAction>(
-                tooltip: MaterialScreenStyles.materialOptionsTooltip,
-                onSelected: onMenuSelected,
-                icon: const Icon(
-                  MaterialScreenStyles.moreIcon,
-                  color: MaterialScreenStyles.textSecondaryColor,
-                ),
-                itemBuilder: (BuildContext context) {
-                  return const <PopupMenuEntry<_MaterialMenuAction>>[
-                    PopupMenuItem<_MaterialMenuAction>(
-                      value: _MaterialMenuAction.preview,
-                      child: ListTile(
-                        leading: Icon(MaterialScreenStyles.previewIcon),
-                        title: Text(MaterialScreenStyles.previewLabel),
-                      ),
-                    ),
-                    PopupMenuItem<_MaterialMenuAction>(
-                      value: _MaterialMenuAction.delete,
-                      child: ListTile(
-                        leading: Icon(
-                          MaterialScreenStyles.deleteIcon,
-                          color: MaterialScreenStyles.primaryColor,
+              Transform.translate(
+                offset: MaterialScreenStyles.materialMenuOffset,
+                child: PopupMenuButton<_MaterialMenuAction>(
+                  tooltip: _MaterialText.materialOptionsTooltip,
+                  onSelected: onMenuSelected,
+                  icon: const Icon(
+                    MaterialScreenStyles.moreIcon,
+                    color: MaterialScreenStyles.textSecondaryColor,
+                  ),
+                  itemBuilder: (BuildContext context) {
+                    return const <PopupMenuEntry<_MaterialMenuAction>>[
+                      PopupMenuItem<_MaterialMenuAction>(
+                        value: _MaterialMenuAction.preview,
+                        child: ListTile(
+                          leading: Icon(MaterialScreenStyles.previewIcon),
+                          title: Text(_MaterialText.previewLabel),
                         ),
-                        title: Text(MaterialScreenStyles.deleteLabel),
                       ),
-                    ),
-                  ];
-                },
+                      PopupMenuItem<_MaterialMenuAction>(
+                        value: _MaterialMenuAction.delete,
+                        child: ListTile(
+                          leading: Icon(
+                            MaterialScreenStyles.deleteIcon,
+                            color: MaterialScreenStyles.primaryColor,
+                          ),
+                          title: Text(_MaterialText.deleteLabel),
+                        ),
+                      ),
+                    ];
+                  },
+                ),
               ),
             ],
           ),

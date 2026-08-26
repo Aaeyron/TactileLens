@@ -2,88 +2,6 @@ import 'package:flutter/material.dart';
 
 abstract final class ScanScreenStyles {
   // ==========================================================
-  // TEXT CONTENT
-  // ==========================================================
-
-  static const String screenTitle = 'Scan Material';
-
-  static const String screenDescription =
-      'Align your document within the frame';
-
-  static const String cameraReadyLabel = 'Ready to scan';
-  static const String imageReadyLabel = 'Adjust crop area';
-
-  static const String cameraInstruction = 'Position the document in the frame';
-
-  static const String imageInstruction = 'Drag the corners to fit the document';
-
-  static const String uploadLabel = 'Upload';
-  static const String flashLabel = 'Flash';
-  static const String retakeLabel = 'Retake';
-
-  static const String captureSemanticLabel = 'Capture document';
-
-  static const String scanSemanticLabel = 'Scan document with AI';
-
-  static const String backTooltip = 'Go back';
-  static const String helpTooltip = 'Scanning help';
-
-  static const String helpTitle = 'Scanning tips';
-
-  static const String helpDescription =
-      'For clearer text and more accurate Braille output:';
-
-  static const String lightingTip =
-      'Use bright and even lighting without shadows.';
-
-  static const String alignmentTip =
-      'Keep the complete document inside the blue frame.';
-
-  static const String stabilityTip =
-      'Hold the device steady and keep the text in focus.';
-
-  static const String printedMaterialTip =
-      'Use clear printed text and equations whenever possible.';
-
-  static const String closeLabel = 'Got it';
-
-  static const String confirmationTitle = 'Ready to scan?';
-
-  static const String confirmationDescription =
-      'TactileLens will process the selected area to recognize '
-      'printed text and equations, then generate the available '
-      'Braille translation.';
-
-  static const String selectedAreaDetail =
-      'Only the area inside the crop frame will be processed.';
-
-  static const String recognitionDetail =
-      'Printed text and equations will be recognized.';
-
-  static const String brailleDetail =
-      'Braille output will be generated when translation succeeds.';
-
-  static const String processingDetail = 'Processing may take a few moments.';
-
-  static const String adjustCropLabel = 'Adjust Crop';
-
-  static const String scanDocumentLabel = 'Scan Document';
-
-  static const String scanFailureMessage =
-      'Unable to scan the document. Please try again.';
-
-  static const String textAndEquationHistoryTitle = 'Text and Equation Scan';
-
-  static const String equationHistoryTitle = 'Equation Scan';
-
-  static const String textHistoryTitle = 'Printed Text Scan';
-
-  static const String documentHistoryTitle = 'Document Scan';
-
-  static const String historySaveFailureMessage =
-      'The scan was completed, but it could not be added to History.';
-
-  // ==========================================================
   // COLORS
   // ==========================================================
 
@@ -157,8 +75,18 @@ abstract final class ScanScreenStyles {
   static const double frameCornerWidth = 5;
   static const double frameCornerRadius = 12;
 
-  static const double cameraOverlayTopSpacing = 24;
-  static const double cameraOverlayBottomSpacing = 25;
+  static const EdgeInsets cameraOverlayPadding = EdgeInsets.fromLTRB(
+    12,
+    4,
+    12,
+    4,
+  );
+
+  static const Duration orientationAnimationDuration = Duration(
+    milliseconds: 450,
+  );
+
+  static const Curve orientationAnimationCurve = Curves.easeInOutCubic;
 
   static const double statusIconSize = 20;
   static const double instructionIconSize = 21;
@@ -227,8 +155,6 @@ abstract final class ScanScreenStyles {
 
   static const double processingIndicatorSize = 44;
   static const double processingIndicatorWidth = 4;
-
-  static const String processingLabel = 'Scanning your document...';
 
   static const double processingLabelSpacing = 18;
 

@@ -1,96 +1,6 @@
 import 'package:flutter/material.dart';
 
 abstract final class HistoryScreenStyles {
-  // Text
-  static const String screenTitle = 'History';
-  static const String searchHint = 'Search History';
-
-  static const String allFilterLabel = 'All';
-  static const String textFilterLabel = 'Text';
-  static const String mathFilterLabel = 'Math';
-  static const String uebFilterLabel = 'UEB';
-  static const String nemethFilterLabel = 'Nemeth';
-
-  static const String todayLabel = 'Today';
-  static const String yesterdayLabel = 'Yesterday';
-
-  static const String mathBadgeLabel = 'Math Equation';
-  static const String textBadgeLabel = 'Printed Text';
-
-  static const String nemethLabel = 'Nemeth';
-  static const String uebLabel = 'UEB';
-
-  static const String brailleTranslationLabel = 'Braille Translation';
-
-  static const String notAvailableLabel = 'not available';
-
-  static const String emptyRecognizedContent =
-      'No recognized content was saved.';
-
-  static const String newestLabel = 'Newest first';
-  static const String oldestLabel = 'Oldest first';
-  static const String titleSortLabel = 'Title A–Z';
-
-  static const String searchTooltip = 'Search scan history';
-  static const String clearSearchTooltip = 'Clear history search';
-  static const String sortTooltip = 'Sort scan history';
-
-  static const String loadingLabel = 'Loading your scan history...';
-
-  static const String emptyTitle = 'No scan history yet';
-  static const String emptyDescription =
-      'Your successful scans will appear here.';
-
-  static const String emptySearchTitle = 'No matching scans';
-  static const String emptySearchDescription =
-      'Try another search word or filter.';
-
-  static const String errorTitle = 'Unable to load history';
-  static const String retryLabel = 'Try Again';
-
-  static const String recognizedContentTitle = 'Recognized Content';
-
-  static const String brailleContentTitle = 'Braille Output';
-
-  static const String noBrailleContent =
-      'No Braille output was saved for this scan.';
-
-  static const String closeLabel = 'Close';
-
-  static const String renameLabel = 'Rename';
-  static const String deleteLabel = 'Delete';
-
-  static const String moreActionsTooltip = 'More history actions';
-
-  static const String favoriteTooltip = 'Add to favorites';
-
-  static const String renameDialogTitle = 'Rename Scan';
-  static const String renameFieldLabel = 'Title';
-
-  static const String cancelLabel = 'Cancel';
-  static const String saveLabel = 'Save';
-
-  static const String deleteDialogTitle = 'Delete Scan?';
-
-  static const String deleteDialogDescription =
-      'This scan will be permanently removed from your history.';
-
-  static const String clearDialogTitle = 'Clear All History?';
-
-  static const String clearDialogDescription =
-      'All saved scan-history records will be permanently deleted.';
-
-  static const String confirmDeleteLabel = 'Delete';
-  static const String confirmClearLabel = 'Clear All';
-
-  static const String renameSuccessMessage = 'History title updated.';
-
-  static const String deleteSuccessMessage = 'Scan removed from history.';
-
-  static const String clearSuccessMessage = 'Scan history cleared.';
-
-  static const String historyListSemanticLabel = 'Saved scan history';
-
   // Colors
   static const Color primaryColor = Color(0xFF164EAD);
   static const Color backgroundColor = Colors.white;
@@ -111,13 +21,11 @@ abstract final class HistoryScreenStyles {
   static const IconData clearSearchIcon = Icons.close_rounded;
   static const IconData sortIcon = Icons.tune_rounded;
 
-  static const IconData moreActionsIcon =
-    Icons.more_vert_rounded;
+  static const IconData moreActionsIcon = Icons.more_vert_rounded;
 
   static const double moreActionIconSize = 22;
 
-  static const IconData favoriteIcon =
-    Icons.star_border_rounded;
+  static const IconData favoriteIcon = Icons.star_border_rounded;
 
   static const IconData renameIcon = Icons.edit_outlined;
   static const IconData deleteIcon = Icons.delete_outline_rounded;
@@ -155,7 +63,6 @@ abstract final class HistoryScreenStyles {
   );
 
   static const InputDecoration searchDecoration = InputDecoration(
-    hintText: searchHint,
     hintStyle: TextStyle(color: textMutedColor, fontSize: 13),
     prefixIcon: Icon(searchIcon, color: textMutedColor, size: 21),
     filled: true,

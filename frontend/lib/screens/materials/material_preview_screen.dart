@@ -5,8 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
-import '../../styles/screens/materials/material_detail_screen_styles.dart';
-import '../../widgets/app_header.dart';
+import '../../styles/screens/materials/material_preview_screen_styles.dart';
 
 class MaterialDetailScreen extends StatefulWidget {
   const MaterialDetailScreen({super.key, required this.material});
@@ -129,47 +128,42 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MaterialDetailScreenStyles.backgroundColor,
-      appBar: PreferredSize(
-        preferredSize: MaterialDetailScreenStyles.headerSize,
-        child: Stack(
-          children: <Widget>[
-            const AppHeader(),
-            Positioned.fill(
-              child: SafeArea(
-                child: Padding(
-                  padding: MaterialDetailScreenStyles.headerPadding,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: <Widget>[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          tooltip: MaterialDetailScreenStyles.backTooltip,
-                          onPressed: () {
-                            Navigator.maybePop(context);
-                          },
-                          icon: const Icon(
-                            MaterialDetailScreenStyles.backIcon,
-                            size: MaterialDetailScreenStyles.headerIconSize,
-                            color: MaterialDetailScreenStyles.primaryColor,
-                          ),
-                        ),
-                      ),
-                      const Center(
-                        child: Text(
-                          MaterialDetailScreenStyles.screenTitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: MaterialDetailScreenStyles.headerTitleStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+      appBar: AppBar(
+        toolbarHeight: MaterialDetailScreenStyles.headerSize.height,
+        automaticallyImplyLeading: false,
+        backgroundColor: MaterialDetailScreenStyles.surfaceColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leadingWidth: 72,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: IconButton(
+            tooltip: MaterialDetailScreenStyles.backTooltip,
+            onPressed: () {
+              Navigator.maybePop(context);
+            },
+            icon: const Icon(
+              MaterialDetailScreenStyles.backIcon,
+              size: MaterialDetailScreenStyles.headerIconSize,
+              color: MaterialDetailScreenStyles.primaryColor,
             ),
-          ],
+          ),
+        ),
+        title: const Text(
+          MaterialDetailScreenStyles.screenTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: MaterialDetailScreenStyles.headerTitleStyle,
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(
+            height: 1,
+            thickness: 1,
+            color: MaterialDetailScreenStyles.outlineColor,
+          ),
         ),
       ),
       body: SafeArea(

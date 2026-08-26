@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
@@ -14,6 +15,92 @@ import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
 import 'scan_result_screen.dart';
+
+abstract final class _ScanText {
+  static const String screenTitle = 'Scan Material';
+
+  static const String screenDescription =
+      'Align your document within the frame';
+
+  static const String cameraReadyLabel = 'Ready to scan';
+
+  static const String imageReadyLabel = 'Adjust crop area';
+
+  static const String cameraInstruction = 'Position the document in the frame';
+
+  static const String imageInstruction = 'Drag the corners to fit the document';
+
+  static const String uploadLabel = 'Upload';
+
+  static const String flashLabel = 'Flash';
+
+  static const String retakeLabel = 'Retake';
+
+  static const String captureSemanticLabel = 'Capture document';
+
+  static const String scanSemanticLabel = 'Scan document with AI';
+
+  static const String backTooltip = 'Go back';
+
+  static const String helpTooltip = 'Scanning help';
+
+  static const String helpTitle = 'Scanning tips';
+
+  static const String helpDescription =
+      'For clearer text and more accurate Braille output:';
+
+  static const String lightingTip =
+      'Use bright and even lighting without shadows.';
+
+  static const String alignmentTip =
+      'Keep the complete document inside the blue frame.';
+
+  static const String stabilityTip =
+      'Hold the device steady and keep the text in focus.';
+
+  static const String printedMaterialTip =
+      'Use clear printed text and equations whenever possible.';
+
+  static const String closeLabel = 'Got it';
+
+  static const String confirmationTitle = 'Ready to scan?';
+
+  static const String confirmationDescription =
+      'TactileLens will process the selected area to recognize '
+      'printed text and equations, then generate the available '
+      'Braille translation.';
+
+  static const String selectedAreaDetail =
+      'Only the area inside the crop frame will be processed.';
+
+  static const String recognitionDetail =
+      'Printed text and equations will be recognized.';
+
+  static const String brailleDetail =
+      'Braille output will be generated when translation succeeds.';
+
+  static const String processingDetail = 'Processing may take a few moments.';
+
+  static const String adjustCropLabel = 'Adjust Crop';
+
+  static const String scanDocumentLabel = 'Scan Document';
+
+  static const String scanFailureMessage =
+      'Unable to scan the document. Please try again.';
+
+  static const String textAndEquationHistoryTitle = 'Text and Equation Scan';
+
+  static const String equationHistoryTitle = 'Equation Scan';
+
+  static const String textHistoryTitle = 'Printed Text Scan';
+
+  static const String documentHistoryTitle = 'Document Scan';
+
+  static const String historySaveFailureMessage =
+      'The scan was completed, but it could not be added to History.';
+
+  static const String processingLabel = 'Scanning your document...';
+}
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key, required this.onBack});
@@ -41,8 +128,46 @@ class _ScanScreenState extends State<ScanScreen> {
   bool _flashEnabled = false;
   bool _isProcessing = false;
 
+  DeviceOrientation _cameraOrientation = DeviceOrientation.portraitUp;
   bool get _hasSelectedImage {
     return _selectedImage != null;
+  }
+
+  void _handleCameraOrientationChanged(DeviceOrientation orientation) {
+    if (!mounted || _cameraOrientation == orientation) {
+      return;
+    }
+
+    setState(() {
+      _cameraOrientation = orientation;
+    });
+  }
+
+  double _cameraContentTurns(DeviceOrientation orientation) {
+    return switch (orientation) {
+      DeviceOrientation.portraitUp => 0,
+      DeviceOrientation.landscapeLeft => 0.25,
+      DeviceOrientation.portraitDown => 0.5,
+      DeviceOrientation.landscapeRight => -0.25,
+    };
+  }
+
+  Alignment _statusOverlayAlignment(DeviceOrientation orientation) {
+    return switch (orientation) {
+      DeviceOrientation.portraitUp => Alignment.topCenter,
+      DeviceOrientation.landscapeLeft => Alignment.centerRight,
+      DeviceOrientation.portraitDown => Alignment.bottomCenter,
+      DeviceOrientation.landscapeRight => Alignment.centerLeft,
+    };
+  }
+
+  Alignment _instructionOverlayAlignment(DeviceOrientation orientation) {
+    return switch (orientation) {
+      DeviceOrientation.portraitUp => Alignment.bottomCenter,
+      DeviceOrientation.landscapeLeft => Alignment.centerLeft,
+      DeviceOrientation.portraitDown => Alignment.topCenter,
+      DeviceOrientation.landscapeRight => Alignment.centerRight,
+    };
   }
 
   Future<void> _toggleFlash() async {
@@ -99,7 +224,9 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     try {
-      final File capturedImage = await _cameraService.captureImage();
+      final File capturedImage = await _cameraService.captureImage(
+        orientation: _cameraOrientation,
+      );
 
       if (!mounted) {
         return;
@@ -140,18 +267,18 @@ class _ScanScreenState extends State<ScanScreen> {
 
   String _createAutomaticHistoryTitle(ScanDocumentResult result) {
     if (result.hasText && result.hasFormulas) {
-      return ScanScreenStyles.textAndEquationHistoryTitle;
+      return _ScanText.textAndEquationHistoryTitle;
     }
 
     if (result.hasFormulas) {
-      return ScanScreenStyles.equationHistoryTitle;
+      return _ScanText.equationHistoryTitle;
     }
 
     if (result.hasText) {
-      return ScanScreenStyles.textHistoryTitle;
+      return _ScanText.textHistoryTitle;
     }
 
-    return ScanScreenStyles.documentHistoryTitle;
+    return _ScanText.documentHistoryTitle;
   }
 
   Future<void> _saveScanToHistory(ScanDocumentResult result) async {
@@ -185,7 +312,7 @@ class _ScanScreenState extends State<ScanScreen> {
       debugPrintStack(stackTrace: stackTrace);
 
       if (mounted) {
-        _showScanError(ScanScreenStyles.historySaveFailureMessage);
+        _showScanError(_ScanText.historySaveFailureMessage);
       }
     } catch (error, stackTrace) {
       debugPrint(
@@ -196,7 +323,7 @@ class _ScanScreenState extends State<ScanScreen> {
       debugPrintStack(stackTrace: stackTrace);
 
       if (mounted) {
-        _showScanError(ScanScreenStyles.historySaveFailureMessage);
+        _showScanError(_ScanText.historySaveFailureMessage);
       }
     }
   }
@@ -298,7 +425,7 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      _showScanError(ScanScreenStyles.scanFailureMessage);
+      _showScanError(_ScanText.scanFailureMessage);
     } finally {
       if (mounted) {
         setState(() {
@@ -359,7 +486,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     height: ScanScreenStyles.confirmationTitleSpacing,
                   ),
                   const Text(
-                    ScanScreenStyles.confirmationTitle,
+                    _ScanText.confirmationTitle,
                     textAlign: TextAlign.center,
                     style: ScanScreenStyles.confirmationTitleStyle,
                   ),
@@ -367,7 +494,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     height: ScanScreenStyles.confirmationDescriptionSpacing,
                   ),
                   const Text(
-                    ScanScreenStyles.confirmationDescription,
+                    _ScanText.confirmationDescription,
                     textAlign: TextAlign.center,
                     style: ScanScreenStyles.confirmationDescriptionStyle,
                   ),
@@ -376,28 +503,28 @@ class _ScanScreenState extends State<ScanScreen> {
                   ),
                   const _ScanConfirmationDetail(
                     icon: ScanScreenStyles.selectedAreaIcon,
-                    text: ScanScreenStyles.selectedAreaDetail,
+                    text: _ScanText.selectedAreaDetail,
                   ),
                   const SizedBox(
                     height: ScanScreenStyles.confirmationDetailSpacing,
                   ),
                   const _ScanConfirmationDetail(
                     icon: ScanScreenStyles.recognitionIcon,
-                    text: ScanScreenStyles.recognitionDetail,
+                    text: _ScanText.recognitionDetail,
                   ),
                   const SizedBox(
                     height: ScanScreenStyles.confirmationDetailSpacing,
                   ),
                   const _ScanConfirmationDetail(
                     icon: ScanScreenStyles.brailleOutputIcon,
-                    text: ScanScreenStyles.brailleDetail,
+                    text: _ScanText.brailleDetail,
                   ),
                   const SizedBox(
                     height: ScanScreenStyles.confirmationDetailSpacing,
                   ),
                   const _ScanConfirmationDetail(
                     icon: ScanScreenStyles.processingTimeIcon,
-                    text: ScanScreenStyles.processingDetail,
+                    text: _ScanText.processingDetail,
                   ),
                   const SizedBox(
                     height: ScanScreenStyles.confirmationButtonsSpacing,
@@ -414,7 +541,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         size: ScanScreenStyles.confirmationButtonIconSize,
                       ),
                       label: const Text(
-                        ScanScreenStyles.adjustCropLabel,
+                        _ScanText.adjustCropLabel,
                         style:
                             ScanScreenStyles.confirmationSecondaryButtonStyle,
                       ),
@@ -434,7 +561,7 @@ class _ScanScreenState extends State<ScanScreen> {
                         children: <Widget>[
                           Expanded(
                             child: Text(
-                              ScanScreenStyles.scanDocumentLabel,
+                              _ScanText.scanDocumentLabel,
                               textAlign: TextAlign.center,
                               style: ScanScreenStyles
                                   .confirmationPrimaryButtonStyle,
@@ -475,12 +602,18 @@ class _ScanScreenState extends State<ScanScreen> {
       throw const FormatException('Unable to decode the selected image.');
     }
 
+    /*
+   * Camera captures are already normalized and saved as PNG by
+   * CameraService. Do not apply EXIF orientation again here.
+   */
+    final img.Image normalizedImage = decodedImage;
+
     final Rect actualRegion = _mapPreviewRegionToImage(
       selectedRegion: selectedRegion,
       previewSize: previewSize,
       imageSize: Size(
-        decodedImage.width.toDouble(),
-        decodedImage.height.toDouble(),
+        normalizedImage.width.toDouble(),
+        normalizedImage.height.toDouble(),
       ),
     );
 
@@ -632,33 +765,33 @@ class _ScanScreenState extends State<ScanScreen> {
                 ),
                 const SizedBox(height: ScanScreenStyles.helpTitleTopSpacing),
                 const Text(
-                  ScanScreenStyles.helpTitle,
+                  _ScanText.helpTitle,
                   style: ScanScreenStyles.helpTitleStyle,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpDescriptionSpacing),
                 const Text(
-                  ScanScreenStyles.helpDescription,
+                  _ScanText.helpDescription,
                   style: ScanScreenStyles.helpDescriptionStyle,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpTipTopSpacing),
                 const _ScanningTip(
                   icon: Icons.light_mode_outlined,
-                  text: ScanScreenStyles.lightingTip,
+                  text: _ScanText.lightingTip,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpTipSpacing),
                 const _ScanningTip(
                   icon: Icons.document_scanner_outlined,
-                  text: ScanScreenStyles.alignmentTip,
+                  text: _ScanText.alignmentTip,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpTipSpacing),
                 const _ScanningTip(
                   icon: Icons.center_focus_strong_outlined,
-                  text: ScanScreenStyles.stabilityTip,
+                  text: _ScanText.stabilityTip,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpTipSpacing),
                 const _ScanningTip(
                   icon: Icons.text_fields_rounded,
-                  text: ScanScreenStyles.printedMaterialTip,
+                  text: _ScanText.printedMaterialTip,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpButtonTopSpacing),
                 SizedBox(
@@ -668,7 +801,7 @@ class _ScanScreenState extends State<ScanScreen> {
                       Navigator.of(sheetContext).pop();
                     },
                     style: ScanScreenStyles.helpButtonStyle,
-                    child: const Text(ScanScreenStyles.closeLabel),
+                    child: const Text(_ScanText.closeLabel),
                   ),
                 ),
               ],
@@ -714,7 +847,7 @@ class _ScanScreenState extends State<ScanScreen> {
               width: ScanScreenStyles.headerSideWidth,
               height: ScanScreenStyles.headerIconButtonSize,
               child: IconButton(
-                tooltip: ScanScreenStyles.backTooltip,
+                tooltip: _ScanText.backTooltip,
                 onPressed: _isProcessing ? null : widget.onBack,
                 icon: const Icon(
                   Icons.arrow_back_rounded,
@@ -728,7 +861,7 @@ class _ScanScreenState extends State<ScanScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   const Text(
-                    ScanScreenStyles.screenTitle,
+                    _ScanText.screenTitle,
                     textAlign: TextAlign.center,
                     style: ScanScreenStyles.headerTitleStyle,
                   ),
@@ -736,7 +869,7 @@ class _ScanScreenState extends State<ScanScreen> {
                     height: ScanScreenStyles.titleDescriptionSpacing,
                   ),
                   const Text(
-                    ScanScreenStyles.screenDescription,
+                    _ScanText.screenDescription,
                     textAlign: TextAlign.center,
                     style: ScanScreenStyles.headerDescriptionStyle,
                   ),
@@ -747,7 +880,7 @@ class _ScanScreenState extends State<ScanScreen> {
               width: ScanScreenStyles.headerSideWidth,
               height: ScanScreenStyles.headerIconButtonSize,
               child: IconButton(
-                tooltip: ScanScreenStyles.helpTooltip,
+                tooltip: _ScanText.helpTooltip,
                 onPressed: _isProcessing ? null : _showScanningHelp,
                 icon: const Icon(
                   Icons.help_outline_rounded,
@@ -764,12 +897,12 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Widget _buildCameraArea() {
     final String statusLabel = _hasSelectedImage
-        ? ScanScreenStyles.imageReadyLabel
-        : ScanScreenStyles.cameraReadyLabel;
+        ? _ScanText.imageReadyLabel
+        : _ScanText.cameraReadyLabel;
 
     final String instructionLabel = _hasSelectedImage
-        ? ScanScreenStyles.imageInstruction
-        : ScanScreenStyles.cameraInstruction;
+        ? _ScanText.imageInstruction
+        : _ScanText.cameraInstruction;
 
     return ColoredBox(
       color: ScanScreenStyles.cameraBackgroundColor,
@@ -777,10 +910,14 @@ class _ScanScreenState extends State<ScanScreen> {
         fit: StackFit.expand,
         children: <Widget>[
           if (_selectedImage == null)
-            ScanCameraPreview(cameraService: _cameraService)
+            ScanCameraPreview(
+              cameraService: _cameraService,
+              onOrientationChanged: _handleCameraOrientationChanged,
+            )
           else
             ScanPreview(
               selectedImage: _selectedImage!,
+              deviceOrientation: _cameraOrientation,
               onRegionSelected: _onRegionSelected,
               onSelectionCleared: _clearSelectedRegion,
             ),
@@ -789,30 +926,42 @@ class _ScanScreenState extends State<ScanScreen> {
             const IgnorePointer(
               child: CustomPaint(painter: _ScanFramePainter()),
             ),
-          Positioned(
-            top: ScanScreenStyles.cameraOverlayTopSpacing,
-            left: ScanScreenStyles.frameHorizontalInset,
-            right: ScanScreenStyles.frameHorizontalInset,
-            child: Center(
-              child: _CameraMessagePill(
-                icon: _hasSelectedImage
-                    ? Icons.check_circle_rounded
-                    : Icons.document_scanner_outlined,
-                label: statusLabel,
-                isStatus: true,
+          Padding(
+            padding: ScanScreenStyles.cameraOverlayPadding,
+            child: AnimatedAlign(
+              duration: ScanScreenStyles.orientationAnimationDuration,
+              curve: ScanScreenStyles.orientationAnimationCurve,
+              alignment: _statusOverlayAlignment(_cameraOrientation),
+              child: AnimatedRotation(
+                duration: ScanScreenStyles.orientationAnimationDuration,
+                curve: ScanScreenStyles.orientationAnimationCurve,
+                turns: _cameraContentTurns(_cameraOrientation),
+                child: _CameraMessagePill(
+                  icon: _hasSelectedImage
+                      ? Icons.check_circle_rounded
+                      : Icons.document_scanner_outlined,
+                  label: statusLabel,
+                  isStatus: true,
+                ),
               ),
             ),
           ),
-          Positioned(
-            bottom: ScanScreenStyles.cameraOverlayBottomSpacing,
-            left: ScanScreenStyles.frameHorizontalInset,
-            right: ScanScreenStyles.frameHorizontalInset,
-            child: Center(
-              child: _CameraMessagePill(
-                icon: _hasSelectedImage
-                    ? Icons.image_search_outlined
-                    : Icons.stay_current_portrait_rounded,
-                label: instructionLabel,
+          Padding(
+            padding: ScanScreenStyles.cameraOverlayPadding,
+            child: AnimatedAlign(
+              duration: ScanScreenStyles.orientationAnimationDuration,
+              curve: ScanScreenStyles.orientationAnimationCurve,
+              alignment: _instructionOverlayAlignment(_cameraOrientation),
+              child: AnimatedRotation(
+                duration: ScanScreenStyles.orientationAnimationDuration,
+                curve: ScanScreenStyles.orientationAnimationCurve,
+                turns: _cameraContentTurns(_cameraOrientation),
+                child: _CameraMessagePill(
+                  icon: _hasSelectedImage
+                      ? Icons.image_search_outlined
+                      : Icons.stay_current_portrait_rounded,
+                  label: instructionLabel,
+                ),
               ),
             ),
           ),
@@ -831,14 +980,14 @@ class _ScanScreenState extends State<ScanScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           _CameraControlButton(
-            label: ScanScreenStyles.uploadLabel,
+            label: _ScanText.uploadLabel,
             icon: Icons.image_outlined,
             onPressed: _isProcessing ? null : _pickFile,
           ),
           _CaptureButton(
             semanticLabel: _hasSelectedImage
-                ? ScanScreenStyles.scanSemanticLabel
-                : ScanScreenStyles.captureSemanticLabel,
+                ? _ScanText.scanSemanticLabel
+                : _ScanText.captureSemanticLabel,
             icon: _hasSelectedImage
                 ? Icons.document_scanner_rounded
                 : Icons.camera_alt_rounded,
@@ -851,8 +1000,8 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
           _CameraControlButton(
             label: _hasSelectedImage
-                ? ScanScreenStyles.retakeLabel
-                : ScanScreenStyles.flashLabel,
+                ? _ScanText.retakeLabel
+                : _ScanText.flashLabel,
             icon: _hasSelectedImage
                 ? Icons.refresh_rounded
                 : _flashEnabled
@@ -1108,7 +1257,7 @@ class _ProcessingOverlay extends StatelessWidget {
             ),
             SizedBox(height: ScanScreenStyles.processingLabelSpacing),
             Text(
-              ScanScreenStyles.processingLabel,
+              _ScanText.processingLabel,
               style: ScanScreenStyles.processingTextStyle,
             ),
           ],

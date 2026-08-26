@@ -6,7 +6,11 @@ const cors = require("cors");
 const path = require("path");
 
 const authRoutes = require("./routes/auth/authRoutes");
+
 const materialRoutes = require("./routes/materials/material_routes");
+
+const materialFolderRoutes = require("./routes/materials/material_folder_routes");
+
 const historyRoutes = require("./routes/history/history_routes");
 
 const app = express();
@@ -45,6 +49,9 @@ app.use("/api/auth", authRoutes);
 
 // Material Routes
 app.use("/api/materials", materialRoutes);
+
+// Material Folder Routes
+app.use("/api/material-folders", materialFolderRoutes);
 
 // Scan History Routes
 app.use("/api/history", historyRoutes);

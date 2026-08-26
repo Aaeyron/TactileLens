@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as img;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +10,109 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+
+abstract final class _ScanResultText {
+  static const String appBarTitle = 'Scan Result';
+
+  static const String backTooltip = 'Go back';
+
+  static const String newScanLabel = 'New Scan';
+
+  static const String successTitle = 'Scan Successful!';
+
+  static const String successDescription =
+      'Your scanned content is ready for review.';
+
+  static const String imageSectionNumber = '1';
+
+  static const String imageSectionTitle = 'Scanned Image';
+
+  static const String contentSectionNumber = '2';
+
+  static const String contentSectionTitle = 'Scanned Content (Preview)';
+
+  static const String brailleSectionNumber = '3';
+
+  static const String brailleSectionTitle = 'Braille Output (Translation)';
+
+  static const String copyLabel = 'Copy';
+
+  static const String copyBrailleLabel = 'Copy Braille';
+
+  static const String copyTooltip = 'Copy recognized content';
+
+  static const String copyBrailleTooltip = 'Copy Braille translation';
+
+  static const String imageErrorText = 'Unable to display the scanned image.';
+
+  static const String contentBlockSeparator = '\n\n';
+
+  static const String brailleUnavailableTitle = 'Braille output unavailable';
+
+  static const String brailleUnavailableDescription =
+      'No Braille translation was returned for this scan.';
+
+  static const String brailleTranslationFailedDescription =
+      'The recognized content could not be translated into Braille. Please try scanning again.';
+
+  static const String emptyResultTitle = 'No content recognized';
+
+  static const String emptyResultDescription =
+      'Try scanning again with clearer lighting and a sharper image.';
+
+  static const String saveMaterialLabel = 'Save to Materials';
+
+  static const String savingMaterialLabel = 'Saving...';
+
+  static const String savedMaterialLabel = 'Saved to Materials';
+
+  static const String saveMaterialTooltip = 'Save this scan to your materials';
+
+  static const String saveDialogTitle = 'Save as Material';
+
+  static const String saveDialogDescription =
+      'Enter the material details so you can easily find it later.';
+
+  static const String saveTitleLabel = 'Title';
+
+  static const String saveTitleHint = 'Example: Algebra Worksheet';
+
+  static const String saveSubjectLabel = 'Subject';
+
+  static const String saveSubjectHint = 'Example: General Algebra';
+
+  static const String saveDescriptionLabel = 'Description (Optional)';
+
+  static const String saveDescriptionHint =
+      'Add a short description of this material.';
+
+  static const String defaultMaterialTitle = 'Untitled Scan';
+
+  static const String defaultMaterialSubject = 'Scanned Document';
+
+  static const String cancelLabel = 'Cancel';
+
+  static const String confirmSaveLabel = 'Save';
+
+  static const String emptyMaterialTitleError = 'Please enter a title.';
+
+  static const String emptyMaterialSubjectError = 'Please enter a subject.';
+
+  static const String materialSavedMessage = 'Scan saved to your materials.';
+
+  static const String materialSaveFailedMessage =
+      'Unable to save this scan to materials.';
+
+  static const String contentCopiedMessage = 'Recognized content copied.';
+
+  static const String brailleCopiedMessage = 'Braille translation copied.';
+
+  static const String imageSemanticLabel = 'Image processed by PaddleOCR-VL';
+
+  static const String resultSemanticLabel = 'Recognized document content';
+
+  static const String brailleSemanticLabel = 'Braille translation output';
+}
 
 class ScanResultScreen extends StatelessWidget {
   const ScanResultScreen({
@@ -23,7 +128,7 @@ class ScanResultScreen extends StatelessWidget {
     return result.blocks
         .map((DocumentBlock block) => block.normalizedContent.trim())
         .where((String content) => content.isNotEmpty)
-        .join(ScanResultScreenStyles.contentBlockSeparator);
+        .join(_ScanResultText.contentBlockSeparator);
   }
 
   @override
@@ -42,7 +147,7 @@ class ScanResultScreen extends StatelessWidget {
               child: Row(
                 children: <Widget>[
                   IconButton(
-                    tooltip: ScanResultScreenStyles.backTooltip,
+                    tooltip: _ScanResultText.backTooltip,
                     onPressed: () {
                       Navigator.maybePop(context);
                     },
@@ -57,7 +162,7 @@ class ScanResultScreen extends StatelessWidget {
                   ),
                   const Expanded(
                     child: Text(
-                      ScanResultScreenStyles.appBarTitle,
+                      _ScanResultText.appBarTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: ScanResultScreenStyles.appBarTitleStyle,
@@ -71,7 +176,7 @@ class ScanResultScreen extends StatelessWidget {
                       ScanResultScreenStyles.newScanIcon,
                       size: ScanResultScreenStyles.actionIconSize,
                     ),
-                    label: const Text(ScanResultScreenStyles.newScanLabel),
+                    label: const Text(_ScanResultText.newScanLabel),
                     style: ScanResultScreenStyles.headerActionStyle,
                   ),
                   const SizedBox(
@@ -91,25 +196,25 @@ class ScanResultScreen extends StatelessWidget {
             _buildSuccessBanner(),
             const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number: ScanResultScreenStyles.imageSectionNumber,
-              title: ScanResultScreenStyles.imageSectionTitle,
+              number: _ScanResultText.imageSectionNumber,
+              title: _ScanResultText.imageSectionTitle,
               child: _buildImagePreview(),
             ),
             const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number: ScanResultScreenStyles.contentSectionNumber,
-              title: ScanResultScreenStyles.contentSectionTitle,
+              number: _ScanResultText.contentSectionNumber,
+              title: _ScanResultText.contentSectionTitle,
               action: result.hasContent
                   ? _SectionAction(
                       icon: ScanResultScreenStyles.copyIcon,
-                      label: ScanResultScreenStyles.copyLabel,
-                      tooltip: ScanResultScreenStyles.copyTooltip,
+                      label: _ScanResultText.copyLabel,
+                      tooltip: _ScanResultText.copyTooltip,
                       onPressed: () {
                         _copyToClipboard(
                           context: context,
                           content: _combinedContent,
                           confirmationMessage:
-                              ScanResultScreenStyles.contentCopiedMessage,
+                              _ScanResultText.contentCopiedMessage,
                         );
                       },
                     )
@@ -120,19 +225,19 @@ class ScanResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
             _ResultSection(
-              number: ScanResultScreenStyles.brailleSectionNumber,
-              title: ScanResultScreenStyles.brailleSectionTitle,
+              number: _ScanResultText.brailleSectionNumber,
+              title: _ScanResultText.brailleSectionTitle,
               action: result.hasBraille
                   ? _SectionAction(
                       icon: ScanResultScreenStyles.copyIcon,
-                      label: ScanResultScreenStyles.copyBrailleLabel,
-                      tooltip: ScanResultScreenStyles.copyBrailleTooltip,
+                      label: _ScanResultText.copyBrailleLabel,
+                      tooltip: _ScanResultText.copyBrailleTooltip,
                       onPressed: () {
                         _copyToClipboard(
                           context: context,
                           content: result.combinedBraille,
                           confirmationMessage:
-                              ScanResultScreenStyles.brailleCopiedMessage,
+                              _ScanResultText.brailleCopiedMessage,
                         );
                       },
                     )
@@ -180,12 +285,12 @@ class ScanResultScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  ScanResultScreenStyles.successTitle,
+                  _ScanResultText.successTitle,
                   style: ScanResultScreenStyles.successTitleStyle,
                 ),
                 SizedBox(height: ScanResultScreenStyles.compactSpacing),
                 Text(
-                  ScanResultScreenStyles.successDescription,
+                  _ScanResultText.successDescription,
                   style: ScanResultScreenStyles.successDescriptionStyle,
                 ),
               ],
@@ -203,27 +308,7 @@ class ScanResultScreen extends StatelessWidget {
   }
 
   Widget _buildImagePreview() {
-    return Semantics(
-      image: true,
-      label: ScanResultScreenStyles.imageSemanticLabel,
-      child: Container(
-        width: double.infinity,
-        height: ScanResultScreenStyles.imagePreviewHeight,
-        decoration: const BoxDecoration(
-          color: ScanResultScreenStyles.imagePreviewBackgroundColor,
-          borderRadius: ScanResultScreenStyles.imagePreviewRadius,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Image.file(
-          scannedImage,
-          fit: ScanResultScreenStyles.imagePreviewFit,
-          errorBuilder:
-              (BuildContext context, Object error, StackTrace? stackTrace) {
-                return const _ImageErrorState();
-              },
-        ),
-      ),
-    );
+    return _ScannedImagePreview(scannedImage: scannedImage);
   }
 
   Widget _buildRecognizedContent() {
@@ -234,7 +319,7 @@ class ScanResultScreen extends StatelessWidget {
         .toList(growable: false);
 
     return Semantics(
-      label: ScanResultScreenStyles.resultSemanticLabel,
+      label: _ScanResultText.resultSemanticLabel,
       child: Container(
         width: double.infinity,
         padding: ScanResultScreenStyles.contentPreviewPadding,
@@ -264,7 +349,7 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildBrailleOutput() {
     return Semantics(
-      label: ScanResultScreenStyles.brailleSemanticLabel,
+      label: _ScanResultText.brailleSemanticLabel,
       child: Container(
         width: double.infinity,
         padding: ScanResultScreenStyles.braillePreviewPadding,
@@ -284,8 +369,8 @@ class ScanResultScreen extends StatelessWidget {
 
   Widget _buildBrailleUnavailable() {
     final String message = result.hasBrailleErrors
-        ? ScanResultScreenStyles.brailleTranslationFailedDescription
-        : ScanResultScreenStyles.brailleUnavailableDescription;
+        ? _ScanResultText.brailleTranslationFailedDescription
+        : _ScanResultText.brailleUnavailableDescription;
 
     return Padding(
       padding: ScanResultScreenStyles.emptyResultPadding,
@@ -298,7 +383,7 @@ class ScanResultScreen extends StatelessWidget {
           ),
           const SizedBox(height: ScanResultScreenStyles.itemSpacing),
           const Text(
-            ScanResultScreenStyles.brailleUnavailableTitle,
+            _ScanResultText.brailleUnavailableTitle,
             textAlign: TextAlign.center,
             style: ScanResultScreenStyles.emptyResultTitleStyle,
           ),
@@ -325,13 +410,13 @@ class ScanResultScreen extends StatelessWidget {
           ),
           SizedBox(height: ScanResultScreenStyles.itemSpacing),
           Text(
-            ScanResultScreenStyles.emptyResultTitle,
+            _ScanResultText.emptyResultTitle,
             textAlign: TextAlign.center,
             style: ScanResultScreenStyles.emptyResultTitleStyle,
           ),
           SizedBox(height: ScanResultScreenStyles.compactSpacing),
           Text(
-            ScanResultScreenStyles.emptyResultDescription,
+            _ScanResultText.emptyResultDescription,
             textAlign: TextAlign.center,
             style: ScanResultScreenStyles.emptyResultDescriptionStyle,
           ),
@@ -411,7 +496,7 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
     final String recognizedContent = widget.result.blocks
         .map((DocumentBlock block) => block.normalizedContent.trim())
         .where((String content) => content.isNotEmpty)
-        .join(ScanResultScreenStyles.contentBlockSeparator);
+        .join(_ScanResultText.contentBlockSeparator);
 
     try {
       await _materialService.uploadMaterial(
@@ -439,7 +524,7 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
         _isSaved = true;
       });
 
-      _showMessage(ScanResultScreenStyles.materialSavedMessage);
+      _showMessage(_ScanResultText.materialSavedMessage);
     } on MaterialServiceException catch (error) {
       if (!mounted) {
         return;
@@ -459,7 +544,7 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
         _isSaving = false;
       });
 
-      _showMessage(ScanResultScreenStyles.materialSaveFailedMessage);
+      _showMessage(_ScanResultText.materialSaveFailedMessage);
     }
   }
 
@@ -495,15 +580,15 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
   @override
   Widget build(BuildContext context) {
     final String label = _isSaving
-        ? ScanResultScreenStyles.savingMaterialLabel
+        ? _ScanResultText.savingMaterialLabel
         : _isSaved
-        ? ScanResultScreenStyles.savedMaterialLabel
-        : ScanResultScreenStyles.saveMaterialLabel;
+        ? _ScanResultText.savedMaterialLabel
+        : _ScanResultText.saveMaterialLabel;
 
     return SizedBox(
       width: double.infinity,
       child: Tooltip(
-        message: ScanResultScreenStyles.saveMaterialTooltip,
+        message: _ScanResultText.saveMaterialTooltip,
         child: FilledButton.icon(
           onPressed: _isSaving || _isSaved ? null : _saveToMaterials,
           style: ScanResultScreenStyles.saveMaterialButtonStyle,
@@ -562,11 +647,11 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
     super.initState();
 
     _titleController = TextEditingController(
-      text: ScanResultScreenStyles.defaultMaterialTitle,
+      text: _ScanResultText.defaultMaterialTitle,
     );
 
     _subjectController = TextEditingController(
-      text: ScanResultScreenStyles.defaultMaterialSubject,
+      text: _ScanResultText.defaultMaterialSubject,
     );
 
     _descriptionController = TextEditingController();
@@ -593,11 +678,11 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
     if (hasTitleError || hasSubjectError) {
       setState(() {
         _titleError = hasTitleError
-            ? ScanResultScreenStyles.emptyMaterialTitleError
+            ? _ScanResultText.emptyMaterialTitleError
             : null;
 
         _subjectError = hasSubjectError
-            ? ScanResultScreenStyles.emptyMaterialSubjectError
+            ? _ScanResultText.emptyMaterialSubjectError
             : null;
       });
 
@@ -620,7 +705,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
         borderRadius: ScanResultScreenStyles.saveDialogRadius,
       ),
       title: const Text(
-        ScanResultScreenStyles.saveDialogTitle,
+        _ScanResultText.saveDialogTitle,
         style: ScanResultScreenStyles.saveDialogTitleStyle,
       ),
       contentPadding: ScanResultScreenStyles.saveDialogContentPadding,
@@ -630,7 +715,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Text(
-              ScanResultScreenStyles.saveDialogDescription,
+              _ScanResultText.saveDialogDescription,
               style: ScanResultScreenStyles.saveDialogDescriptionStyle,
             ),
             const SizedBox(
@@ -643,7 +728,11 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               textInputAction: TextInputAction.next,
               style: ScanResultScreenStyles.saveInputTextStyle,
               decoration: ScanResultScreenStyles.saveTitleInputDecoration
-                  .copyWith(errorText: _titleError),
+                  .copyWith(
+                    labelText: _ScanResultText.saveTitleLabel,
+                    hintText: _ScanResultText.saveTitleHint,
+                    errorText: _titleError,
+                  ),
               onChanged: (_) {
                 if (_titleError == null) {
                   return;
@@ -663,7 +752,11 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               textInputAction: TextInputAction.next,
               style: ScanResultScreenStyles.saveInputTextStyle,
               decoration: ScanResultScreenStyles.saveSubjectInputDecoration
-                  .copyWith(errorText: _subjectError),
+                  .copyWith(
+                    labelText: _ScanResultText.saveSubjectLabel,
+                    hintText: _ScanResultText.saveSubjectHint,
+                    errorText: _subjectError,
+                  ),
               onChanged: (_) {
                 if (_subjectError == null) {
                   return;
@@ -685,7 +778,11 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               maxLines: 4,
               textInputAction: TextInputAction.newline,
               style: ScanResultScreenStyles.saveInputTextStyle,
-              decoration: ScanResultScreenStyles.saveDescriptionInputDecoration,
+              decoration: ScanResultScreenStyles.saveDescriptionInputDecoration
+                  .copyWith(
+                    labelText: _ScanResultText.saveDescriptionLabel,
+                    hintText: _ScanResultText.saveDescriptionHint,
+                  ),
             ),
           ],
         ),
@@ -697,12 +794,12 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
             Navigator.of(context).pop();
           },
           style: ScanResultScreenStyles.saveDialogCancelStyle,
-          child: const Text(ScanResultScreenStyles.cancelLabel),
+          child: const Text(_ScanResultText.cancelLabel),
         ),
         FilledButton(
           onPressed: _submit,
           style: ScanResultScreenStyles.saveDialogConfirmStyle,
-          child: const Text(ScanResultScreenStyles.confirmSaveLabel),
+          child: const Text(_ScanResultText.confirmSaveLabel),
         ),
       ],
     );
@@ -896,6 +993,128 @@ class _RecognizedBlock extends StatelessWidget {
   }
 }
 
+class _ScannedImagePreview extends StatefulWidget {
+  const _ScannedImagePreview({required this.scannedImage});
+
+  final File scannedImage;
+
+  @override
+  State<_ScannedImagePreview> createState() {
+    return _ScannedImagePreviewState();
+  }
+}
+
+class _ScannedImagePreviewState extends State<_ScannedImagePreview> {
+  late Future<Size> _imageSizeFuture;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _imageSizeFuture = _readOrientedImageSize();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ScannedImagePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.scannedImage.path != widget.scannedImage.path) {
+      _imageSizeFuture = _readOrientedImageSize();
+    }
+  }
+
+  Future<Size> _readOrientedImageSize() async {
+    if (!await widget.scannedImage.exists()) {
+      throw const FormatException('The scanned image could not be found.');
+    }
+
+    final Uint8List bytes = await widget.scannedImage.readAsBytes();
+
+    final img.Image? decodedImage = img.decodeImage(bytes);
+
+    if (decodedImage == null) {
+      throw const FormatException('The scanned image could not be decoded.');
+    }
+
+    final img.Image orientedImage = img.bakeOrientation(decodedImage);
+
+    return Size(
+      orientedImage.width.toDouble(),
+      orientedImage.height.toDouble(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      image: true,
+      label: _ScanResultText.imageSemanticLabel,
+      child: FutureBuilder<Size>(
+        future: _imageSizeFuture,
+        builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
+          if (snapshot.hasError) {
+            return const SizedBox(
+              height: ScanResultScreenStyles.imageLoadingHeight,
+              child: _ImageErrorState(),
+            );
+          }
+
+          final Size? imageSize = snapshot.data;
+
+          if (imageSize == null || imageSize.isEmpty) {
+            return const SizedBox(
+              height: ScanResultScreenStyles.imageLoadingHeight,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: ScanResultScreenStyles.primaryColor,
+                ),
+              ),
+            );
+          }
+
+          final double aspectRatio = imageSize.width / imageSize.height;
+
+          return Align(
+            alignment: Alignment.center,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: ScanResultScreenStyles.maximumImagePreviewHeight,
+              ),
+              child: AspectRatio(
+                aspectRatio: aspectRatio,
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: ScanResultScreenStyles.imagePreviewBackgroundColor,
+                    borderRadius: ScanResultScreenStyles.imagePreviewRadius,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.file(
+                    widget.scannedImage,
+                    key: ValueKey<String>(widget.scannedImage.path),
+                    fit: ScanResultScreenStyles.imagePreviewFit,
+                    alignment: Alignment.center,
+                    gaplessPlayback: true,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder:
+                        (
+                          BuildContext context,
+                          Object error,
+                          StackTrace? stackTrace,
+                        ) {
+                          return const _ImageErrorState();
+                        },
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _ImageErrorState extends StatelessWidget {
   const _ImageErrorState();
 
@@ -914,7 +1133,7 @@ class _ImageErrorState extends StatelessWidget {
             ),
             SizedBox(height: ScanResultScreenStyles.itemSpacing),
             Text(
-              ScanResultScreenStyles.imageErrorText,
+              _ScanResultText.imageErrorText,
               textAlign: TextAlign.center,
               style: ScanResultScreenStyles.emptyResultDescriptionStyle,
             ),

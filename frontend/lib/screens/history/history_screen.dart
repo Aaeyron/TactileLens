@@ -5,6 +5,96 @@ import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
 import '../../widgets/app_header.dart';
 
+abstract final class _HistoryText {
+  static const String screenTitle = 'History';
+  static const String searchHint = 'Search History';
+
+  static const String allFilterLabel = 'All';
+  static const String textFilterLabel = 'Text';
+  static const String mathFilterLabel = 'Math';
+  static const String uebFilterLabel = 'UEB';
+  static const String nemethFilterLabel = 'Nemeth';
+
+  static const String todayLabel = 'Today';
+  static const String yesterdayLabel = 'Yesterday';
+
+  static const String mathBadgeLabel = 'Math Equation';
+  static const String textBadgeLabel = 'Printed Text';
+
+  static const String nemethLabel = 'Nemeth';
+  static const String uebLabel = 'UEB';
+
+  static const String brailleTranslationLabel = 'Braille Translation';
+
+  static const String notAvailableLabel = 'not available';
+
+  static const String emptyRecognizedContent =
+      'No recognized content was saved.';
+
+  static const String newestLabel = 'Newest first';
+  static const String oldestLabel = 'Oldest first';
+  static const String titleSortLabel = 'Title A–Z';
+
+  static const String clearSearchTooltip = 'Clear history search';
+  static const String sortTooltip = 'Sort scan history';
+
+  static const String loadingLabel = 'Loading your scan history...';
+
+  static const String emptyTitle = 'No scan history yet';
+  static const String emptyDescription =
+      'Your successful scans will appear here.';
+
+  static const String emptySearchTitle = 'No matching scans';
+  static const String emptySearchDescription =
+      'Try another search word or filter.';
+
+  static const String errorTitle = 'Unable to load history';
+  static const String retryLabel = 'Try Again';
+
+  static const String recognizedContentTitle = 'Recognized Content';
+
+  static const String brailleContentTitle = 'Braille Output';
+
+  static const String noBrailleContent =
+      'No Braille output was saved for this scan.';
+
+  static const String closeLabel = 'Close';
+
+  static const String renameLabel = 'Rename';
+  static const String deleteLabel = 'Delete';
+
+  static const String moreActionsTooltip = 'More history actions';
+
+  static const String favoriteTooltip = 'Add to favorites';
+
+  static const String renameDialogTitle = 'Rename Scan';
+  static const String renameFieldLabel = 'Title';
+
+  static const String cancelLabel = 'Cancel';
+  static const String saveLabel = 'Save';
+
+  static const String deleteDialogTitle = 'Delete Scan?';
+
+  static const String deleteDialogDescription =
+      'This scan will be permanently removed from your history.';
+
+  static const String clearDialogTitle = 'Clear All History?';
+
+  static const String clearDialogDescription =
+      'All saved scan-history records will be permanently deleted.';
+
+  static const String confirmDeleteLabel = 'Delete';
+  static const String confirmClearLabel = 'Clear All';
+
+  static const String renameSuccessMessage = 'History title updated.';
+
+  static const String deleteSuccessMessage = 'Scan removed from history.';
+
+  static const String clearSuccessMessage = 'Scan history cleared.';
+
+  static const String historyListSemanticLabel = 'Saved scan history';
+}
+
 enum _HistoryFilter { all, text, math, ueb, nemeth }
 
 enum _HistoryAction { rename, delete }
@@ -160,11 +250,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final int difference = today.difference(recordDate).inDays;
 
     if (difference == 0) {
-      return HistoryScreenStyles.todayLabel;
+      return _HistoryText.todayLabel;
     }
 
     if (difference == 1) {
-      return HistoryScreenStyles.yesterdayLabel;
+      return _HistoryText.yesterdayLabel;
     }
 
     return MaterialLocalizations.of(context).formatMediumDate(localDate);
@@ -172,14 +262,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   String _recordBadge(HistoryRecord record) {
     return _containsMath(record)
-        ? HistoryScreenStyles.mathBadgeLabel
-        : HistoryScreenStyles.textBadgeLabel;
+        ? _HistoryText.mathBadgeLabel
+        : _HistoryText.textBadgeLabel;
   }
 
   String _brailleCode(HistoryRecord record) {
     return _containsMath(record)
-        ? HistoryScreenStyles.nemethLabel
-        : HistoryScreenStyles.uebLabel;
+        ? _HistoryText.nemethLabel
+        : _HistoryText.uebLabel;
   }
 
   Future<void> _loadHistory() async {
@@ -215,7 +305,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = HistoryScreenStyles.errorTitle;
+        _errorMessage = _HistoryText.errorTitle;
       });
     }
   }
@@ -238,7 +328,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
     } catch (_) {
       if (mounted) {
-        _showMessage(HistoryScreenStyles.errorTitle);
+        _showMessage(_HistoryText.errorTitle);
       }
     }
   }
@@ -279,7 +369,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isUpdating = false;
       });
 
-      _showMessage(HistoryScreenStyles.renameSuccessMessage);
+      _showMessage(_HistoryText.renameSuccessMessage);
     } on HistoryServiceException catch (error) {
       if (!mounted) {
         return;
@@ -299,9 +389,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     final bool confirmed = await _showConfirmationDialog(
-      title: HistoryScreenStyles.deleteDialogTitle,
-      description: HistoryScreenStyles.deleteDialogDescription,
-      confirmationLabel: HistoryScreenStyles.confirmDeleteLabel,
+      title: _HistoryText.deleteDialogTitle,
+      description: _HistoryText.deleteDialogDescription,
+      confirmationLabel: _HistoryText.confirmDeleteLabel,
     );
 
     if (!mounted || !confirmed) {
@@ -329,7 +419,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isUpdating = false;
       });
 
-      _showMessage(HistoryScreenStyles.deleteSuccessMessage);
+      _showMessage(_HistoryText.deleteSuccessMessage);
     } on HistoryServiceException catch (error) {
       if (!mounted) {
         return;
@@ -349,9 +439,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     final bool confirmed = await _showConfirmationDialog(
-      title: HistoryScreenStyles.clearDialogTitle,
-      description: HistoryScreenStyles.clearDialogDescription,
-      confirmationLabel: HistoryScreenStyles.confirmClearLabel,
+      title: _HistoryText.clearDialogTitle,
+      description: _HistoryText.clearDialogDescription,
+      confirmationLabel: _HistoryText.confirmClearLabel,
     );
 
     if (!mounted || !confirmed) {
@@ -376,7 +466,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _isUpdating = false;
       });
 
-      _showMessage(HistoryScreenStyles.clearSuccessMessage);
+      _showMessage(_HistoryText.clearSuccessMessage);
     } on HistoryServiceException catch (error) {
       if (!mounted) {
         return;
@@ -413,7 +503,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text(HistoryScreenStyles.cancelLabel),
+              child: const Text(_HistoryText.cancelLabel),
             ),
             FilledButton(
               onPressed: () {
@@ -453,7 +543,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   const Text(
-                    HistoryScreenStyles.recognizedContentTitle,
+                    _HistoryText.recognizedContentTitle,
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
                   const SizedBox(height: 7),
@@ -463,13 +553,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   ),
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   const Text(
-                    HistoryScreenStyles.brailleContentTitle,
+                    _HistoryText.brailleContentTitle,
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
                   const SizedBox(height: 7),
                   SelectableText(
                     record.brailleContent.trim().isEmpty
-                        ? HistoryScreenStyles.noBrailleContent
+                        ? _HistoryText.noBrailleContent
                         : record.brailleContent,
                     style: record.brailleContent.trim().isEmpty
                         ? HistoryScreenStyles.detailContentStyle
@@ -481,7 +571,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       Navigator.of(sheetContext).pop();
                     },
                     style: HistoryScreenStyles.retryButtonStyle,
-                    child: const Text(HistoryScreenStyles.closeLabel),
+                    child: const Text(_HistoryText.closeLabel),
                   ),
                 ],
               ),
@@ -551,13 +641,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: <Widget>[
         const Expanded(
           child: Text(
-            HistoryScreenStyles.screenTitle,
+            _HistoryText.screenTitle,
             style: HistoryScreenStyles.titleStyle,
           ),
         ),
         TextButton(
           onPressed: _records.isEmpty || _isUpdating ? null : _clearAllHistory,
-          child: const Text(HistoryScreenStyles.confirmClearLabel),
+          child: const Text(_HistoryText.confirmClearLabel),
         ),
       ],
     );
@@ -573,10 +663,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
               controller: _searchController,
               style: HistoryScreenStyles.searchTextStyle,
               decoration: HistoryScreenStyles.searchDecoration.copyWith(
+                hintText: _HistoryText.searchHint,
                 suffixIcon: _searchController.text.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: HistoryScreenStyles.clearSearchTooltip,
+                        tooltip: _HistoryText.clearSearchTooltip,
                         onPressed: _searchController.clear,
                         icon: const Icon(HistoryScreenStyles.clearSearchIcon),
                       ),
@@ -586,7 +677,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         const SizedBox(width: HistoryScreenStyles.sortSpacing),
         PopupMenuButton<_HistorySort>(
-          tooltip: HistoryScreenStyles.sortTooltip,
+          tooltip: _HistoryText.sortTooltip,
           initialValue: _selectedSort,
           onSelected: (_HistorySort sort) {
             setState(() {
@@ -601,15 +692,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
             return const <PopupMenuEntry<_HistorySort>>[
               PopupMenuItem<_HistorySort>(
                 value: _HistorySort.newest,
-                child: Text(HistoryScreenStyles.newestLabel),
+                child: Text(_HistoryText.newestLabel),
               ),
               PopupMenuItem<_HistorySort>(
                 value: _HistorySort.oldest,
-                child: Text(HistoryScreenStyles.oldestLabel),
+                child: Text(_HistoryText.oldestLabel),
               ),
               PopupMenuItem<_HistorySort>(
                 value: _HistorySort.title,
-                child: Text(HistoryScreenStyles.titleSortLabel),
+                child: Text(_HistoryText.titleSortLabel),
               ),
             ];
           },
@@ -625,11 +716,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: _HistoryFilter.values
             .map((_HistoryFilter filter) {
               final String label = switch (filter) {
-                _HistoryFilter.all => HistoryScreenStyles.allFilterLabel,
-                _HistoryFilter.text => HistoryScreenStyles.textFilterLabel,
-                _HistoryFilter.math => HistoryScreenStyles.mathFilterLabel,
-                _HistoryFilter.ueb => HistoryScreenStyles.uebFilterLabel,
-                _HistoryFilter.nemeth => HistoryScreenStyles.nemethFilterLabel,
+                _HistoryFilter.all => _HistoryText.allFilterLabel,
+                _HistoryFilter.text => _HistoryText.textFilterLabel,
+                _HistoryFilter.math => _HistoryText.mathFilterLabel,
+                _HistoryFilter.ueb => _HistoryText.uebFilterLabel,
+                _HistoryFilter.nemeth => _HistoryText.nemethFilterLabel,
               };
 
               return Padding(
@@ -656,7 +747,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_isLoading) {
       return const _HistoryStateView(
         icon: HistoryScreenStyles.historyIcon,
-        title: HistoryScreenStyles.loadingLabel,
+        title: _HistoryText.loadingLabel,
         showProgressIndicator: true,
       );
     }
@@ -664,9 +755,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_errorMessage != null) {
       return _HistoryStateView(
         icon: HistoryScreenStyles.errorIcon,
-        title: HistoryScreenStyles.errorTitle,
+        title: _HistoryText.errorTitle,
         description: _errorMessage,
-        actionLabel: HistoryScreenStyles.retryLabel,
+        actionLabel: _HistoryText.retryLabel,
         onActionPressed: _loadHistory,
       );
     }
@@ -683,18 +774,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ? HistoryScreenStyles.emptySearchIcon
             : HistoryScreenStyles.emptyIcon,
         title: hasSearchOrFilter
-            ? HistoryScreenStyles.emptySearchTitle
-            : HistoryScreenStyles.emptyTitle,
+            ? _HistoryText.emptySearchTitle
+            : _HistoryText.emptyTitle,
         description: hasSearchOrFilter
-            ? HistoryScreenStyles.emptySearchDescription
-            : HistoryScreenStyles.emptyDescription,
+            ? _HistoryText.emptySearchDescription
+            : _HistoryText.emptyDescription,
       );
     }
 
     final Map<String, List<HistoryRecord>> groups = _groupedRecords;
 
     return Semantics(
-      label: HistoryScreenStyles.historyListSemanticLabel,
+      label: _HistoryText.historyListSemanticLabel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: groups.entries
@@ -805,7 +896,7 @@ class _HistoryCard extends StatelessWidget {
     final String recognizedContent = record.recognizedContent.trim();
 
     final String previewContent = recognizedContent.isEmpty
-        ? HistoryScreenStyles.emptyRecognizedContent
+        ? _HistoryText.emptyRecognizedContent
         : recognizedContent;
 
     return Material(
@@ -861,7 +952,7 @@ class _HistoryCard extends StatelessWidget {
                           ),
                         ),
                         PopupMenuButton<_HistoryAction>(
-                          tooltip: HistoryScreenStyles.moreActionsTooltip,
+                          tooltip: _HistoryText.moreActionsTooltip,
                           padding: EdgeInsets.zero,
                           icon: const Icon(
                             HistoryScreenStyles.moreActionsIcon,
@@ -882,7 +973,7 @@ class _HistoryCard extends StatelessWidget {
                                 value: _HistoryAction.rename,
                                 child: ListTile(
                                   leading: Icon(HistoryScreenStyles.renameIcon),
-                                  title: Text(HistoryScreenStyles.renameLabel),
+                                  title: Text(_HistoryText.renameLabel),
                                 ),
                               ),
                               PopupMenuItem<_HistoryAction>(
@@ -892,7 +983,7 @@ class _HistoryCard extends StatelessWidget {
                                     HistoryScreenStyles.deleteIcon,
                                     color: HistoryScreenStyles.primaryColor,
                                   ),
-                                  title: Text(HistoryScreenStyles.deleteLabel),
+                                  title: Text(_HistoryText.deleteLabel),
                                 ),
                               ),
                             ];
@@ -910,7 +1001,7 @@ class _HistoryCard extends StatelessWidget {
                       height: HistoryScreenStyles.brailleLabelSpacing,
                     ),
                     const Text(
-                      '${HistoryScreenStyles.brailleTranslationLabel}:',
+                      '${_HistoryText.brailleTranslationLabel}:',
                       style: HistoryScreenStyles.brailleLabelStyle,
                     ),
                     if (_hasVisibleBraille)
@@ -923,14 +1014,14 @@ class _HistoryCard extends StatelessWidget {
                     else
                       Text(
                         '$brailleCode '
-                        '${HistoryScreenStyles.notAvailableLabel}',
+                        '${_HistoryText.notAvailableLabel}',
                         style: HistoryScreenStyles.brailleUnavailableStyle,
                       ),
                   ],
                 ),
               ),
               IconButton(
-                tooltip: HistoryScreenStyles.favoriteTooltip,
+                tooltip: _HistoryText.favoriteTooltip,
                 onPressed: null,
                 icon: const Icon(HistoryScreenStyles.favoriteIcon),
               ),
@@ -1051,7 +1142,7 @@ class _RenameHistoryDialogState extends State<_RenameHistoryDialog> {
         borderRadius: HistoryScreenStyles.dialogRadius,
       ),
       title: const Text(
-        HistoryScreenStyles.renameDialogTitle,
+        _HistoryText.renameDialogTitle,
         style: HistoryScreenStyles.dialogTitleStyle,
       ),
       content: TextField(
@@ -1060,7 +1151,7 @@ class _RenameHistoryDialogState extends State<_RenameHistoryDialog> {
         maxLength: 150,
         textInputAction: TextInputAction.done,
         decoration: const InputDecoration(
-          labelText: HistoryScreenStyles.renameFieldLabel,
+          labelText: _HistoryText.renameFieldLabel,
           border: OutlineInputBorder(),
         ),
         onSubmitted: (_) {
@@ -1072,12 +1163,12 @@ class _RenameHistoryDialogState extends State<_RenameHistoryDialog> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text(HistoryScreenStyles.cancelLabel),
+          child: const Text(_HistoryText.cancelLabel),
         ),
         FilledButton(
           onPressed: _submit,
           style: HistoryScreenStyles.retryButtonStyle,
-          child: const Text(HistoryScreenStyles.saveLabel),
+          child: const Text(_HistoryText.saveLabel),
         ),
       ],
     );

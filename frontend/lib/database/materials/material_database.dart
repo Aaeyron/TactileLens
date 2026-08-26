@@ -42,7 +42,48 @@ class MaterialDatabase {
   }
 
   // ==========================
-  // Get Material By ID
+  // Get Materials by Folder
+  // ==========================
+
+  Future<List<MaterialModel>> getMaterialsByFolderId(int folderId) async {
+    final database = await AppDatabase.instance.database;
+
+    final List<Map<String, Object?>> queryResult = await database.query(
+      _materialsTable,
+      where: 'folder_id = ?',
+      whereArgs: <Object>[folderId],
+      orderBy: 'uploaded_at DESC, id DESC',
+    );
+
+    return List<MaterialModel>.unmodifiable(
+      queryResult.map((Map<String, Object?> record) {
+        return MaterialModel.fromJson(Map<String, dynamic>.from(record));
+      }),
+    );
+  }
+
+  // ==========================
+  // Get Unfiled Materials
+  // ==========================
+
+  Future<List<MaterialModel>> getUnfiledMaterials() async {
+    final database = await AppDatabase.instance.database;
+
+    final List<Map<String, Object?>> queryResult = await database.query(
+      _materialsTable,
+      where: 'folder_id IS NULL',
+      orderBy: 'uploaded_at DESC, id DESC',
+    );
+
+    return List<MaterialModel>.unmodifiable(
+      queryResult.map((Map<String, Object?> record) {
+        return MaterialModel.fromJson(Map<String, dynamic>.from(record));
+      }),
+    );
+  }
+
+  // ==========================
+  // Get Material by ID
   // ==========================
 
   Future<MaterialModel?> getMaterialById(int id) async {
@@ -60,6 +101,24 @@ class MaterialDatabase {
     }
 
     return MaterialModel.fromJson(Map<String, dynamic>.from(queryResult.first));
+  }
+
+  // ==========================
+  // Move Material to Folder
+  // ==========================
+
+  Future<int> updateMaterialFolder({
+    required int materialId,
+    required int? folderId,
+  }) async {
+    final database = await AppDatabase.instance.database;
+
+    return database.update(
+      _materialsTable,
+      <String, dynamic>{'folder_id': folderId},
+      where: 'id = ?',
+      whereArgs: <Object>[materialId],
+    );
   }
 
   // ==========================

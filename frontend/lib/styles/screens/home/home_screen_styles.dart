@@ -1,64 +1,6 @@
 import 'package:flutter/material.dart';
 
 abstract final class HomeStyles {
-  // Content
-  static const String greetingPrefix = 'Hi';
-  static const String defaultUserName = 'Learner';
-  static const String defaultRole = 'Student';
-  static const String educatorRole = 'educator';
-
-  static const String greetingDescription = 'Let’s make learning accessible.';
-
-  static const String educatorGreetingDescription =
-      'Let’s make teaching accessible.';
-
-  static const String quickActionsTitle = 'Quick Actions';
-
-  static const String scanActionTitle = 'Scan Material';
-  static const String scanActionDescription =
-      'Use your camera to capture printed text and mathematical equations.';
-
-  static const String materialsActionTitle = 'Materials';
-  static const String materialsActionDescription =
-      'Open, organize, and review your saved accessible learning materials.';
-
-  static const String historyActionTitle = 'Scan History';
-  static const String historyActionDescription =
-      'Review your previous scans, recognized content, and Braille results.';
-
-  static const String recentActivityTitle = 'Recent Activity';
-  static const String viewAllLabel = 'See all';
-
-  static const String mathNemethLabel = 'Math • Nemeth';
-  static const String textUebLabel = 'Text • UEB';
-
-  static const String loadingTitle = 'Loading activity';
-  static const String loadingDescription =
-      'Your recent materials are being prepared.';
-
-  static const String errorTitle = 'Activity unavailable';
-  static const String loadFailureMessage =
-      'Unable to load your recent activity.';
-
-  static const String retryLabel = 'Try Again';
-
-  static const String emptyTitle = 'No recent activity';
-  static const String emptyDescription =
-      'Scan your first learning material to see it here.';
-
-  static const String scanNowLabel = 'Scan Now';
-
-  static const String justNowLabel = 'Now';
-  static const String minuteSuffix = 'm ago';
-  static const String hourSuffix = 'h ago';
-  static const String daySuffix = 'd ago';
-
-  static const String pdfFileType = 'pdf';
-  static const String imageFileType = 'image';
-  static const String jpgFileType = 'jpg';
-  static const String jpegFileType = 'jpeg';
-  static const String pngFileType = 'png';
-
   // Colors
   static const Color backgroundColor = Color(0xFFF3F4F6);
   static const Color surfaceColor = Colors.white;
@@ -81,14 +23,19 @@ abstract final class HomeStyles {
 
   // Icons
   static const IconData scanIcon = Icons.document_scanner_outlined;
+
   static const IconData materialsIcon = Icons.folder_outlined;
   static const IconData historyIcon = Icons.history_rounded;
   static const IconData forwardIcon = Icons.chevron_right_rounded;
 
   static const IconData errorIcon = Icons.cloud_off_outlined;
+
   static const IconData emptyIcon = Icons.history_toggle_off_rounded;
+
   static const IconData pdfIcon = Icons.picture_as_pdf_outlined;
+
   static const IconData imageIcon = Icons.image_outlined;
+
   static const IconData documentIcon = Icons.description_outlined;
 
   // General
@@ -97,9 +44,11 @@ abstract final class HomeStyles {
   // Screen
   static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(24, 28, 24, 30);
 
-  static const double greetingBottomSpacing = 22;
+  static const double greetingBottomSpacing = 42;
   static const double greetingSubtitleSpacing = 7;
   static const double sectionSpacing = 42;
+  static const double recentHeaderSpacing = 13;
+  static const double bottomSpacing = 28;
 
   // Greeting card
   static const EdgeInsets greetingCardPadding = EdgeInsets.symmetric(
@@ -114,8 +63,12 @@ abstract final class HomeStyles {
   static const List<BoxShadow> greetingCardShadow = <BoxShadow>[
     BoxShadow(color: Color(0x33164EAD), blurRadius: 16, offset: Offset(0, 6)),
   ];
-  static const double recentHeaderSpacing = 13;
-  static const double bottomSpacing = 28;
+
+  static const Color greetingCardBackgroundColor = primaryColor;
+
+  static const Border greetingCardBorder = Border.fromBorderSide(
+    BorderSide(color: Color(0xFF2D67BF), width: 1),
+  );
 
   // Animation
   static const Duration entranceAnimationDuration = Duration(milliseconds: 520);
@@ -140,16 +93,17 @@ abstract final class HomeStyles {
     BorderSide(color: outlineColor, width: 1),
   );
 
-  // Quick action rows
+  // Quick-action rows
   static const EdgeInsets quickActionRowPadding = EdgeInsets.symmetric(
     horizontal: 16,
     vertical: 16,
   );
 
   static const double quickActionContentSpacing = 14;
+
   static const double quickActionDescriptionSpacing = 4;
 
-  // Quick action icon
+  // Quick-action icon
   static const double quickActionIconContainerSize = 52;
   static const double quickActionIconSize = 26;
 
@@ -163,17 +117,22 @@ abstract final class HomeStyles {
     BorderSide(color: Color(0xFFC7DAF8), width: 1),
   );
 
-  // Quick action arrow
+  // Quick-action arrow
   static const double quickActionArrowSpacing = 10;
+
   static const double quickActionArrowContainerSize = 32;
+
   static const double quickActionArrowIconSize = 21;
 
   static const Color quickActionArrowBackgroundColor = Color(0xFFF2F4F7);
 
-  // Quick action dividers
+  // Quick-action dividers
   static const double quickActionDividerHeight = 1;
+
   static const double quickActionDividerThickness = 1;
+
   static const double quickActionDividerIndent = 82;
+
   static const double quickActionDividerEndIndent = 16;
 
   static const Color quickActionDividerColor = Color(0xFFE4E7EC);
@@ -204,6 +163,7 @@ abstract final class HomeStyles {
 
   static const double thumbnailSize = 48;
   static const double thumbnailIconSize = 25;
+
   static const double recentContentSpacing = 12;
   static const double recentMetadataSpacing = 3;
 
@@ -287,11 +247,5 @@ abstract final class HomeStyles {
     color: mutedColor,
     fontSize: 13,
     height: 1.4,
-  );
-
-  static const Color greetingCardBackgroundColor = primaryColor;
-
-  static const Border greetingCardBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFF2D67BF), width: 1),
   );
 }

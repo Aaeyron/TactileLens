@@ -59,10 +59,6 @@ abstract final class ScanResultScreenStyles {
   static const double headerTitleSpacing = 4;
   static const double headerRightSpacing = 12;
 
-  static const String appBarTitle = 'Scan Result';
-  static const String backTooltip = 'Go back';
-  static const String newScanLabel = 'New Scan';
-
   static const IconData backIcon = Icons.arrow_back;
 
   static const IconData newScanIcon = Icons.center_focus_strong_outlined;
@@ -137,11 +133,6 @@ abstract final class ScanResultScreenStyles {
 
   static const IconData successCheckIcon = Icons.check_circle_rounded;
 
-  static const String successTitle = 'Scan Successful!';
-
-  static const String successDescription =
-      'Your scanned content is ready for review.';
-
   static const TextStyle successTitleStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 16,
@@ -159,17 +150,6 @@ abstract final class ScanResultScreenStyles {
   // ============================================================
   // NUMBERED SECTIONS
   // ============================================================
-
-  static const String imageSectionNumber = '1';
-  static const String imageSectionTitle = 'Scanned Image';
-
-  static const String contentSectionNumber = '2';
-
-  static const String contentSectionTitle = 'Scanned Content (Preview)';
-
-  static const String brailleSectionNumber = '3';
-
-  static const String brailleSectionTitle = 'Braille Output (Translation)';
 
   static const EdgeInsets sectionCardPadding = EdgeInsets.all(14);
 
@@ -193,14 +173,6 @@ abstract final class ScanResultScreenStyles {
   // SECTION ACTIONS
   // ============================================================
 
-  static const String copyLabel = 'Copy';
-
-  static const String copyBrailleLabel = 'Copy Braille';
-
-  static const String copyTooltip = 'Copy recognized content';
-
-  static const String copyBrailleTooltip = 'Copy Braille translation';
-
   static const IconData copyIcon = Icons.copy_rounded;
 
   static const double actionIconSize = 21;
@@ -219,7 +191,8 @@ abstract final class ScanResultScreenStyles {
   // SCANNED IMAGE
   // ============================================================
 
-  static const double imagePreviewHeight = 230;
+  static const double imageLoadingHeight = 230;
+  static const double maximumImagePreviewHeight = 300;
   static const BoxFit imagePreviewFit = BoxFit.contain;
 
   static const BorderRadius imagePreviewRadius = BorderRadius.all(
@@ -230,15 +203,11 @@ abstract final class ScanResultScreenStyles {
 
   static const double imageErrorIconSize = 42;
 
-  static const String imageErrorText = 'Unable to display the scanned image.';
-
   // ============================================================
   // RECOGNIZED CONTENT
   // ============================================================
 
   static const EdgeInsets contentPreviewPadding = EdgeInsets.all(16);
-
-  static const String contentBlockSeparator = '\n\n';
 
   static const EdgeInsets formulaPreviewPadding = EdgeInsets.symmetric(
     horizontal: 14,
@@ -289,14 +258,6 @@ abstract final class ScanResultScreenStyles {
 
   static const double brailleUnavailableIconSize = 44;
 
-  static const String brailleUnavailableTitle = 'Braille output unavailable';
-
-  static const String brailleUnavailableDescription =
-      'No Braille translation was returned for this scan.';
-
-  static const String brailleTranslationFailedDescription =
-      'The recognized content could not be translated into Braille. Please try scanning again.';
-
   // ============================================================
   // EMPTY RESULT
   // ============================================================
@@ -306,11 +267,6 @@ abstract final class ScanResultScreenStyles {
   static const IconData emptyResultIcon = Icons.find_in_page_outlined;
 
   static const double emptyResultIconSize = 46;
-
-  static const String emptyResultTitle = 'No content recognized';
-
-  static const String emptyResultDescription =
-      'Try scanning again with clearer lighting and a sharper image.';
 
   static const TextStyle emptyResultTitleStyle = TextStyle(
     fontFamily: 'Poppins',
@@ -346,48 +302,6 @@ abstract final class ScanResultScreenStyles {
   static const double saveProgressIndicatorSize = 22;
 
   static const double saveProgressIndicatorStrokeWidth = 2.5;
-
-  static const String saveMaterialLabel = 'Save to Materials';
-
-  static const String savingMaterialLabel = 'Saving...';
-
-  static const String savedMaterialLabel = 'Saved to Materials';
-
-  static const String saveMaterialTooltip = 'Save this scan to your materials';
-
-  static const String saveDialogTitle = 'Save as Material';
-
-  static const String saveDialogDescription =
-      'Enter the material details so you can easily find it later.';
-
-  static const String saveTitleLabel = 'Title';
-
-  static const String saveTitleHint = 'Example: Algebra Worksheet';
-
-  static const String saveSubjectLabel = 'Subject';
-
-  static const String saveSubjectHint = 'Example: General Algebra';
-
-  static const String saveDescriptionLabel = 'Description (Optional)';
-
-  static const String saveDescriptionHint =
-      'Add a short description of this material.';
-
-  static const String defaultMaterialTitle = 'Untitled Scan';
-
-  static const String defaultMaterialSubject = 'Scanned Document';
-
-  static const String cancelLabel = 'Cancel';
-
-  static const String confirmSaveLabel = 'Save';
-
-  static const String emptyMaterialTitleError = 'Please enter a title.';
-
-  static const String emptyMaterialSubjectError = 'Please enter a subject.';
-
-  static const String materialSavedMessage = 'Scan saved to your materials.';
-
-  static const String materialSaveFailedMessage = 'Unable to save this scan to materials.';
 
   static const int maximumMaterialTitleLength = 150;
 
@@ -482,8 +396,6 @@ abstract final class ScanResultScreenStyles {
   );
 
   static const InputDecoration saveTitleInputDecoration = InputDecoration(
-    labelText: saveTitleLabel,
-    hintText: saveTitleHint,
     filled: true,
     fillColor: surfaceColor,
     border: OutlineInputBorder(
@@ -501,8 +413,6 @@ abstract final class ScanResultScreenStyles {
   );
 
   static const InputDecoration saveSubjectInputDecoration = InputDecoration(
-    labelText: saveSubjectLabel,
-    hintText: saveSubjectHint,
     filled: true,
     fillColor: surfaceColor,
     border: OutlineInputBorder(
@@ -520,8 +430,6 @@ abstract final class ScanResultScreenStyles {
   );
 
   static const InputDecoration saveDescriptionInputDecoration = InputDecoration(
-    labelText: saveDescriptionLabel,
-    hintText: saveDescriptionHint,
     alignLabelWithHint: true,
     filled: true,
     fillColor: surfaceColor,
@@ -542,10 +450,6 @@ abstract final class ScanResultScreenStyles {
   // ============================================================
   // SNACKBAR
   // ============================================================
-
-  static const String contentCopiedMessage = 'Recognized content copied.';
-
-  static const String brailleCopiedMessage = 'Braille translation copied.';
 
   static const Duration snackBarDuration = Duration(seconds: 2);
 
@@ -569,10 +473,4 @@ abstract final class ScanResultScreenStyles {
   // ============================================================
   // ACCESSIBILITY
   // ============================================================
-
-  static const String imageSemanticLabel = 'Image processed by PaddleOCR-VL';
-
-  static const String resultSemanticLabel = 'Recognized document content';
-
-  static const String brailleSemanticLabel = 'Braille translation output';
 }

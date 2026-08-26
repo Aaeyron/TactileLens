@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../../styles/widgets/scan/scan_selection_overlay_styles.dart';
 
+abstract final class _ScanSelectionOverlayText {
+  static const String semanticLabel = 'Adjust the document crop area';
+
+  static const String resetLabel = 'Reset';
+  static const String resetTooltip = 'Reset the crop area';
+}
+
 enum _CropDragMode { move, topLeft, topRight, bottomLeft, bottomRight }
 
 class ScanSelectionOverlay extends StatefulWidget {
@@ -45,7 +52,7 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
         _scheduleRegionForSize(overlaySize);
 
         return Semantics(
-          label: ScanSelectionOverlayStyles.semanticLabel,
+          label: _ScanSelectionOverlayText.semanticLabel,
           child: Stack(
             fit: StackFit.expand,
             children: <Widget>[
@@ -343,25 +350,37 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
   }
 
   Rect _constrainRegion(Rect region, Size overlaySize) {
-    final double left = region.left.clamp(0, overlaySize.width).toDouble();
+    if (overlaySize.isEmpty) {
+      return Rect.zero;
+    }
 
-    final double top = region.top.clamp(0, overlaySize.height).toDouble();
+    final double minimumWidth = math.min(
+      ScanSelectionOverlayStyles.minimumSelectionWidth,
+      overlaySize.width,
+    );
 
-    final double right = region.right
-        .clamp(
-          left + ScanSelectionOverlayStyles.minimumSelectionWidth,
-          overlaySize.width,
-        )
+    final double minimumHeight = math.min(
+      ScanSelectionOverlayStyles.minimumSelectionHeight,
+      overlaySize.height,
+    );
+
+    final double width = region.width
+        .clamp(minimumWidth, overlaySize.width)
         .toDouble();
 
-    final double bottom = region.bottom
-        .clamp(
-          top + ScanSelectionOverlayStyles.minimumSelectionHeight,
-          overlaySize.height,
-        )
+    final double height = region.height
+        .clamp(minimumHeight, overlaySize.height)
         .toDouble();
 
-    return Rect.fromLTRB(left, top, right, bottom);
+    final double left = region.left
+        .clamp(0.0, overlaySize.width - width)
+        .toDouble();
+
+    final double top = region.top
+        .clamp(0.0, overlaySize.height - height)
+        .toDouble();
+
+    return Rect.fromLTWH(left, top, width, height);
   }
 
   void _resetSelection(Size overlaySize) {
@@ -393,7 +412,7 @@ class _ResetCropButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: ScanSelectionOverlayStyles.resetTooltip,
+      label: _ScanSelectionOverlayText.resetTooltip,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -416,7 +435,7 @@ class _ResetCropButton extends StatelessWidget {
                 ),
                 SizedBox(width: ScanSelectionOverlayStyles.resetIconSpacing),
                 Text(
-                  ScanSelectionOverlayStyles.resetLabel,
+                  _ScanSelectionOverlayText.resetLabel,
                   style: ScanSelectionOverlayStyles.resetButtonTextStyle,
                 ),
               ],

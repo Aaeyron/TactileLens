@@ -1,13 +1,27 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../services/scan/camera_service.dart';
 import '../../styles/widgets/scan/scan_camera_preview_styles.dart';
 
+abstract final class _ScanCameraPreviewText {
+  static const String cameraError = 'Unable to open camera.';
+}
+
 class ScanCameraPreview extends StatefulWidget {
-  const ScanCameraPreview({super.key, required this.cameraService});
+  const ScanCameraPreview({
+    super.key,
+    required this.cameraService,
+    this.onOrientationChanged,
+  });
 
   final CameraService cameraService;
+
+  final ValueChanged<DeviceOrientation>? onOrientationChanged;
 
   @override
   State<ScanCameraPreview> createState() {
@@ -17,7 +31,16 @@ class ScanCameraPreview extends StatefulWidget {
 
 class _ScanCameraPreviewState extends State<ScanCameraPreview> {
   bool _isLoading = true;
+
   Offset? _focusPoint;
+
+  DeviceOrientation? _lastReportedOrientation;
+
+  StreamSubscription<AccelerometerEvent>? _orientationSubscription;
+
+  CameraController? get _controller {
+    return widget.cameraService.controller;
+  }
 
   @override
   void initState() {
@@ -25,12 +48,68 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
     _initializeCamera();
   }
 
+  void _startPhysicalOrientationDetection() {
+    _orientationSubscription?.cancel();
+
+    _orientationSubscription =
+        accelerometerEventStream(
+          samplingPeriod: SensorInterval.normalInterval,
+        ).listen(
+          _handleAccelerometerEvent,
+          onError: (Object error, StackTrace stackTrace) {
+            debugPrint('Physical orientation sensor failed: $error');
+            debugPrintStack(stackTrace: stackTrace);
+          },
+        );
+  }
+
+  void _handleAccelerometerEvent(AccelerometerEvent event) {
+    if (!mounted) {
+      return;
+    }
+
+    final double horizontalGravity = event.x.abs();
+    final double verticalGravity = event.y.abs();
+
+    // Ignore readings while the phone is nearly flat or being moved.
+    if (horizontalGravity < 4 && verticalGravity < 4) {
+      return;
+    }
+
+    DeviceOrientation detectedOrientation;
+
+    if (horizontalGravity > verticalGravity) {
+      detectedOrientation = event.x >= 0
+          ? DeviceOrientation.landscapeLeft
+          : DeviceOrientation.landscapeRight;
+    } else {
+      detectedOrientation = event.y >= 0
+          ? DeviceOrientation.portraitUp
+          : DeviceOrientation.portraitDown;
+    }
+
+    _reportPhysicalOrientation(detectedOrientation);
+  }
+
+  void _reportPhysicalOrientation(DeviceOrientation orientation) {
+    if (_lastReportedOrientation == orientation) {
+      return;
+    }
+
+    _lastReportedOrientation = orientation;
+
+    debugPrint('Physical device orientation: $orientation');
+
+    widget.onOrientationChanged?.call(orientation);
+  }
+
   Future<void> _initializeCamera() async {
     try {
       await widget.cameraService.initialize();
+
+      _startPhysicalOrientationDetection();
     } catch (error, stackTrace) {
       debugPrint('Camera initialization failed: $error');
-
       debugPrintStack(stackTrace: stackTrace);
     }
 
@@ -45,7 +124,11 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
 
   @override
   void dispose() {
+    _orientationSubscription?.cancel();
+    _orientationSubscription = null;
+
     widget.cameraService.dispose();
+
     super.dispose();
   }
 
@@ -55,11 +138,13 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
       return _buildLoadingState();
     }
 
-    if (!widget.cameraService.isInitialized) {
+    final CameraController? cameraController = _controller;
+
+    if (cameraController == null || !cameraController.value.isInitialized) {
       return _buildErrorState();
     }
 
-    return _buildCameraPreview();
+    return _buildCameraPreview(cameraController);
   }
 
   Widget _buildLoadingState() {
@@ -82,7 +167,7 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
       color: ScanCameraPreviewStyles.backgroundColor,
       child: Center(
         child: Text(
-          ScanCameraPreviewStyles.cameraErrorText,
+          _ScanCameraPreviewText.cameraError,
           textAlign: TextAlign.center,
           style: ScanCameraPreviewStyles.placeholderStyle,
         ),
@@ -90,14 +175,33 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
     );
   }
 
-  Widget _buildCameraPreview() {
-    final CameraController controller = widget.cameraService.controller!;
+  Widget _buildCameraPreview(CameraController cameraController) {
+    final Size? rawPreviewSize = cameraController.value.previewSize;
 
-    final Size cameraPreviewSize = controller.value.previewSize!;
+    if (rawPreviewSize == null || rawPreviewSize.isEmpty) {
+      return _buildLoadingState();
+    }
+
+    /*
+     * Keep the live camera preview exactly as it originally was.
+     * It follows the application layout rather than being manually
+     * rotated using the physical camera orientation.
+     */
+    final Orientation screenOrientation = MediaQuery.orientationOf(context);
+
+    final bool screenIsPortrait = screenOrientation == Orientation.portrait;
+
+    final Size orientedPreviewSize = screenIsPortrait
+        ? Size(rawPreviewSize.height, rawPreviewSize.width)
+        : Size(rawPreviewSize.width, rawPreviewSize.height);
+
+    final double previewHeight = screenIsPortrait
+        ? ScanCameraPreviewStyles.portraitPreviewHeight
+        : ScanCameraPreviewStyles.landscapePreviewHeight;
 
     return Container(
       width: double.infinity,
-      height: ScanCameraPreviewStyles.previewHeight,
+      height: previewHeight,
       decoration: BoxDecoration(
         color: ScanCameraPreviewStyles.backgroundColor,
         borderRadius: ScanCameraPreviewStyles.previewBorderRadius,
@@ -118,9 +222,9 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
                 fit: ScanCameraPreviewStyles.previewImageFit,
                 alignment: Alignment.center,
                 child: SizedBox(
-                  width: cameraPreviewSize.height,
-                  height: cameraPreviewSize.width,
-                  child: CameraPreview(controller),
+                  width: orientedPreviewSize.width,
+                  height: orientedPreviewSize.height,
+                  child: CameraPreview(cameraController),
                 ),
               ),
               if (_focusPoint != null)
