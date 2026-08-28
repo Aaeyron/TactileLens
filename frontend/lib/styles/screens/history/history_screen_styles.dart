@@ -1,91 +1,124 @@
 import 'package:flutter/material.dart';
 
 abstract final class HistoryScreenStyles {
-  // Colors
-  static const Color primaryColor = Color(0xFF164EAD);
-  static const Color backgroundColor = Color(0xFFF3F4F6);
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0758DD);
+
+  static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
 
-  static const Color textPrimaryColor = Color(0xFF1D2939);
-  static const Color textSecondaryColor = Color(0xFF475467);
-  static const Color textMutedColor = Color(0xFF98A2B3);
+  static const Color textPrimaryColor = Color(0xFF10213D);
+  static const Color textSecondaryColor = Color(0xFF42526B);
+  static const Color textMutedColor = Color(0xFF728096);
 
-  static const Color outlineColor = Color(0xFFBFC9D6);
-  static const Color filterBackgroundColor = Color(0xFFF2F4F7);
-  static const Color cardBackgroundColor = Color(0xFFF5F9FF);
-  static const Color previewBackgroundColor = Color(0xFFEEF2F7);
+  static const Color outlineColor = Color(0xFFDDE5F0);
+  static const Color filterBackgroundColor = surfaceColor;
+  static const Color cardBackgroundColor = surfaceColor;
+  static const Color previewBackgroundColor = Color(0xFFF2F6FC);
 
-  // Icons
+  // ============================================================
+  // ICONS
+  // ============================================================
+
   static const IconData historyIcon = Icons.history_rounded;
   static const IconData searchIcon = Icons.search_rounded;
   static const IconData clearSearchIcon = Icons.close_rounded;
   static const IconData sortIcon = Icons.tune_rounded;
 
   static const IconData moreActionsIcon = Icons.more_vert_rounded;
-
-  static const double moreActionIconSize = 22;
-
   static const IconData favoriteIcon = Icons.star_border_rounded;
 
   static const IconData renameIcon = Icons.edit_outlined;
   static const IconData deleteIcon = Icons.delete_outline_rounded;
 
   static const IconData emptyIcon = Icons.history_toggle_off_rounded;
-
   static const IconData emptySearchIcon = Icons.search_off_rounded;
-
   static const IconData errorIcon = Icons.cloud_off_outlined;
 
-  // Layout
+  static const double moreActionIconSize = 22;
+
+  // ============================================================
+  // LAYOUT
+  // ============================================================
+
   static const double zero = 0;
 
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(21, 24, 21, 30);
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(14, 14, 14, 30);
 
-  // Header container
-  static const EdgeInsets headerContainerPadding = EdgeInsets.fromLTRB(
-    20,
-    20,
-    14,
-    20,
-  );
-
-  static const BorderRadius headerContainerRadius = BorderRadius.all(
-    Radius.circular(16),
-  );
-
-  static const Border headerContainerBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFF0F4296), width: 1),
-  );
-
-  static const double headerDescriptionSpacing = 6;
-
-  static const double searchTopSpacing = 20;
   static const double filterTopSpacing = 13;
-  static const double sectionSpacing = 25;
+  static const double sectionSpacing = 18;
   static const double bottomSpacing = 28;
 
   static const double sortSpacing = 2;
-  static const double filterSpacing = 10;
+  static const double filterSpacing = 9;
 
-  static const double groupSpacing = 20;
-  static const double groupTitleSpacing = 11;
+  static const double groupSpacing = 18;
+  static const double groupTitleSpacing = 9;
 
-  // Search
-  static const double searchHeight = 44;
+  // Kept for compatibility with existing code.
+  static const EdgeInsets screenPadding = contentPadding;
 
-  static const BorderRadius searchRadius = BorderRadius.all(Radius.circular(9));
+  // ============================================================
+  // FULL-WIDTH HEADER
+  // ============================================================
+
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+  );
+
+  static const double headerHorizontalPadding = 15;
+  static const double headerTopPadding = 20;
+  static const double headerBottomPadding = 17;
+
+  static const EdgeInsets headerContainerPadding = EdgeInsets.zero;
+
+  static const BorderRadius headerContainerRadius = BorderRadius.only(
+    bottomLeft: Radius.circular(28),
+    bottomRight: Radius.circular(28),
+  );
+
+  static const Border headerContainerBorder = Border();
+
+  static const double headerDescriptionSpacing = 7;
+  static const double headerDescriptionWidth = 245;
+
+  static const double headerDecorationRight = 2;
+  static const double headerDecorationTop = 28;
+  static const double headerDecorationOpacity = 0.18;
+  static const double headerDecorationWidth = 47;
+  static const double headerDotSize = 4;
+  static const double headerDotSpacing = 7;
+  static const int headerDotCount = 12;
+
+  // ============================================================
+  // SEARCH
+  // ============================================================
+
+  static const double searchTopSpacing = 16;
+  static const double searchHeight = 48;
+  static const double searchSuffixIconSize = 21;
+
+  static const BorderRadius searchRadius = BorderRadius.all(
+    Radius.circular(13),
+  );
 
   static const TextStyle searchTextStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 13,
+    fontSize: 13.5,
   );
 
   static const InputDecoration searchDecoration = InputDecoration(
-    hintStyle: TextStyle(color: textMutedColor, fontSize: 13),
+    hintStyle: TextStyle(color: textMutedColor, fontSize: 13.5),
     prefixIcon: Icon(searchIcon, color: textMutedColor, size: 21),
     filled: true,
     fillColor: surfaceColor,
-    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+    contentPadding: EdgeInsets.symmetric(horizontal: 13, vertical: 12),
     border: OutlineInputBorder(
       borderRadius: searchRadius,
       borderSide: BorderSide(color: outlineColor),
@@ -96,48 +129,66 @@ abstract final class HistoryScreenStyles {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: searchRadius,
-      borderSide: BorderSide(color: primaryColor, width: 1.4),
+      borderSide: BorderSide(color: primaryColor, width: 1.5),
     ),
   );
 
-  // Filters
+  // ============================================================
+  // FILTERS
+  // ============================================================
+
   static const double filterHeight = 38;
 
-  static const EdgeInsets filterPadding = EdgeInsets.symmetric(horizontal: 20);
+  static const EdgeInsets filterPadding = EdgeInsets.symmetric(horizontal: 18);
 
-  static const BorderRadius filterRadius = BorderRadius.all(Radius.circular(8));
-
-  // Cards
-  static const double cardSpacing = 14;
-  static const double cardContentSpacing = 9;
-
-  static const EdgeInsets cardPadding = EdgeInsets.symmetric(
-    horizontal: 8,
-    vertical: 10,
+  static const BorderRadius filterRadius = BorderRadius.all(
+    Radius.circular(10),
   );
 
-  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(10));
+  // ============================================================
+  // HISTORY GROUPS AND CARDS
+  // ============================================================
+
+  static const double cardSpacing = 8;
+  static const double cardContentSpacing = 12;
+
+  static const EdgeInsets cardPadding = EdgeInsets.fromLTRB(7, 8, 3, 8);
+
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(12));
 
   static const Border cardBorder = Border.fromBorderSide(
     BorderSide(color: outlineColor, width: 1),
   );
 
-  static const double previewWidth = 128;
-  static const double previewHeight = 82;
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x0D102A43), blurRadius: 10, offset: Offset(0, 4)),
+  ];
 
-  static const EdgeInsets previewPadding = EdgeInsets.all(9);
+  static const double previewWidth = 68;
+  static const double previewHeight = 94;
+
+  static const EdgeInsets previewPadding = EdgeInsets.all(7);
 
   static const BorderRadius previewRadius = BorderRadius.all(
-    Radius.circular(5),
+    Radius.circular(7),
   );
 
-  static const int previewMaximumLines = 6;
-  static const int contentMaximumLines = 2;
-  static const int brailleMaximumLines = 2;
+  static const Border previewBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: 0.8),
+  );
 
+  static const int previewMaximumLines = 7;
+  static const int contentMaximumLines = 2;
+  static const int brailleMaximumLines = 1;
+
+  static const double cardMetadataSpacing = 4;
+  static const double cardDateSpacing = 4;
+  static const double braillePreviewSpacing = 8;
+  static const double trailingIconSize = 22;
+
+  // Existing compatibility constants.
   static const double brailleLabelSpacing = 3;
 
-  // Badge
   static const EdgeInsets badgePadding = EdgeInsets.symmetric(
     horizontal: 8,
     vertical: 3,
@@ -145,7 +196,10 @@ abstract final class HistoryScreenStyles {
 
   static const BorderRadius badgeRadius = BorderRadius.all(Radius.circular(10));
 
-  // States
+  // ============================================================
+  // STATES
+  // ============================================================
+
   static const double stateIconSize = 52;
 
   static const EdgeInsets statePadding = EdgeInsets.symmetric(
@@ -153,7 +207,10 @@ abstract final class HistoryScreenStyles {
     vertical: 56,
   );
 
-  // Details
+  // ============================================================
+  // DETAILS
+  // ============================================================
+
   static const BorderRadius detailSheetRadius = BorderRadius.vertical(
     top: Radius.circular(24),
   );
@@ -165,12 +222,14 @@ abstract final class HistoryScreenStyles {
     28,
   );
 
-  // Dialogs
+  // ============================================================
+  // DIALOGS AND SNACKBAR
+  // ============================================================
+
   static const BorderRadius dialogRadius = BorderRadius.all(
     Radius.circular(18),
   );
 
-  // Snackbar
   static const Duration snackBarDuration = Duration(seconds: 2);
 
   static const SnackBarBehavior snackBarBehavior = SnackBarBehavior.floating;
@@ -181,60 +240,85 @@ abstract final class HistoryScreenStyles {
     Radius.circular(12),
   );
 
-  // Buttons
   static final ButtonStyle retryButtonStyle = FilledButton.styleFrom(
     backgroundColor: primaryColor,
     foregroundColor: surfaceColor,
   );
 
+  // ============================================================
+  // TYPOGRAPHY
+  // ============================================================
+
   static const TextStyle headerTitleStyle = TextStyle(
     color: surfaceColor,
-    fontSize: 23,
+    fontSize: 25,
+    height: 1.15,
     fontWeight: FontWeight.w800,
+    letterSpacing: -0.35,
   );
 
   static const TextStyle headerDescriptionStyle = TextStyle(
-    color: Color(0xFFDCE8FF),
-    fontSize: 12.5,
-    height: 1.45,
-    fontWeight: FontWeight.w400,
+    color: Color(0xFFE9F2FF),
+    fontSize: 13.5,
+    height: 1.42,
+    fontWeight: FontWeight.w500,
   );
 
-  // Typography
   static const TextStyle titleStyle = TextStyle(
-    color: Colors.black,
+    color: textPrimaryColor,
     fontSize: 23,
     fontWeight: FontWeight.w800,
   );
 
   static const TextStyle selectedFilterTextStyle = TextStyle(
     color: surfaceColor,
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
   );
 
   static const TextStyle unselectedFilterTextStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
   );
 
   static const TextStyle groupTitleStyle = TextStyle(
-    color: textSecondaryColor,
+    color: textPrimaryColor,
     fontSize: 14,
     fontWeight: FontWeight.w700,
   );
 
   static const TextStyle previewTextStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 8,
-    height: 1.35,
+    fontSize: 7.5,
+    height: 1.3,
   );
 
   static const TextStyle badgeTextStyle = TextStyle(
     color: surfaceColor,
     fontSize: 9,
     fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle cardTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 13.5,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle cardMetadataStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 11,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle cardDateStyle = TextStyle(
+    color: textMutedColor,
+    fontSize: 10.5,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
   );
 
   static const TextStyle contentStyle = TextStyle(
@@ -257,8 +341,9 @@ abstract final class HistoryScreenStyles {
       'sans-serif',
     ],
     color: textPrimaryColor,
-    fontSize: 11,
+    fontSize: 16,
     height: 1.25,
+    letterSpacing: 1.3,
   );
 
   static const TextStyle brailleUnavailableStyle = TextStyle(

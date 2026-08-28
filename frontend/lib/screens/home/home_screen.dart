@@ -1,38 +1,42 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
-import '../../widgets/app_header.dart';
 
 abstract final class _HomeText {
+  static const String appName = 'TactileLens';
+  static const String notificationTooltip = 'Notifications';
   static const String greetingPrefix = 'Hi';
   static const String defaultUserName = 'Learner';
   static const String defaultRole = 'Student';
   static const String educatorRole = 'educator';
 
-  static const String greetingDescription = 'Let’s make learning accessible.';
+  static const String greetingDescription =
+      'Make every lesson more accessible.';
 
   static const String educatorGreetingDescription =
-      'Let’s make teaching accessible.';
+      'Make every lesson more accessible.';
 
-  static const String quickActionsTitle = 'Quick Actions';
-
-  static const String scanActionTitle = 'Scan Material';
-  static const String scanActionDescription =
-      'Use your camera to capture printed text and mathematical equations.';
+  static const String quickScanTitle = 'Quick Scan';
+  static const String quickScanDescription =
+      'Capture a document and generate accessible text and Braille output.';
+  static const String startScanningLabel = 'Start Scanning';
 
   static const String materialsActionTitle = 'Materials';
   static const String materialsActionDescription =
-      'Open, organize, and review your saved accessible learning materials.';
+      'View and organize saved learning materials.';
 
-  static const String historyActionTitle = 'Scan History';
+  static const String historyActionTitle = 'History';
   static const String historyActionDescription =
-      'Review your previous scans, recognized content, and Braille results.';
+      'Review previous scans and translations.';
 
   static const String recentActivityTitle = 'Recent Activity';
-  static const String viewAllLabel = 'See all';
+  static const String viewAllLabel = 'View all';
 
   static const String mathNemethLabel = 'Math • Nemeth';
   static const String textUebLabel = 'Text • UEB';
@@ -78,9 +82,7 @@ class HomeScreen extends StatefulWidget {
   final VoidCallback onHistoryPressed;
 
   @override
-  State<HomeScreen> createState() {
-    return _HomeScreenState();
-  }
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen>
@@ -102,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+
     _initializeEntranceAnimation();
     _loadHomeData();
   }
@@ -112,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen>
       duration: HomeStyles.entranceAnimationDuration,
     );
 
-    final CurvedAnimation curve = CurvedAnimation(
+    final CurvedAnimation entranceCurve = CurvedAnimation(
       parent: _entranceController,
       curve: HomeStyles.entranceAnimationCurve,
     );
@@ -120,12 +123,12 @@ class _HomeScreenState extends State<HomeScreen>
     _fadeAnimation = Tween<double>(
       begin: HomeStyles.entranceFadeBegin,
       end: HomeStyles.entranceFadeEnd,
-    ).animate(curve);
+    ).animate(entranceCurve);
 
     _slideAnimation = Tween<Offset>(
       begin: HomeStyles.entranceSlideBegin,
       end: Offset.zero,
-    ).animate(curve);
+    ).animate(entranceCurve);
 
     Future<void>.delayed(HomeStyles.entranceAnimationDelay, () {
       if (mounted) {
@@ -215,14 +218,9 @@ class _HomeScreenState extends State<HomeScreen>
   String _formatRelativeTime(DateTime value) {
     final DateTime date = value.toLocal();
     final DateTime now = DateTime.now();
-
     final Duration difference = now.difference(date);
 
-    if (difference.isNegative) {
-      return _HomeText.justNowLabel;
-    }
-
-    if (difference.inMinutes < 1) {
+    if (difference.isNegative || difference.inMinutes < 1) {
       return _HomeText.justNowLabel;
     }
 
@@ -260,64 +258,228 @@ class _HomeScreenState extends State<HomeScreen>
       return HomeStyles.pdfIcon;
     }
 
-    if (type.contains(_HomeText.imageFileType) ||
-        type.contains(_HomeText.jpgFileType) ||
-        type.contains(_HomeText.jpegFileType) ||
-        type.contains(_HomeText.pngFileType)) {
+    if (_isImageMaterial(material)) {
       return HomeStyles.imageIcon;
     }
 
     return HomeStyles.documentIcon;
   }
 
+  bool _isImageMaterial(MaterialModel material) {
+    final String type = material.fileType.toLowerCase();
+
+    return type.contains(_HomeText.imageFileType) ||
+        type.contains(_HomeText.jpgFileType) ||
+        type.contains(_HomeText.jpegFileType) ||
+        type.contains(_HomeText.pngFileType);
+  }
+
+  bool _hasLocalPreview(MaterialModel material) {
+    final String filePath = material.filePath.trim();
+
+    if (!_isImageMaterial(material) || filePath.isEmpty) {
+      return false;
+    }
+
+    return File(filePath).existsSync();
+  }
+
+  String _greetingDescription() {
+    if (_role.toLowerCase() == _HomeText.educatorRole) {
+      return _HomeText.educatorGreetingDescription;
+    }
+
+    return _HomeText.greetingDescription;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: HomeStyles.backgroundColor,
-      body: Column(
-        children: <Widget>[
-          const AppHeader(),
-          Expanded(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: RefreshIndicator(
-                  color: HomeStyles.primaryColor,
-                  onRefresh: _loadHomeData,
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    slivers: <Widget>[
-                      SliverPadding(
-                        padding: HomeStyles.screenPadding,
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate.fixed(<Widget>[
-                            _buildGreeting(),
-                            const SizedBox(
-                              height: HomeStyles.greetingBottomSpacing,
-                            ),
-                            const Text(
-                              _HomeText.quickActionsTitle,
-                              style: HomeStyles.sectionTitleStyle,
-                            ),
-                            const SizedBox(
-                              height: HomeStyles.quickActionsTitleSpacing,
-                            ),
-                            _buildQuickActions(),
-                            const SizedBox(height: HomeStyles.sectionSpacing),
-                            _buildRecentHeader(),
-                            const SizedBox(
-                              height: HomeStyles.recentHeaderSpacing,
-                            ),
-                            _buildRecentActivity(),
-                            const SizedBox(height: HomeStyles.bottomSpacing),
-                          ]),
-                        ),
-                      ),
-                    ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: HomeStyles.backgroundColor,
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: RefreshIndicator(
+              color: HomeStyles.primaryColor,
+              backgroundColor: HomeStyles.surfaceColor,
+              onRefresh: _loadHomeData,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(child: _buildHeaderSection(context)),
+                  SliverPadding(
+                    padding: HomeStyles.contentPadding,
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate.fixed(<Widget>[
+                        _buildSecondaryActions(),
+                        const SizedBox(height: HomeStyles.sectionSpacing),
+                        _buildRecentHeader(),
+                        const SizedBox(height: HomeStyles.recentHeaderSpacing),
+                        _buildRecentActivity(),
+                        const SizedBox(height: HomeStyles.bottomSpacing),
+                      ]),
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+
+    return SizedBox(
+      height: statusBarHeight + HomeStyles.headerSectionHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Container(
+            width: double.infinity,
+            height: statusBarHeight + HomeStyles.blueHeaderHeight,
+            padding: EdgeInsets.fromLTRB(
+              HomeStyles.headerHorizontalPadding,
+              statusBarHeight + HomeStyles.headerTopPadding,
+              HomeStyles.headerHorizontalPadding,
+              HomeStyles.headerBottomPadding,
+            ),
+            decoration: const BoxDecoration(
+              gradient: HomeStyles.greetingGradient,
+              borderRadius: HomeStyles.blueHeaderRadius,
+            ),
+            child: Stack(
+              children: <Widget>[
+                const Positioned(
+                  right: HomeStyles.headerBrailleRight,
+                  bottom: HomeStyles.headerBrailleBottom,
+                  child: _BrailleDecoration(),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        const Expanded(
+                          child: Text(
+                            _HomeText.appName,
+                            style: HomeStyles.appNameStyle,
+                          ),
+                        ),
+                        Semantics(
+                          button: true,
+                          label: _HomeText.notificationTooltip,
+                          child: InkResponse(
+                            onTap: () {},
+                            radius: HomeStyles.notificationTapRadius,
+                            child: const SizedBox(
+                              width: HomeStyles.notificationButtonSize,
+                              height: HomeStyles.notificationButtonSize,
+                              child: Icon(
+                                HomeStyles.notificationIcon,
+                                color: HomeStyles.surfaceColor,
+                                size: HomeStyles.notificationIconSize,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_HomeText.greetingPrefix}, $_displayName!',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeStyles.greetingStyle,
+                    ),
+                    const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
+                    Text(
+                      _greetingDescription(),
+                      style: HomeStyles.greetingDescriptionStyle,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: HomeStyles.headerHorizontalPadding,
+            right: HomeStyles.headerHorizontalPadding,
+            top: statusBarHeight + HomeStyles.quickScanCardTop,
+            child: _buildQuickScanCard(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickScanCard() {
+    return Container(
+      width: double.infinity,
+      padding: HomeStyles.quickScanCardPadding,
+      decoration: const BoxDecoration(
+        color: HomeStyles.surfaceColor,
+        borderRadius: HomeStyles.quickScanCardRadius,
+        border: HomeStyles.cardBorder,
+        boxShadow: HomeStyles.cardShadow,
+      ),
+      child: Column(
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      _HomeText.quickScanTitle,
+                      style: HomeStyles.quickScanTitleStyle,
+                    ),
+                    const SizedBox(
+                      height: HomeStyles.quickScanDescriptionSpacing,
+                    ),
+                    const Text(
+                      _HomeText.quickScanDescription,
+                      style: HomeStyles.quickScanDescriptionStyle,
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: HomeStyles.quickScanIconSpacing),
+              Container(
+                width: HomeStyles.quickScanIconContainerSize,
+                height: HomeStyles.quickScanIconContainerSize,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: HomeStyles.quickScanIconBackgroundColor,
+                  borderRadius: HomeStyles.quickScanIconRadius,
+                ),
+                child: const Icon(
+                  HomeStyles.scanIcon,
+                  color: HomeStyles.primaryColor,
+                  size: HomeStyles.quickScanIconSize,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: HomeStyles.quickScanButtonSpacing),
+          SizedBox(
+            width: double.infinity,
+            height: HomeStyles.quickScanButtonHeight,
+            child: FilledButton.icon(
+              onPressed: widget.onScanPressed,
+              style: HomeStyles.quickScanButtonStyle,
+              icon: const Icon(
+                HomeStyles.cameraIcon,
+                size: HomeStyles.quickScanButtonIconSize,
+              ),
+              label: const Text(_HomeText.startScanningLabel),
             ),
           ),
         ],
@@ -325,79 +487,27 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildGreeting() {
-    return Container(
-      width: double.infinity,
-      padding: HomeStyles.greetingCardPadding,
-      decoration: const BoxDecoration(
-        color: HomeStyles.greetingCardBackgroundColor,
-        borderRadius: HomeStyles.greetingCardRadius,
-        border: HomeStyles.greetingCardBorder,
-        boxShadow: HomeStyles.greetingCardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSecondaryActions() {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(
-            '${_HomeText.greetingPrefix}, $_displayName!',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: HomeStyles.greetingStyle,
+          Expanded(
+            child: _CompactActionCard(
+              icon: HomeStyles.materialsIcon,
+              title: _HomeText.materialsActionTitle,
+              description: _HomeText.materialsActionDescription,
+              onPressed: widget.onMaterialsPressed,
+            ),
           ),
-          const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
-          Text(
-            _role.toLowerCase() == _HomeText.educatorRole
-                ? _HomeText.educatorGreetingDescription
-                : _HomeText.greetingDescription,
-            style: HomeStyles.greetingDescriptionStyle,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.quickActionsRadius,
-        border: HomeStyles.quickActionsBorder,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: <Widget>[
-          _QuickActionRow(
-            icon: HomeStyles.scanIcon,
-            title: _HomeText.scanActionTitle,
-            description: _HomeText.scanActionDescription,
-            onPressed: widget.onScanPressed,
-          ),
-          const Divider(
-            height: HomeStyles.quickActionDividerHeight,
-            thickness: HomeStyles.quickActionDividerThickness,
-            indent: HomeStyles.quickActionDividerIndent,
-            endIndent: HomeStyles.quickActionDividerEndIndent,
-            color: HomeStyles.quickActionDividerColor,
-          ),
-          _QuickActionRow(
-            icon: HomeStyles.materialsIcon,
-            title: _HomeText.materialsActionTitle,
-            description: _HomeText.materialsActionDescription,
-            onPressed: widget.onMaterialsPressed,
-          ),
-          const Divider(
-            height: HomeStyles.quickActionDividerHeight,
-            thickness: HomeStyles.quickActionDividerThickness,
-            indent: HomeStyles.quickActionDividerIndent,
-            endIndent: HomeStyles.quickActionDividerEndIndent,
-            color: HomeStyles.quickActionDividerColor,
-          ),
-          _QuickActionRow(
-            icon: HomeStyles.historyIcon,
-            title: _HomeText.historyActionTitle,
-            description: _HomeText.historyActionDescription,
-            onPressed: widget.onHistoryPressed,
+          const SizedBox(width: HomeStyles.secondaryActionSpacing),
+          Expanded(
+            child: _CompactActionCard(
+              icon: HomeStyles.historyIcon,
+              title: _HomeText.historyActionTitle,
+              description: _HomeText.historyActionDescription,
+              onPressed: widget.onHistoryPressed,
+            ),
           ),
         ],
       ),
@@ -454,31 +564,75 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    return Column(
-      children: List<Widget>.generate(materials.length, (int index) {
-        final MaterialModel material = materials[index];
+    return Container(
+      decoration: const BoxDecoration(
+        color: HomeStyles.surfaceColor,
+        borderRadius: HomeStyles.recentListRadius,
+        border: HomeStyles.cardBorder,
+        boxShadow: HomeStyles.subtleCardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: List<Widget>.generate(materials.length, (int index) {
+          final MaterialModel material = materials[index];
 
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: index == materials.length - 1
-                ? 0
-                : HomeStyles.recentItemSpacing,
-          ),
-          child: _RecentActivityCard(
-            material: material,
-            icon: _getMaterialIcon(material),
-            category: _getMaterialCategory(material),
-            relativeTime: _formatRelativeTime(material.uploadDate),
-            onPressed: widget.onMaterialsPressed,
-          ),
-        );
-      }, growable: false),
+          return Column(
+            children: <Widget>[
+              _RecentActivityCard(
+                material: material,
+                icon: _getMaterialIcon(material),
+                category: _getMaterialCategory(material),
+                relativeTime: _formatRelativeTime(material.uploadDate),
+                showImagePreview: _hasLocalPreview(material),
+                onPressed: widget.onMaterialsPressed,
+              ),
+              if (index < materials.length - 1)
+                const Divider(
+                  height: HomeStyles.recentDividerHeight,
+                  thickness: HomeStyles.recentDividerThickness,
+                  indent: HomeStyles.recentDividerIndent,
+                  color: HomeStyles.dividerColor,
+                ),
+            ],
+          );
+        }, growable: false),
+      ),
     );
   }
 }
 
-class _QuickActionRow extends StatelessWidget {
-  const _QuickActionRow({
+class _BrailleDecoration extends StatelessWidget {
+  const _BrailleDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: HomeStyles.heroDecorationOpacity,
+      child: SizedBox(
+        width: HomeStyles.heroDecorationWidth,
+        child: Wrap(
+          spacing: HomeStyles.heroDotSpacing,
+          runSpacing: HomeStyles.heroDotSpacing,
+          children: List<Widget>.generate(
+            HomeStyles.heroDotCount,
+            (_) => Container(
+              width: HomeStyles.heroDotSize,
+              height: HomeStyles.heroDotSize,
+              decoration: const BoxDecoration(
+                color: HomeStyles.surfaceColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            growable: false,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactActionCard extends StatelessWidget {
+  const _CompactActionCard({
     required this.icon,
     required this.title,
     required this.description,
@@ -492,62 +646,61 @@ class _QuickActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: HomeStyles.quickActionRowPadding,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: HomeStyles.quickActionIconContainerSize,
-                height: HomeStyles.quickActionIconContainerSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: HomeStyles.quickActionIconBackgroundColor,
-                  borderRadius: HomeStyles.quickActionIconRadius,
-                  border: HomeStyles.quickActionIconBorder,
-                ),
-                child: Icon(
-                  icon,
-                  size: HomeStyles.quickActionIconSize,
-                  color: HomeStyles.primaryColor,
-                ),
-              ),
-              const SizedBox(width: HomeStyles.quickActionContentSpacing),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      decoration: const BoxDecoration(
+        color: HomeStyles.surfaceColor,
+        borderRadius: HomeStyles.secondaryActionRadius,
+        border: HomeStyles.cardBorder,
+        boxShadow: HomeStyles.subtleCardShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: HomeStyles.secondaryActionRadius,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: HomeStyles.secondaryActionRadius,
+          child: Padding(
+            padding: HomeStyles.secondaryActionPadding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
                   children: <Widget>[
-                    Text(title, style: HomeStyles.quickActionTitleStyle),
-                    const SizedBox(
-                      height: HomeStyles.quickActionDescriptionSpacing,
+                    Container(
+                      width: HomeStyles.secondaryActionIconContainerSize,
+                      height: HomeStyles.secondaryActionIconContainerSize,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: HomeStyles.secondaryActionIconBackgroundColor,
+                        borderRadius: HomeStyles.secondaryActionIconRadius,
+                      ),
+                      child: Icon(
+                        icon,
+                        size: HomeStyles.secondaryActionIconSize,
+                        color: HomeStyles.primaryColor,
+                      ),
                     ),
-                    Text(
-                      description,
-                      style: HomeStyles.quickActionDescriptionStyle,
+                    const Spacer(),
+                    const Icon(
+                      HomeStyles.forwardIcon,
+                      size: HomeStyles.secondaryActionArrowSize,
+                      color: HomeStyles.mutedColor,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: HomeStyles.quickActionArrowSpacing),
-              Container(
-                width: HomeStyles.quickActionArrowContainerSize,
-                height: HomeStyles.quickActionArrowContainerSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: HomeStyles.quickActionArrowBackgroundColor,
-                  shape: BoxShape.circle,
+                const SizedBox(height: HomeStyles.secondaryActionTitleSpacing),
+                Text(title, style: HomeStyles.secondaryActionTitleStyle),
+                const SizedBox(
+                  height: HomeStyles.secondaryActionDescriptionSpacing,
                 ),
-                child: const Icon(
-                  HomeStyles.forwardIcon,
-                  size: HomeStyles.quickActionArrowIconSize,
-                  color: HomeStyles.primaryColor,
+                Text(
+                  description,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeStyles.secondaryActionDescriptionStyle,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -561,6 +714,7 @@ class _RecentActivityCard extends StatelessWidget {
     required this.icon,
     required this.category,
     required this.relativeTime,
+    required this.showImagePreview,
     required this.onPressed,
   });
 
@@ -568,6 +722,7 @@ class _RecentActivityCard extends StatelessWidget {
   final IconData icon;
   final String category;
   final String relativeTime;
+  final bool showImagePreview;
   final VoidCallback onPressed;
 
   @override
@@ -576,64 +731,105 @@ class _RecentActivityCard extends StatelessWidget {
         ? material.fileName
         : material.title.trim();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.recentCardRadius,
-        border: HomeStyles.cardBorder,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: HomeStyles.recentCardRadius,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: HomeStyles.recentCardRadius,
-          child: Padding(
-            padding: HomeStyles.recentCardPadding,
-            child: Row(
-              children: <Widget>[
-                Container(
-                  width: HomeStyles.thumbnailSize,
-                  height: HomeStyles.thumbnailSize,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: HomeStyles.thumbnailBackgroundColor,
-                    borderRadius: HomeStyles.thumbnailRadius,
-                    border: HomeStyles.thumbnailBorder,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: HomeStyles.primaryColor,
-                    size: HomeStyles.thumbnailIconSize,
-                  ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: HomeStyles.recentCardPadding,
+          child: Row(
+            children: <Widget>[
+              _MaterialThumbnail(
+                material: material,
+                fallbackIcon: icon,
+                showImagePreview: showImagePreview,
+              ),
+              const SizedBox(width: HomeStyles.recentContentSpacing),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeStyles.recentTitleStyle,
+                    ),
+                    const SizedBox(height: HomeStyles.recentMetadataSpacing),
+                    Text(
+                      category,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: HomeStyles.recentMetadataStyle,
+                    ),
+                    const SizedBox(height: HomeStyles.recentDateSpacing),
+                    Text(relativeTime, style: HomeStyles.relativeTimeStyle),
+                  ],
                 ),
-                const SizedBox(width: HomeStyles.recentContentSpacing),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: HomeStyles.recentTitleStyle,
-                      ),
-                      const SizedBox(height: HomeStyles.recentMetadataSpacing),
-                      Text(
-                        category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: HomeStyles.recentMetadataStyle,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: HomeStyles.recentContentSpacing),
-                Text(relativeTime, style: HomeStyles.relativeTimeStyle),
-              ],
-            ),
+              ),
+              const SizedBox(width: HomeStyles.recentTrailingSpacing),
+              const Icon(
+                HomeStyles.forwardIcon,
+                color: HomeStyles.recentArrowColor,
+                size: HomeStyles.recentArrowSize,
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MaterialThumbnail extends StatelessWidget {
+  const _MaterialThumbnail({
+    required this.material,
+    required this.fallbackIcon,
+    required this.showImagePreview,
+  });
+
+  final MaterialModel material;
+  final IconData fallbackIcon;
+  final bool showImagePreview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: HomeStyles.thumbnailWidth,
+      height: HomeStyles.thumbnailHeight,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: HomeStyles.thumbnailBackgroundColor,
+        borderRadius: HomeStyles.thumbnailRadius,
+        border: HomeStyles.thumbnailBorder,
+      ),
+      child: showImagePreview
+          ? Image.file(
+              File(material.filePath),
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+              errorBuilder:
+                  (BuildContext context, Object error, StackTrace? stackTrace) {
+                    return _ThumbnailFallback(icon: fallbackIcon);
+                  },
+            )
+          : _ThumbnailFallback(icon: fallbackIcon),
+    );
+  }
+}
+
+class _ThumbnailFallback extends StatelessWidget {
+  const _ThumbnailFallback({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Icon(
+        icon,
+        color: HomeStyles.primaryColor,
+        size: HomeStyles.thumbnailIconSize,
       ),
     );
   }
@@ -663,18 +859,35 @@ class _StateCard extends StatelessWidget {
       padding: HomeStyles.stateCardPadding,
       decoration: const BoxDecoration(
         color: HomeStyles.surfaceColor,
-        borderRadius: HomeStyles.recentCardRadius,
+        borderRadius: HomeStyles.recentListRadius,
         border: HomeStyles.cardBorder,
+        boxShadow: HomeStyles.subtleCardShadow,
       ),
       child: Column(
         children: <Widget>[
           if (showProgress)
-            const CircularProgressIndicator(color: HomeStyles.primaryColor)
+            const SizedBox(
+              width: HomeStyles.stateProgressSize,
+              height: HomeStyles.stateProgressSize,
+              child: CircularProgressIndicator(
+                color: HomeStyles.primaryColor,
+                strokeWidth: HomeStyles.stateProgressStrokeWidth,
+              ),
+            )
           else
-            Icon(
-              icon,
-              size: HomeStyles.stateIconSize,
-              color: HomeStyles.primaryColor,
+            Container(
+              width: HomeStyles.stateIconContainerSize,
+              height: HomeStyles.stateIconContainerSize,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: HomeStyles.secondaryActionIconBackgroundColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: HomeStyles.stateIconSize,
+                color: HomeStyles.primaryColor,
+              ),
             ),
           const SizedBox(height: HomeStyles.stateContentSpacing),
           Text(
@@ -690,7 +903,11 @@ class _StateCard extends StatelessWidget {
           ),
           if (actionLabel != null && onActionPressed != null) ...<Widget>[
             const SizedBox(height: HomeStyles.stateActionSpacing),
-            FilledButton(onPressed: onActionPressed, child: Text(actionLabel!)),
+            FilledButton(
+              onPressed: onActionPressed,
+              style: HomeStyles.stateActionButtonStyle,
+              child: Text(actionLabel!),
+            ),
           ],
         ],
       ),

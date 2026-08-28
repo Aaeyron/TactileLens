@@ -1,20 +1,20 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/materials/material_model.dart';
 import '../../models/materials/material_folder_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../services/materials/material_folder_service.dart';
 import '../../styles/screens/materials/material_screen_styles.dart';
-import '../../widgets/app_header.dart';
 import '../../widgets/materials/materials_empty_state.dart';
 import 'material_preview_screen.dart';
 
 abstract final class _MaterialText {
   static const String pageTitle = 'Materials';
   static const String pageDescription =
-      'View, organize, and manage your accessible learning materials.';
-  static const String searchHint = 'Search Materials';
+      'Organize scanned lessons, worksheets, and accessible outputs.';
+  static const String searchHint = 'Search materials';
 
   static const String allFilterLabel = 'All';
   static const String imagesFilterLabel = 'Images';
@@ -27,10 +27,11 @@ abstract final class _MaterialText {
   static const String folderEmptyDescription =
       'Move scanned materials into this folder to keep them organized.';
   static const String closeFolderTooltip = 'Close folder';
-  static const String recentMaterialsTitle = 'Materials';
-  static const String viewAllLabel = 'Clear filters';
+  static const String recentMaterialsTitle = 'Recent Materials';
+  static const String viewAllLabel = 'View all';
   static const String itemSingular = 'Item';
   static const String itemPlural = 'Items';
+  static const String addFolderLabel = 'Add Folder';
 
   static const String mathNemethLabel = 'Math • Nemeth';
   static const String textUebLabel = 'Text • UEB';
@@ -1232,154 +1233,122 @@ class _MaterialsScreenState extends State<MaterialsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: MaterialScreenStyles.backgroundColor,
-      body: Column(
-        children: <Widget>[
-          const AppHeader(),
-          Expanded(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: RefreshIndicator(
-                  color: MaterialScreenStyles.primaryColor,
-                  onRefresh: _refreshMaterials,
-                  child: ListView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    physics: const AlwaysScrollableScrollPhysics(),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        backgroundColor: MaterialScreenStyles.backgroundColor,
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: RefreshIndicator(
+              color: MaterialScreenStyles.primaryColor,
+              backgroundColor: MaterialScreenStyles.surfaceColor,
+              onRefresh: _refreshMaterials,
+              child: CustomScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(child: _buildPageHeader(context)),
+                  SliverPadding(
                     padding: MaterialScreenStyles.contentPadding,
-                    children: <Widget>[
-                      Container(
-                        width: double.infinity,
-                        padding: MaterialScreenStyles.pageHeaderPadding,
-                        decoration: const BoxDecoration(
-                          color: MaterialScreenStyles.pageHeaderBackgroundColor,
-                          borderRadius: MaterialScreenStyles.pageHeaderRadius,
-                          border: MaterialScreenStyles.pageHeaderBorder,
-                          boxShadow: MaterialScreenStyles.pageHeaderShadow,
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate.fixed(<Widget>[
+                        _buildFoldersSection(),
+                        const SizedBox(
+                          height: MaterialScreenStyles.sectionSpacing,
                         ),
-                        child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              _MaterialText.pageTitle,
-                              style: MaterialScreenStyles.pageTitleStyle,
-                            ),
-                            SizedBox(
-                              height:
-                                  MaterialScreenStyles.pageDescriptionSpacing,
-                            ),
-                            Text(
-                              _MaterialText.pageDescription,
-                              style: MaterialScreenStyles.pageDescriptionStyle,
-                            ),
-                          ],
+                        _buildRecentHeader(),
+                        const SizedBox(
+                          height: MaterialScreenStyles.sectionContentSpacing,
                         ),
-                      ),
-                      const SizedBox(
-                        height: MaterialScreenStyles.searchTopSpacing,
-                      ),
-                      _buildSearchAndSort(),
-                      const SizedBox(
-                        height: MaterialScreenStyles.filterTopSpacing,
-                      ),
-                      _buildFilters(),
-                      const SizedBox(
-                        height: MaterialScreenStyles.sectionSpacing,
-                      ),
-                      _buildFoldersSection(),
-                      const SizedBox(
-                        height: MaterialScreenStyles.sectionSpacing,
-                      ),
-                      _buildRecentHeader(),
-                      const SizedBox(
-                        height: MaterialScreenStyles.sectionContentSpacing,
-                      ),
-                      _buildContent(),
-                      const SizedBox(
-                        height: MaterialScreenStyles.bottomSpacing,
-                      ),
-                    ],
+                        _buildContent(),
+                        const SizedBox(
+                          height: MaterialScreenStyles.bottomSpacing,
+                        ),
+                      ]),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        MaterialScreenStyles.headerHorizontalPadding,
+        statusBarHeight + MaterialScreenStyles.headerTopPadding,
+        MaterialScreenStyles.headerHorizontalPadding,
+        MaterialScreenStyles.headerBottomPadding,
+      ),
+      decoration: const BoxDecoration(
+        gradient: MaterialScreenStyles.pageHeaderGradient,
+        borderRadius: MaterialScreenStyles.pageHeaderRadius,
+      ),
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: MaterialScreenStyles.headerDecorationRight,
+            top: MaterialScreenStyles.headerDecorationTop,
+            child: _MaterialBrailleDecoration(),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                _MaterialText.pageTitle,
+                style: MaterialScreenStyles.pageTitleStyle,
+              ),
+              const SizedBox(
+                height: MaterialScreenStyles.pageDescriptionSpacing,
+              ),
+              const SizedBox(
+                width: MaterialScreenStyles.pageDescriptionWidth,
+                child: Text(
+                  _MaterialText.pageDescription,
+                  style: MaterialScreenStyles.pageDescriptionStyle,
+                ),
+              ),
+              const SizedBox(height: MaterialScreenStyles.searchTopSpacing),
+              _buildHeaderSearch(),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchAndSort() {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: SizedBox(
-            height: MaterialScreenStyles.searchHeight,
-            child: TextField(
-              controller: _searchController,
-              style: MaterialScreenStyles.searchTextStyle,
-              decoration: MaterialScreenStyles.searchDecoration.copyWith(
-                hintText: _MaterialText.searchHint,
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: _MaterialText.clearSearchTooltip,
-                        onPressed: _searchController.clear,
-                        icon: const Icon(MaterialScreenStyles.clearSearchIcon),
-                      ),
-              ),
-            ),
-          ),
+  Widget _buildHeaderSearch() {
+    return SizedBox(
+      height: MaterialScreenStyles.searchHeight,
+      child: TextField(
+        controller: _searchController,
+        style: MaterialScreenStyles.searchTextStyle,
+        textInputAction: TextInputAction.search,
+        decoration: MaterialScreenStyles.searchDecoration.copyWith(
+          hintText: _MaterialText.searchHint,
+          suffixIcon: _searchController.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: _MaterialText.clearSearchTooltip,
+                  onPressed: _searchController.clear,
+                  icon: const Icon(
+                    MaterialScreenStyles.clearSearchIcon,
+                    color: MaterialScreenStyles.textMutedColor,
+                  ),
+                ),
         ),
-        const SizedBox(width: 8),
-        Container(
-          width: MaterialScreenStyles.searchHeight,
-          height: MaterialScreenStyles.searchHeight,
-          decoration: BoxDecoration(
-            color: MaterialScreenStyles.surfaceColor,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(
-              color: MaterialScreenStyles.outlineColor,
-              width: 1,
-            ),
-          ),
-          child: PopupMenuButton<_MaterialSort>(
-            tooltip: _MaterialText.sortTooltip,
-            initialValue: _selectedSort,
-            padding: EdgeInsets.zero,
-            onSelected: (_MaterialSort value) {
-              setState(() {
-                _selectedSort = value;
-              });
-            },
-            icon: const Icon(
-              MaterialScreenStyles.sortIcon,
-              color: MaterialScreenStyles.textSecondaryColor,
-              size: 21,
-            ),
-            itemBuilder: (BuildContext context) {
-              return const <PopupMenuEntry<_MaterialSort>>[
-                PopupMenuItem<_MaterialSort>(
-                  value: _MaterialSort.newest,
-                  child: Text(_MaterialText.newestSortLabel),
-                ),
-                PopupMenuItem<_MaterialSort>(
-                  value: _MaterialSort.oldest,
-                  child: Text(_MaterialText.oldestSortLabel),
-                ),
-                PopupMenuItem<_MaterialSort>(
-                  value: _MaterialSort.title,
-                  child: Text(_MaterialText.titleSortLabel),
-                ),
-              ];
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1430,82 +1399,46 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                 style: MaterialScreenStyles.sectionTitleStyle,
               ),
             ),
-            Tooltip(
-              message: _MaterialText.createFolderDialogTitle,
-              child: _isCreatingFolder
-                  ? const SizedBox.square(
-                      dimension: MaterialScreenStyles.addFolderButtonSize,
-                      child: Padding(
-                        padding: EdgeInsets.all(8),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: MaterialScreenStyles.primaryColor,
-                        ),
-                      ),
-                    )
-                  : IconButton(
-                      tooltip: _MaterialText.createFolderDialogTitle,
-                      onPressed: _showCreateFolderDialog,
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints.tightFor(
-                        width: MaterialScreenStyles.addFolderButtonSize,
-                        height: MaterialScreenStyles.addFolderButtonSize,
-                      ),
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        size: MaterialScreenStyles.addFolderButtonIconSize,
-                        color: MaterialScreenStyles.primaryColor,
-                      ),
-                    ),
+            TextButton(
+              onPressed: null,
+              style: MaterialScreenStyles.sectionActionButtonStyle,
+              child: const Text(_MaterialText.viewAllLabel),
             ),
           ],
         ),
         const SizedBox(
           height: MaterialScreenStyles.folderSectionContentSpacing,
         ),
-        if (_folders.isEmpty)
-          Container(
-            width: double.infinity,
-            height: MaterialScreenStyles.emptyFolderHeight,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: MaterialScreenStyles.surfaceColor,
-              borderRadius: MaterialScreenStyles.folderSectionRadius,
-              border: MaterialScreenStyles.cardBorder,
-            ),
-            child: const Text(
-              _MaterialText.noFoldersLabel,
-              textAlign: TextAlign.center,
-              style: MaterialScreenStyles.emptyFolderStyle,
-            ),
-          )
-        else
-          SizedBox(
-            height: MaterialScreenStyles.folderCardHeight,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _folders.length,
-              separatorBuilder: (BuildContext context, int index) {
-                return const SizedBox(
-                  width: MaterialScreenStyles.folderSpacing,
+        SizedBox(
+          height: MaterialScreenStyles.folderCardHeight,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _folders.length + 1,
+            separatorBuilder: (BuildContext context, int index) {
+              return const SizedBox(width: MaterialScreenStyles.folderSpacing);
+            },
+            itemBuilder: (BuildContext context, int index) {
+              if (index == _folders.length) {
+                return _AddFolderCard(
+                  isCreating: _isCreatingFolder,
+                  onPressed: _showCreateFolderDialog,
                 );
-              },
-              itemBuilder: (BuildContext context, int index) {
-                final MaterialFolderModel folder = _folders[index];
+              }
 
-                return _FolderCard(
-                  folder: folder,
-                  cardIndex: index,
-                  isSelected: false,
-                  onPressed: () {
-                    _showFolderContents(folder);
-                  },
-                );
-              },
-            ),
+              final MaterialFolderModel folder = _folders[index];
+
+              return _FolderCard(
+                folder: folder,
+                cardIndex: index,
+                isSelected: false,
+                onPressed: () {
+                  _showFolderContents(folder);
+                },
+              );
+            },
           ),
+        ),
       ],
     );
   }
@@ -1519,16 +1452,18 @@ class _MaterialsScreenState extends State<MaterialsScreen>
             style: MaterialScreenStyles.sectionTitleStyle,
           ),
         ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              _selectedFilter = _MaterialFilter.all;
-              _searchController.clear();
-            });
-          },
-          style: MaterialScreenStyles.viewAllButtonStyle,
-          child: const Text(_MaterialText.viewAllLabel),
-        ),
+        if (_searchController.text.isNotEmpty ||
+            _selectedFilter != _MaterialFilter.all)
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _selectedFilter = _MaterialFilter.all;
+                _searchController.clear();
+              });
+            },
+            style: MaterialScreenStyles.viewAllButtonStyle,
+            child: const Text(_MaterialText.viewAllLabel),
+          ),
       ],
     );
   }
@@ -1620,6 +1555,36 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   }
 }
 
+class _MaterialBrailleDecoration extends StatelessWidget {
+  const _MaterialBrailleDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: MaterialScreenStyles.headerDecorationOpacity,
+      child: SizedBox(
+        width: MaterialScreenStyles.headerDecorationWidth,
+        child: Wrap(
+          spacing: MaterialScreenStyles.headerDotSpacing,
+          runSpacing: MaterialScreenStyles.headerDotSpacing,
+          children: List<Widget>.generate(
+            MaterialScreenStyles.headerDotCount,
+            (_) => Container(
+              width: MaterialScreenStyles.headerDotSize,
+              height: MaterialScreenStyles.headerDotSize,
+              decoration: const BoxDecoration(
+                color: MaterialScreenStyles.surfaceColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            growable: false,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FilterButton extends StatelessWidget {
   const _FilterButton({
     required this.label,
@@ -1666,6 +1631,66 @@ class _FilterButton extends StatelessWidget {
   }
 }
 
+class _AddFolderCard extends StatelessWidget {
+  const _AddFolderCard({required this.isCreating, required this.onPressed});
+
+  final bool isCreating;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: MaterialScreenStyles.folderRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: isCreating ? null : onPressed,
+        borderRadius: MaterialScreenStyles.folderRadius,
+        child: Container(
+          width: MaterialScreenStyles.folderCardWidth,
+          padding: MaterialScreenStyles.folderPadding,
+          decoration: BoxDecoration(
+            color: MaterialScreenStyles.surfaceColor,
+            borderRadius: MaterialScreenStyles.folderRadius,
+            border: Border.all(
+              color: MaterialScreenStyles.addFolderOutlineColor,
+              width: MaterialScreenStyles.addFolderOutlineWidth,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (isCreating)
+                const SizedBox(
+                  width: MaterialScreenStyles.addFolderProgressSize,
+                  height: MaterialScreenStyles.addFolderProgressSize,
+                  child: CircularProgressIndicator(
+                    color: MaterialScreenStyles.primaryColor,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.add_rounded,
+                  color: MaterialScreenStyles.primaryColor,
+                  size: MaterialScreenStyles.addFolderCardIconSize,
+                ),
+              const SizedBox(
+                height: MaterialScreenStyles.addFolderLabelSpacing,
+              ),
+              const Text(
+                _MaterialText.addFolderLabel,
+                textAlign: TextAlign.center,
+                style: MaterialScreenStyles.addFolderTextStyle,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FolderCard extends StatelessWidget {
   const _FolderCard({
     required this.folder,
@@ -1678,34 +1703,6 @@ class _FolderCard extends StatelessWidget {
   final int cardIndex;
   final bool isSelected;
   final VoidCallback onPressed;
-
-  bool get _usesWarmPalette => cardIndex % 3 == 0;
-
-  Color get _backgroundColor {
-    if (isSelected) {
-      return MaterialScreenStyles.selectedFolderBackgroundColor;
-    }
-
-    return _usesWarmPalette
-        ? MaterialScreenStyles.warmFolderBackgroundColor
-        : MaterialScreenStyles.purpleFolderBackgroundColor;
-  }
-
-  Color get _outlineColor {
-    if (isSelected) {
-      return MaterialScreenStyles.primaryBrightColor;
-    }
-
-    return _usesWarmPalette
-        ? MaterialScreenStyles.warmFolderOutlineColor
-        : MaterialScreenStyles.purpleFolderOutlineColor;
-  }
-
-  Color get _folderIconColor {
-    return _usesWarmPalette
-        ? MaterialScreenStyles.warmFolderColor
-        : MaterialScreenStyles.purpleFolderColor;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1721,25 +1718,39 @@ class _FolderCard extends StatelessWidget {
           width: MaterialScreenStyles.folderCardWidth,
           padding: MaterialScreenStyles.folderPadding,
           decoration: BoxDecoration(
-            color: _backgroundColor,
+            color: isSelected
+                ? MaterialScreenStyles.selectedFolderBackgroundColor
+                : MaterialScreenStyles.surfaceColor,
             borderRadius: MaterialScreenStyles.folderRadius,
             border: Border.all(
-              color: _outlineColor,
-              width: isSelected ? 1.8 : 1,
+              color: isSelected
+                  ? MaterialScreenStyles.primaryColor
+                  : MaterialScreenStyles.outlineColor,
+              width: isSelected ? 1.5 : 1,
             ),
+            boxShadow: MaterialScreenStyles.folderCardShadow,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(
-                MaterialScreenStyles.folderIcon,
-                size: MaterialScreenStyles.folderIconSize,
-                color: _folderIconColor,
+              Container(
+                width: MaterialScreenStyles.folderIconContainerSize,
+                height: MaterialScreenStyles.folderIconContainerSize,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: MaterialScreenStyles.folderIconBackgroundColor,
+                  borderRadius: MaterialScreenStyles.folderIconContainerRadius,
+                ),
+                child: const Icon(
+                  MaterialScreenStyles.folderIcon,
+                  size: MaterialScreenStyles.folderIconSize,
+                  color: MaterialScreenStyles.primaryColor,
+                ),
               ),
               const SizedBox(height: MaterialScreenStyles.folderIconSpacing),
               Text(
                 folder.name,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: MaterialScreenStyles.folderTitleStyle,
@@ -1841,49 +1852,43 @@ class _RecentMaterialCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(
-                  width: MaterialScreenStyles.materialMenuButtonSize,
-                  height: MaterialScreenStyles.materialMenuButtonSize,
-                  child: PopupMenuButton<_MaterialMenuAction>(
-                    tooltip: _MaterialText.materialOptionsTooltip,
-                    padding: MaterialScreenStyles.materialMenuPadding,
-                    onSelected: onMenuSelected,
-                    icon: const Icon(
-                      MaterialScreenStyles.moreIcon,
-                      size: MaterialScreenStyles.materialMenuIconSize,
-                      color: MaterialScreenStyles.textSecondaryColor,
-                    ),
-                    itemBuilder: (BuildContext context) {
-                      return const <PopupMenuEntry<_MaterialMenuAction>>[
-                        PopupMenuItem<_MaterialMenuAction>(
-                          value: _MaterialMenuAction.preview,
-                          child: ListTile(
-                            leading: Icon(MaterialScreenStyles.previewIcon),
-                            title: Text(_MaterialText.previewLabel),
-                          ),
-                        ),
-                        PopupMenuItem<_MaterialMenuAction>(
-                          value: _MaterialMenuAction.moveToFolder,
-                          child: ListTile(
-                            leading: Icon(
-                              MaterialScreenStyles.moveToFolderIcon,
-                            ),
-                            title: Text(_MaterialText.moveToFolderLabel),
-                          ),
-                        ),
-                        PopupMenuItem<_MaterialMenuAction>(
-                          value: _MaterialMenuAction.delete,
-                          child: ListTile(
-                            leading: Icon(
-                              MaterialScreenStyles.deleteIcon,
-                              color: MaterialScreenStyles.primaryColor,
-                            ),
-                            title: Text(_MaterialText.deleteLabel),
-                          ),
-                        ),
-                      ];
-                    },
+                PopupMenuButton<_MaterialMenuAction>(
+                  tooltip: _MaterialText.materialOptionsTooltip,
+                  padding: MaterialScreenStyles.materialMenuPadding,
+                  onSelected: onMenuSelected,
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: MaterialScreenStyles.materialMenuIconSize,
+                    color: MaterialScreenStyles.textMutedColor,
                   ),
+                  itemBuilder: (BuildContext context) {
+                    return const <PopupMenuEntry<_MaterialMenuAction>>[
+                      PopupMenuItem<_MaterialMenuAction>(
+                        value: _MaterialMenuAction.preview,
+                        child: ListTile(
+                          leading: Icon(MaterialScreenStyles.previewIcon),
+                          title: Text(_MaterialText.previewLabel),
+                        ),
+                      ),
+                      PopupMenuItem<_MaterialMenuAction>(
+                        value: _MaterialMenuAction.moveToFolder,
+                        child: ListTile(
+                          leading: Icon(MaterialScreenStyles.moveToFolderIcon),
+                          title: Text(_MaterialText.moveToFolderLabel),
+                        ),
+                      ),
+                      PopupMenuItem<_MaterialMenuAction>(
+                        value: _MaterialMenuAction.delete,
+                        child: ListTile(
+                          leading: Icon(
+                            MaterialScreenStyles.deleteIcon,
+                            color: MaterialScreenStyles.primaryColor,
+                          ),
+                          title: Text(_MaterialText.deleteLabel),
+                        ),
+                      ),
+                    ];
+                  },
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/account_information_screen_styles.dart';
 import '../../utils/session_manager.dart';
@@ -13,8 +14,12 @@ class AccountInformationScreen extends StatefulWidget {
   }
 }
 
-class _AccountInformationScreenState
-    extends State<AccountInformationScreen> {
+class _AccountInformationScreenState extends State<AccountInformationScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _entranceOpacity;
+  late final Animation<Offset> _entrancePosition;
+
   String _firstName = '';
   String _lastName = '';
   String _email = '';
@@ -28,18 +33,51 @@ class _AccountInformationScreenState
   void initState() {
     super.initState();
 
+    _configureEntranceAnimation();
     _loadUser();
+
+    _entranceController.forward();
+  }
+
+  void _configureEntranceAnimation() {
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: AccountInformationStyles.entranceDuration,
+    );
+
+    final CurvedAnimation entranceAnimation = CurvedAnimation(
+      parent: _entranceController,
+      curve: AccountInformationStyles.entranceCurve,
+    );
+
+    _entranceOpacity = entranceAnimation;
+
+    _entrancePosition = Tween<Offset>(
+      begin: AccountInformationStyles.entranceBeginOffset,
+      end: Offset.zero,
+    ).animate(entranceAnimation);
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
+    if (mounted && !_isLoading) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
     final bool isGuest = await SessionManager.isGuest();
 
     if (isGuest) {
       final String guestNickname =
           await SessionManager.getGuestNickname() ?? '';
 
-      final String role =
-          await SessionManager.getRole() ?? '';
+      final String role = await SessionManager.getRole() ?? '';
 
       if (!mounted) {
         return;
@@ -48,6 +86,9 @@ class _AccountInformationScreenState
       setState(() {
         _isGuest = true;
         _guestNickname = guestNickname.trim();
+        _firstName = '';
+        _lastName = '';
+        _email = '';
         _role = role.trim();
         _isLoading = false;
       });
@@ -55,17 +96,13 @@ class _AccountInformationScreenState
       return;
     }
 
-    final String firstName =
-        await SessionManager.getFirstName() ?? '';
-
-    final String lastName =
-        await SessionManager.getLastName() ?? '';
-
-    final String email =
-        await SessionManager.getEmail() ?? '';
-
-    final String role =
-        await SessionManager.getRole() ?? '';
+    final List<Object?> userValues =
+        await Future.wait<Object?>(<Future<Object?>>[
+          SessionManager.getFirstName(),
+          SessionManager.getLastName(),
+          SessionManager.getEmail(),
+          SessionManager.getRole(),
+        ]);
 
     if (!mounted) {
       return;
@@ -73,10 +110,11 @@ class _AccountInformationScreenState
 
     setState(() {
       _isGuest = false;
-      _firstName = firstName.trim();
-      _lastName = lastName.trim();
-      _email = email.trim();
-      _role = role.trim();
+      _firstName = (userValues[0] as String? ?? '').trim();
+      _lastName = (userValues[1] as String? ?? '').trim();
+      _email = (userValues[2] as String? ?? '').trim();
+      _role = (userValues[3] as String? ?? '').trim();
+      _guestNickname = '';
       _isLoading = false;
     });
   }
@@ -103,9 +141,7 @@ class _AccountInformationScreenState
       return AccountInformationStyles.guestEmailDescription;
     }
 
-    return _email.isEmpty
-        ? AccountInformationStyles.unavailableValue
-        : _email;
+    return _email.isEmpty ? AccountInformationStyles.unavailableValue : _email;
   }
 
   String get _displayRole {
@@ -119,14 +155,22 @@ class _AccountInformationScreenState
         '${normalizedRole.substring(1).toLowerCase()}';
   }
 
-  String get _initial {
-    final String name = _displayName.trim();
+  String get _initials {
+    final List<String> nameParts = _displayName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((String value) => value.isNotEmpty)
+        .toList(growable: false);
 
-    if (name.isEmpty) {
+    if (nameParts.isEmpty) {
       return AccountInformationStyles.defaultInitial;
     }
 
-    return name[0].toUpperCase();
+    if (nameParts.length == 1) {
+      return nameParts.first[0].toUpperCase();
+    }
+
+    return '${nameParts.first[0]}${nameParts.last[0]}'.toUpperCase();
   }
 
   String get _accountType {
@@ -141,53 +185,6 @@ class _AccountInformationScreenState
         : AccountInformationStyles.hybridStorageMode;
   }
 
-  void _showUnavailableMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: AccountInformationStyles.snackBarDuration,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor:
-              AccountInformationStyles.primaryColor,
-          margin: AccountInformationStyles.snackBarMargin,
-          shape: const RoundedRectangleBorder(
-            borderRadius:
-                AccountInformationStyles.snackBarRadius,
-          ),
-          content: Text(
-            message,
-            style:
-                AccountInformationStyles.snackBarTextStyle,
-          ),
-        ),
-      );
-  }
-
-  void _editPersonalDetails() {
-    _showUnavailableMessage(
-      AccountInformationStyles.editUnavailableMessage,
-    );
-  }
-
-  void _changePassword() {
-    _showUnavailableMessage(
-      AccountInformationStyles.passwordUnavailableMessage,
-    );
-  }
-
-  void _changeRole() {
-    _showUnavailableMessage(
-      AccountInformationStyles.roleUnavailableMessage,
-    );
-  }
-
-  void _changeLanguage() {
-    _showUnavailableMessage(
-      AccountInformationStyles.languageUnavailableMessage,
-    );
-  }
-
   void _openPrivacySecurity() {
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -200,436 +197,329 @@ class _AccountInformationScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor:
-          AccountInformationStyles.backgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          color: AccountInformationStyles.primaryColor,
-          onRefresh: _loadUser,
-          child: ListView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
-            padding:
-                AccountInformationStyles.screenPadding,
-            children: <Widget>[
-              _buildHeader(),
-              const SizedBox(
-                height: AccountInformationStyles
-                    .headerBottomSpacing,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: AccountInformationStyles.backgroundColor,
+        body: FadeTransition(
+          opacity: _entranceOpacity,
+          child: SlideTransition(
+            position: _entrancePosition,
+            child: RefreshIndicator(
+              color: AccountInformationStyles.primaryColor,
+              backgroundColor: AccountInformationStyles.surfaceColor,
+              onRefresh: _loadUser,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(child: _buildHeader(context)),
+                  SliverPadding(
+                    padding: AccountInformationStyles.contentPadding,
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate.fixed(<Widget>[
+                        if (_isLoading)
+                          const _AccountLoadingState()
+                        else ...<Widget>[
+                          _buildIdentityCard(),
+                          const SizedBox(
+                            height: AccountInformationStyles.sectionSpacing,
+                          ),
+                          if (_isGuest) ...<Widget>[
+                            _buildGuestInformation(),
+                            const SizedBox(
+                              height: AccountInformationStyles.sectionSpacing,
+                            ),
+                          ],
+                          _buildPersonalInformation(),
+                          const SizedBox(
+                            height: AccountInformationStyles.sectionSpacing,
+                          ),
+                          _buildAccountInformation(),
+                          const SizedBox(
+                            height: AccountInformationStyles.sectionSpacing,
+                          ),
+                          _buildPrivacyCard(),
+                        ],
+                        const SizedBox(
+                          height: AccountInformationStyles.bottomSpacing,
+                        ),
+                      ]),
+                    ),
+                  ),
+                ],
               ),
-              if (_isLoading)
-                const _AccountLoadingState()
-              else ...<Widget>[
-                _buildProfileSummary(),
-                const SizedBox(
-                  height: AccountInformationStyles
-                      .sectionSpacing,
-                ),
-                _buildPersonalDetails(),
-                const SizedBox(
-                  height: AccountInformationStyles
-                      .sectionSpacing,
-                ),
-                _buildAdditionalInformation(),
-                const SizedBox(
-                  height: AccountInformationStyles
-                      .sectionSpacing,
-                ),
-                _buildSecurityBanner(),
-              ],
-              const SizedBox(
-                height:
-                    AccountInformationStyles.bottomSpacing,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: <Widget>[
-        Stack(
-          alignment: Alignment.center,
-          children: <Widget>[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                tooltip:
-                    AccountInformationStyles.backTooltip,
-                onPressed: () {
-                  Navigator.of(context).maybePop();
-                },
-                style:
-                    AccountInformationStyles.backButtonStyle,
-                icon: const Icon(
-                  AccountInformationStyles.backIcon,
-                  size:
-                      AccountInformationStyles.backIconSize,
+  Widget _buildHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+
+    return SizedBox(
+      height:
+          statusBarHeight +
+          AccountInformationStyles.headerHeight +
+          AccountInformationStyles.avatarOverlapSpace,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Container(
+            width: double.infinity,
+            height: statusBarHeight + AccountInformationStyles.headerHeight,
+            padding: EdgeInsets.fromLTRB(
+              AccountInformationStyles.headerHorizontalPadding,
+              statusBarHeight + AccountInformationStyles.headerTopPadding,
+              AccountInformationStyles.headerHorizontalPadding,
+              AccountInformationStyles.headerBottomPadding,
+            ),
+            decoration: const BoxDecoration(
+              gradient: AccountInformationStyles.headerGradient,
+              borderRadius: AccountInformationStyles.headerRadius,
+            ),
+            child: Stack(
+              children: <Widget>[
+                const Positioned(
+                  right: AccountInformationStyles.decorationRight,
+                  top: AccountInformationStyles.decorationTop,
+                  child: _HeaderBrailleDecoration(),
                 ),
-              ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        IconButton(
+                          tooltip: AccountInformationStyles.backTooltip,
+                          onPressed: () {
+                            Navigator.of(context).maybePop();
+                          },
+                          style: AccountInformationStyles.backButtonStyle,
+                          icon: const Icon(
+                            AccountInformationStyles.backIcon,
+                            size: AccountInformationStyles.backIconSize,
+                          ),
+                        ),
+                        const SizedBox(
+                          width: AccountInformationStyles.headerBackSpacing,
+                        ),
+                        const Expanded(
+                          child: Text(
+                            AccountInformationStyles.screenTitle,
+                            style: AccountInformationStyles.headerTitleStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: AccountInformationStyles.headerTextSpacing,
+                    ),
+                    const Padding(
+                      padding:
+                          AccountInformationStyles.headerDescriptionPadding,
+                      child: Text(
+                        AccountInformationStyles.screenDescription,
+                        style: AccountInformationStyles.headerDescriptionStyle,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const Padding(
-              padding: AccountInformationStyles
-                  .headerTitlePadding,
-              child: Text(
-                AccountInformationStyles.screenTitle,
-                textAlign: TextAlign.center,
-                style: AccountInformationStyles
-                    .screenTitleStyle,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(
-          height: AccountInformationStyles
-              .headerDescriptionSpacing,
-        ),
-        const Text(
-          AccountInformationStyles.screenDescription,
-          textAlign: TextAlign.center,
-          style:
-              AccountInformationStyles.headerDescriptionStyle,
-        ),
-      ],
+          ),
+          Positioned(
+            left: AccountInformationStyles.avatarHorizontalInset,
+            right: AccountInformationStyles.avatarHorizontalInset,
+            bottom: AccountInformationStyles.avatarBottom,
+            child: Center(child: _buildAvatar()),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildProfileSummary() {
+  Widget _buildAvatar() {
     return Container(
-      width: double.infinity,
-      padding:
-          AccountInformationStyles.profileCardPadding,
+      width: AccountInformationStyles.avatarOuterSize,
+      height: AccountInformationStyles.avatarOuterSize,
+      padding: AccountInformationStyles.avatarOuterPadding,
       decoration: const BoxDecoration(
         color: AccountInformationStyles.surfaceColor,
-        borderRadius:
-            AccountInformationStyles.cardRadius,
+        shape: BoxShape.circle,
+        boxShadow: AccountInformationStyles.avatarShadow,
+      ),
+      child: Container(
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          gradient: AccountInformationStyles.avatarGradient,
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          _isLoading ? AccountInformationStyles.defaultInitial : _initials,
+          style: AccountInformationStyles.avatarTextStyle,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIdentityCard() {
+    return Container(
+      width: double.infinity,
+      padding: AccountInformationStyles.identityCardPadding,
+      decoration: const BoxDecoration(
+        color: AccountInformationStyles.surfaceColor,
+        borderRadius: AccountInformationStyles.cardRadius,
         border: AccountInformationStyles.cardBorder,
         boxShadow: AccountInformationStyles.cardShadow,
       ),
-      child: Row(
+      child: Column(
         children: <Widget>[
-          Stack(
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              Container(
-                width: AccountInformationStyles
-                    .profileAvatarSize,
-                height: AccountInformationStyles
-                    .profileAvatarSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AccountInformationStyles
-                      .avatarBackgroundColor,
-                  shape: BoxShape.circle,
-                  border:
-                      AccountInformationStyles.avatarBorder,
-                ),
-                child: Text(
-                  _initial,
-                  style: AccountInformationStyles
-                      .avatarTextStyle,
-                ),
-              ),
-              Positioned(
-                right: AccountInformationStyles
-                    .editAvatarRight,
-                bottom: AccountInformationStyles
-                    .editAvatarBottom,
-                child: Material(
-                  color:
-                      AccountInformationStyles.surfaceColor,
-                  shape: const CircleBorder(
-                    side: BorderSide(
-                      color: AccountInformationStyles
-                          .outlineColor,
-                    ),
-                  ),
-                  elevation: AccountInformationStyles
-                      .editAvatarElevation,
-                  child: InkWell(
-                    onTap: _editPersonalDetails,
-                    customBorder: const CircleBorder(),
-                    child: const SizedBox(
-                      width: AccountInformationStyles
-                          .editAvatarSize,
-                      height: AccountInformationStyles
-                          .editAvatarSize,
-                      child: Icon(
-                        AccountInformationStyles.editIcon,
-                        size: AccountInformationStyles
-                            .editAvatarIconSize,
-                        color: AccountInformationStyles
-                            .primaryBrightColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            _displayName,
+            textAlign: TextAlign.center,
+            style: AccountInformationStyles.profileNameStyle,
           ),
-          const SizedBox(
-            width: AccountInformationStyles
-                .profileContentSpacing,
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+          const SizedBox(height: AccountInformationStyles.profileRoleSpacing),
+          Container(
+            padding: AccountInformationStyles.roleBadgePadding,
+            decoration: const BoxDecoration(
+              color: AccountInformationStyles.roleBadgeBackgroundColor,
+              borderRadius: AccountInformationStyles.roleBadgeRadius,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
+                const Icon(
+                  AccountInformationStyles.roleIcon,
+                  size: AccountInformationStyles.roleIconSize,
+                  color: AccountInformationStyles.primaryColor,
+                ),
+                const SizedBox(width: AccountInformationStyles.roleIconSpacing),
                 Text(
-                  _displayName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AccountInformationStyles
-                      .profileNameStyle,
-                ),
-                const SizedBox(
-                  height: AccountInformationStyles
-                      .profileRoleSpacing,
-                ),
-                Container(
-                  padding: AccountInformationStyles
-                      .roleBadgePadding,
-                  decoration: const BoxDecoration(
-                    color: AccountInformationStyles
-                        .roleBadgeBackgroundColor,
-                    borderRadius:
-                        AccountInformationStyles
-                            .roleBadgeRadius,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      const Icon(
-                        AccountInformationStyles
-                            .roleIcon,
-                        size: AccountInformationStyles
-                            .roleIconSize,
-                        color:
-                            AccountInformationStyles
-                                .primaryBrightColor,
-                      ),
-                      const SizedBox(
-                        width: AccountInformationStyles
-                            .roleIconSpacing,
-                      ),
-                      Flexible(
-                        child: Text(
-                          _displayRole,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              AccountInformationStyles
-                                  .roleBadgeTextStyle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(
-                  height: AccountInformationStyles
-                      .profileEmailSpacing,
-                ),
-                Row(
-                  children: <Widget>[
-                    const Icon(
-                      AccountInformationStyles.emailIcon,
-                      size: AccountInformationStyles
-                          .profileEmailIconSize,
-                      color: AccountInformationStyles
-                          .primaryBrightColor,
-                    ),
-                    const SizedBox(
-                      width: AccountInformationStyles
-                          .profileEmailIconSpacing,
-                    ),
-                    Expanded(
-                      child: Text(
-                        _displayEmail,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AccountInformationStyles
-                            .profileEmailStyle,
-                      ),
-                    ),
-                  ],
+                  _displayRole,
+                  style: AccountInformationStyles.roleBadgeTextStyle,
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: AccountInformationStyles.profileEmailSpacing),
+          Text(
+            _displayEmail,
+            textAlign: TextAlign.center,
+            style: AccountInformationStyles.profileEmailStyle,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPersonalDetails() {
-    return _InformationSection(
-      icon:
-          AccountInformationStyles.personalDetailsIcon,
-      title:
-          AccountInformationStyles.personalDetailsTitle,
-      action: _isGuest
-          ? null
-          : _SectionActionButton(
-              icon: AccountInformationStyles.editIcon,
-              label:
-                  AccountInformationStyles.editButtonTitle,
-              onPressed: _editPersonalDetails,
-            ),
+  Widget _buildGuestInformation() {
+    return const _NoticeCard(
+      icon: AccountInformationStyles.offlineIcon,
+      title: AccountInformationStyles.guestNoticeTitle,
+      description: AccountInformationStyles.guestNoticeDescription,
+    );
+  }
+
+  Widget _buildPersonalInformation() {
+    return _InformationCard(
+      title: AccountInformationStyles.personalDetailsTitle,
+      icon: AccountInformationStyles.personalDetailsIcon,
       children: <Widget>[
-        if (_isGuest)
-          _InformationTile(
-            icon: AccountInformationStyles.nicknameIcon,
-            title: AccountInformationStyles.nicknameTitle,
-            value: _displayName,
-          )
-        else
-          _InformationTile(
-            icon: AccountInformationStyles.fullNameIcon,
-            title: AccountInformationStyles.fullNameTitle,
-            value: _displayName,
-          ),
+        _AccountInformationRow(
+          icon: _isGuest
+              ? AccountInformationStyles.nicknameIcon
+              : AccountInformationStyles.fullNameIcon,
+          label: _isGuest
+              ? AccountInformationStyles.nicknameTitle
+              : AccountInformationStyles.fullNameTitle,
+          value: _displayName,
+        ),
         const _InformationDivider(),
-        _InformationTile(
+        _AccountInformationRow(
           icon: AccountInformationStyles.emailIcon,
-          title: AccountInformationStyles.emailTitle,
+          label: AccountInformationStyles.emailTitle,
           value: _displayEmail,
         ),
-        if (!_isGuest) ...<Widget>[
-          const _InformationDivider(),
-          _InformationTile(
-            icon: AccountInformationStyles.passwordIcon,
-            title:
-                AccountInformationStyles.passwordTitle,
-            value:
-                AccountInformationStyles.maskedPassword,
-            action: _InformationActionButton(
-              label:
-                  AccountInformationStyles.changeLabel,
-              onPressed: _changePassword,
-            ),
-          ),
-        ],
         const _InformationDivider(),
-        _InformationTile(
+        _AccountInformationRow(
           icon: AccountInformationStyles.roleValueIcon,
-          title: AccountInformationStyles.roleTitle,
+          label: AccountInformationStyles.roleTitle,
           value: _displayRole,
-          action: _InformationActionButton(
-            label: AccountInformationStyles.changeLabel,
-            onPressed: _changeRole,
-          ),
         ),
       ],
     );
   }
 
-  Widget _buildAdditionalInformation() {
-    return _InformationSection(
-      icon:
-          AccountInformationStyles.additionalInformationIcon,
-      title: AccountInformationStyles
-          .additionalInformationTitle,
+  Widget _buildAccountInformation() {
+    return _InformationCard(
+      title: AccountInformationStyles.accountDetailsTitle,
+      icon: AccountInformationStyles.accountTypeIcon,
       children: <Widget>[
-        _InformationTile(
+        _AccountInformationRow(
           icon: AccountInformationStyles.accountTypeIcon,
-          title:
-              AccountInformationStyles.accountTypeTitle,
+          label: AccountInformationStyles.accountTypeTitle,
           value: _accountType,
         ),
         const _InformationDivider(),
-        _InformationTile(
+        _AccountInformationRow(
           icon: AccountInformationStyles.storageIcon,
-          title: AccountInformationStyles.storageTitle,
+          label: AccountInformationStyles.storageTitle,
           value: _storageMode,
         ),
         const _InformationDivider(),
-        _InformationTile(
+        const _AccountInformationRow(
           icon: AccountInformationStyles.languageIcon,
-          title: AccountInformationStyles.languageTitle,
-          value:
-              AccountInformationStyles.defaultLanguage,
-          action: _InformationActionButton(
-            label: AccountInformationStyles.changeLabel,
-            onPressed: _changeLanguage,
-          ),
+          label: AccountInformationStyles.languageTitle,
+          value: AccountInformationStyles.defaultLanguage,
         ),
       ],
     );
   }
 
-  Widget _buildSecurityBanner() {
+  Widget _buildPrivacyCard() {
     return Material(
-      color: AccountInformationStyles
-          .securityBackgroundColor,
-      borderRadius:
-          AccountInformationStyles.cardRadius,
+      color: AccountInformationStyles.securityBackgroundColor,
+      borderRadius: AccountInformationStyles.cardRadius,
       child: InkWell(
         onTap: _openPrivacySecurity,
-        borderRadius:
-            AccountInformationStyles.cardRadius,
+        borderRadius: AccountInformationStyles.cardRadius,
         child: Container(
-          padding:
-              AccountInformationStyles.securityPadding,
+          padding: AccountInformationStyles.securityPadding,
           decoration: const BoxDecoration(
-            borderRadius:
-                AccountInformationStyles.cardRadius,
-            border:
-                AccountInformationStyles.securityBorder,
-            boxShadow:
-                AccountInformationStyles.securityShadow,
+            borderRadius: AccountInformationStyles.cardRadius,
+            border: AccountInformationStyles.securityBorder,
           ),
           child: const Row(
             children: <Widget>[
-              Icon(
-                AccountInformationStyles.securityIcon,
-                size: AccountInformationStyles
-                    .securityIconSize,
-                color:
-                    AccountInformationStyles.primaryColor,
-              ),
-              SizedBox(
-                width: AccountInformationStyles
-                    .securityContentSpacing,
-              ),
+              _InformationIcon(icon: AccountInformationStyles.securityIcon),
+              SizedBox(width: AccountInformationStyles.rowContentSpacing),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      AccountInformationStyles
-                          .securityTitle,
-                      style: AccountInformationStyles
-                          .securityTitleStyle,
+                      AccountInformationStyles.securityTitle,
+                      style: AccountInformationStyles.securityTitleStyle,
                     ),
                     SizedBox(
-                      height: AccountInformationStyles
-                          .securityDescriptionSpacing,
+                      height:
+                          AccountInformationStyles.securityDescriptionSpacing,
                     ),
                     Text(
-                      AccountInformationStyles
-                          .securityDescription,
-                      style: AccountInformationStyles
-                          .securityDescriptionStyle,
+                      AccountInformationStyles.securityDescription,
+                      style: AccountInformationStyles.securityDescriptionStyle,
                     ),
                   ],
                 ),
               ),
-              SizedBox(
-                width: AccountInformationStyles
-                    .securityContentSpacing,
-              ),
+              SizedBox(width: AccountInformationStyles.rowActionSpacing),
               Icon(
                 AccountInformationStyles.forwardIcon,
-                size: AccountInformationStyles
-                    .forwardIconSize,
-                color: AccountInformationStyles
-                    .primaryBrightColor,
+                color: AccountInformationStyles.primaryColor,
+                size: AccountInformationStyles.forwardIconSize,
               ),
             ],
           ),
@@ -639,18 +529,16 @@ class _AccountInformationScreenState
   }
 }
 
-class _InformationSection extends StatelessWidget {
-  const _InformationSection({
-    required this.icon,
+class _InformationCard extends StatelessWidget {
+  const _InformationCard({
     required this.title,
+    required this.icon,
     required this.children,
-    this.action,
   });
 
-  final IconData icon;
   final String title;
+  final IconData icon;
   final List<Widget> children;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -658,37 +546,30 @@ class _InformationSection extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
         color: AccountInformationStyles.surfaceColor,
-        borderRadius:
-            AccountInformationStyles.cardRadius,
+        borderRadius: AccountInformationStyles.cardRadius,
         border: AccountInformationStyles.cardBorder,
         boxShadow: AccountInformationStyles.cardShadow,
       ),
       child: Column(
         children: <Widget>[
           Padding(
-            padding: AccountInformationStyles
-                .sectionHeaderPadding,
+            padding: AccountInformationStyles.sectionHeaderPadding,
             child: Row(
               children: <Widget>[
                 Icon(
                   icon,
-                  size: AccountInformationStyles
-                      .sectionHeaderIconSize,
-                  color: AccountInformationStyles
-                      .primaryBrightColor,
+                  size: AccountInformationStyles.sectionHeaderIconSize,
+                  color: AccountInformationStyles.primaryColor,
                 ),
                 const SizedBox(
-                  width: AccountInformationStyles
-                      .sectionHeaderIconSpacing,
+                  width: AccountInformationStyles.sectionHeaderIconSpacing,
                 ),
                 Expanded(
                   child: Text(
                     title,
-                    style: AccountInformationStyles
-                        .sectionTitleStyle,
+                    style: AccountInformationStyles.sectionTitleStyle,
                   ),
                 ),
-                ?action,
               ],
             ),
           ),
@@ -699,81 +580,68 @@ class _InformationSection extends StatelessWidget {
   }
 }
 
-class _InformationTile extends StatelessWidget {
-  const _InformationTile({
+class _AccountInformationRow extends StatelessWidget {
+  const _AccountInformationRow({
     required this.icon,
-    required this.title,
+    required this.label,
     required this.value,
-    this.action,
   });
 
   final IconData icon;
-  final String title;
+  final String label;
   final String value;
-  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          AccountInformationStyles.informationTilePadding,
+      padding: AccountInformationStyles.informationRowPadding,
       child: Row(
         children: <Widget>[
-          Container(
-            width: AccountInformationStyles
-                .informationIconContainerSize,
-            height: AccountInformationStyles
-                .informationIconContainerSize,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AccountInformationStyles
-                  .informationIconBackgroundColor,
-              borderRadius:
-                  AccountInformationStyles
-                      .informationIconRadius,
-            ),
-            child: Icon(
-              icon,
-              size: AccountInformationStyles
-                  .informationIconSize,
-              color: AccountInformationStyles
-                  .primaryBrightColor,
-            ),
-          ),
-          const SizedBox(
-            width: AccountInformationStyles
-                .informationContentSpacing,
-          ),
+          _InformationIcon(icon: icon),
+          const SizedBox(width: AccountInformationStyles.rowContentSpacing),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  title,
-                  style: AccountInformationStyles
-                      .informationTitleStyle,
+                  label,
+                  style: AccountInformationStyles.informationLabelStyle,
                 ),
                 const SizedBox(
-                  height: AccountInformationStyles
-                      .informationValueSpacing,
+                  height: AccountInformationStyles.informationValueSpacing,
                 ),
                 Text(
                   value,
-                  style: AccountInformationStyles
-                      .informationValueStyle,
+                  style: AccountInformationStyles.informationValueStyle,
                 ),
               ],
             ),
           ),
-          if (action != null) ...<Widget>[
-            const SizedBox(
-              width: AccountInformationStyles
-                  .informationActionSpacing,
-            ),
-            action!,
-          ],
         ],
+      ),
+    );
+  }
+}
+
+class _InformationIcon extends StatelessWidget {
+  const _InformationIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: AccountInformationStyles.informationIconContainerSize,
+      height: AccountInformationStyles.informationIconContainerSize,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AccountInformationStyles.informationIconBackgroundColor,
+        borderRadius: AccountInformationStyles.informationIconRadius,
+      ),
+      child: Icon(
+        icon,
+        size: AccountInformationStyles.informationIconSize,
+        color: AccountInformationStyles.primaryColor,
       ),
     );
   }
@@ -785,58 +653,89 @@ class _InformationDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Divider(
-      height: AccountInformationStyles.dividerHeight,
+      height: 1,
       indent: AccountInformationStyles.dividerIndent,
-      endIndent:
-          AccountInformationStyles.dividerEndIndent,
+      endIndent: AccountInformationStyles.dividerEndIndent,
       color: AccountInformationStyles.dividerColor,
     );
   }
 }
 
-class _SectionActionButton extends StatelessWidget {
-  const _SectionActionButton({
+class _NoticeCard extends StatelessWidget {
+  const _NoticeCard({
     required this.icon,
-    required this.label,
-    required this.onPressed,
+    required this.title,
+    required this.description,
   });
 
   final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
+  final String title;
+  final String description;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: onPressed,
-      style:
-          AccountInformationStyles.sectionActionButtonStyle,
-      icon: Icon(
-        icon,
-        size:
-            AccountInformationStyles.actionButtonIconSize,
+    return Container(
+      padding: AccountInformationStyles.noticePadding,
+      decoration: const BoxDecoration(
+        color: AccountInformationStyles.noticeBackgroundColor,
+        borderRadius: AccountInformationStyles.cardRadius,
+        border: AccountInformationStyles.noticeBorder,
       ),
-      label: Text(label),
+      child: Row(
+        children: <Widget>[
+          _InformationIcon(icon: icon),
+          const SizedBox(width: AccountInformationStyles.rowContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(title, style: AccountInformationStyles.noticeTitleStyle),
+                const SizedBox(
+                  height: AccountInformationStyles.noticeDescriptionSpacing,
+                ),
+                Text(
+                  description,
+                  style: AccountInformationStyles.noticeDescriptionStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _InformationActionButton extends StatelessWidget {
-  const _InformationActionButton({
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
+class _HeaderBrailleDecoration extends StatelessWidget {
+  const _HeaderBrailleDecoration();
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      style:
-          AccountInformationStyles.informationActionButtonStyle,
-      child: Text(label),
+    return Opacity(
+      opacity: AccountInformationStyles.decorationOpacity,
+      child: SizedBox(
+        width: AccountInformationStyles.decorationWidth,
+        child: Wrap(
+          spacing: AccountInformationStyles.decorationDotSpacing,
+          runSpacing: AccountInformationStyles.decorationDotSpacing,
+          children: List<Widget>.generate(
+            AccountInformationStyles.decorationDotCount,
+            (int index) {
+              return const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: SizedBox(
+                  width: AccountInformationStyles.decorationDotSize,
+                  height: AccountInformationStyles.decorationDotSize,
+                ),
+              );
+            },
+            growable: false,
+          ),
+        ),
+      ),
     );
   }
 }

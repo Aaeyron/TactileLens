@@ -1,79 +1,69 @@
 import 'package:flutter/material.dart';
 
 abstract final class HomeStyles {
-  // Colors
-  static const Color backgroundColor = Color(0xFFF3F4F6);
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
 
-  static const Color primaryColor = Color(0xFF164EAD);
-  static const Color secondaryActionColor = Color(0xFF164EAD);
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0B4FCC);
+  static const Color primaryLightColor = Color(0xFF4894FF);
 
-  static const Color titleColor = Color(0xFF151B2A);
-  static const Color bodyColor = Color(0xFF344054);
-  static const Color mutedColor = Color(0xFF667085);
+  static const Color titleColor = Color(0xFF10213D);
+  static const Color bodyColor = Color(0xFF42526B);
+  static const Color mutedColor = Color(0xFF728096);
 
-  static const Color outlineColor = Color(0xFFD0D5DD);
-  static const Color thumbnailBackgroundColor = Color(0xFFF8FAFC);
+  static const Color outlineColor = Color(0xFFDDE5F0);
+  static const Color dividerColor = Color(0xFFE8EDF4);
 
-  static const Color primaryActionIconBackground = Color(0xFF0878E8);
+  static const Color thumbnailBackgroundColor = Color(0xFFF2F6FC);
+  static const Color recentArrowColor = Color(0xFF8B98AA);
 
-  static const Color secondaryActionIconBackground = Color(0x26FFFFFF);
+  static const Color quickScanIconBackgroundColor = Color(0xFFEAF3FF);
+  static const Color secondaryActionIconBackgroundColor = Color(0xFFEDF4FF);
 
-  static const Color actionIconColor = Colors.white;
+  // ============================================================
+  // ICONS
+  // ============================================================
 
-  // Icons
-  static const IconData scanIcon = Icons.document_scanner_outlined;
+  static const IconData scanIcon = Icons.document_scanner_rounded;
+  static const IconData cameraIcon = Icons.photo_camera_rounded;
 
-  static const IconData materialsIcon = Icons.folder_outlined;
+  static const IconData notificationIcon = Icons.notifications_none_rounded;
+
+  static const IconData materialsIcon = Icons.folder_copy_outlined;
   static const IconData historyIcon = Icons.history_rounded;
   static const IconData forwardIcon = Icons.chevron_right_rounded;
 
   static const IconData errorIcon = Icons.cloud_off_outlined;
-
   static const IconData emptyIcon = Icons.history_toggle_off_rounded;
 
   static const IconData pdfIcon = Icons.picture_as_pdf_outlined;
-
   static const IconData imageIcon = Icons.image_outlined;
-
   static const IconData documentIcon = Icons.description_outlined;
 
-  // General
+  // ============================================================
+  // GENERAL
+  // ============================================================
+
   static const int maximumRecentMaterials = 3;
 
-  // Screen
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(24, 28, 24, 30);
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(18, 12, 18, 28);
 
-  static const double greetingBottomSpacing = 42;
-  static const double greetingSubtitleSpacing = 7;
-  static const double sectionSpacing = 42;
-  static const double recentHeaderSpacing = 13;
+  static const double sectionSpacing = 22;
+  static const double recentHeaderSpacing = 6;
   static const double bottomSpacing = 28;
 
-  // Greeting card
-  static const EdgeInsets greetingCardPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 20,
-  );
+  // ============================================================
+  // ENTRANCE ANIMATION
+  // ============================================================
 
-  static const BorderRadius greetingCardRadius = BorderRadius.all(
-    Radius.circular(14),
-  );
+  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
 
-  static const List<BoxShadow> greetingCardShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x33164EAD), blurRadius: 16, offset: Offset(0, 6)),
-  ];
-
-  static const Color greetingCardBackgroundColor = primaryColor;
-
-  static const Border greetingCardBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFF2D67BF), width: 1),
-  );
-
-  // Animation
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 520);
-
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 180);
+  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
 
   static const Curve entranceAnimationCurve = Curves.easeOutCubic;
 
@@ -82,158 +72,275 @@ abstract final class HomeStyles {
 
   static const Offset entranceSlideBegin = Offset(0, 0.025);
 
-  // Quick actions
-  static const double quickActionsTitleSpacing = 12;
+  // ============================================================
+  // FULL-WIDTH HOME HEADER
+  // ============================================================
 
-  static const BorderRadius quickActionsRadius = BorderRadius.all(
-    Radius.circular(14),
+  static const LinearGradient greetingGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
   );
 
-  static const Border quickActionsBorder = Border.fromBorderSide(
-    BorderSide(color: outlineColor, width: 1),
+  static const double headerSectionHeight = 400;
+  static const double blueHeaderHeight = 218;
+
+  static const double headerHorizontalPadding = 20;
+  static const double headerTopPadding = 14;
+  static const double headerBottomPadding = 60;
+
+  static const BorderRadius blueHeaderRadius = BorderRadius.only(
+    bottomLeft: Radius.circular(30),
+    bottomRight: Radius.circular(30),
   );
 
-  // Quick-action rows
-  static const EdgeInsets quickActionRowPadding = EdgeInsets.symmetric(
-    horizontal: 16,
-    vertical: 16,
-  );
+  static const double quickScanCardTop = 200;
 
-  static const double quickActionContentSpacing = 14;
+  static const double greetingSubtitleSpacing = 6;
 
-  static const double quickActionDescriptionSpacing = 4;
+  static const double headerBrailleRight = 3;
+  static const double headerBrailleBottom = 25;
 
-  // Quick-action icon
-  static const double quickActionIconContainerSize = 52;
-  static const double quickActionIconSize = 26;
+  static const double heroDecorationOpacity = 0.18;
+  static const double heroDecorationWidth = 45;
+  static const double heroDotSize = 4;
+  static const double heroDotSpacing = 7;
+  static const int heroDotCount = 12;
 
-  static const Color quickActionIconBackgroundColor = Color(0xFFEAF2FF);
+  static const double notificationButtonSize = 42;
+  static const double notificationIconSize = 25;
+  static const double notificationTapRadius = 25;
 
-  static const BorderRadius quickActionIconRadius = BorderRadius.all(
-    Radius.circular(12),
-  );
-
-  static const Border quickActionIconBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFFC7DAF8), width: 1),
-  );
-
-  // Quick-action arrow
-  static const double quickActionArrowSpacing = 10;
-
-  static const double quickActionArrowContainerSize = 32;
-
-  static const double quickActionArrowIconSize = 21;
-
-  static const Color quickActionArrowBackgroundColor = Color(0xFFF2F4F7);
-
-  // Quick-action dividers
-  static const double quickActionDividerHeight = 1;
-
-  static const double quickActionDividerThickness = 1;
-
-  static const double quickActionDividerIndent = 82;
-
-  static const double quickActionDividerEndIndent = 16;
-
-  static const Color quickActionDividerColor = Color(0xFFE4E7EC);
-
-  // Recent cards
-  static const double recentItemSpacing = 10;
-
-  static const BorderRadius recentCardRadius = BorderRadius.all(
-    Radius.circular(10),
-  );
-
-  static const EdgeInsets recentCardPadding = EdgeInsets.symmetric(
-    horizontal: 10,
-    vertical: 10,
-  );
+  // ============================================================
+  // SHARED CARDS
+  // ============================================================
 
   static const Border cardBorder = Border.fromBorderSide(
     BorderSide(color: outlineColor, width: 1),
   );
 
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x120F2748), blurRadius: 18, offset: Offset(0, 7)),
+  ];
+
+  static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x0D102A43), blurRadius: 12, offset: Offset(0, 4)),
+  ];
+
+  // ============================================================
+  // QUICK SCAN
+  // ============================================================
+
+  static const EdgeInsets quickScanCardPadding = EdgeInsets.all(17);
+
+  static const BorderRadius quickScanCardRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
+
+  static const double quickScanDescriptionSpacing = 6;
+  static const double quickScanIconSpacing = 14;
+  static const double quickScanButtonSpacing = 16;
+
+  static const double quickScanIconContainerSize = 64;
+  static const double quickScanIconSize = 34;
+
+  static const BorderRadius quickScanIconRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
+
+  static const double quickScanButtonHeight = 46;
+  static const double quickScanButtonIconSize = 19;
+
+  static final ButtonStyle quickScanButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+    ),
+    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+  );
+
+  // ============================================================
+  // SECONDARY QUICK ACTIONS
+  // ============================================================
+
+  static const double secondaryActionSpacing = 12;
+
+  static const EdgeInsets secondaryActionPadding = EdgeInsets.all(14);
+
+  static const BorderRadius secondaryActionRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
+
+  static const double secondaryActionIconContainerSize = 38;
+  static const double secondaryActionIconSize = 20;
+
+  static const BorderRadius secondaryActionIconRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const double secondaryActionArrowSize = 20;
+  static const double secondaryActionTitleSpacing = 12;
+  static const double secondaryActionDescriptionSpacing = 5;
+
+  // ============================================================
+  // RECENT ACTIVITY
+  // ============================================================
+
+  static const BorderRadius recentListRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
+
+  static const EdgeInsets recentCardPadding = EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 11,
+  );
+
+  static const double recentDividerHeight = 1;
+  static const double recentDividerThickness = 1;
+  static const double recentDividerIndent = 78;
+
+  static const double thumbnailWidth = 54;
+  static const double thumbnailHeight = 62;
+  static const double thumbnailIconSize = 25;
+
   static const Border thumbnailBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFFE1E5EA), width: 1),
+    BorderSide(color: Color(0xFFDDE4EE), width: 1),
   );
 
   static const BorderRadius thumbnailRadius = BorderRadius.all(
-    Radius.circular(5),
+    Radius.circular(8),
   );
 
-  static const double thumbnailSize = 48;
-  static const double thumbnailIconSize = 25;
-
   static const double recentContentSpacing = 12;
-  static const double recentMetadataSpacing = 3;
+  static const double recentMetadataSpacing = 4;
+  static const double recentDateSpacing = 4;
+  static const double recentTrailingSpacing = 8;
+  static const double recentArrowSize = 21;
 
-  // State cards
+  // ============================================================
+  // STATE CARDS
+  // ============================================================
+
   static const EdgeInsets stateCardPadding = EdgeInsets.symmetric(
     horizontal: 24,
     vertical: 28,
   );
 
-  static const double stateIconSize = 40;
-  static const double stateContentSpacing = 12;
+  static const double stateIconContainerSize = 52;
+  static const double stateIconSize = 27;
+
+  static const double stateProgressSize = 32;
+  static const double stateProgressStrokeWidth = 3;
+
+  static const double stateContentSpacing = 13;
   static const double stateDescriptionSpacing = 6;
   static const double stateActionSpacing = 16;
 
-  // Buttons
-  static final ButtonStyle viewAllButtonStyle = TextButton.styleFrom(
-    foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(horizontal: 4),
-    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+  static final ButtonStyle stateActionButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(11)),
+    ),
   );
 
-  // Typography
+  // ============================================================
+  // BUTTONS
+  // ============================================================
+
+  static final ButtonStyle viewAllButtonStyle = TextButton.styleFrom(
+    foregroundColor: primaryColor,
+    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+    minimumSize: const Size(48, 34),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+  );
+
+  // ============================================================
+  // TYPOGRAPHY
+  // ============================================================
+
+  static const TextStyle appNameStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 18,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.2,
+  );
+
   static const TextStyle greetingStyle = TextStyle(
-    color: Colors.white,
-    fontSize: 24,
-    height: 1.15,
+    color: surfaceColor,
+    fontSize: 25,
+    height: 1.12,
     fontWeight: FontWeight.w800,
+    letterSpacing: -0.45,
   );
 
   static const TextStyle greetingDescriptionStyle = TextStyle(
-    color: Color(0xFFE4EEFF),
-    fontSize: 14,
-    height: 1.4,
+    color: Color(0xFFE9F2FF),
+    fontSize: 13.5,
+    height: 1.35,
     fontWeight: FontWeight.w500,
   );
 
-  static const TextStyle quickActionTitleStyle = TextStyle(
+  static const TextStyle quickScanTitleStyle = TextStyle(
     color: titleColor,
-    fontSize: 15,
+    fontSize: 18,
+    height: 1.2,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+  );
+
+  static const TextStyle quickScanDescriptionStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 12.5,
+    height: 1.42,
+    fontWeight: FontWeight.w400,
+  );
+
+  static const TextStyle secondaryActionTitleStyle = TextStyle(
+    color: titleColor,
+    fontSize: 14,
+    height: 1.2,
     fontWeight: FontWeight.w700,
   );
 
-  static const TextStyle quickActionDescriptionStyle = TextStyle(
+  static const TextStyle secondaryActionDescriptionStyle = TextStyle(
     color: bodyColor,
-    fontSize: 12,
-    height: 1.4,
+    fontSize: 11,
+    height: 1.35,
     fontWeight: FontWeight.w400,
   );
 
   static const TextStyle sectionTitleStyle = TextStyle(
     color: titleColor,
     fontSize: 16,
-    fontWeight: FontWeight.w700,
+    height: 1.2,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.15,
   );
 
   static const TextStyle recentTitleStyle = TextStyle(
     color: titleColor,
-    fontSize: 14,
+    fontSize: 13.5,
+    height: 1.2,
     fontWeight: FontWeight.w700,
   );
 
   static const TextStyle recentMetadataStyle = TextStyle(
-    color: mutedColor,
+    color: bodyColor,
     fontSize: 11,
-    fontWeight: FontWeight.w400,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
   );
 
   static const TextStyle relativeTimeStyle = TextStyle(
     color: mutedColor,
-    fontSize: 10,
+    fontSize: 10.5,
+    height: 1.2,
     fontWeight: FontWeight.w500,
   );
 

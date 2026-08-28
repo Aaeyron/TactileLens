@@ -1,9 +1,10 @@
-import '../auth/auth_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/profile/logout_dialog.dart';
+import '../auth/auth_screen.dart';
 import 'about_tactilelens_screen.dart';
 import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
@@ -11,22 +12,38 @@ import 'terms_policy_screen.dart';
 
 abstract final class _ProfileText {
   static const String exitGuestModeTitle = 'Exit Guest Mode';
+  static const String exitGuestModeDescription = 'Return to the sign-in screen';
+
+  static const String logoutDescription = 'Sign out of your account';
+
   static const String exitGuestDialogTitle = 'Exit Guest Mode?';
+
   static const String exitGuestDialogDescription =
       'You will return to the sign-in screen. Your locally saved scans, '
       'history, materials, and folders will remain on this device.';
 
   static const String cancelLabel = 'Cancel';
   static const String exitLabel = 'Exit';
+
+  static const String accountInformationDescription =
+      'Manage your personal details';
+
+  static const String aboutDescription =
+      'App information and accessibility mission';
+
+  static const String termsDescription = 'Review the app terms and policies';
+
+  static const String settingsDescription = 'Customize your app experience';
+
+  static const String privacyDescription =
+      'Manage privacy and security preferences';
 }
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() {
-    return _ProfileScreenState();
-  }
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -43,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-
     _loadUser();
   }
 
@@ -256,11 +272,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return AlertDialog(
           backgroundColor: ProfileStyles.surfaceColor,
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(18)),
+            borderRadius: ProfileStyles.dialogRadius,
             side: BorderSide(color: ProfileStyles.outlineColor),
           ),
-          title: const Text(_ProfileText.exitGuestDialogTitle),
-          content: const Text(_ProfileText.exitGuestDialogDescription),
+          title: const Text(
+            _ProfileText.exitGuestDialogTitle,
+            style: ProfileStyles.dialogTitleStyle,
+          ),
+          content: const Text(
+            _ProfileText.exitGuestDialogDescription,
+            style: ProfileStyles.dialogDescriptionStyle,
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -288,76 +310,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ProfileStyles.backgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: ProfileStyles.backgroundColor,
+        body: RefreshIndicator(
           color: ProfileStyles.primaryColor,
+          backgroundColor: ProfileStyles.surfaceColor,
           onRefresh: _loadUser,
-          child: ListView(
+          child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: ProfileStyles.screenPadding,
-            children: <Widget>[
-              _buildProfileIdentity(),
-              const SizedBox(height: ProfileStyles.menuTopSpacing),
-              _ProfileMenuGroup(
-                children: <Widget>[
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.accountInformationIcon,
-                    title: ProfileStyles.accountInformationTitle,
-                    onPressed: _openAccountInformation,
-                  ),
-                  const _ProfileMenuDivider(),
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.aboutTactileLensIcon,
-                    title: ProfileStyles.aboutTactileLensTitle,
-                    onPressed: _openAboutTactileLens,
-                  ),
-                  const _ProfileMenuDivider(),
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.termsIcon,
-                    title: ProfileStyles.termsTitle,
-                    onPressed: _openTermsPolicy,
-                  ),
-                ],
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildProfileHeader(context)),
+              SliverPadding(
+                padding: ProfileStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.accountInformationIcon,
+                      title: ProfileStyles.accountInformationTitle,
+                      description: _ProfileText.accountInformationDescription,
+                      onPressed: _openAccountInformation,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.aboutTactileLensIcon,
+                      title: ProfileStyles.aboutTactileLensTitle,
+                      description: _ProfileText.aboutDescription,
+                      onPressed: _openAboutTactileLens,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.termsIcon,
+                      title: ProfileStyles.termsTitle,
+                      description: _ProfileText.termsDescription,
+                      onPressed: _openTermsPolicy,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuSectionSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.settingsIcon,
+                      title: ProfileStyles.settingsTitle,
+                      description: _ProfileText.settingsDescription,
+                      onPressed: _openSettings,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.privacyIcon,
+                      title: ProfileStyles.privacyTitle,
+                      description: _ProfileText.privacyDescription,
+                      onPressed: _openPrivacySecurity,
+                    ),
+                    const SizedBox(height: ProfileStyles.logoutTopSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.logoutIcon,
+                      title: _isGuest
+                          ? _ProfileText.exitGuestModeTitle
+                          : ProfileStyles.logoutTitle,
+                      description: _isGuest
+                          ? _ProfileText.exitGuestModeDescription
+                          : _ProfileText.logoutDescription,
+                      iconColor: ProfileStyles.logoutColor,
+                      titleStyle: ProfileStyles.logoutTitleStyle,
+                      descriptionStyle: ProfileStyles.logoutDescriptionStyle,
+                      arrowColor: ProfileStyles.logoutColor,
+                      iconBackgroundColor:
+                          ProfileStyles.logoutIconBackgroundColor,
+                      onPressed: _requestSessionExit,
+                    ),
+                    const SizedBox(height: ProfileStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-              const SizedBox(height: ProfileStyles.menuGroupSpacing),
-              _ProfileMenuGroup(
-                children: <Widget>[
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.settingsIcon,
-                    title: ProfileStyles.settingsTitle,
-                    onPressed: _openSettings,
-                  ),
-                  const _ProfileMenuDivider(),
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.privacyIcon,
-                    title: ProfileStyles.privacyTitle,
-                    onPressed: _openPrivacySecurity,
-                  ),
-                ],
-              ),
-              const SizedBox(height: ProfileStyles.menuGroupSpacing),
-              _ProfileMenuGroup(
-                children: <Widget>[
-                  _ProfileMenuItem(
-                    icon: ProfileStyles.logoutIcon,
-                    title: _isGuest
-                        ? _ProfileText.exitGuestModeTitle
-                        : ProfileStyles.logoutTitle,
-                    iconColor: ProfileStyles.logoutColor,
-                    titleStyle: ProfileStyles.logoutTitleStyle,
-                    arrowColor: ProfileStyles.logoutColor,
-                    iconBackgroundColor:
-                        ProfileStyles.logoutIconBackgroundColor,
-                    onPressed: () {
-                      _requestSessionExit();
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: ProfileStyles.bottomSpacing),
             ],
           ),
         ),
@@ -365,139 +388,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileIdentity() {
-    if (_isLoadingProfile) {
-      return Container(
-        width: double.infinity,
-        height: ProfileStyles.profileLoadingHeight,
-        decoration: const BoxDecoration(
-          color: ProfileStyles.surfaceColor,
-          borderRadius: ProfileStyles.profileContainerRadius,
-          border: ProfileStyles.cardBorder,
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(color: ProfileStyles.primaryColor),
-        ),
-      );
-    }
+  Widget _buildProfileHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
 
     return Container(
       width: double.infinity,
-      padding: ProfileStyles.profileContainerPadding,
-      decoration: const BoxDecoration(
-        color: ProfileStyles.surfaceColor,
-        borderRadius: ProfileStyles.profileContainerRadius,
-        border: ProfileStyles.cardBorder,
+      padding: EdgeInsets.fromLTRB(
+        ProfileStyles.headerHorizontalPadding,
+        statusBarHeight + ProfileStyles.headerTopPadding,
+        ProfileStyles.headerHorizontalPadding,
+        ProfileStyles.headerBottomPadding,
       ),
-      child: Column(
-        children: <Widget>[
-          Stack(
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              Container(
-                width: ProfileStyles.profileAvatarSize,
-                height: ProfileStyles.profileAvatarSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: ProfileStyles.profileAvatarBackgroundColor,
-                  shape: BoxShape.circle,
-                  border: ProfileStyles.avatarBorder,
-                ),
-                child: const Icon(
-                  ProfileStyles.profileAvatarIcon,
-                  size: ProfileStyles.profileAvatarIconSize,
-                  color: ProfileStyles.profileAvatarIconColor,
+      decoration: const BoxDecoration(
+        gradient: ProfileStyles.headerGradient,
+        borderRadius: ProfileStyles.headerRadius,
+      ),
+      child: _isLoadingProfile
+          ? const SizedBox(
+              height: ProfileStyles.headerContentHeight,
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: ProfileStyles.surfaceColor,
                 ),
               ),
-              Positioned(
-                right: ProfileStyles.editButtonRight,
-                bottom: ProfileStyles.editButtonBottom,
-                child: Material(
-                  color: ProfileStyles.surfaceColor,
-                  shape: const CircleBorder(
-                    side: BorderSide(color: ProfileStyles.outlineColor),
+            )
+          : SizedBox(
+              height: ProfileStyles.headerContentHeight,
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    child: Text(
+                      ProfileStyles.appName,
+                      style: ProfileStyles.appNameStyle,
+                    ),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: _openAccountInformation,
-                    customBorder: const CircleBorder(),
-                    child: const SizedBox(
-                      width: ProfileStyles.editButtonSize,
-                      height: ProfileStyles.editButtonSize,
-                      child: Icon(
-                        ProfileStyles.editIcon,
-                        size: ProfileStyles.editIconSize,
-                        color: ProfileStyles.primaryBrightColor,
+                  Positioned(
+                    left: 0,
+                    right:
+                        ProfileStyles.headerAvatarSize +
+                        ProfileStyles.headerAvatarSpacing,
+                    bottom: ProfileStyles.headerIdentityBottom,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          _displayName,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: ProfileStyles.profileNameStyle,
+                        ),
+                        const SizedBox(
+                          height: ProfileStyles.profileRoleSpacing,
+                        ),
+                        Text(
+                          _displayRole,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: ProfileStyles.profileRoleStyle,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    bottom: ProfileStyles.headerAvatarBottom,
+                    child: Semantics(
+                      button: true,
+                      label: ProfileStyles.editProfileSemanticLabel,
+                      child: Material(
+                        color: Colors.transparent,
+                        shape: const CircleBorder(),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: _openAccountInformation,
+                          customBorder: const CircleBorder(),
+                          child: Container(
+                            width: ProfileStyles.headerAvatarSize,
+                            height: ProfileStyles.headerAvatarSize,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              color: ProfileStyles.profileAvatarBackgroundColor,
+                              shape: BoxShape.circle,
+                              border: ProfileStyles.avatarBorder,
+                              boxShadow: ProfileStyles.avatarShadow,
+                            ),
+                            child: const Icon(
+                              ProfileStyles.profileAvatarIcon,
+                              size: ProfileStyles.headerAvatarIconSize,
+                              color: ProfileStyles.profileAvatarIconColor,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: ProfileStyles.profileNameSpacing),
-          Text(
-            _displayName,
-            textAlign: TextAlign.center,
-            style: ProfileStyles.profileNameStyle,
-          ),
-          if (!_isGuest && _email.isNotEmpty) ...<Widget>[
-            const SizedBox(height: ProfileStyles.profileEmailSpacing),
-            Text(
-              _email,
-              textAlign: TextAlign.center,
-              style: ProfileStyles.profileEmailStyle,
             ),
-          ],
-          const SizedBox(height: ProfileStyles.profileRoleSpacing),
-          Container(
-            padding: ProfileStyles.roleBadgePadding,
-            decoration: const BoxDecoration(
-              color: ProfileStyles.roleBadgeBackgroundColor,
-              borderRadius: ProfileStyles.roleBadgeRadius,
-              border: ProfileStyles.roleBadgeBorder,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Icon(
-                  ProfileStyles.roleIcon,
-                  size: ProfileStyles.roleIconSize,
-                  color: ProfileStyles.primaryBrightColor,
-                ),
-                const SizedBox(width: ProfileStyles.roleIconSpacing),
-                Flexible(
-                  child: Text(
-                    _displayRole,
-                    textAlign: TextAlign.center,
-                    style: ProfileStyles.roleBadgeTextStyle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileMenuGroup extends StatelessWidget {
-  const _ProfileMenuGroup({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: const BoxDecoration(
-        color: ProfileStyles.surfaceColor,
-        borderRadius: ProfileStyles.menuRadius,
-        border: ProfileStyles.cardBorder,
-        boxShadow: ProfileStyles.cardShadow,
-      ),
-      child: Column(children: children),
     );
   }
 }
@@ -506,71 +496,88 @@ class _ProfileMenuItem extends StatelessWidget {
   const _ProfileMenuItem({
     required this.icon,
     required this.title,
+    required this.description,
     required this.onPressed,
-    this.iconColor = ProfileStyles.primaryBrightColor,
-    this.arrowColor = ProfileStyles.primaryBrightColor,
+    this.iconColor = ProfileStyles.primaryColor,
+    this.arrowColor = ProfileStyles.textMutedColor,
     this.iconBackgroundColor = ProfileStyles.menuIconBackgroundColor,
     this.titleStyle = ProfileStyles.menuTitleStyle,
+    this.descriptionStyle = ProfileStyles.menuDescriptionStyle,
   });
 
   final IconData icon;
   final String title;
+  final String description;
   final VoidCallback onPressed;
+
   final Color iconColor;
   final Color arrowColor;
   final Color iconBackgroundColor;
+
   final TextStyle titleStyle;
+  final TextStyle descriptionStyle;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: ProfileStyles.surfaceColor,
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: ProfileStyles.menuItemPadding,
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: ProfileStyles.menuIconContainerSize,
-                height: ProfileStyles.menuIconContainerSize,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: iconBackgroundColor,
-                  shape: BoxShape.circle,
-                  border: ProfileStyles.smallContainerBorder,
+    return Container(
+      decoration: const BoxDecoration(
+        color: ProfileStyles.surfaceColor,
+        borderRadius: ProfileStyles.menuRadius,
+        border: ProfileStyles.cardBorder,
+        boxShadow: ProfileStyles.cardShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: ProfileStyles.menuItemPadding,
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: ProfileStyles.menuIconContainerSize,
+                  height: ProfileStyles.menuIconContainerSize,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: iconBackgroundColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    size: ProfileStyles.menuIconSize,
+                    color: iconColor,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  size: ProfileStyles.menuIconSize,
-                  color: iconColor,
+                const SizedBox(width: ProfileStyles.menuContentSpacing),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(title, style: titleStyle),
+                      const SizedBox(
+                        height: ProfileStyles.menuDescriptionSpacing,
+                      ),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: descriptionStyle,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: ProfileStyles.menuContentSpacing),
-              Expanded(child: Text(title, style: titleStyle)),
-              Icon(
-                ProfileStyles.menuArrowIcon,
-                size: ProfileStyles.menuArrowSize,
-                color: arrowColor,
-              ),
-            ],
+                const SizedBox(width: ProfileStyles.menuArrowSpacing),
+                Icon(
+                  ProfileStyles.menuArrowIcon,
+                  size: ProfileStyles.menuArrowSize,
+                  color: arrowColor,
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ProfileMenuDivider extends StatelessWidget {
-  const _ProfileMenuDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(
-      height: ProfileStyles.dividerHeight,
-      indent: ProfileStyles.dividerIndent,
-      endIndent: ProfileStyles.dividerEndIndent,
-      color: ProfileStyles.dividerColor,
     );
   }
 }
