@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../models/materials/material_model.dart';
@@ -22,6 +23,10 @@ abstract final class _MaterialText {
 
   static const String foldersTitle = 'Folders';
   static const String noFoldersLabel = 'No folders created yet.';
+  static const String folderEmptyTitle = 'This folder is empty';
+  static const String folderEmptyDescription =
+      'Move scanned materials into this folder to keep them organized.';
+  static const String closeFolderTooltip = 'Close folder';
   static const String recentMaterialsTitle = 'Materials';
   static const String viewAllLabel = 'Clear filters';
   static const String itemSingular = 'Item';
@@ -62,13 +67,40 @@ abstract final class _MaterialText {
   static const String newestSortLabel = 'Newest first';
   static const String oldestSortLabel = 'Oldest first';
   static const String titleSortLabel = 'Title A–Z';
+
+  static const String moveToFolderLabel = 'Move to folder';
+  static const String moveDialogTitle = 'Move to Folder';
+
+  static const String moveDialogDescription =
+      'Choose where you want to organize this material.';
+
+  static const String unfiledLabel = 'Unfiled';
+  static const String unfiledDescription = 'Keep this material outside folders';
+
+  static const String moveLabel = 'Move';
+
+  static const String moveSuccessMessage = 'Material moved successfully.';
+
+  static const String removeFromFolderSuccessMessage =
+      'Material removed from the folder.';
+
+  static const String moveFailureMessage = 'Unable to move the material.';
+
+  static const String noFoldersAvailableMessage =
+      'Create a folder first before organizing this material.';
 }
 
 enum _MaterialFilter { all, images, pdf, documents }
 
 enum _MaterialSort { newest, oldest, title }
 
-enum _MaterialMenuAction { preview, delete }
+enum _MaterialMenuAction { preview, moveToFolder, delete }
+
+class _FolderSelectionResult {
+  const _FolderSelectionResult({required this.folderId});
+
+  final int? folderId;
+}
 
 class MaterialsScreen extends StatefulWidget {
   const MaterialsScreen({super.key, required this.onBack});
@@ -94,14 +126,13 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   List<MaterialModel> _materials = <MaterialModel>[];
   List<MaterialFolderModel> _folders = <MaterialFolderModel>[];
 
-  int? _selectedFolderId;
-
   _MaterialFilter _selectedFilter = _MaterialFilter.all;
   _MaterialSort _selectedSort = _MaterialSort.newest;
 
   bool _isLoading = true;
   bool _isDeleting = false;
   bool _isCreatingFolder = false;
+  bool _isMovingMaterial = false;
 
   String? _errorMessage;
 
@@ -188,11 +219,6 @@ class _MaterialsScreenState extends State<MaterialsScreen>
     final List<MaterialModel> filtered = _materials
         .where((MaterialModel material) {
           if (!_matchesSelectedFilter(material)) {
-            return false;
-          }
-
-          if (_selectedFolderId != null &&
-              material.folderId != _selectedFolderId) {
             return false;
           }
 
@@ -448,10 +474,578 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       );
   }
 
-  void _selectFolder(int folderId) {
-    setState(() {
-      _selectedFolderId = _selectedFolderId == folderId ? null : folderId;
+  List<MaterialModel> _materialsInsideFolder(int folderId) {
+    final List<MaterialModel> folderMaterials = _materials
+        .where((MaterialModel material) => material.folderId == folderId)
+        .toList(growable: false);
+
+    folderMaterials.sort((MaterialModel first, MaterialModel second) {
+      return second.uploadDate.compareTo(first.uploadDate);
     });
+
+    return folderMaterials;
+  }
+
+  Future<void> _handleMaterialMenuAction(
+    MaterialModel material,
+    _MaterialMenuAction action,
+  ) async {
+    switch (action) {
+      case _MaterialMenuAction.preview:
+        await _openMaterialPreview(material);
+
+      case _MaterialMenuAction.moveToFolder:
+        await _showMoveToFolderDialog(material);
+
+      case _MaterialMenuAction.delete:
+        await _requestDelete(material);
+    }
+  }
+
+  Future<void> _closeFolderAndRunAction(
+    BuildContext folderContext,
+    Future<void> Function() action,
+  ) async {
+    Navigator.of(folderContext).pop();
+
+    await Future<void>.delayed(MaterialScreenStyles.dialogAnimationDuration);
+
+    if (!mounted) {
+      return;
+    }
+
+    await action();
+  }
+
+  Future<void> _showFolderContents(MaterialFolderModel folder) async {
+    final int? folderId = folder.id;
+
+    if (folderId == null) {
+      return;
+    }
+
+    final List<MaterialModel> folderMaterials = _materialsInsideFolder(
+      folderId,
+    );
+
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: MaterialScreenStyles.dialogBarrierColor,
+      transitionDuration: MaterialScreenStyles.dialogAnimationDuration,
+      pageBuilder:
+          (
+            BuildContext folderContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return SafeArea(
+              top: false,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: FractionallySizedBox(
+                  widthFactor: 1,
+                  heightFactor: 0.84,
+                  child: Material(
+                    color: MaterialScreenStyles.surfaceColor,
+                    clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(26),
+                      ),
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: MaterialScreenStyles.outlineColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 12, 14),
+                          child: Row(
+                            children: <Widget>[
+                              Container(
+                                width: 42,
+                                height: 42,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF4D8),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  MaterialScreenStyles.folderIcon,
+                                  color:
+                                      MaterialScreenStyles.folderSelectedColor,
+                                  size: 27,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      folder.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: MaterialScreenStyles
+                                          .materialTitleStyle,
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${folderMaterials.length} '
+                                      '${folderMaterials.length == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
+                                      style: MaterialScreenStyles.metadataStyle,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: _MaterialText.closeFolderTooltip,
+                                onPressed: () {
+                                  Navigator.of(folderContext).pop();
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        Expanded(
+                          child: folderMaterials.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 32),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(
+                                          Icons.folder_open_rounded,
+                                          size: 54,
+                                          color:
+                                              MaterialScreenStyles.folderColor,
+                                        ),
+                                        SizedBox(height: 14),
+                                        Text(
+                                          _MaterialText.folderEmptyTitle,
+                                          textAlign: TextAlign.center,
+                                          style: MaterialScreenStyles
+                                              .stateTitleStyle,
+                                        ),
+                                        SizedBox(height: 7),
+                                        Text(
+                                          _MaterialText.folderEmptyDescription,
+                                          textAlign: TextAlign.center,
+                                          style: MaterialScreenStyles
+                                              .stateDescriptionStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    18,
+                                    16,
+                                    30,
+                                  ),
+                                  physics: const BouncingScrollPhysics(),
+                                  itemCount: folderMaterials.length,
+                                  separatorBuilder:
+                                      (BuildContext context, int index) {
+                                        return const SizedBox(
+                                          height: MaterialScreenStyles
+                                              .materialCardSpacing,
+                                        );
+                                      },
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                        final MaterialModel material =
+                                            folderMaterials[index];
+
+                                        return _RecentMaterialCard(
+                                          title: _materialTitle(material),
+                                          category: _formatMaterialType(
+                                            material,
+                                          ),
+                                          date: _formatDateTime(
+                                            context,
+                                            material.uploadDate,
+                                          ),
+                                          isImage: _isImageMaterial(material),
+                                          filePath: material.filePath,
+                                          fileUrl: _materialService.getFileUrl(
+                                            material.filePath,
+                                          ),
+                                          onPressed: () async {
+                                            await _closeFolderAndRunAction(
+                                              folderContext,
+                                              () => _openMaterialPreview(
+                                                material,
+                                              ),
+                                            );
+                                          },
+                                          onMenuSelected:
+                                              (
+                                                _MaterialMenuAction action,
+                                              ) async {
+                                                await _closeFolderAndRunAction(
+                                                  folderContext,
+                                                  () =>
+                                                      _handleMaterialMenuAction(
+                                                        material,
+                                                        action,
+                                                      ),
+                                                );
+                                              },
+                                        );
+                                      },
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final Animation<double> curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+
+            final Animation<Offset> slideAnimation = Tween<Offset>(
+              begin: const Offset(0, 0.08),
+              end: Offset.zero,
+            ).animate(curvedAnimation);
+
+            return FadeTransition(
+              opacity: curvedAnimation,
+              child: SlideTransition(position: slideAnimation, child: child),
+            );
+          },
+    );
+  }
+
+  Future<void> _showMoveToFolderDialog(MaterialModel material) async {
+    final int? materialId = material.id;
+
+    if (materialId == null || _isMovingMaterial) {
+      return;
+    }
+
+    final List<MaterialFolderModel> availableFolders = _folders
+        .where((MaterialFolderModel folder) => folder.id != null)
+        .toList(growable: false);
+
+    if (availableFolders.isEmpty && material.folderId == null) {
+      _showMessage(_MaterialText.noFoldersAvailableMessage);
+      return;
+    }
+
+    int? selectedFolderId = material.folderId;
+
+    final _FolderSelectionResult?
+    result = await showGeneralDialog<_FolderSelectionResult>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: MaterialScreenStyles.dialogBarrierColor,
+      transitionDuration: MaterialScreenStyles.dialogAnimationDuration,
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setDialogState) {
+                final int optionCount = availableFolders.length + 1;
+
+                return AlertDialog(
+                  backgroundColor: MaterialScreenStyles.surfaceColor,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: MaterialScreenStyles.dialogRadius,
+                    side: BorderSide(color: MaterialScreenStyles.outlineColor),
+                  ),
+                  title: const Text(
+                    _MaterialText.moveDialogTitle,
+                    style: MaterialScreenStyles.dialogTitleStyle,
+                  ),
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const Text(
+                          _MaterialText.moveDialogDescription,
+                          style: MaterialScreenStyles.dialogDescriptionStyle,
+                        ),
+                        const SizedBox(
+                          height: MaterialScreenStyles
+                              .folderPickerDescriptionSpacing,
+                        ),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxHeight:
+                                MaterialScreenStyles.folderPickerMaximumHeight,
+                          ),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: optionCount,
+                            separatorBuilder:
+                                (BuildContext context, int index) {
+                                  return const SizedBox(
+                                    height: MaterialScreenStyles
+                                        .folderPickerOptionSpacing,
+                                  );
+                                },
+                            itemBuilder: (BuildContext context, int index) {
+                              final bool isUnfiled = index == 0;
+
+                              final int? folderId = isUnfiled
+                                  ? null
+                                  : availableFolders[index - 1].id;
+
+                              final String title = isUnfiled
+                                  ? _MaterialText.unfiledLabel
+                                  : availableFolders[index - 1].name;
+
+                              final bool isSelected =
+                                  selectedFolderId == folderId;
+
+                              return Material(
+                                color: isSelected
+                                    ? MaterialScreenStyles
+                                          .folderPickerSelectedColor
+                                    : MaterialScreenStyles
+                                          .folderPickerBackgroundColor,
+                                borderRadius: MaterialScreenStyles
+                                    .folderPickerOptionRadius,
+                                child: InkWell(
+                                  onTap: () {
+                                    setDialogState(() {
+                                      selectedFolderId = folderId;
+                                    });
+                                  },
+                                  borderRadius: MaterialScreenStyles
+                                      .folderPickerOptionRadius,
+                                  child: Container(
+                                    padding: MaterialScreenStyles
+                                        .folderPickerOptionPadding,
+                                    decoration: BoxDecoration(
+                                      borderRadius: MaterialScreenStyles
+                                          .folderPickerOptionRadius,
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? MaterialScreenStyles.primaryColor
+                                            : MaterialScreenStyles.outlineColor,
+                                        width: isSelected ? 1.5 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: <Widget>[
+                                        Icon(
+                                          isUnfiled
+                                              ? MaterialScreenStyles.unfiledIcon
+                                              : MaterialScreenStyles.folderIcon,
+                                          color: isSelected
+                                              ? MaterialScreenStyles
+                                                    .primaryColor
+                                              : MaterialScreenStyles
+                                                    .folderColor,
+                                        ),
+                                        const SizedBox(
+                                          width: MaterialScreenStyles
+                                              .folderPickerIconSpacing,
+                                        ),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: <Widget>[
+                                              Text(
+                                                title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: MaterialScreenStyles
+                                                    .folderPickerTitleStyle,
+                                              ),
+                                              if (isUnfiled)
+                                                const Text(
+                                                  _MaterialText
+                                                      .unfiledDescription,
+                                                  style: MaterialScreenStyles
+                                                      .folderPickerDescriptionStyle,
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          const Icon(
+                                            MaterialScreenStyles
+                                                .selectedFolderIcon,
+                                            color: MaterialScreenStyles
+                                                .primaryColor,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: const Text(_MaterialText.cancelLabel),
+                    ),
+                    FilledButton(
+                      style: MaterialScreenStyles.createFolderButtonStyle,
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop(
+                          _FolderSelectionResult(folderId: selectedFolderId),
+                        );
+                      },
+                      child: const Text(_MaterialText.moveLabel),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final CurvedAnimation curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: MaterialScreenStyles.dialogEntranceCurve,
+              reverseCurve: MaterialScreenStyles.dialogExitCurve,
+            );
+
+            final Animation<double> scaleAnimation = Tween<double>(
+              begin: MaterialScreenStyles.dialogInitialScale,
+              end: 1,
+            ).animate(curvedAnimation);
+
+            return FadeTransition(
+              opacity: curvedAnimation,
+              child: ScaleTransition(scale: scaleAnimation, child: child),
+            );
+          },
+    );
+
+    if (!mounted || result == null) {
+      return;
+    }
+
+    if (result.folderId == material.folderId) {
+      return;
+    }
+
+    await _moveMaterialToFolder(material: material, folderId: result.folderId);
+  }
+
+  Future<void> _moveMaterialToFolder({
+    required MaterialModel material,
+    required int? folderId,
+  }) async {
+    final int? materialId = material.id;
+
+    if (materialId == null || _isMovingMaterial) {
+      return;
+    }
+
+    setState(() {
+      _isMovingMaterial = true;
+    });
+
+    try {
+      final MaterialModel updatedMaterial = await _materialService
+          .moveMaterialToFolder(materialId: materialId, folderId: folderId);
+
+      final List<MaterialFolderModel> updatedFolders = await _folderService
+          .getFolders();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _materials = _materials
+            .map((MaterialModel existing) {
+              return existing.id == updatedMaterial.id
+                  ? updatedMaterial
+                  : existing;
+            })
+            .toList(growable: false);
+
+        _folders = updatedFolders;
+        _isMovingMaterial = false;
+      });
+
+      _showMessage(
+        folderId == null
+            ? _MaterialText.removeFromFolderSuccessMessage
+            : _MaterialText.moveSuccessMessage,
+      );
+    } on MaterialServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isMovingMaterial = false;
+      });
+
+      _showMessage(error.message);
+    } on MaterialFolderServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isMovingMaterial = false;
+      });
+
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isMovingMaterial = false;
+      });
+
+      _showMessage(_MaterialText.moveFailureMessage);
+    }
   }
 
   Future<void> _showCreateFolderDialog() async {
@@ -904,13 +1498,9 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                 return _FolderCard(
                   folder: folder,
                   cardIndex: index,
-                  isSelected: folder.id == _selectedFolderId,
+                  isSelected: false,
                   onPressed: () {
-                    final int? folderId = folder.id;
-
-                    if (folderId != null) {
-                      _selectFolder(folderId);
-                    }
+                    _showFolderContents(folder);
                   },
                 );
               },
@@ -933,7 +1523,6 @@ class _MaterialsScreenState extends State<MaterialsScreen>
           onPressed: () {
             setState(() {
               _selectedFilter = _MaterialFilter.all;
-              _selectedFolderId = null;
               _searchController.clear();
             });
           },
@@ -992,6 +1581,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
             category: _formatMaterialType(material),
             date: _formatDateTime(context, material.uploadDate),
             isImage: _isImageMaterial(material),
+            filePath: material.filePath,
+            fileUrl: _materialService.getFileUrl(material.filePath),
             onPressed: () {
               _openMaterialPreview(material);
             },
@@ -999,6 +1590,9 @@ class _MaterialsScreenState extends State<MaterialsScreen>
               switch (action) {
                 case _MaterialMenuAction.preview:
                   _openMaterialPreview(material);
+
+                case _MaterialMenuAction.moveToFolder:
+                  _showMoveToFolderDialog(material);
 
                 case _MaterialMenuAction.delete:
                   _requestDelete(material);
@@ -1172,6 +1766,8 @@ class _RecentMaterialCard extends StatelessWidget {
     required this.category,
     required this.date,
     required this.isImage,
+    required this.filePath,
+    required this.fileUrl,
     required this.onPressed,
     required this.onMenuSelected,
   });
@@ -1180,116 +1776,186 @@ class _RecentMaterialCard extends StatelessWidget {
   final String category;
   final String date;
   final bool isImage;
+  final String filePath;
+  final String fileUrl;
   final VoidCallback onPressed;
   final ValueChanged<_MaterialMenuAction> onMenuSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: MaterialScreenStyles.recentCardBackgroundColor,
-      borderRadius: MaterialScreenStyles.materialCardRadius,
-      child: InkWell(
-        onTap: onPressed,
+    return SizedBox(
+      height: MaterialScreenStyles.materialCardHeight,
+      child: Material(
+        color: MaterialScreenStyles.recentCardBackgroundColor,
         borderRadius: MaterialScreenStyles.materialCardRadius,
-        child: Container(
-          padding: MaterialScreenStyles.materialCardPadding,
-          decoration: const BoxDecoration(
-            borderRadius: MaterialScreenStyles.materialCardRadius,
-            border: MaterialScreenStyles.cardBorder,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Container(
-                width: MaterialScreenStyles.thumbnailWidth,
-                height: MaterialScreenStyles.thumbnailHeight,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: MaterialScreenStyles.thumbnailBackgroundColor,
-                  borderRadius: MaterialScreenStyles.thumbnailRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: MaterialScreenStyles.materialCardRadius,
+          child: Container(
+            padding: MaterialScreenStyles.materialCardPadding,
+            decoration: const BoxDecoration(
+              borderRadius: MaterialScreenStyles.materialCardRadius,
+              border: MaterialScreenStyles.cardBorder,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                _MaterialThumbnail(
+                  isImage: isImage,
+                  filePath: filePath,
+                  fileUrl: fileUrl,
                 ),
-                child: Icon(
-                  isImage
-                      ? MaterialScreenStyles.imageIcon
-                      : MaterialScreenStyles.documentIcon,
-                  color: MaterialScreenStyles.primaryBrightColor,
-                  size: MaterialScreenStyles.thumbnailIconSize,
+                const SizedBox(
+                  width: MaterialScreenStyles.materialContentSpacing,
                 ),
-              ),
-              const SizedBox(
-                width: MaterialScreenStyles.materialContentSpacing,
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: MaterialScreenStyles.materialTitleStyle,
-                    ),
-                    const SizedBox(
-                      height: MaterialScreenStyles.categorySpacing,
-                    ),
-                    Container(
-                      padding: MaterialScreenStyles.categoryPadding,
-                      decoration: const BoxDecoration(
-                        color: MaterialScreenStyles.primaryColor,
-                        borderRadius: MaterialScreenStyles.categoryRadius,
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: MaterialScreenStyles.materialTitleStyle,
                       ),
-                      child: Text(
+                      const SizedBox(
+                        height: MaterialScreenStyles.categorySpacing,
+                      ),
+                      Text(
                         category,
-                        style: MaterialScreenStyles.categoryStyle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: MaterialScreenStyles.materialCategoryStyle,
                       ),
-                    ),
-                    const SizedBox(
-                      height: MaterialScreenStyles.metadataSpacing,
-                    ),
-                    Text(
-                      date,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: MaterialScreenStyles.metadataStyle,
-                    ),
-                  ],
-                ),
-              ),
-              Transform.translate(
-                offset: MaterialScreenStyles.materialMenuOffset,
-                child: PopupMenuButton<_MaterialMenuAction>(
-                  tooltip: _MaterialText.materialOptionsTooltip,
-                  onSelected: onMenuSelected,
-                  icon: const Icon(
-                    MaterialScreenStyles.moreIcon,
-                    color: MaterialScreenStyles.textSecondaryColor,
+                      const SizedBox(
+                        height: MaterialScreenStyles.metadataSpacing,
+                      ),
+                      Text(
+                        date,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: MaterialScreenStyles.metadataStyle,
+                      ),
+                    ],
                   ),
-                  itemBuilder: (BuildContext context) {
-                    return const <PopupMenuEntry<_MaterialMenuAction>>[
-                      PopupMenuItem<_MaterialMenuAction>(
-                        value: _MaterialMenuAction.preview,
-                        child: ListTile(
-                          leading: Icon(MaterialScreenStyles.previewIcon),
-                          title: Text(_MaterialText.previewLabel),
-                        ),
-                      ),
-                      PopupMenuItem<_MaterialMenuAction>(
-                        value: _MaterialMenuAction.delete,
-                        child: ListTile(
-                          leading: Icon(
-                            MaterialScreenStyles.deleteIcon,
-                            color: MaterialScreenStyles.primaryColor,
-                          ),
-                          title: Text(_MaterialText.deleteLabel),
-                        ),
-                      ),
-                    ];
-                  },
                 ),
-              ),
-            ],
+                SizedBox(
+                  width: MaterialScreenStyles.materialMenuButtonSize,
+                  height: MaterialScreenStyles.materialMenuButtonSize,
+                  child: PopupMenuButton<_MaterialMenuAction>(
+                    tooltip: _MaterialText.materialOptionsTooltip,
+                    padding: MaterialScreenStyles.materialMenuPadding,
+                    onSelected: onMenuSelected,
+                    icon: const Icon(
+                      MaterialScreenStyles.moreIcon,
+                      size: MaterialScreenStyles.materialMenuIconSize,
+                      color: MaterialScreenStyles.textSecondaryColor,
+                    ),
+                    itemBuilder: (BuildContext context) {
+                      return const <PopupMenuEntry<_MaterialMenuAction>>[
+                        PopupMenuItem<_MaterialMenuAction>(
+                          value: _MaterialMenuAction.preview,
+                          child: ListTile(
+                            leading: Icon(MaterialScreenStyles.previewIcon),
+                            title: Text(_MaterialText.previewLabel),
+                          ),
+                        ),
+                        PopupMenuItem<_MaterialMenuAction>(
+                          value: _MaterialMenuAction.moveToFolder,
+                          child: ListTile(
+                            leading: Icon(
+                              MaterialScreenStyles.moveToFolderIcon,
+                            ),
+                            title: Text(_MaterialText.moveToFolderLabel),
+                          ),
+                        ),
+                        PopupMenuItem<_MaterialMenuAction>(
+                          value: _MaterialMenuAction.delete,
+                          child: ListTile(
+                            leading: Icon(
+                              MaterialScreenStyles.deleteIcon,
+                              color: MaterialScreenStyles.primaryColor,
+                            ),
+                            title: Text(_MaterialText.deleteLabel),
+                          ),
+                        ),
+                      ];
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MaterialThumbnail extends StatelessWidget {
+  const _MaterialThumbnail({
+    required this.isImage,
+    required this.filePath,
+    required this.fileUrl,
+  });
+
+  final bool isImage;
+  final String filePath;
+  final String fileUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MaterialScreenStyles.thumbnailWidth,
+      height: MaterialScreenStyles.thumbnailHeight,
+      decoration: const BoxDecoration(
+        color: MaterialScreenStyles.thumbnailBackgroundColor,
+        borderRadius: MaterialScreenStyles.thumbnailRadius,
+        border: MaterialScreenStyles.thumbnailBorder,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: isImage ? _buildImage() : _buildFallback(),
+    );
+  }
+
+  Widget _buildImage() {
+    final File localFile = File(filePath);
+
+    return Image.file(
+      localFile,
+      fit: MaterialScreenStyles.thumbnailImageFit,
+      alignment: Alignment.center,
+      filterQuality: MaterialScreenStyles.thumbnailFilterQuality,
+      gaplessPlayback: true,
+      errorBuilder:
+          (BuildContext context, Object error, StackTrace? stackTrace) {
+            if (fileUrl.trim().isEmpty) {
+              return _buildFallback();
+            }
+
+            return Image.network(
+              fileUrl,
+              fit: MaterialScreenStyles.thumbnailImageFit,
+              alignment: Alignment.center,
+              filterQuality: MaterialScreenStyles.thumbnailFilterQuality,
+              gaplessPlayback: true,
+              errorBuilder:
+                  (BuildContext context, Object error, StackTrace? stackTrace) {
+                    return _buildFallback();
+                  },
+            );
+          },
+    );
+  }
+
+  Widget _buildFallback() {
+    return const Center(
+      child: Icon(
+        MaterialScreenStyles.documentIcon,
+        color: MaterialScreenStyles.primaryBrightColor,
+        size: MaterialScreenStyles.thumbnailIconSize,
       ),
     );
   }

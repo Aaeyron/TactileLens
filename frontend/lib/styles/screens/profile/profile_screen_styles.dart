@@ -29,7 +29,7 @@ abstract final class ProfileStyles {
       'Additional settings will be available soon.';
 
   // Colors
-  static const Color backgroundColor = Colors.white;
+  static const Color backgroundColor = Color(0xFFF3F4F6);
   static const Color surfaceColor = Colors.white;
 
   static const Color primaryColor = Color(0xFF0D47A1);
@@ -82,11 +82,11 @@ abstract final class ProfileStyles {
   static const IconData menuArrowIcon = Icons.chevron_right_rounded;
 
   // Screen layout
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(20, 20, 20, 30);
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(16, 24, 16, 30);
 
   static const double profileTopSpacing = 42;
-  static const double menuTopSpacing = 40;
-  static const double menuGroupSpacing = 18;
+  static const double menuTopSpacing = 20;
+  static const double menuGroupSpacing = 14;
   static const double bottomSpacing = 30;
 
   // Header
@@ -100,6 +100,17 @@ abstract final class ProfileStyles {
 
   // Profile identity
   static const double profileLoadingHeight = 220;
+
+  static const EdgeInsets profileContainerPadding = EdgeInsets.fromLTRB(
+    20,
+    28,
+    20,
+    26,
+  );
+
+  static const BorderRadius profileContainerRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
 
   static const double profileAvatarSize = 176;
   static const double profileAvatarIconSize = 108;
@@ -155,14 +166,7 @@ abstract final class ProfileStyles {
     BorderSide(color: outlineColor),
   );
 
-  static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x180D47A1),
-      blurRadius: 18,
-      spreadRadius: 1,
-      offset: Offset(0, 6),
-    ),
-  ];
+  static const List<BoxShadow> cardShadow = <BoxShadow>[];
 
   static const List<BoxShadow> smallContainerShadow = <BoxShadow>[
     BoxShadow(color: Color(0x100D47A1), blurRadius: 10, offset: Offset(0, 3)),

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../database/history/history_database.dart';
 import '../../models/history/history_model.dart';
 import '../../utils/session_manager.dart';
 import '../auth/auth_service.dart';
@@ -29,10 +30,34 @@ class HistoryService {
     required String recognizedContent,
     required String brailleContent,
     required List<Map<String, dynamic>> documentBlocks,
+    String? sourceImagePath,
     String? modelName,
     String? pipelineVersion,
     double? processingTimeMs,
   }) async {
+    final String cleanTitle = title.trim();
+
+    if (cleanTitle.isEmpty) {
+      throw const HistoryServiceException(
+        'The history title must not be empty.',
+      );
+    }
+
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      return HistoryDatabase.instance.insertHistory(
+        title: cleanTitle,
+        recognizedContent: recognizedContent,
+        brailleContent: brailleContent,
+        documentBlocks: documentBlocks,
+        sourceImagePath: sourceImagePath,
+        modelName: modelName,
+        pipelineVersion: pipelineVersion,
+        processingTimeMs: processingTimeMs,
+      );
+    }
+
     final Uri uri = Uri.parse('${AuthService.baseUrl}/api/history');
 
     final http.Response response = await _send(
@@ -40,7 +65,7 @@ class HistoryService {
         uri,
         headers: await _authorizedHeaders(),
         body: jsonEncode(<String, dynamic>{
-          'title': title.trim(),
+          'title': cleanTitle,
           'recognized_content': recognizedContent.trim(),
           'braille_content': brailleContent.trim(),
           'document_blocks': documentBlocks,
@@ -76,6 +101,12 @@ class HistoryService {
       );
     }
 
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      return HistoryDatabase.instance.getHistory(page: page, limit: limit);
+    }
+
     final Uri uri = Uri.parse('${AuthService.baseUrl}/api/history').replace(
       queryParameters: <String, String>{
         'page': page.toString(),
@@ -98,6 +129,22 @@ class HistoryService {
 
   Future<HistoryRecord> getHistoryById(int historyId) async {
     _validateHistoryId(historyId);
+
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      final HistoryRecord? record = await HistoryDatabase.instance
+          .getHistoryById(historyId);
+
+      if (record == null) {
+        throw const HistoryServiceException(
+          'The history record could not be found.',
+          statusCode: 404,
+        );
+      }
+
+      return record;
+    }
 
     final Uri uri = Uri.parse('${AuthService.baseUrl}/api/history/$historyId');
 
@@ -128,6 +175,22 @@ class HistoryService {
       );
     }
 
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      final HistoryRecord? record = await HistoryDatabase.instance
+          .renameHistory(historyId: historyId, title: cleanTitle);
+
+      if (record == null) {
+        throw const HistoryServiceException(
+          'The history record could not be found.',
+          statusCode: 404,
+        );
+      }
+
+      return record;
+    }
+
     final Uri uri = Uri.parse('${AuthService.baseUrl}/api/history/$historyId');
 
     final http.Response response = await _send(
@@ -149,6 +212,23 @@ class HistoryService {
 
   Future<void> deleteHistory(int historyId) async {
     _validateHistoryId(historyId);
+
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      final int deletedRows = await HistoryDatabase.instance.deleteHistory(
+        historyId,
+      );
+
+      if (deletedRows == 0) {
+        throw const HistoryServiceException(
+          'The history record could not be found.',
+          statusCode: 404,
+        );
+      }
+
+      return;
+    }
 
     final Uri uri = Uri.parse('${AuthService.baseUrl}/api/history/$historyId');
 

@@ -549,11 +549,55 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
   }
 
   Future<_MaterialDetails?> _requestMaterialDetails() {
-    return showDialog<_MaterialDetails>(
+    return showGeneralDialog<_MaterialDetails>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return const _MaterialDetailsDialog();
-      },
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: ScanResultScreenStyles.saveDialogBarrierColor,
+      transitionDuration: ScanResultScreenStyles.saveDialogAnimationDuration,
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return const _MaterialDetailsDialog();
+          },
+      transitionBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final Animation<double> curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: ScanResultScreenStyles.saveDialogEntranceCurve,
+              reverseCurve: ScanResultScreenStyles.saveDialogExitCurve,
+            );
+
+            final Animation<double> scaleAnimation = Tween<double>(
+              begin: ScanResultScreenStyles.saveDialogInitialScale,
+              end: 1,
+            ).animate(curvedAnimation);
+
+            final Animation<Offset> slideAnimation = Tween<Offset>(
+              begin: ScanResultScreenStyles.saveDialogInitialOffset,
+              end: Offset.zero,
+            ).animate(curvedAnimation);
+
+            return FadeTransition(
+              opacity: curvedAnimation,
+              child: SlideTransition(
+                position: slideAnimation,
+                child: ScaleTransition(
+                  scale: scaleAnimation,
+                  alignment: Alignment.center,
+                  child: child,
+                ),
+              ),
+            );
+          },
     );
   }
 

@@ -226,6 +226,74 @@ const getMaterialById = async (req, res) => {
 };
 
 // ==========================
+// Move Owned Material to Folder
+// ==========================
+
+const moveMaterialToFolder = async (req, res) => {
+  try {
+    const materialId = readMaterialId(req.params.id);
+
+    if (materialId === null) {
+      return res.status(400).json({
+        success: false,
+        message: "The material ID is invalid.",
+      });
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(req.body, "folder_id")) {
+      return res.status(400).json({
+        success: false,
+        message: "A folder ID is required.",
+      });
+    }
+
+    const requestedFolderId = req.body.folder_id;
+
+    let folderId = null;
+
+    if (requestedFolderId !== null) {
+      folderId = readMaterialId(requestedFolderId);
+
+      if (folderId === null) {
+        return res.status(400).json({
+          success: false,
+          message: "The folder ID is invalid.",
+        });
+      }
+    }
+
+    const material = await materialService.moveMaterialToFolder({
+      materialId,
+      folderId,
+      userId: req.user.id,
+    });
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: "The material or selected folder could not be found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message:
+        folderId === null
+          ? "Material removed from the folder."
+          : "Material moved to the folder successfully.",
+      data: material,
+    });
+  } catch (error) {
+    console.error("Failed to move material to folder:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to move the material.",
+    });
+  }
+};
+
+// ==========================
 // Delete One Owned Material
 // ==========================
 
@@ -275,5 +343,6 @@ module.exports = {
   uploadMaterial,
   getAllMaterials,
   getMaterialById,
+  moveMaterialToFolder,
   deleteMaterial,
 };

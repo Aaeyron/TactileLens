@@ -202,6 +202,19 @@ class MaterialFolderService {
     final bool isGuest = await SessionManager.isGuest();
 
     if (isGuest) {
+      if (folderId != null) {
+        final MaterialFolderModel? folder = await MaterialFolderDatabase
+            .instance
+            .getFolderById(folderId);
+
+        if (folder == null) {
+          throw const MaterialFolderServiceException(
+            'Folder not found.',
+            statusCode: 404,
+          );
+        }
+      }
+
       final int affectedRows = await MaterialDatabase.instance
           .updateMaterialFolder(materialId: materialId, folderId: folderId);
 

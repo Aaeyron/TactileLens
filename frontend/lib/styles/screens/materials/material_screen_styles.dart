@@ -43,6 +43,12 @@ abstract final class MaterialScreenStyles {
   static const IconData errorIcon = Icons.cloud_off_outlined;
   static const IconData emptySearchIcon = Icons.search_off_rounded;
 
+  static const IconData moveToFolderIcon = Icons.folder_open_rounded;
+
+  static const IconData unfiledIcon = Icons.folder_off_outlined;
+
+  static const IconData selectedFolderIcon = Icons.check_circle_rounded;
+
   // General
   static const int maximumFolderNameLength = 80;
 
@@ -167,34 +173,32 @@ abstract final class MaterialScreenStyles {
   static const Duration folderSelectionDuration = Duration(milliseconds: 220);
 
   // Recent material cards
-  static const double materialCardSpacing = 11;
-  static const double materialContentSpacing = 10;
+  static const double materialCardHeight = 92;
+  static const double materialCardSpacing = 10;
+  static const double materialContentSpacing = 11;
 
-  static const double thumbnailWidth = 128;
-  static const double thumbnailHeight = 68;
-  static const double thumbnailIconSize = 32;
+  static const double thumbnailWidth = 62;
+  static const double thumbnailHeight = 72;
+  static const double thumbnailIconSize = 27;
 
-  static const double categorySpacing = 5;
-  static const double metadataSpacing = 5;
+  static const BoxFit thumbnailImageFit = BoxFit.cover;
+  static const FilterQuality thumbnailFilterQuality = FilterQuality.medium;
 
-  static const EdgeInsets materialCardPadding = EdgeInsets.symmetric(
-    horizontal: 9,
-    vertical: 10,
+  static const Border thumbnailBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: 0.8),
   );
 
-  static const EdgeInsets categoryPadding = EdgeInsets.symmetric(
-    horizontal: 7,
-    vertical: 3,
-  );
+  static const double categorySpacing = 3;
+  static const double metadataSpacing = 4;
+
+  static const EdgeInsets materialCardPadding = EdgeInsets.fromLTRB(8, 8, 4, 8);
 
   static const BorderRadius materialCardRadius = BorderRadius.all(
     Radius.circular(10),
   );
 
-  static const Offset materialMenuOffset = Offset(20, -17);
-
   static const BorderRadius thumbnailRadius = BorderRadius.all(
-    Radius.circular(5),
+    Radius.circular(6),
   );
 
   static const BorderRadius categoryRadius = BorderRadius.all(
@@ -205,7 +209,7 @@ abstract final class MaterialScreenStyles {
     BorderSide(color: outlineColor, width: 1),
   );
 
-  static const double materialMenuButtonSize = 36;
+  static const double materialMenuButtonSize = 38;
   static const double materialMenuIconSize = 21;
 
   static const EdgeInsets materialMenuPadding = EdgeInsets.zero;
@@ -258,6 +262,24 @@ abstract final class MaterialScreenStyles {
       borderSide: BorderSide(color: primaryColor, width: 1.5),
     ),
   );
+
+  static const double folderPickerMaximumHeight = 320;
+  static const double folderPickerDescriptionSpacing = 16;
+  static const double folderPickerOptionSpacing = 8;
+  static const double folderPickerIconSpacing = 12;
+
+  static const EdgeInsets folderPickerOptionPadding = EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 12,
+  );
+
+  static const BorderRadius folderPickerOptionRadius = BorderRadius.all(
+    Radius.circular(12),
+  );
+
+  static const Color folderPickerBackgroundColor = Color(0xFFF8FAFC);
+
+  static const Color folderPickerSelectedColor = Color(0xFFEAF2FF);
 
   // Snackbar
   static const Duration snackBarDuration = Duration(seconds: 2);
@@ -333,10 +355,11 @@ abstract final class MaterialScreenStyles {
     fontWeight: FontWeight.w700,
   );
 
-  static const TextStyle categoryStyle = TextStyle(
-    color: surfaceColor,
-    fontSize: 9,
-    fontWeight: FontWeight.w600,
+  static const TextStyle materialCategoryStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 11,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
   );
 
   static const TextStyle metadataStyle = TextStyle(
@@ -373,5 +396,17 @@ abstract final class MaterialScreenStyles {
     color: textMutedColor,
     fontSize: 12,
     fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle folderPickerTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle folderPickerDescriptionStyle = TextStyle(
+    color: textMutedColor,
+    fontSize: 11,
+    height: 1.35,
   );
 }

@@ -34,6 +34,12 @@ router.get("/", materialController.getAllMaterials);
 router.get("/:id", materialController.getMaterialById);
 
 // ==========================
+// Move Owned Material to Folder
+// ==========================
+
+router.patch("/:id/folder", materialController.moveMaterialToFolder);
+
+// ==========================
 // Delete One Owned Material
 // ==========================
 

@@ -164,15 +164,31 @@ class _SplashScreenState extends State<SplashScreen>
     _hasCompletedLoading = true;
 
     final bool isGuest = await SessionManager.isGuest();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (isGuest) {
+      await Navigator.of(context).pushReplacement<void, void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) => const MainScreen(),
+        ),
+      );
+      return;
+    }
+
     final bool isLoggedIn = await SessionManager.isLoggedIn();
 
     if (!mounted) {
       return;
     }
 
-    if (isGuest || isLoggedIn) {
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => const MainScreen()),
+    if (isLoggedIn) {
+      await Navigator.of(context).pushReplacement<void, void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) => const MainScreen(),
+        ),
       );
       return;
     }

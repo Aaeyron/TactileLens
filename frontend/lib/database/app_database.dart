@@ -8,7 +8,7 @@ class AppDatabase {
 
   static const String _databaseName = 'tactilelens.db';
 
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   Database? _database;
 
@@ -83,6 +83,25 @@ class AppDatabase {
       )
     ''');
 
+    await database.execute('''
+  CREATE TABLE scan_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 1,
+    title TEXT NOT NULL,
+    recognized_content TEXT NOT NULL DEFAULT '',
+    braille_content TEXT NOT NULL DEFAULT '',
+    document_blocks TEXT NOT NULL DEFAULT '[]',
+    source_image_path TEXT,
+    model_name TEXT,
+    pipeline_version TEXT,
+    processing_time_ms REAL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )
+''');
+
+    await _createHistoryIndexes(database);
+
     await _createFolderIndexes(database);
   }
 
@@ -136,6 +155,33 @@ class AppDatabase {
       await migration.commit(noResult: true);
     }
 
+    if (oldVersion < 4) {
+      await database.transaction((Transaction transaction) async {
+        await transaction.execute('''
+      CREATE TABLE IF NOT EXISTS scan_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL DEFAULT 1,
+        title TEXT NOT NULL,
+        recognized_content TEXT NOT NULL DEFAULT '',
+        braille_content TEXT NOT NULL DEFAULT '',
+        document_blocks TEXT NOT NULL DEFAULT '[]',
+        source_image_path TEXT,
+        model_name TEXT,
+        pipeline_version TEXT,
+        processing_time_ms REAL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+        await transaction.execute('''
+      CREATE INDEX IF NOT EXISTS
+        scan_history_created_at_index
+      ON scan_history (created_at DESC)
+    ''');
+      });
+    }
+
     if (oldVersion < 3) {
       await database.transaction((Transaction transaction) async {
         await transaction.execute('''
@@ -184,6 +230,14 @@ class AppDatabase {
         material_folders_name_index
       ON material_folders (name)
     ''');
+  }
+
+  Future<void> _createHistoryIndexes(Database database) async {
+    await database.execute('''
+    CREATE INDEX IF NOT EXISTS
+      scan_history_created_at_index
+    ON scan_history (created_at DESC)
+  ''');
   }
 
   Future<void> close() async {

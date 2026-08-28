@@ -314,6 +314,21 @@ abstract final class ScanResultScreenStyles {
     vertical: 12,
   );
 
+  // Save dialog animation
+  static const Color saveDialogBarrierColor = Color(0x73000000);
+
+  static const Duration saveDialogAnimationDuration = Duration(
+    milliseconds: 320,
+  );
+
+  static const Curve saveDialogEntranceCurve = Curves.easeOutCubic;
+
+  static const Curve saveDialogExitCurve = Curves.easeInCubic;
+
+  static const double saveDialogInitialScale = 0.94;
+
+  static const Offset saveDialogInitialOffset = Offset(0, 0.035);
+
   static const EdgeInsets saveDialogContentPadding = EdgeInsets.fromLTRB(
     24,
     8,

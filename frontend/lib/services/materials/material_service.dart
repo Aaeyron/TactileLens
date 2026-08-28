@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 import '../../database/materials/material_database.dart';
+import '../../database/materials/material_folder_database.dart';
 import '../../models/materials/material_model.dart';
 import '../../utils/session_manager.dart';
 import '../auth/auth_service.dart';
@@ -309,6 +310,104 @@ class MaterialService {
     }
 
     return MaterialModel.fromJson(Map<String, dynamic>.from(materialData));
+  }
+
+  // ==========================
+  // Move Material to Folder
+  // ==========================
+
+  Future<MaterialModel> moveMaterialToFolder({
+    required int materialId,
+    required int? folderId,
+  }) async {
+    if (materialId <= 0) {
+      throw const MaterialServiceException('The material ID is invalid.');
+    }
+
+    if (folderId != null && folderId <= 0) {
+      throw const MaterialServiceException('The folder ID is invalid.');
+    }
+
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      return _moveGuestMaterialToFolder(
+        materialId: materialId,
+        folderId: folderId,
+      );
+    }
+
+    final Uri uri = Uri.parse('$baseUrl/$materialId/folder');
+
+    final http.Response response = await _send(() async {
+      return _client.patch(
+        uri,
+        headers: await _authorizedHeaders(),
+        body: jsonEncode(<String, dynamic>{'folder_id': folderId}),
+      );
+    });
+
+    final Map<String, dynamic> payload = _decodePayload(response);
+
+    final dynamic materialData = payload['data'];
+
+    if (materialData is! Map) {
+      throw const MaterialServiceException(
+        'The server returned invalid material data.',
+      );
+    }
+
+    return MaterialModel.fromJson(Map<String, dynamic>.from(materialData));
+  }
+
+  // ==========================
+  // Move Guest Material to Folder
+  // ==========================
+
+  Future<MaterialModel> _moveGuestMaterialToFolder({
+    required int materialId,
+    required int? folderId,
+  }) async {
+    final MaterialModel? existingMaterial = await MaterialDatabase.instance
+        .getMaterialById(materialId);
+
+    if (existingMaterial == null) {
+      throw const MaterialServiceException(
+        'Material not found.',
+        statusCode: 404,
+      );
+    }
+
+    if (folderId != null) {
+      final folder = await MaterialFolderDatabase.instance.getFolderById(
+        folderId,
+      );
+
+      if (folder == null) {
+        throw const MaterialServiceException(
+          'The selected folder could not be found.',
+          statusCode: 404,
+        );
+      }
+    }
+
+    final int affectedRows = await MaterialDatabase.instance
+        .updateMaterialFolder(materialId: materialId, folderId: folderId);
+
+    if (affectedRows == 0) {
+      throw const MaterialServiceException('The material could not be moved.');
+    }
+
+    final MaterialModel? updatedMaterial = await MaterialDatabase.instance
+        .getMaterialById(materialId);
+
+    if (updatedMaterial == null) {
+      throw const MaterialServiceException(
+        'The updated material could not be loaded.',
+      );
+    }
+
+    return updatedMaterial;
   }
 
   // ==========================

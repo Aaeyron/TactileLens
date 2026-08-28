@@ -3,6 +3,8 @@ const path = require("path");
 
 const materialModel = require("../../models/materials/material_model");
 
+const materialFolderModel = require("../../models/materials/material_folder_model");
+
 const BACKEND_DIRECTORY = path.resolve(__dirname, "../../..");
 
 const UPLOADS_DIRECTORY = path.join(BACKEND_DIRECTORY, "uploads");
@@ -100,6 +102,18 @@ const deleteMaterial = async ({ materialId, userId }) => {
 };
 
 // ==========================
+// Move Owned Material to Folder
+// ==========================
+
+const moveMaterialToFolder = ({ materialId, folderId, userId }) => {
+  return materialFolderModel.moveMaterialToFolder({
+    materialId,
+    folderId,
+    userId,
+  });
+};
+
+// ==========================
 // Export
 // ==========================
 
@@ -107,5 +121,6 @@ module.exports = {
   createMaterial,
   getAllMaterials,
   getMaterialById,
+  moveMaterialToFolder,
   deleteMaterial,
 };

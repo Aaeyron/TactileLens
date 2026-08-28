@@ -7,6 +7,8 @@ import '../../widgets/app_header.dart';
 
 abstract final class _HistoryText {
   static const String screenTitle = 'History';
+  static const String screenDescription =
+      'Review and manage your previously scanned documents.';
   static const String searchHint = 'Search History';
 
   static const String allFilterLabel = 'All';
@@ -78,19 +80,11 @@ abstract final class _HistoryText {
   static const String deleteDialogDescription =
       'This scan will be permanently removed from your history.';
 
-  static const String clearDialogTitle = 'Clear All History?';
-
-  static const String clearDialogDescription =
-      'All saved scan-history records will be permanently deleted.';
-
   static const String confirmDeleteLabel = 'Delete';
-  static const String confirmClearLabel = 'Clear All';
 
   static const String renameSuccessMessage = 'History title updated.';
 
   static const String deleteSuccessMessage = 'Scan removed from history.';
-
-  static const String clearSuccessMessage = 'Scan history cleared.';
 
   static const String historyListSemanticLabel = 'Saved scan history';
 }
@@ -433,54 +427,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _clearAllHistory() async {
-    if (_records.isEmpty || _isUpdating) {
-      return;
-    }
-
-    final bool confirmed = await _showConfirmationDialog(
-      title: _HistoryText.clearDialogTitle,
-      description: _HistoryText.clearDialogDescription,
-      confirmationLabel: _HistoryText.confirmClearLabel,
-    );
-
-    if (!mounted || !confirmed) {
-      return;
-    }
-
-    setState(() {
-      _isUpdating = true;
-    });
-
-    try {
-      for (final HistoryRecord record in _records) {
-        await _historyService.deleteHistory(record.id);
-      }
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _records = <HistoryRecord>[];
-        _isUpdating = false;
-      });
-
-      _showMessage(_HistoryText.clearSuccessMessage);
-    } on HistoryServiceException catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isUpdating = false;
-      });
-
-      _showMessage(error.message);
-      await _refreshHistory();
-    }
-  }
-
   Future<bool> _showConfirmationDialog({
     required String title,
     required String description,
@@ -637,19 +583,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildTitle() {
-    return Row(
-      children: <Widget>[
-        const Expanded(
-          child: Text(
+    return Container(
+      width: double.infinity,
+      padding: HistoryScreenStyles.headerContainerPadding,
+      decoration: const BoxDecoration(
+        color: HistoryScreenStyles.primaryColor,
+        borderRadius: HistoryScreenStyles.headerContainerRadius,
+        border: HistoryScreenStyles.headerContainerBorder,
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
             _HistoryText.screenTitle,
-            style: HistoryScreenStyles.titleStyle,
+            style: HistoryScreenStyles.headerTitleStyle,
           ),
-        ),
-        TextButton(
-          onPressed: _records.isEmpty || _isUpdating ? null : _clearAllHistory,
-          child: const Text(_HistoryText.confirmClearLabel),
-        ),
-      ],
+          SizedBox(height: HistoryScreenStyles.headerDescriptionSpacing),
+          Text(
+            _HistoryText.screenDescription,
+            style: HistoryScreenStyles.headerDescriptionStyle,
+          ),
+        ],
+      ),
     );
   }
 

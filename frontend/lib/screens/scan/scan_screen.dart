@@ -281,7 +281,10 @@ class _ScanScreenState extends State<ScanScreen> {
     return _ScanText.documentHistoryTitle;
   }
 
-  Future<void> _saveScanToHistory(ScanDocumentResult result) async {
+  Future<void> _saveScanToHistory(
+    ScanDocumentResult result,
+    File scannedImage,
+  ) async {
     final String recognizedContent = result.blocks
         .map((DocumentBlock block) => block.content.trim())
         .where((String content) => content.isNotEmpty)
@@ -297,6 +300,7 @@ class _ScanScreenState extends State<ScanScreen> {
         recognizedContent: recognizedContent,
         brailleContent: result.combinedBraille,
         documentBlocks: documentBlocks,
+        sourceImagePath: scannedImage.path,
         modelName: result.model,
         pipelineVersion: result.pipelineVersion,
         processingTimeMs: result.processingTimeMs,
@@ -365,7 +369,7 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      unawaited(_saveScanToHistory(scanResult));
+      unawaited(_saveScanToHistory(scanResult, imageToScan));
 
       debugPrint('PaddleOCR-VL scan completed successfully.');
 

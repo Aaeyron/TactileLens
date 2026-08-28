@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 abstract final class HistoryScreenStyles {
   // Colors
   static const Color primaryColor = Color(0xFF164EAD);
-  static const Color backgroundColor = Colors.white;
+  static const Color backgroundColor = Color(0xFFF3F4F6);
   static const Color surfaceColor = Colors.white;
 
   static const Color textPrimaryColor = Color(0xFF1D2939);
@@ -40,6 +40,24 @@ abstract final class HistoryScreenStyles {
   static const double zero = 0;
 
   static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(21, 24, 21, 30);
+
+  // Header container
+  static const EdgeInsets headerContainerPadding = EdgeInsets.fromLTRB(
+    20,
+    20,
+    14,
+    20,
+  );
+
+  static const BorderRadius headerContainerRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
+
+  static const Border headerContainerBorder = Border.fromBorderSide(
+    BorderSide(color: Color(0xFF0F4296), width: 1),
+  );
+
+  static const double headerDescriptionSpacing = 6;
 
   static const double searchTopSpacing = 20;
   static const double filterTopSpacing = 13;
@@ -167,6 +185,19 @@ abstract final class HistoryScreenStyles {
   static final ButtonStyle retryButtonStyle = FilledButton.styleFrom(
     backgroundColor: primaryColor,
     foregroundColor: surfaceColor,
+  );
+
+  static const TextStyle headerTitleStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 23,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle headerDescriptionStyle = TextStyle(
+    color: Color(0xFFDCE8FF),
+    fontSize: 12.5,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
   );
 
   // Typography

@@ -193,8 +193,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: ProfileStyles.screenPadding,
             children: <Widget>[
-              _buildBrandHeader(),
-              const SizedBox(height: ProfileStyles.profileTopSpacing),
               _buildProfileIdentity(),
               const SizedBox(height: ProfileStyles.menuTopSpacing),
               _ProfileMenuGroup(
@@ -257,135 +255,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildBrandHeader() {
-    return Row(
-      children: <Widget>[
-        ClipRRect(
-          borderRadius: ProfileStyles.logoRadius,
-          child: Image.asset(
-            ProfileStyles.logoAsset,
-            width: ProfileStyles.logoSize,
-            height: ProfileStyles.logoSize,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: ProfileStyles.logoTextSpacing),
-        const Expanded(
-          child: Text(ProfileStyles.appName, style: ProfileStyles.appNameStyle),
-        ),
-        Container(
-          width: ProfileStyles.headerIconContainerSize,
-          height: ProfileStyles.headerIconContainerSize,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: ProfileStyles.surfaceColor,
-            shape: BoxShape.circle,
-            border: ProfileStyles.smallContainerBorder,
-            boxShadow: ProfileStyles.smallContainerShadow,
-          ),
-          child: const Icon(
-            ProfileStyles.profileHeaderIcon,
-            size: ProfileStyles.headerIconSize,
-            color: ProfileStyles.primaryColor,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildProfileIdentity() {
     if (_isLoadingProfile) {
-      return const SizedBox(
+      return Container(
+        width: double.infinity,
         height: ProfileStyles.profileLoadingHeight,
-        child: Center(
+        decoration: const BoxDecoration(
+          color: ProfileStyles.surfaceColor,
+          borderRadius: ProfileStyles.profileContainerRadius,
+          border: ProfileStyles.cardBorder,
+        ),
+        child: const Center(
           child: CircularProgressIndicator(color: ProfileStyles.primaryColor),
         ),
       );
     }
 
-    return Column(
-      children: <Widget>[
-        Stack(
-          clipBehavior: Clip.none,
-          children: <Widget>[
-            Container(
-              width: ProfileStyles.profileAvatarSize,
-              height: ProfileStyles.profileAvatarSize,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: ProfileStyles.profileAvatarBackgroundColor,
-                shape: BoxShape.circle,
-                border: ProfileStyles.avatarBorder,
-                boxShadow: ProfileStyles.avatarShadow,
-              ),
-              child: const Icon(
-                ProfileStyles.profileAvatarIcon,
-                size: ProfileStyles.profileAvatarIconSize,
-                color: ProfileStyles.profileAvatarIconColor,
-              ),
-            ),
-            Positioned(
-              right: ProfileStyles.editButtonRight,
-              bottom: ProfileStyles.editButtonBottom,
-              child: Material(
-                color: ProfileStyles.surfaceColor,
-                shape: const CircleBorder(
-                  side: BorderSide(color: ProfileStyles.outlineColor),
+    return Container(
+      width: double.infinity,
+      padding: ProfileStyles.profileContainerPadding,
+      decoration: const BoxDecoration(
+        color: ProfileStyles.surfaceColor,
+        borderRadius: ProfileStyles.profileContainerRadius,
+        border: ProfileStyles.cardBorder,
+      ),
+      child: Column(
+        children: <Widget>[
+          Stack(
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              Container(
+                width: ProfileStyles.profileAvatarSize,
+                height: ProfileStyles.profileAvatarSize,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: ProfileStyles.profileAvatarBackgroundColor,
+                  shape: BoxShape.circle,
+                  border: ProfileStyles.avatarBorder,
                 ),
-                elevation: ProfileStyles.editButtonElevation,
-                child: InkWell(
-                  onTap: _openAccountInformation,
-                  customBorder: const CircleBorder(),
-                  child: const SizedBox(
-                    width: ProfileStyles.editButtonSize,
-                    height: ProfileStyles.editButtonSize,
-                    child: Icon(
-                      ProfileStyles.editIcon,
-                      size: ProfileStyles.editIconSize,
-                      color: ProfileStyles.primaryBrightColor,
+                child: const Icon(
+                  ProfileStyles.profileAvatarIcon,
+                  size: ProfileStyles.profileAvatarIconSize,
+                  color: ProfileStyles.profileAvatarIconColor,
+                ),
+              ),
+              Positioned(
+                right: ProfileStyles.editButtonRight,
+                bottom: ProfileStyles.editButtonBottom,
+                child: Material(
+                  color: ProfileStyles.surfaceColor,
+                  shape: const CircleBorder(
+                    side: BorderSide(color: ProfileStyles.outlineColor),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: _openAccountInformation,
+                    customBorder: const CircleBorder(),
+                    child: const SizedBox(
+                      width: ProfileStyles.editButtonSize,
+                      height: ProfileStyles.editButtonSize,
+                      child: Icon(
+                        ProfileStyles.editIcon,
+                        size: ProfileStyles.editIconSize,
+                        color: ProfileStyles.primaryBrightColor,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: ProfileStyles.profileNameSpacing),
-        Text(
-          _displayName,
-          textAlign: TextAlign.center,
-          style: ProfileStyles.profileNameStyle,
-        ),
-        if (!_isGuest && _email.isNotEmpty) ...<Widget>[
-          const SizedBox(height: ProfileStyles.profileEmailSpacing),
-          Text(
-            _email,
-            textAlign: TextAlign.center,
-            style: ProfileStyles.profileEmailStyle,
-          ),
-        ],
-        const SizedBox(height: ProfileStyles.profileRoleSpacing),
-        Container(
-          padding: ProfileStyles.roleBadgePadding,
-          decoration: const BoxDecoration(
-            color: ProfileStyles.roleBadgeBackgroundColor,
-            borderRadius: ProfileStyles.roleBadgeRadius,
-            border: ProfileStyles.roleBadgeBorder,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(
-                ProfileStyles.roleIcon,
-                size: ProfileStyles.roleIconSize,
-                color: ProfileStyles.primaryBrightColor,
-              ),
-              const SizedBox(width: ProfileStyles.roleIconSpacing),
-              Text(_displayRole, style: ProfileStyles.roleBadgeTextStyle),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: ProfileStyles.profileNameSpacing),
+          Text(
+            _displayName,
+            textAlign: TextAlign.center,
+            style: ProfileStyles.profileNameStyle,
+          ),
+          if (!_isGuest && _email.isNotEmpty) ...<Widget>[
+            const SizedBox(height: ProfileStyles.profileEmailSpacing),
+            Text(
+              _email,
+              textAlign: TextAlign.center,
+              style: ProfileStyles.profileEmailStyle,
+            ),
+          ],
+          const SizedBox(height: ProfileStyles.profileRoleSpacing),
+          Container(
+            padding: ProfileStyles.roleBadgePadding,
+            decoration: const BoxDecoration(
+              color: ProfileStyles.roleBadgeBackgroundColor,
+              borderRadius: ProfileStyles.roleBadgeRadius,
+              border: ProfileStyles.roleBadgeBorder,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Icon(
+                  ProfileStyles.roleIcon,
+                  size: ProfileStyles.roleIconSize,
+                  color: ProfileStyles.primaryBrightColor,
+                ),
+                const SizedBox(width: ProfileStyles.roleIconSpacing),
+                Flexible(
+                  child: Text(
+                    _displayRole,
+                    textAlign: TextAlign.center,
+                    style: ProfileStyles.roleBadgeTextStyle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
