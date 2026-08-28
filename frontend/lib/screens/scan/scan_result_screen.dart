@@ -943,6 +943,113 @@ class _RecognizedBlock extends StatelessWidget {
 
   final DocumentBlock block;
 
+  bool _containsLatex(String value) {
+    return value.contains(r'\frac') ||
+        value.contains(r'\sqrt') ||
+        value.contains(r'\sum') ||
+        value.contains(r'\int') ||
+        value.contains(r'\begin') ||
+        value.contains(r'\left') ||
+        value.contains(r'\right');
+  }
+
+  bool _looksLikeEquation(String value) {
+    final String line = value.trim();
+
+    if (line.isEmpty) {
+      return false;
+    }
+
+    if (_containsLatex(line)) {
+      return true;
+    }
+
+    if (line.contains('=') ||
+        line.contains('≤') ||
+        line.contains('≥') ||
+        line.contains('≠')) {
+      return true;
+    }
+
+    return RegExp(r'\b\d*\s*[a-zA-Z]\s*[+\-×÷*/]\s*\d+').hasMatch(line);
+  }
+
+  bool _looksLikeTableMath(String value) {
+    final String content = value.trim();
+
+    if (_containsLatex(content) || _looksLikeEquation(content)) {
+      return true;
+    }
+
+    // Render isolated mathematical variables such as n and Q
+    // using the math renderer.
+    return RegExp(r'^[a-zA-Z]$').hasMatch(content);
+  }
+
+  String _recoverStackedFractions(String value) {
+    String recovered = value;
+
+    String fractionReplacement(Match match) {
+      final String numerator = (match.group(1) ?? '')
+          .replaceAll('&', '')
+          .trim();
+
+      final String denominator = (match.group(2) ?? '')
+          .replaceAll('&', '')
+          .trim();
+
+      if (numerator.isEmpty || denominator.isEmpty) {
+        return match.group(0) ?? '';
+      }
+
+      return '\\left(\\frac{$numerator}{$denominator}\\right)';
+    }
+
+    // Recover:
+    // \left(\begin{array}{c}20\\17\end{array}\right)
+    recovered = recovered.replaceAllMapped(
+      RegExp(
+        r'\\left\s*\(\s*'
+        r'\\begin\{array\}\{[^{}]*\}\s*'
+        r'(.+?)\s*\\\\\s*(.+?)\s*'
+        r'\\end\{array\}\s*'
+        r'\\right\s*\)',
+      ),
+      fractionReplacement,
+    );
+
+    // Recover:
+    // (20\\17)
+    recovered = recovered.replaceAllMapped(
+      RegExp(
+        r'\(\s*'
+        r'([A-Za-z0-9.+\- ]+?)'
+        r'\s*\\\\\s*'
+        r'([A-Za-z0-9.+\- ]+?)'
+        r'\s*\)',
+      ),
+      fractionReplacement,
+    );
+
+    // Recover the already-damaged form:
+    // (20\17)
+    //
+    // The restricted character groups prevent normal LaTeX commands
+    // such as \frac and \sqrt from being mistaken for this pattern.
+    recovered = recovered.replaceAllMapped(
+      RegExp(
+        r'\(\s*'
+        r'([A-Za-z0-9.+\- ]+?)'
+        r'\s*\\\s*'
+        r'([A-Za-z0-9.+\- ]+?)'
+        r'\s*\)',
+      ),
+      fractionReplacement,
+    );
+
+    return recovered;
+  }
+
   String _prepareFormula(String value) {
     String formula = value.trim();
 
@@ -972,67 +1079,283 @@ class _RecognizedBlock extends StatelessWidget {
       }
     }
 
-    formula = formula
-        .replaceAll('\\\\', '\\')
-        .replaceAll(r'\qquad', r'\;')
+    formula = _recoverStackedFractions(formula);
+
+    // Never collapse LaTeX row separators (`\\`) into `\`.
+    return formula.replaceAll(r'\qquad', r'\;').trim();
+  }
+
+  String _readableFormulaFallback(String value) {
+    String readable = value;
+
+    final RegExp fractionPattern = RegExp(
+      r'\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}',
+    );
+
+    for (int index = 0; index < 5; index++) {
+      final String updated = readable.replaceAllMapped(fractionPattern, (
+        Match match,
+      ) {
+        final String numerator = match.group(1) ?? '';
+        final String denominator = match.group(2) ?? '';
+
+        return '$numerator/$denominator';
+      });
+
+      if (updated == readable) {
+        break;
+      }
+
+      readable = updated;
+    }
+
+    readable = readable
+        .replaceAllMapped(
+          RegExp(r'\\sqrt\s*\{([^{}]+)\}'),
+          (Match match) => '√(${match.group(1) ?? ''})',
+        )
+        .replaceAll(r'\times', '×')
+        .replaceAll(r'\div', '÷')
+        .replaceAll(r'\cdot', '·')
+        .replaceAll(r'\leq', '≤')
+        .replaceAll(r'\geq', '≥')
+        .replaceAll(r'\neq', '≠')
+        .replaceAll(r'\pm', '±')
+        .replaceAll(r'\left', '')
+        .replaceAll(r'\right', '')
+        .replaceAll('{', '')
+        .replaceAll('}', '')
+        .replaceAll(RegExp(r'\\[a-zA-Z]+'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
 
-    return formula;
+    return readable;
+  }
+
+  Widget _buildFormulaLine(String line) {
+    final String formula = _prepareFormula(line);
+
+    return Container(
+      width: double.infinity,
+      padding: ScanResultScreenStyles.formulaPreviewPadding,
+      decoration: const BoxDecoration(
+        color: ScanResultScreenStyles.formulaBackgroundColor,
+        borderRadius: ScanResultScreenStyles.formulaRadius,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Math.tex(
+          formula,
+          mathStyle: MathStyle.display,
+          textStyle: ScanResultScreenStyles.formulaContentStyle,
+          onErrorFallback: (FlutterMathException error) {
+            debugPrint('MATH RENDER ERROR: $error');
+            debugPrint('MATH INPUT: $formula');
+
+            return SelectableText(
+              _readableFormulaFallback(formula),
+              textAlign: TextAlign.left,
+              style: ScanResultScreenStyles.formulaContentStyle,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextLine(String line) {
+    return SelectableText(
+      line,
+      textAlign: TextAlign.left,
+      style: ScanResultScreenStyles.recognizedContentStyle,
+    );
+  }
+
+  Widget _buildTableCell({
+    required String content,
+    required int rowIndex,
+    required int columnIndex,
+  }) {
+    final String normalizedContent = content.trim();
+
+    final bool isRowLabel = columnIndex == 0;
+
+    final bool shouldRenderAsFormula = _looksLikeTableMath(normalizedContent);
+
+    final Widget cellContent;
+
+    if (shouldRenderAsFormula) {
+      final String formula = _prepareFormula(normalizedContent);
+
+      cellContent = SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Math.tex(
+          formula,
+          mathStyle: MathStyle.text,
+          textStyle: isRowLabel
+              ? ScanResultScreenStyles.tableLabelTextStyle
+              : ScanResultScreenStyles.tableCellTextStyle,
+          onErrorFallback: (FlutterMathException error) {
+            return Text(
+              _readableFormulaFallback(formula),
+              textAlign: TextAlign.center,
+              style: isRowLabel
+                  ? ScanResultScreenStyles.tableLabelTextStyle
+                  : ScanResultScreenStyles.tableCellTextStyle,
+            );
+          },
+        ),
+      );
+    } else {
+      cellContent = Text(
+        normalizedContent,
+        textAlign: TextAlign.center,
+        style: isRowLabel
+            ? ScanResultScreenStyles.tableLabelTextStyle
+            : ScanResultScreenStyles.tableCellTextStyle,
+      );
+    }
+
+    return Semantics(
+      label:
+          'Row ${rowIndex + 1}, '
+          'column ${columnIndex + 1}: '
+          '${_readableFormulaFallback(normalizedContent)}',
+      child: Container(
+        alignment: Alignment.center,
+        padding: ScanResultScreenStyles.tableCellPadding,
+        color: isRowLabel
+            ? ScanResultScreenStyles.tableLabelBackgroundColor
+            : rowIndex.isEven
+            ? ScanResultScreenStyles.tableBackgroundColor
+            : ScanResultScreenStyles.tableAlternatingRowColor,
+        child: cellContent,
+      ),
+    );
+  }
+
+  Widget _buildTable() {
+    final List<List<String>> rows = block.tableRows;
+
+    final int columnCount = rows.fold<int>(0, (
+      int currentMaximum,
+      List<String> row,
+    ) {
+      return row.length > currentMaximum ? row.length : currentMaximum;
+    });
+
+    if (rows.isEmpty || columnCount == 0) {
+      return _buildTextLine(block.normalizedContent);
+    }
+
+    return Semantics(
+      container: true,
+      label:
+          'Recognized table with '
+          '${rows.length} rows and '
+          '$columnCount columns.',
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double calculatedWidth =
+              columnCount * ScanResultScreenStyles.tableMinimumColumnWidth;
+
+          final double availableWidth = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : calculatedWidth;
+
+          final double tableWidth = calculatedWidth > availableWidth
+              ? calculatedWidth
+              : availableWidth;
+
+          return ClipRRect(
+            borderRadius: ScanResultScreenStyles.tableRadius,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: ScanResultScreenStyles.tableBackgroundColor,
+                border: ScanResultScreenStyles.tableOuterBorder,
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    border: TableBorder.all(
+                      color: ScanResultScreenStyles.tableBorderColor,
+                      width: ScanResultScreenStyles.tableBorderWidth,
+                    ),
+                    children: List<TableRow>.generate(rows.length, (
+                      int rowIndex,
+                    ) {
+                      final List<String> row = rows[rowIndex];
+
+                      return TableRow(
+                        children: List<Widget>.generate(columnCount, (
+                          int columnIndex,
+                        ) {
+                          final String content = columnIndex < row.length
+                              ? row[columnIndex]
+                              : '';
+
+                          return _buildTableCell(
+                            content: content,
+                            rowIndex: rowIndex,
+                            columnIndex: columnIndex,
+                          );
+                        }, growable: false),
+                      );
+                    }, growable: false),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final String content = block.normalizedContent.trim();
-    final String rawContent = block.rawContent.trim();
-
-    final String displayContent = rawContent.isEmpty ? content : rawContent;
-
-    final bool containsLatexFormula =
-        displayContent.contains(r'\frac') ||
-        displayContent.contains(r'\sqrt') ||
-        displayContent.contains(r'\sum') ||
-        displayContent.contains(r'\int') ||
-        displayContent.contains(r'\begin') ||
-        displayContent.contains(r'\left') ||
-        displayContent.contains(r'\right');
-
-    final bool shouldRenderAsFormula = block.isFormula || containsLatexFormula;
-
-    if (shouldRenderAsFormula) {
-      final String formula = _prepareFormula(displayContent);
-
-      return Container(
-        width: double.infinity,
-        padding: ScanResultScreenStyles.formulaPreviewPadding,
-        decoration: const BoxDecoration(
-          color: ScanResultScreenStyles.formulaBackgroundColor,
-          borderRadius: ScanResultScreenStyles.formulaRadius,
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Math.tex(
-            formula,
-            mathStyle: MathStyle.display,
-            textStyle: ScanResultScreenStyles.formulaContentStyle,
-            onErrorFallback: (FlutterMathException error) {
-              debugPrint('MATH RENDER ERROR: $error');
-              debugPrint('MATH INPUT: $formula');
-
-              return SelectableText(
-                formula,
-                textAlign: TextAlign.center,
-                style: ScanResultScreenStyles.formulaContentStyle,
-              );
-            },
-          ),
-        ),
-      );
+    if (block.hasTableData) {
+      return _buildTable();
     }
 
-    return SelectableText(
-      content,
-      textAlign: TextAlign.left,
-      style: ScanResultScreenStyles.recognizedContentStyle,
+    final String normalizedContent = block.normalizedContent.trim();
+
+    final String displayContent = normalizedContent.isNotEmpty
+        ? normalizedContent
+        : block.rawContent.trim();
+
+    final List<String> lines = displayContent
+        .split(RegExp(r'\r?\n'))
+        .map((String line) => line.trim())
+        .where((String line) => line.isNotEmpty)
+        .toList(growable: false);
+
+    if (lines.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: List<Widget>.generate(lines.length, (int index) {
+        final String line = lines[index];
+
+        final bool shouldRenderAsFormula =
+            block.isFormula || _looksLikeEquation(line);
+
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: index == lines.length - 1
+                ? ScanResultScreenStyles.zero
+                : ScanResultScreenStyles.unifiedBlockSpacing,
+          ),
+          child: shouldRenderAsFormula
+              ? _buildFormulaLine(line)
+              : _buildTextLine(line),
+        );
+      }, growable: false),
     );
   }
 }

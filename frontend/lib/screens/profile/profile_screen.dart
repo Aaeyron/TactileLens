@@ -1,3 +1,4 @@
+import '../auth/auth_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/profile/profile_screen_styles.dart';
@@ -7,6 +8,17 @@ import 'about_tactilelens_screen.dart';
 import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
 import 'terms_policy_screen.dart';
+
+abstract final class _ProfileText {
+  static const String exitGuestModeTitle = 'Exit Guest Mode';
+  static const String exitGuestDialogTitle = 'Exit Guest Mode?';
+  static const String exitGuestDialogDescription =
+      'You will return to the sign-in screen. Your locally saved scans, '
+      'history, materials, and folders will remain on this device.';
+
+  static const String cancelLabel = 'Cancel';
+  static const String exitLabel = 'Exit';
+}
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isGuest = false;
   bool _isLoadingProfile = true;
+  bool _isEndingSession = false;
 
   @override
   void initState() {
@@ -176,8 +189,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
   }
 
-  void _requestLogout() {
-    showLogoutDialog(context);
+  Future<void> _requestSessionExit() async {
+    if (_isEndingSession) {
+      return;
+    }
+
+    if (!_isGuest) {
+      showLogoutDialog(context);
+      return;
+    }
+
+    final bool shouldExit = await _showExitGuestConfirmation();
+
+    if (!mounted || !shouldExit) {
+      return;
+    }
+
+    setState(() {
+      _isEndingSession = true;
+    });
+
+    try {
+      await SessionManager.logout();
+
+      if (!mounted) {
+        return;
+      }
+
+      await Navigator.of(context).pushAndRemoveUntil<void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) {
+            return const AuthScreen();
+          },
+        ),
+        (Route<dynamic> route) => false,
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isEndingSession = false;
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: ProfileStyles.primaryColor,
+            content: Text(
+              'Unable to exit guest mode. Please try again.',
+              style: ProfileStyles.snackBarTextStyle,
+            ),
+          ),
+        );
+    }
+  }
+
+  Future<bool> _showExitGuestConfirmation() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !_isEndingSession,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: ProfileStyles.surfaceColor,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(18)),
+            side: BorderSide(color: ProfileStyles.outlineColor),
+          ),
+          title: const Text(_ProfileText.exitGuestDialogTitle),
+          content: const Text(_ProfileText.exitGuestDialogDescription),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text(_ProfileText.cancelLabel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: ProfileStyles.logoutColor,
+                foregroundColor: ProfileStyles.surfaceColor,
+              ),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text(_ProfileText.exitLabel),
+            ),
+          ],
+        );
+      },
+    );
+
+    return confirmed ?? false;
   }
 
   @override
@@ -237,13 +343,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: <Widget>[
                   _ProfileMenuItem(
                     icon: ProfileStyles.logoutIcon,
-                    title: ProfileStyles.logoutTitle,
+                    title: _isGuest
+                        ? _ProfileText.exitGuestModeTitle
+                        : ProfileStyles.logoutTitle,
                     iconColor: ProfileStyles.logoutColor,
                     titleStyle: ProfileStyles.logoutTitleStyle,
                     arrowColor: ProfileStyles.logoutColor,
                     iconBackgroundColor:
                         ProfileStyles.logoutIconBackgroundColor,
-                    onPressed: _requestLogout,
+                    onPressed: () {
+                      _requestSessionExit();
+                    },
                   ),
                 ],
               ),

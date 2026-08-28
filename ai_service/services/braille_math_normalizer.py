@@ -3,15 +3,52 @@ from typing import Final
 
 
 class BrailleMathNormalizer:
-    """Converts PaddleOCR-VL LaTeX into linear math for Liblouis."""
+    """Convert PaddleOCR-VL LaTeX into linear math for Liblouis."""
 
-    _fraction_command = re.compile(r"\\(?:dfrac|tfrac|frac)\b")
-
-    _integer_exponent = re.compile(
-        r"\^\s*(?:" r"\{\s*([+-]?\s*\d+)\s*\}" r"|" r"([+-]?\s*\d+)" r")"
+    _fraction_command = re.compile(
+        r"\\(?:dfrac|tfrac|frac)\b"
     )
 
-    _operator_replacements: Final[tuple[tuple[str, str], ...]] = (
+    _stacked_array_fraction = re.compile(
+        r"\\left\s*\(\s*"
+        r"\\begin\{array\}\{[^{}]*\}\s*"
+        r"(.+?)\s*\\\\\s*(.+?)\s*"
+        r"\\end\{array\}\s*"
+        r"\\right\s*\)",
+        re.DOTALL,
+    )
+
+    _stacked_double_slash_fraction = re.compile(
+        r"\(\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\\\\\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\)"
+    )
+
+    _stacked_single_slash_fraction = re.compile(
+        r"\(\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\\\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\)"
+    )
+
+    _integer_exponent = re.compile(
+        r"\^\s*(?:"
+        r"\{\s*([+-]?\s*\d+)\s*\}"
+        r"|"
+        r"([+-]?\s*\d+)"
+        r")"
+    )
+
+    _operator_replacements: Final[
+        tuple[tuple[str, str], ...]
+    ] = (
+        # Remove structural commands before replacing shorter
+        # commands such as \le, which is a prefix of \left.
+        (r"\left", ""),
+        (r"\right", ""),
         (r"\times", "×"),
         (r"\div", "÷"),
         (r"\cdot", "·"),
@@ -24,36 +61,50 @@ class BrailleMathNormalizer:
         (r"\neq", "≠"),
         (r"\ne", "≠"),
         (r"\approx", "≈"),
-        (r"\left", ""),
-        (r"\right", ""),
     )
 
     @classmethod
-    def normalize(cls, content: str) -> str:
+    def normalize(
+        cls,
+        content: str,
+    ) -> str:
         """Return Liblouis-friendly linear mathematical content."""
 
         if not isinstance(content, str):
             return ""
 
-        normalized = cls._remove_math_delimiters(content.strip())
+        normalized = cls._remove_math_delimiters(
+            content.strip()
+        )
 
         if not normalized:
             return ""
 
-        normalized = cls._replace_fractions(normalized)
+        normalized = cls._replace_stacked_fractions(
+            normalized
+        )
+
+        normalized = cls._replace_fractions(
+            normalized
+        )
 
         normalized = cls._integer_exponent.sub(
             cls._replace_integer_exponent,
             normalized,
         )
 
-        for latex_command, symbol in cls._operator_replacements:
+        for latex_command, symbol in (
+            cls._operator_replacements
+        ):
             normalized = normalized.replace(
                 latex_command,
                 symbol,
             )
 
-        normalized = normalized.replace("~", " ")
+        normalized = normalized.replace(
+            "~",
+            " ",
+        )
 
         normalized = re.sub(
             r"\\[,;:!]",
@@ -73,7 +124,11 @@ class BrailleMathNormalizer:
     def _replace_integer_exponent(
         match: re.Match[str],
     ) -> str:
-        exponent = match.group(1) if match.group(1) is not None else match.group(2)
+        exponent = (
+            match.group(1)
+            if match.group(1) is not None
+            else match.group(2)
+        )
 
         normalized_exponent = exponent.replace(
             " ",
@@ -81,6 +136,54 @@ class BrailleMathNormalizer:
         )
 
         return f"^{normalized_exponent}"
+
+    @classmethod
+    def _replace_stacked_fractions(
+        cls,
+        content: str,
+    ) -> str:
+        """Recover OCR fractions represented as stacked rows."""
+
+        def replace_fraction(
+            match: re.Match[str],
+        ) -> str:
+            numerator = (
+                match.group(1)
+                .replace("&", "")
+                .strip()
+            )
+
+            denominator = (
+                match.group(2)
+                .replace("&", "")
+                .strip()
+            )
+
+            if not numerator or not denominator:
+                return match.group(0)
+
+            return f"({numerator})/({denominator})"
+
+        normalized = cls._stacked_array_fraction.sub(
+            replace_fraction,
+            content,
+        )
+
+        normalized = (
+            cls._stacked_double_slash_fraction.sub(
+                replace_fraction,
+                normalized,
+            )
+        )
+
+        normalized = (
+            cls._stacked_single_slash_fraction.sub(
+                replace_fraction,
+                normalized,
+            )
+        )
+
+        return normalized
 
     @classmethod
     def _replace_fractions(
@@ -97,10 +200,14 @@ class BrailleMathNormalizer:
             )
 
             if match is None:
-                output.append(content[search_index:])
+                output.append(
+                    content[search_index:]
+                )
                 break
 
-            output.append(content[search_index : match.start()])
+            output.append(
+                content[search_index : match.start()]
+            )
 
             numerator_start = cls._skip_spaces(
                 content,
@@ -130,17 +237,31 @@ class BrailleMathNormalizer:
             )
 
             if denominator is None:
-                output.append(content[match.start() : numerator_end])
+                output.append(
+                    content[
+                        match.start() : numerator_end
+                    ]
+                )
+
                 search_index = numerator_end
                 continue
 
-            denominator_content, denominator_end = denominator
+            denominator_content, denominator_end = (
+                denominator
+            )
 
-            linear_numerator = cls._replace_fractions(numerator_content)
+            linear_numerator = cls._replace_fractions(
+                numerator_content
+            )
 
-            linear_denominator = cls._replace_fractions(denominator_content)
+            linear_denominator = cls._replace_fractions(
+                denominator_content
+            )
 
-            output.append(f"({linear_numerator})/" f"({linear_denominator})")
+            output.append(
+                f"({linear_numerator})/"
+                f"({linear_denominator})"
+            )
 
             search_index = denominator_end
 
@@ -153,7 +274,10 @@ class BrailleMathNormalizer:
     ) -> int:
         index = start
 
-        while index < len(content) and content[index].isspace():
+        while (
+            index < len(content)
+            and content[index].isspace()
+        ):
             index += 1
 
         return index
@@ -163,12 +287,18 @@ class BrailleMathNormalizer:
         content: str,
         start: int,
     ) -> tuple[str, int] | None:
-        if start >= len(content) or content[start] != "{":
+        if (
+            start >= len(content)
+            or content[start] != "{"
+        ):
             return None
 
         depth = 0
 
-        for index in range(start, len(content)):
+        for index in range(
+            start,
+            len(content),
+        ):
             character = content[index]
 
             if character == "{":
@@ -201,8 +331,11 @@ class BrailleMathNormalizer:
             if (
                 normalized.startswith(opening)
                 and normalized.endswith(closing)
-                and len(normalized) >= len(opening) + len(closing)
+                and len(normalized)
+                >= len(opening) + len(closing)
             ):
-                return normalized[len(opening) : -len(closing)].strip()
+                return normalized[
+                    len(opening) : -len(closing)
+                ].strip()
 
         return normalized

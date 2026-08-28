@@ -19,6 +19,14 @@ abstract final class ScanResultScreenStyles {
 
   static const Color formulaBackgroundColor = Color(0xFFF5F8FC);
 
+  static const Color tableBackgroundColor = Colors.white;
+
+  static const Color tableAlternatingRowColor = Color(0xFFF8FAFD);
+
+  static const Color tableLabelBackgroundColor = Color(0xFFEAF2FF);
+
+  static const Color tableBorderColor = Color(0xFFCAD7E7);
+
   static const Color brailleBackgroundColor = Color(0xFFF5F8FC);
 
   static const Color shadowColor = Color(0x10000000);
@@ -234,6 +242,37 @@ abstract final class ScanResultScreenStyles {
     height: 1.6,
     fontWeight: FontWeight.w500,
     color: textPrimaryColor,
+  );
+
+  // Table preview
+  static const double tableMinimumColumnWidth = 82;
+  static const double tableBorderWidth = 1;
+
+  static const EdgeInsets tableCellPadding = EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 14,
+  );
+
+  static const BorderRadius tableRadius = BorderRadius.all(Radius.circular(12));
+
+  static const Border tableOuterBorder = Border.fromBorderSide(
+    BorderSide(color: tableBorderColor, width: tableBorderWidth),
+  );
+
+  static const TextStyle tableCellTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontFamilyFallback: recognizedContentFontFallback,
+    color: textPrimaryColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle tableLabelTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontFamilyFallback: recognizedContentFontFallback,
+    color: primaryColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
   );
 
   // ============================================================
