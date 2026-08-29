@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/privacy_security_screen_styles.dart';
-import '../../widgets/app_header.dart';
 
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
@@ -11,257 +11,240 @@ class PrivacySecurityScreen extends StatelessWidget {
       icon: PrivacySecurityScreenStyles.dataProtectionIcon,
       title: 'Data Protection',
       description:
-          'Your materials, translations, and personal data are handled securely and never shared.',
+          'Account information, materials, and translations are handled using '
+          'appropriate safeguards.',
     ),
     _PrivacyTopicData(
       icon: PrivacySecurityScreenStyles.offlinePrivacyIcon,
       title: 'Offline Privacy',
       description:
-          'Scan, store, and translate without internet. Your data stays on your device for private use.',
+          'Guest scans, history, and materials can remain stored locally on '
+          'the device.',
     ),
     _PrivacyTopicData(
       icon: PrivacySecurityScreenStyles.onlineSecurityIcon,
-      title: 'Online Security',
+      title: 'Secure Online Access',
       description:
-          'When you use online features, your data is transmitted and stored securely.',
+          'Online account and AI features use protected connections when they '
+          'are available.',
     ),
     _PrivacyTopicData(
       icon: PrivacySecurityScreenStyles.accountAccessIcon,
-      title: 'Account & Access',
+      title: 'Account Access',
       description:
-          'Your account is protected with secure login and controlled access to your data.',
+          'Authenticated accounts require valid credentials before accessing '
+          'synchronized information.',
     ),
     _PrivacyTopicData(
       icon: PrivacySecurityScreenStyles.permissionsIcon,
-      title: 'Permissions',
+      title: 'Device Permissions',
       description:
-          'Camera, storage, and file access are used only for app features you use.',
+          'Camera and file access are requested only when required by features '
+          'you choose to use.',
     ),
     _PrivacyTopicData(
       icon: PrivacySecurityScreenStyles.controlIcon,
       title: 'Your Control',
       description:
-          'Review, manage, and delete your saved materials and translations anytime.',
+          'You can review and delete locally saved scans, history, folders, '
+          'and learning materials.',
     ),
   ];
 
-  static const List<_SecurityFeatureData> _features = <_SecurityFeatureData>[
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.secureScanIcon,
-      title: 'Secure Scan',
-      description: 'Safe camera use for scanning content',
-    ),
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.offlineFeatureIcon,
-      title: 'Offline Private',
-      description: 'Works offline. Your data stays local.',
-    ),
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.protectedOnlineIcon,
-      title: 'Protected Online',
-      description: 'Secure connections for online features',
-    ),
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.permissionControlIcon,
-      title: 'Permission Control',
-      description: 'Only required permissions are used',
-    ),
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.savedMaterialsIcon,
-      title: 'Saved Materials',
-      description: 'Organize and protect your materials',
-    ),
-    _SecurityFeatureData(
-      icon: PrivacySecurityScreenStyles.userControlIcon,
-      title: 'User Control',
-      description: 'Manage, review, and delete your data',
-    ),
-  ];
+  static const List<_SecurityFeatureData> _securityFeatures =
+      <_SecurityFeatureData>[
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.secureScanIcon,
+          title: 'Secure scanning',
+        ),
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.offlineFeatureIcon,
+          title: 'Offline storage',
+        ),
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.protectedOnlineIcon,
+          title: 'Protected connections',
+        ),
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.permissionControlIcon,
+          title: 'Permission control',
+        ),
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.savedMaterialsIcon,
+          title: 'Local materials',
+        ),
+        _SecurityFeatureData(
+          icon: PrivacySecurityScreenStyles.userControlIcon,
+          title: 'User-managed data',
+        ),
+      ];
 
   static const List<_OverviewData> _overviewItems = <_OverviewData>[
     _OverviewData(
-      title: 'Works Offline',
-      description: 'Full access without internet.',
+      title: 'Guest Mode',
+      description: 'Supported data is stored locally on the device.',
     ),
     _OverviewData(
-      title: 'Supports Secure Online Use',
-      description: 'Your data is protected.',
+      title: 'Registered Accounts',
+      description: 'Authentication protects access to synchronized data.',
     ),
     _OverviewData(
-      title: 'Personal data is protected',
-      description: 'We never sell your data.',
+      title: 'Document Processing',
+      description: 'Images are used only to provide requested scan results.',
     ),
     _OverviewData(
-      title: 'Only required permissions are used',
-      description: 'Nothing extra.',
+      title: 'Device Permissions',
+      description: 'Only permissions required by active features are used.',
     ),
     _OverviewData(
-      title: 'Users control saved content',
-      description: 'Review, manage, or delete anytime.',
+      title: 'Content Management',
+      description: 'Saved information can be reviewed and deleted by users.',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: PrivacySecurityScreenStyles.backgroundColor,
-     appBar: PreferredSize(
-  preferredSize: const Size.fromHeight(100),
-  child: Stack(
-    children: <Widget>[
-      const AppHeader(),
-      SafeArea(
-        child: SizedBox(
-          height: 76,
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: () => Navigator.maybePop(context),
-                  icon: const Icon(Icons.arrow_back),
-                  color:
-                      PrivacySecurityScreenStyles.textPrimaryColor,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: PrivacySecurityScreenStyles.backgroundColor,
+        body: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: PrivacySecurityScreenStyles.entranceDuration,
+          curve: PrivacySecurityScreenStyles.entranceCurve,
+          builder:
+              (BuildContext context, double animationValue, Widget? child) {
+                return Opacity(
+                  opacity: animationValue,
+                  child: Transform.translate(
+                    offset: Offset(
+                      0,
+                      PrivacySecurityScreenStyles.entranceVerticalOffset *
+                          (1 - animationValue),
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverPadding(
+                padding: PrivacySecurityScreenStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    const _SecurityStatusCard(),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.sectionSpacing,
+                    ),
+                    const _SectionHeading(
+                      title: PrivacySecurityScreenStyles.privacyTopicsTitle,
+                      description:
+                          PrivacySecurityScreenStyles.privacyTopicsDescription,
+                    ),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.headingBottomSpacing,
+                    ),
+                    const _PrivacyTopicsCard(topics: _topics),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.sectionSpacing,
+                    ),
+                    const _SectionHeading(
+                      title: PrivacySecurityScreenStyles.securityFeaturesTitle,
+                      description: PrivacySecurityScreenStyles
+                          .securityFeaturesDescription,
+                    ),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.headingBottomSpacing,
+                    ),
+                    const _SecurityFeatureGrid(features: _securityFeatures),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.sectionSpacing,
+                    ),
+                    const _PrivacyOverview(items: _overviewItems),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.cardSpacing,
+                    ),
+                    const _PrivacyPromiseCard(),
+                    const SizedBox(
+                      height: PrivacySecurityScreenStyles.bottomSpacing,
+                    ),
+                  ]),
                 ),
-              ),
-              const Text(
-                'Privacy & Security',
-                style:
-                    PrivacySecurityScreenStyles.appBarTitleStyle,
               ),
             ],
           ),
         ),
       ),
-    ],
-  ),
-),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: PrivacySecurityScreenStyles.screenPadding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: PrivacySecurityScreenStyles.contentMaxWidth,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        PrivacySecurityScreenStyles.headerHorizontalPadding,
+        statusBarHeight + PrivacySecurityScreenStyles.headerTopPadding,
+        PrivacySecurityScreenStyles.headerHorizontalPadding,
+        PrivacySecurityScreenStyles.headerBottomPadding,
+      ),
+      decoration: const BoxDecoration(
+        gradient: PrivacySecurityScreenStyles.headerGradient,
+        borderRadius: PrivacySecurityScreenStyles.headerRadius,
+      ),
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: PrivacySecurityScreenStyles.decorationRight,
+            bottom: PrivacySecurityScreenStyles.decorationBottom,
+            child: _HeaderBrailleDecoration(),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
                 children: <Widget>[
-                  const _PrivacyHero(),
-                  const SizedBox(height: PrivacySecurityScreenStyles.space12),
-                  ..._topics.map(
-                    (_PrivacyTopicData topic) => Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: PrivacySecurityScreenStyles.space10,
-                      ),
-                      child: _PrivacyTopicCard(topic: topic),
+                  IconButton(
+                    tooltip: PrivacySecurityScreenStyles.backTooltip,
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                    },
+                    style: PrivacySecurityScreenStyles.backButtonStyle,
+                    icon: const Icon(
+                      PrivacySecurityScreenStyles.backIcon,
+                      size: PrivacySecurityScreenStyles.backIconSize,
                     ),
                   ),
-                  const Text(
-                    'Key Security Features',
-                    style: PrivacySecurityScreenStyles.sectionTitleStyle,
+                  const SizedBox(
+                    width: PrivacySecurityScreenStyles.headerBackSpacing,
                   ),
-                  const SizedBox(height: PrivacySecurityScreenStyles.space10),
-                  const _SecurityFeatureGrid(features: _features),
-                  const SizedBox(height: PrivacySecurityScreenStyles.space14),
-                  const _PrivacyOverview(items: _overviewItems),
-                  const SizedBox(height: PrivacySecurityScreenStyles.space16),
-                  const _BrandFooter(),
+                  const Expanded(
+                    child: Text(
+                      PrivacySecurityScreenStyles.screenTitle,
+                      style: PrivacySecurityScreenStyles.headerTitleStyle,
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PrivacyHero extends StatelessWidget {
-  const _PrivacyHero();
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool compact = constraints.maxWidth <
-            PrivacySecurityScreenStyles.compactBreakpoint;
-        return Container(
-          padding: compact
-              ? PrivacySecurityScreenStyles.compactHeroPadding
-              : PrivacySecurityScreenStyles.heroPadding,
-          decoration: const BoxDecoration(
-            gradient: PrivacySecurityScreenStyles.heroGradient,
-            borderRadius: PrivacySecurityScreenStyles.cardRadius,
-            border: PrivacySecurityScreenStyles.cardBorder,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              SizedBox(
-                width: compact
-                    ? PrivacySecurityScreenStyles.compactHeroIconBoxSize
-                    : PrivacySecurityScreenStyles.heroIconBoxSize,
-                height: compact
-                    ? PrivacySecurityScreenStyles.compactHeroIconBoxSize
-                    : PrivacySecurityScreenStyles.heroIconBoxSize,
-                child: const _HeroShield(),
+              const SizedBox(
+                height: PrivacySecurityScreenStyles.headerTextSpacing,
               ),
-              const SizedBox(width: PrivacySecurityScreenStyles.space18),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Privacy & Security',
-                        maxLines: 1,
-                        style: PrivacySecurityScreenStyles.heroTitleStyle,
-                      ),
-                    ),
-                    SizedBox(height: PrivacySecurityScreenStyles.space6),
-                    Text(
-                      'Your data stays protected whether you work offline or online.',
-                      style: PrivacySecurityScreenStyles.heroSubtitleStyle,
-                    ),
-                  ],
+              const Padding(
+                padding: PrivacySecurityScreenStyles.headerDescriptionPadding,
+                child: SizedBox(
+                  width: PrivacySecurityScreenStyles.headerDescriptionWidth,
+                  child: Text(
+                    PrivacySecurityScreenStyles.screenDescription,
+                    style: PrivacySecurityScreenStyles.headerDescriptionStyle,
+                  ),
                 ),
               ),
             ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _HeroShield extends StatelessWidget {
-  const _HeroShield();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: PrivacySecurityScreenStyles.iconGradient,
-        borderRadius: PrivacySecurityScreenStyles.heroIconRadius,
-        boxShadow: PrivacySecurityScreenStyles.heroIconShadow,
-      ),
-      child: const Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          Icon(
-            PrivacySecurityScreenStyles.heroIcon,
-            color: PrivacySecurityScreenStyles.cardColor,
-            size: PrivacySecurityScreenStyles.heroIconSize,
-          ),
-          Icon(
-            PrivacySecurityScreenStyles.heroLockIcon,
-            color: PrivacySecurityScreenStyles.primaryColor,
-            size: PrivacySecurityScreenStyles.heroLockIconSize,
           ),
         ],
       ),
@@ -269,81 +252,206 @@ class _HeroShield extends StatelessWidget {
   }
 }
 
-class _PrivacyTopicCard extends StatelessWidget {
-  const _PrivacyTopicCard({required this.topic});
-
-  final _PrivacyTopicData topic;
+class _SecurityStatusCard extends StatelessWidget {
+  const _SecurityStatusCard();
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool compact = constraints.maxWidth <
-            PrivacySecurityScreenStyles.compactBreakpoint;
-        return Material(
-          color: PrivacySecurityScreenStyles.cardColor,
-          borderRadius: PrivacySecurityScreenStyles.cardRadius,
-          child: InkWell(
-            onTap: topic.onTap,
-            borderRadius: PrivacySecurityScreenStyles.cardRadius,
-            child: Container(
-              padding: compact
-                  ? PrivacySecurityScreenStyles.compactTopicCardPadding
-                  : PrivacySecurityScreenStyles.topicCardPadding,
-              decoration: const BoxDecoration(
-                color: PrivacySecurityScreenStyles.cardColor,
-                borderRadius: PrivacySecurityScreenStyles.cardRadius,
-                border: PrivacySecurityScreenStyles.cardBorder,
-                boxShadow: PrivacySecurityScreenStyles.cardShadow,
-              ),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: compact
-                        ? PrivacySecurityScreenStyles.compactTopicIconBoxSize
-                        : PrivacySecurityScreenStyles.topicIconBoxSize,
-                    height: compact
-                        ? PrivacySecurityScreenStyles.compactTopicIconBoxSize
-                        : PrivacySecurityScreenStyles.topicIconBoxSize,
-                    decoration: const BoxDecoration(
-                      color: PrivacySecurityScreenStyles.primarySoftColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      topic.icon,
-                      color: PrivacySecurityScreenStyles.primaryColor,
-                      size: PrivacySecurityScreenStyles.topicIconSize,
-                    ),
-                  ),
-                  const SizedBox(width: PrivacySecurityScreenStyles.space16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          topic.title,
-                          style: PrivacySecurityScreenStyles.topicTitleStyle,
-                        ),
-                        const SizedBox(
-                          height: PrivacySecurityScreenStyles.space4,
-                        ),
-                        Text(
-                          topic.description,
-                          maxLines: PrivacySecurityScreenStyles
-                              .topicDescriptionMaxLines,
-                          overflow: TextOverflow.ellipsis,
-                          style: PrivacySecurityScreenStyles
-                              .topicDescriptionStyle,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+    return Container(
+      padding: PrivacySecurityScreenStyles.statusCardPadding,
+      decoration: const BoxDecoration(
+        color: PrivacySecurityScreenStyles.surfaceColor,
+        borderRadius: PrivacySecurityScreenStyles.cardRadius,
+        border: PrivacySecurityScreenStyles.cardBorder,
+        boxShadow: PrivacySecurityScreenStyles.cardShadow,
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: PrivacySecurityScreenStyles.statusIconContainerSize,
+            height: PrivacySecurityScreenStyles.statusIconContainerSize,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              gradient: PrivacySecurityScreenStyles.securityGradient,
+              borderRadius: PrivacySecurityScreenStyles.statusIconRadius,
+              boxShadow: PrivacySecurityScreenStyles.statusIconShadow,
+            ),
+            child: const Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                Icon(
+                  PrivacySecurityScreenStyles.heroIcon,
+                  color: PrivacySecurityScreenStyles.surfaceColor,
+                  size: PrivacySecurityScreenStyles.statusShieldSize,
+                ),
+                Icon(
+                  PrivacySecurityScreenStyles.heroLockIcon,
+                  color: PrivacySecurityScreenStyles.primaryColor,
+                  size: PrivacySecurityScreenStyles.statusLockSize,
+                ),
+              ],
             ),
           ),
-        );
-      },
+          const SizedBox(
+            width: PrivacySecurityScreenStyles.statusContentSpacing,
+          ),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        PrivacySecurityScreenStyles.statusTitle,
+                        style: PrivacySecurityScreenStyles.statusTitleStyle,
+                      ),
+                    ),
+                    SizedBox(
+                      width: PrivacySecurityScreenStyles.statusBadgeSpacing,
+                    ),
+                    _StatusBadge(),
+                  ],
+                ),
+                SizedBox(
+                  height: PrivacySecurityScreenStyles.statusDescriptionSpacing,
+                ),
+                Text(
+                  PrivacySecurityScreenStyles.statusDescription,
+                  style: PrivacySecurityScreenStyles.statusDescriptionStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: PrivacySecurityScreenStyles.statusBadgePadding,
+      decoration: const BoxDecoration(
+        color: PrivacySecurityScreenStyles.successSoftColor,
+        borderRadius: PrivacySecurityScreenStyles.statusBadgeRadius,
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            PrivacySecurityScreenStyles.checkIcon,
+            color: PrivacySecurityScreenStyles.successColor,
+            size: PrivacySecurityScreenStyles.statusBadgeIconSize,
+          ),
+          SizedBox(width: PrivacySecurityScreenStyles.statusBadgeIconSpacing),
+          Text(
+            PrivacySecurityScreenStyles.statusBadgeLabel,
+            style: PrivacySecurityScreenStyles.statusBadgeTextStyle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: PrivacySecurityScreenStyles.sectionTitleStyle),
+        const SizedBox(
+          height: PrivacySecurityScreenStyles.sectionDescriptionSpacing,
+        ),
+        Text(
+          description,
+          style: PrivacySecurityScreenStyles.sectionDescriptionStyle,
+        ),
+      ],
+    );
+  }
+}
+
+class _PrivacyTopicsCard extends StatelessWidget {
+  const _PrivacyTopicsCard({required this.topics});
+
+  final List<_PrivacyTopicData> topics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: PrivacySecurityScreenStyles.surfaceColor,
+        borderRadius: PrivacySecurityScreenStyles.cardRadius,
+        border: PrivacySecurityScreenStyles.cardBorder,
+        boxShadow: PrivacySecurityScreenStyles.cardShadow,
+      ),
+      child: Column(
+        children: List<Widget>.generate(topics.length, (int index) {
+          return _PrivacyTopicRow(
+            topic: topics[index],
+            showDivider: index != topics.length - 1,
+          );
+        }, growable: false),
+      ),
+    );
+  }
+}
+
+class _PrivacyTopicRow extends StatelessWidget {
+  const _PrivacyTopicRow({required this.topic, required this.showDivider});
+
+  final _PrivacyTopicData topic;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: PrivacySecurityScreenStyles.topicRowPadding,
+      decoration: showDivider
+          ? const BoxDecoration(
+              border: PrivacySecurityScreenStyles.topicDividerBorder,
+            )
+          : null,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _PrivacyIcon(icon: topic.icon),
+          const SizedBox(
+            width: PrivacySecurityScreenStyles.topicContentSpacing,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  topic.title,
+                  style: PrivacySecurityScreenStyles.topicTitleStyle,
+                ),
+                const SizedBox(
+                  height: PrivacySecurityScreenStyles.topicDescriptionSpacing,
+                ),
+                Text(
+                  topic.description,
+                  style: PrivacySecurityScreenStyles.topicDescriptionStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -357,25 +465,27 @@ class _SecurityFeatureGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final bool compact = constraints.maxWidth <
-            PrivacySecurityScreenStyles.compactBreakpoint;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: features.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: compact
-                ? PrivacySecurityScreenStyles.compactGridColumns
-                : PrivacySecurityScreenStyles.regularGridColumns,
-            crossAxisSpacing: PrivacySecurityScreenStyles.gridSpacing,
-            mainAxisSpacing: PrivacySecurityScreenStyles.gridSpacing,
-            childAspectRatio: compact
-                ? PrivacySecurityScreenStyles.compactGridAspectRatio
-                : PrivacySecurityScreenStyles.regularGridAspectRatio,
-          ),
-          itemBuilder: (BuildContext context, int index) {
-            return _SecurityFeatureCard(feature: features[index]);
-          },
+        final bool singleColumn =
+            constraints.maxWidth <
+            PrivacySecurityScreenStyles.featureSingleColumnBreakpoint;
+
+        final double featureWidth = singleColumn
+            ? constraints.maxWidth
+            : (constraints.maxWidth -
+                      PrivacySecurityScreenStyles.featureSpacing) /
+                  2;
+
+        return Wrap(
+          spacing: PrivacySecurityScreenStyles.featureSpacing,
+          runSpacing: PrivacySecurityScreenStyles.featureSpacing,
+          children: features
+              .map((_SecurityFeatureData feature) {
+                return SizedBox(
+                  width: featureWidth,
+                  child: _SecurityFeatureCard(feature: feature),
+                );
+              })
+              .toList(growable: false),
         );
       },
     );
@@ -390,51 +500,32 @@ class _SecurityFeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(
+        minHeight: PrivacySecurityScreenStyles.featureMinimumHeight,
+      ),
       padding: PrivacySecurityScreenStyles.featureCardPadding,
       decoration: const BoxDecoration(
-        color: PrivacySecurityScreenStyles.cardColor,
-        borderRadius: PrivacySecurityScreenStyles.cardRadius,
+        color: PrivacySecurityScreenStyles.surfaceColor,
+        borderRadius: PrivacySecurityScreenStyles.featureCardRadius,
         border: PrivacySecurityScreenStyles.cardBorder,
-        boxShadow: PrivacySecurityScreenStyles.cardShadow,
+        boxShadow: PrivacySecurityScreenStyles.featureShadow,
       ),
       child: Row(
         children: <Widget>[
-          Container(
-            width: PrivacySecurityScreenStyles.featureIconBoxSize,
-            height: PrivacySecurityScreenStyles.featureIconBoxSize,
-            decoration: const BoxDecoration(
-              gradient: PrivacySecurityScreenStyles.iconGradient,
-              borderRadius: PrivacySecurityScreenStyles.iconRadius,
-            ),
-            child: Icon(
-              feature.icon,
-              color: PrivacySecurityScreenStyles.cardColor,
-              size: PrivacySecurityScreenStyles.featureIconSize,
+          _PrivacyIcon(icon: feature.icon),
+          const SizedBox(
+            width: PrivacySecurityScreenStyles.featureContentSpacing,
+          ),
+          Expanded(
+            child: Text(
+              feature.title,
+              style: PrivacySecurityScreenStyles.featureTitleStyle,
             ),
           ),
-          const SizedBox(width: PrivacySecurityScreenStyles.space10),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  feature.title,
-                  maxLines: PrivacySecurityScreenStyles
-                      .featureDescriptionMaxLines,
-                  overflow: TextOverflow.ellipsis,
-                  style: PrivacySecurityScreenStyles.featureTitleStyle,
-                ),
-                const SizedBox(height: PrivacySecurityScreenStyles.space4),
-                Text(
-                  feature.description,
-                  maxLines: PrivacySecurityScreenStyles
-                      .featureDescriptionMaxLines,
-                  overflow: TextOverflow.ellipsis,
-                  style: PrivacySecurityScreenStyles.featureDescriptionStyle,
-                ),
-              ],
-            ),
+          const Icon(
+            PrivacySecurityScreenStyles.checkIcon,
+            color: PrivacySecurityScreenStyles.successColor,
+            size: PrivacySecurityScreenStyles.featureCheckSize,
           ),
         ],
       ),
@@ -452,7 +543,7 @@ class _PrivacyOverview extends StatelessWidget {
     return Container(
       padding: PrivacySecurityScreenStyles.overviewPadding,
       decoration: const BoxDecoration(
-        color: PrivacySecurityScreenStyles.cardColor,
+        color: PrivacySecurityScreenStyles.surfaceColor,
         borderRadius: PrivacySecurityScreenStyles.cardRadius,
         border: PrivacySecurityScreenStyles.cardBorder,
         boxShadow: PrivacySecurityScreenStyles.cardShadow,
@@ -462,25 +553,72 @@ class _PrivacyOverview extends StatelessWidget {
         children: <Widget>[
           const Row(
             children: <Widget>[
-              Icon(
-                PrivacySecurityScreenStyles.overviewIcon,
-                color: PrivacySecurityScreenStyles.primaryColor,
-                size: PrivacySecurityScreenStyles.overviewIconSize,
+              _PrivacyIcon(icon: PrivacySecurityScreenStyles.overviewIcon),
+              SizedBox(
+                width: PrivacySecurityScreenStyles.overviewHeaderSpacing,
               ),
-              SizedBox(width: PrivacySecurityScreenStyles.space12),
-              Text(
-                'Privacy Overview',
-                style: PrivacySecurityScreenStyles.overviewTitleStyle,
+              Expanded(
+                child: Text(
+                  PrivacySecurityScreenStyles.overviewTitle,
+                  style: PrivacySecurityScreenStyles.overviewTitleStyle,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: PrivacySecurityScreenStyles.space14),
-          ...items.map(
-            (_OverviewData item) => Padding(
-              padding: const EdgeInsets.only(
-                bottom: PrivacySecurityScreenStyles.space8,
+          const SizedBox(
+            height: PrivacySecurityScreenStyles.overviewListSpacing,
+          ),
+          ...List<Widget>.generate(items.length, (int index) {
+            return _OverviewRow(
+              item: items[index],
+              showBottomSpacing: index != items.length - 1,
+            );
+          }, growable: false),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewRow extends StatelessWidget {
+  const _OverviewRow({required this.item, required this.showBottomSpacing});
+
+  final _OverviewData item;
+  final bool showBottomSpacing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: showBottomSpacing
+            ? PrivacySecurityScreenStyles.overviewRowSpacing
+            : 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            PrivacySecurityScreenStyles.checkIcon,
+            color: PrivacySecurityScreenStyles.successColor,
+            size: PrivacySecurityScreenStyles.overviewCheckSize,
+          ),
+          const SizedBox(
+            width: PrivacySecurityScreenStyles.overviewContentSpacing,
+          ),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: <InlineSpan>[
+                  TextSpan(
+                    text: '${item.title}: ',
+                    style: PrivacySecurityScreenStyles.overviewEmphasisStyle,
+                  ),
+                  TextSpan(
+                    text: item.description,
+                    style: PrivacySecurityScreenStyles.overviewTextStyle,
+                  ),
+                ],
               ),
-              child: _OverviewRow(item: item),
             ),
           ),
         ],
@@ -489,73 +627,104 @@ class _PrivacyOverview extends StatelessWidget {
   }
 }
 
-class _OverviewRow extends StatelessWidget {
-  const _OverviewRow({required this.item});
-
-  final _OverviewData item;
+class _PrivacyPromiseCard extends StatelessWidget {
+  const _PrivacyPromiseCard();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Icon(
-          PrivacySecurityScreenStyles.checkIcon,
-          color: PrivacySecurityScreenStyles.primaryColor,
-          size: PrivacySecurityScreenStyles.checkIconSize,
-        ),
-        const SizedBox(width: PrivacySecurityScreenStyles.space10),
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              children: <InlineSpan>[
-                TextSpan(
-                  text: item.title,
-                  style: PrivacySecurityScreenStyles.overviewEmphasisStyle,
+    return Container(
+      padding: PrivacySecurityScreenStyles.promiseCardPadding,
+      decoration: const BoxDecoration(
+        gradient: PrivacySecurityScreenStyles.securityGradient,
+        borderRadius: PrivacySecurityScreenStyles.cardRadius,
+        boxShadow: PrivacySecurityScreenStyles.cardShadow,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            PrivacySecurityScreenStyles.promiseIcon,
+            color: PrivacySecurityScreenStyles.surfaceColor,
+            size: PrivacySecurityScreenStyles.promiseIconSize,
+          ),
+          SizedBox(width: PrivacySecurityScreenStyles.promiseContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  PrivacySecurityScreenStyles.promiseTitle,
+                  style: PrivacySecurityScreenStyles.promiseTitleStyle,
                 ),
-                TextSpan(
-                  text: ' — ${item.description}',
-                  style: PrivacySecurityScreenStyles.overviewTextStyle,
+                SizedBox(
+                  height: PrivacySecurityScreenStyles.promiseDescriptionSpacing,
+                ),
+                Text(
+                  PrivacySecurityScreenStyles.promiseDescription,
+                  style: PrivacySecurityScreenStyles.promiseBodyStyle,
                 ),
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _BrandFooter extends StatelessWidget {
-  const _BrandFooter();
+class _PrivacyIcon extends StatelessWidget {
+  const _PrivacyIcon({required this.icon});
+
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: PrivacySecurityScreenStyles.footerPadding,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          const Icon(
-            PrivacySecurityScreenStyles.brandIcon,
-            color: PrivacySecurityScreenStyles.primaryColor,
-            size: PrivacySecurityScreenStyles.brandIconSize,
+    return Container(
+      width: PrivacySecurityScreenStyles.iconContainerSize,
+      height: PrivacySecurityScreenStyles.iconContainerSize,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: PrivacySecurityScreenStyles.primarySoftColor,
+        borderRadius: PrivacySecurityScreenStyles.iconContainerRadius,
+      ),
+      child: Icon(
+        icon,
+        color: PrivacySecurityScreenStyles.primaryColor,
+        size: PrivacySecurityScreenStyles.iconSize,
+      ),
+    );
+  }
+}
+
+class _HeaderBrailleDecoration extends StatelessWidget {
+  const _HeaderBrailleDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: PrivacySecurityScreenStyles.decorationOpacity,
+      child: SizedBox(
+        width: PrivacySecurityScreenStyles.decorationWidth,
+        child: Wrap(
+          spacing: PrivacySecurityScreenStyles.decorationDotSpacing,
+          runSpacing: PrivacySecurityScreenStyles.decorationDotSpacing,
+          children: List<Widget>.generate(
+            PrivacySecurityScreenStyles.decorationDotCount,
+            (int index) {
+              return const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: PrivacySecurityScreenStyles.surfaceColor,
+                  shape: BoxShape.circle,
+                ),
+                child: SizedBox(
+                  width: PrivacySecurityScreenStyles.decorationDotSize,
+                  height: PrivacySecurityScreenStyles.decorationDotSize,
+                ),
+              );
+            },
+            growable: false,
           ),
-          const SizedBox(width: PrivacySecurityScreenStyles.space12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const <Widget>[
-              Text(
-                'TactileLens',
-                style: PrivacySecurityScreenStyles.brandTitleStyle,
-              ),
-              Text(
-                'See. Translate. Empower.',
-                style: PrivacySecurityScreenStyles.brandTaglineStyle,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -566,24 +735,18 @@ class _PrivacyTopicData {
     required this.icon,
     required this.title,
     required this.description,
-  }) : onTap = null;
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final VoidCallback? onTap;
-}
-
-class _SecurityFeatureData {
-  const _SecurityFeatureData({
-    required this.icon,
-    required this.title,
-    required this.description,
   });
 
   final IconData icon;
   final String title;
   final String description;
+}
+
+class _SecurityFeatureData {
+  const _SecurityFeatureData({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
 }
 
 class _OverviewData {
