@@ -1,210 +1,395 @@
 import 'package:flutter/material.dart';
 
 abstract final class TermsPolicyScreenStyles {
-  static const String fontFamily = 'Poppins';
+  // ============================================================
+  // CONTENT
+  // ============================================================
 
-  // Brand palette
-  static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color primaryDarkColor = Color(0xFF083475);
-  static const Color primarySoftColor = Color(0xFFEAF2FC);
-  static const Color primaryFaintColor = Color(0xFFF6F9FD);
-  static const Color backgroundColor = Color(0xFFFAFCFF);
-  static const Color cardColor = Color(0xFFFFFFFF);
-  static const Color textPrimaryColor = Color(0xFF11152E);
-  static const Color textSecondaryColor = Color(0xFF4E5872);
-  static const Color borderColor = Color(0xFFD8E4F3);
-  static const Color dividerColor = Color(0xFFE3EBF5);
-  static const Color shadowColor = Color(0x140D47A1);
-  static const Color transparentColor = Colors.transparent;
+  static const String screenTitle = 'Terms & Policy';
 
-  // Responsive layout
-  static const double contentMaxWidth = 640;
-  static const double compactBreakpoint = 360;
-  static const double appBarElevation = 0;
-  static const double appBarScrolledUnderElevation = 0;
-  static const double cardBorderWidth = 1;
-  static const double segmentBorderWidth = 1.25;
-  static const double dividerThickness = 1;
-  static const double compactPolicyIconBoxSize = 48;
-  static const double policyIconBoxSize = 56;
-  static const double heroIconBoxSize = 86;
-  static const double segmentHeight = 50;
-  static const double checkboxSize = 22;
-  static const int policyBodyMaxLines = 12;
+  static const String screenDescription =
+      'Understand how TactileLens should be used and how your data is handled.';
 
-  // Padding
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(18, 18, 18, 32);
-  static const EdgeInsets heroPadding = EdgeInsets.symmetric(
-    horizontal: 22,
-    vertical: 28,
-  );
-  static const EdgeInsets compactHeroPadding = EdgeInsets.all(18);
-  static const EdgeInsets segmentOuterPadding = EdgeInsets.all(3);
-  static const EdgeInsets segmentPadding = EdgeInsets.symmetric(
-    horizontal: 12,
-    vertical: 10,
-  );
-  static const EdgeInsets policyCardPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 6,
-  );
-  static const EdgeInsets compactPolicyCardPadding = EdgeInsets.symmetric(
-    horizontal: 14,
-    vertical: 4,
-  );
-  static const EdgeInsets policyItemPadding = EdgeInsets.symmetric(vertical: 20);
-  static const EdgeInsets notePadding = EdgeInsets.all(18);
-  static const EdgeInsets checkboxPadding = EdgeInsets.symmetric(
-    horizontal: 6,
-    vertical: 8,
-  );
-  static const EdgeInsets iconPadding = EdgeInsets.all(12);
+  static const String backTooltip = 'Return to Profile';
 
-  // Spacing
-  static const double space4 = 4;
-  static const double space6 = 6;
-  static const double space8 = 8;
-  static const double space10 = 10;
-  static const double space12 = 12;
-  static const double space14 = 14;
-  static const double space16 = 16;
-  static const double space18 = 18;
-  static const double space20 = 20;
-  static const double space24 = 24;
+  static const String introductionTitle = 'Clear, Safe, and Responsible';
 
-  // Shapes
-  static const double cardRadiusValue = 18;
-  static const double heroIconRadiusValue = 24;
-  static const double iconRadiusValue = 16;
-  static const double segmentRadiusValue = 28;
-  static const BorderRadius cardRadius = BorderRadius.all(
-    Radius.circular(cardRadiusValue),
-  );
-  static const BorderRadius heroIconRadius = BorderRadius.all(
-    Radius.circular(heroIconRadiusValue),
-  );
-  static const BorderRadius iconRadius = BorderRadius.all(
-    Radius.circular(iconRadiusValue),
-  );
-  static const BorderRadius segmentRadius = BorderRadius.all(
-    Radius.circular(segmentRadiusValue),
-  );
-  static const Border cardBorder = Border.fromBorderSide(
-    BorderSide(color: borderColor, width: cardBorderWidth),
-  );
-  static const Border segmentBorder = Border.fromBorderSide(
-    BorderSide(color: borderColor, width: segmentBorderWidth),
-  );
-  static const Border itemDividerBorder = Border(
-    bottom: BorderSide(color: dividerColor, width: dividerThickness),
+  static const String introductionDescription =
+      'These guidelines explain your responsibilities and our commitment '
+      'to protecting accessible learning information.';
+
+  static const String effectiveDate = 'Effective August 2026';
+
+  static const String termsTabLabel = 'Terms of Use';
+  static const String privacyTabLabel = 'Privacy Policy';
+
+  static const String termsTabAccessibilityLabel = 'Open Terms of Use';
+
+  static const String privacyTabAccessibilityLabel = 'Open Privacy Policy';
+
+  static const String selectedTabHint = 'This section is currently selected';
+
+  static const String unselectedTabHint = 'Double tap to open this section';
+
+  static const String termsContentTitle = 'Terms of Use';
+
+  static const String termsContentDescription =
+      'Guidelines for using TactileLens safely and responsibly.';
+
+  static const String privacyContentTitle = 'Privacy Policy';
+
+  static const String privacyContentDescription =
+      'How account information and learning data are processed and protected.';
+
+  static const String termsNoticeTitle = 'Important Reminder';
+
+  static const String termsNoticeDescription =
+      'AI-generated recognition and Braille output should always be reviewed '
+      'before being distributed as a final accessible learning material.';
+
+  static const String privacyNoticeTitle = 'Your Privacy Matters';
+
+  static const String privacyNoticeDescription =
+      'Guest data remains local to the device, while registered account data '
+      'may use online services when synchronization is available.';
+
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0758DD);
+
+  static const Color backgroundColor = Color(0xFFF4F7FC);
+  static const Color surfaceColor = Colors.white;
+
+  static const Color textPrimaryColor = Color(0xFF10213D);
+  static const Color textSecondaryColor = Color(0xFF42526B);
+  static const Color textMutedColor = Color(0xFF728096);
+
+  static const Color outlineColor = Color(0xFFDDE5F0);
+  static const Color dividerColor = Color(0xFFE5EBF3);
+
+  static const Color primarySoftColor = Color(0xFFEDF4FF);
+
+  static const Color noticeBackgroundColor = Color(0xFFFFFAEB);
+  static const Color noticeBorderColor = Color(0xFFF2D38A);
+
+  static const Color privacyNoticeBackgroundColor = Color(0xFFF0F7FF);
+  static const Color privacyNoticeBorderColor = Color(0xFFCCE0FF);
+
+  // ============================================================
+  // ANIMATION
+  // ============================================================
+
+  static const Duration entranceDuration = Duration(milliseconds: 420);
+  static const Curve entranceCurve = Curves.easeOutCubic;
+  static const Offset entranceBeginOffset = Offset(0, 0.025);
+
+  static const Duration contentSwitchDuration = Duration(milliseconds: 280);
+  static const Curve contentSwitchCurve = Curves.easeOutCubic;
+  static const Offset contentSwitchBeginOffset = Offset(0.025, 0);
+
+  static const Duration tabAnimationDuration = Duration(milliseconds: 230);
+  static const Curve tabAnimationCurve = Curves.easeOutCubic;
+
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  static const double headerHorizontalPadding = 14;
+  static const double headerTopPadding = 12;
+  static const double headerBottomPadding = 27;
+
+  static const double headerBackSpacing = 5;
+  static const double headerTextSpacing = 15;
+
+  static const double headerDescriptionWidth = 280;
+
+  static const EdgeInsets headerDescriptionPadding = EdgeInsets.symmetric(
+    horizontal: 5,
   );
 
-  // Effects
-  static const LinearGradient heroGradient = LinearGradient(
+  static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[primarySoftColor, backgroundColor],
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
   );
-  static const LinearGradient selectedSegmentGradient = LinearGradient(
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-    colors: <Color>[primaryDarkColor, primaryColor],
-  );
-  static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: shadowColor, blurRadius: 18, offset: Offset(0, 6)),
-  ];
-  static const List<BoxShadow> selectedSegmentShadow = <BoxShadow>[
-    BoxShadow(color: shadowColor, blurRadius: 10, offset: Offset(0, 3)),
-  ];
-  static const Duration segmentAnimationDuration = Duration(milliseconds: 220);
-  static const Curve segmentAnimationCurve = Curves.easeOutCubic;
 
-  // Icons
-  static const IconData heroIcon = Icons.verified_user_rounded;
-  static const IconData acceptanceIcon = Icons.description_outlined;
+  static const BorderRadius headerRadius = BorderRadius.only(
+    bottomLeft: Radius.elliptical(190, 34),
+    bottomRight: Radius.elliptical(190, 34),
+  );
+
+  static const double decorationRight = 18;
+  static const double decorationBottom = 22;
+  static const double decorationOpacity = 0.18;
+  static const double decorationWidth = 49;
+  static const double decorationDotSize = 4;
+  static const double decorationDotSpacing = 7;
+  static const int decorationDotCount = 12;
+
+  static const IconData backIcon = Icons.arrow_back_rounded;
+  static const double backIconSize = 25;
+
+  static final ButtonStyle backButtonStyle = IconButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: const Color(0x26FFFFFF),
+    shape: const CircleBorder(),
+  );
+
+  // ============================================================
+  // LAYOUT
+  // ============================================================
+
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(14, 17, 14, 30);
+
+  static const double sectionSpacing = 18;
+  static const double cardSpacing = 13;
+  static const double bottomSpacing = 30;
+
+  // ============================================================
+  // CARDS
+  // ============================================================
+
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(15));
+
+  static const Border cardBorder = Border.fromBorderSide(
+    BorderSide(color: outlineColor, width: 1),
+  );
+
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x0D102A43), blurRadius: 12, offset: Offset(0, 4)),
+  ];
+
+  // ============================================================
+  // INTRODUCTION
+  // ============================================================
+
+  static const EdgeInsets introductionPadding = EdgeInsets.all(17);
+
+  static const double introductionContentSpacing = 13;
+  static const double introductionDescriptionSpacing = 6;
+  static const double effectiveDateSpacing = 10;
+
+  // ============================================================
+  // TABS
+  // ============================================================
+
+  static const double tabContainerHeight = 64;
+
+  static const EdgeInsets tabContainerPadding = EdgeInsets.all(4);
+
+  static const BorderRadius tabContainerRadius = BorderRadius.all(
+    Radius.circular(16),
+  );
+
+  static const BorderRadius tabRadius = BorderRadius.all(Radius.circular(12));
+
+  static const EdgeInsets tabContentPadding = EdgeInsets.symmetric(
+    horizontal: 9,
+    vertical: 8,
+  );
+
+  static const double tabSpacing = 5;
+
+  static const double tabIconContainerSize = 30;
+  static const double tabIconSize = 17;
+  static const double tabIconSpacing = 7;
+
+  static const BorderRadius tabIconContainerRadius = BorderRadius.all(
+    Radius.circular(9),
+  );
+
+  static const double selectedCheckSpacing = 5;
+  static const double selectedCheckIconSize = 15;
+
+  static const double selectedTabScale = 1;
+  static const double unselectedTabScale = 0.985;
+
+  static const Color unselectedTabBackgroundColor = Color(0xFFF7F9FC);
+  static const Color unselectedTabBorderColor = Color(0xFFE1E8F2);
+
+  static const Color selectedTabIconBackgroundColor = Color(0x33FFFFFF);
+  static const Color unselectedTabIconBackgroundColor = Color(0xFFE6F0FF);
+
+  static const Color tabSplashColor = Color(0x331268F3);
+  static const Color tabHighlightColor = Color(0x141268F3);
+
+  static const IconData selectedTabIcon = Icons.check_circle_rounded;
+
+  static const LinearGradient selectedTabGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+  );
+
+  static const List<BoxShadow> tabShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x09102A43), blurRadius: 8, offset: Offset(0, 3)),
+  ];
+
+  static const List<BoxShadow> selectedTabShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x291268F3), blurRadius: 10, offset: Offset(0, 4)),
+  ];
+
+  // ============================================================
+  // POLICY CONTENT
+  // ============================================================
+
+  static const double sectionDescriptionSpacing = 4;
+  static const double policyListSpacing = 12;
+
+  static const EdgeInsets policyItemPadding = EdgeInsets.all(16);
+
+  static const Border policyDividerBorder = Border(
+    bottom: BorderSide(color: dividerColor, width: 1),
+  );
+
+  static const double policyContentSpacing = 13;
+  static const double policyBodySpacing = 6;
+
+  static const double policyIconContainerSize = 44;
+  static const double policyIconSize = 21;
+
+  static const BorderRadius policyIconRadius = BorderRadius.all(
+    Radius.circular(12),
+  );
+
+  static const LinearGradient iconHighlightGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF66A6FF), Color(0xFF1268F3)],
+  );
+
+  static const double numberBadgeSize = 18;
+  static const double numberBadgeRight = -5;
+  static const double numberBadgeTop = -5;
+
+  // ============================================================
+  // NOTICE
+  // ============================================================
+
+  static const EdgeInsets noticePadding = EdgeInsets.all(16);
+  static const double noticeContentSpacing = 12;
+  static const double noticeDescriptionSpacing = 5;
+
+  // ============================================================
+  // ICONS
+  // ============================================================
+
+  static const IconData heroIcon = Icons.verified_user_outlined;
+
+  static const IconData termsIcon = Icons.description_outlined;
+  static const IconData privacyIcon = Icons.shield_outlined;
+
+  static const IconData acceptanceIcon = Icons.task_alt_rounded;
   static const IconData appUseIcon = Icons.phone_android_rounded;
-  static const IconData responsibilityIcon = Icons.shield_outlined;
-  static const IconData intellectualPropertyIcon = Icons.lock_outline_rounded;
+  static const IconData responsibilityIcon = Icons.groups_outlined;
+
+  static const IconData intellectualPropertyIcon = Icons.copyright_rounded;
+
+  static const IconData accuracyIcon = Icons.fact_check_outlined;
   static const IconData liabilityIcon = Icons.warning_amber_rounded;
-  static const IconData informationIcon = Icons.info_outline_rounded;
+
   static const IconData collectionIcon = Icons.inventory_2_outlined;
   static const IconData dataUseIcon = Icons.manage_search_rounded;
+  static const IconData offlineIcon = Icons.cloud_off_outlined;
   static const IconData dataProtectionIcon = Icons.security_rounded;
   static const IconData userRightsIcon = Icons.person_outline_rounded;
   static const IconData updatesIcon = Icons.sync_rounded;
 
-  // Icon sizes
-  static const double heroIconSize = 52;
-  static const double policyIconSize = 29;
-  static const double noteIconSize = 32;
+  static const IconData informationIcon = Icons.info_outline_rounded;
 
-  // Typography
-  static const TextStyle appBarTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
+  // ============================================================
+  // TYPOGRAPHY
+  // ============================================================
+
+  static const TextStyle headerTitleStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 21,
+    fontWeight: FontWeight.w800,
     letterSpacing: -0.25,
   );
-  static const TextStyle heroTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
-    fontSize: 28,
-    fontWeight: FontWeight.w800,
-    height: 1.15,
-    letterSpacing: -0.6,
-  );
-  static const TextStyle heroSubtitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    height: 1.5,
-  );
-  static const TextStyle selectedSegmentStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: cardColor,
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-  );
-  static const TextStyle unselectedSegmentStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
-    fontSize: 14,
-    fontWeight: FontWeight.w700,
-  );
-  static const TextStyle policyTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
-    fontSize: 16,
-    fontWeight: FontWeight.w700,
-    height: 1.35,
-  );
-  static const TextStyle policyBodyStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
+
+  static const TextStyle headerDescriptionStyle = TextStyle(
+    color: Color(0xFFE9F2FF),
     fontSize: 13.5,
-    fontWeight: FontWeight.w400,
-    height: 1.55,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
   );
-  static const TextStyle noteTitleStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle introductionTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle bodyStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 13,
+    height: 1.48,
+  );
+
+  static const TextStyle effectiveDateStyle = TextStyle(
     color: primaryColor,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: FontWeight.w700,
   );
-  static const TextStyle noteBodyStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle selectedTabStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.1,
+  );
+
+  static const TextStyle unselectedTabStyle = TextStyle(
     color: textPrimaryColor,
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.1,
+  );
+
+  static const TextStyle sectionTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 18,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+  );
+
+  static const TextStyle sectionDescriptionStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 12.5,
+    height: 1.4,
+  );
+
+  static const TextStyle policyTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 14.5,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle policyBodyStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 12.75,
     height: 1.5,
   );
-  static const TextStyle agreementStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle numberBadgeTextStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 10,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle noticeTitleStyle = TextStyle(
     color: textPrimaryColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle noticeBodyStyle = TextStyle(
+    color: textSecondaryColor,
     fontSize: 12.5,
-    fontWeight: FontWeight.w500,
-    height: 1.4,
+    height: 1.45,
   );
 }

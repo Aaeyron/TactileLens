@@ -251,20 +251,16 @@ class _BrandCard extends StatelessWidget {
               borderRadius: AboutTactileLensScreenStyles.logoRadius,
               boxShadow: AboutTactileLensScreenStyles.logoShadow,
             ),
-            child: const Stack(
-              alignment: Alignment.center,
-              children: <Widget>[
-                Icon(
-                  AboutTactileLensScreenStyles.logoIcon,
-                  color: AboutTactileLensScreenStyles.surfaceColor,
-                  size: AboutTactileLensScreenStyles.logoIconSize,
-                ),
-                Positioned(
-                  right: AboutTactileLensScreenStyles.logoDotsRight,
-                  bottom: AboutTactileLensScreenStyles.logoDotsBottom,
-                  child: _SmallBrailleDecoration(),
-                ),
-              ],
+            child: Padding(
+              padding: AboutTactileLensScreenStyles.logoImagePadding,
+              child: Image.asset(
+                AboutTactileLensScreenStyles.logoAsset,
+                width: AboutTactileLensScreenStyles.logoImageSize,
+                height: AboutTactileLensScreenStyles.logoImageSize,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+                semanticLabel: AboutTactileLensScreenStyles.logoSemanticLabel,
+              ),
             ),
           ),
           const SizedBox(height: AboutTactileLensScreenStyles.brandNameSpacing),
@@ -638,37 +634,6 @@ class _HeaderBrailleDecoration extends StatelessWidget {
             },
             growable: false,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SmallBrailleDecoration extends StatelessWidget {
-  const _SmallBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: AboutTactileLensScreenStyles.smallDotsWidth,
-      child: Wrap(
-        spacing: AboutTactileLensScreenStyles.smallDotSpacing,
-        runSpacing: AboutTactileLensScreenStyles.smallDotSpacing,
-        children: List<Widget>.generate(
-          AboutTactileLensScreenStyles.smallDotCount,
-          (int index) {
-            return const DecoratedBox(
-              decoration: BoxDecoration(
-                color: AboutTactileLensScreenStyles.surfaceColor,
-                shape: BoxShape.circle,
-              ),
-              child: SizedBox(
-                width: AboutTactileLensScreenStyles.smallDotSize,
-                height: AboutTactileLensScreenStyles.smallDotSize,
-              ),
-            );
-          },
-          growable: false,
         ),
       ),
     );

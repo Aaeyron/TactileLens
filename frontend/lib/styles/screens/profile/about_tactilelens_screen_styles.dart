@@ -150,9 +150,13 @@ abstract final class AboutTactileLensScreenStyles {
   );
 
   static const double logoContainerSize = 78;
-  static const double logoIconSize = 43;
+  static const String logoAsset = 'assets/icons/tactilelens_app_icon.png';
 
-  static const IconData logoIcon = Icons.document_scanner_rounded;
+  static const String logoSemanticLabel = 'TactileLens application logo';
+
+  static const double logoImageSize = 66;
+
+  static const EdgeInsets logoImagePadding = EdgeInsets.all(6);
 
   static const LinearGradient logoGradient = LinearGradient(
     begin: Alignment.topLeft,

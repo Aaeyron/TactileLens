@@ -1,240 +1,378 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/terms_policy_screen_styles.dart';
-import '../../widgets/app_header.dart';
 
 class TermsPolicyScreen extends StatefulWidget {
   const TermsPolicyScreen({super.key});
 
   @override
-  State<TermsPolicyScreen> createState() => _TermsPolicyScreenState();
+  State<TermsPolicyScreen> createState() {
+    return _TermsPolicyScreenState();
+  }
 }
 
-class _TermsPolicyScreenState extends State<TermsPolicyScreen> {
+class _TermsPolicyScreenState extends State<TermsPolicyScreen>
+    with SingleTickerProviderStateMixin {
   static const int _termsTabIndex = 0;
   static const int _privacyTabIndex = 1;
 
   static const List<_PolicySectionData> _termsSections = <_PolicySectionData>[
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.acceptanceIcon,
-      title: '1. Acceptance of Terms',
+      title: 'Acceptance of Terms',
       body:
-          'By using TactileLens, you agree to these terms and conditions. If you do not agree, please do not use the app.',
+          'By using TactileLens, you agree to these terms and conditions. '
+          'If you do not agree, please discontinue use of the application.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.appUseIcon,
-      title: '2. Use of the App',
+      title: 'Use of the Application',
       body:
-          'TactileLens is intended for educational and accessibility purposes only. You agree to use the app responsibly and lawfully.',
+          'TactileLens is intended for educational and accessibility '
+          'purposes. You agree to use the application responsibly and '
+          'in accordance with applicable laws.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.responsibilityIcon,
-      title: '3. User Responsibilities',
+      title: 'User Responsibilities',
       body:
-          'You are responsible for the content you scan, upload, or translate. Do not use the app for harmful or unlawful activities.',
+          'You are responsible for the documents and learning materials '
+          'you capture, upload, translate, organize, or share through '
+          'TactileLens.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.intellectualPropertyIcon,
-      title: '4. Intellectual Property',
+      title: 'Intellectual Property',
       body:
-          'All content, features, and materials within TactileLens are protected by copyright and other intellectual property laws.',
+          'The TactileLens application, interface, branding, and original '
+          'materials are protected by applicable intellectual property '
+          'and copyright laws.',
+    ),
+    _PolicySectionData(
+      icon: TermsPolicyScreenStyles.accuracyIcon,
+      title: 'Translation Accuracy',
+      body:
+          'AI-generated recognition and Braille output should be reviewed '
+          'by a qualified educator before being used as a final accessible '
+          'learning material.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.liabilityIcon,
-      title: '5. Limitation of Liability',
+      title: 'Limitation of Liability',
       body:
-          'TactileLens is provided “as is” without warranties. We are not liable for damages arising from your use of the app.',
+          'TactileLens is provided as an educational support tool. The '
+          'developers are not responsible for losses resulting from '
+          'incorrect input, unreviewed output, or improper use.',
     ),
   ];
 
-  static const List<_PolicySectionData> _privacySections =
-      <_PolicySectionData>[
+  static const List<_PolicySectionData> _privacySections = <_PolicySectionData>[
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.collectionIcon,
-      title: '1. Information We Collect',
+      title: 'Information We Process',
       body:
-          'TactileLens only processes the information needed to provide its accessibility and synchronization features.',
+          'TactileLens processes only the information required to provide '
+          'account, scanning, accessibility, history, and material '
+          'organization features.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.dataUseIcon,
-      title: '2. How Information Is Used',
+      title: 'How Information Is Used',
       body:
-          'Your information is used to operate the app, maintain your account, and improve your learning experience.',
+          'Information is used to operate the application, maintain your '
+          'account, process learning documents, and provide accessible '
+          'text and Braille output.',
+    ),
+    _PolicySectionData(
+      icon: TermsPolicyScreenStyles.offlineIcon,
+      title: 'Guest and Offline Data',
+      body:
+          'When using Guest Mode, supported scans, history, and materials '
+          'are stored locally on the device and are not connected to a '
+          'registered account.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.dataProtectionIcon,
-      title: '3. Data Protection',
+      title: 'Data Protection',
       body:
-          'We apply appropriate safeguards to protect your information from unauthorized access, alteration, or disclosure.',
+          'Reasonable technical safeguards are used to protect account '
+          'information and stored learning content from unauthorized '
+          'access, alteration, or disclosure.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.userRightsIcon,
-      title: '4. Your Rights',
+      title: 'Your Rights',
       body:
-          'You may review, correct, or request deletion of your personal information, subject to applicable requirements.',
+          'You may review, correct, or request deletion of personal '
+          'information associated with your account, subject to applicable '
+          'requirements.',
     ),
     _PolicySectionData(
       icon: TermsPolicyScreenStyles.updatesIcon,
-      title: '5. Policy Updates',
+      title: 'Policy Updates',
       body:
-          'This policy may be updated as TactileLens evolves. Important changes will be communicated through the app.',
+          'These policies may be updated as TactileLens evolves. Important '
+          'changes should be communicated through the application or '
+          'official project channels.',
     ),
   ];
 
+  late final AnimationController _entranceController;
+  late final Animation<double> _entranceOpacity;
+  late final Animation<Offset> _entrancePosition;
+
   int _selectedTab = _termsTabIndex;
-  bool _hasAgreed = false;
 
   bool get _showingTerms => _selectedTab == _termsTabIndex;
 
-  List<_PolicySectionData> get _visibleSections =>
-      _showingTerms ? _termsSections : _privacySections;
-
-  void _selectTab(int index) {
-    if (_selectedTab == index) return;
-    setState(() => _selectedTab = index);
+  List<_PolicySectionData> get _visibleSections {
+    return _showingTerms ? _termsSections : _privacySections;
   }
 
-  void _setAgreement(bool? value) {
-    setState(() => _hasAgreed = value ?? false);
+  @override
+  void initState() {
+    super.initState();
+
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: TermsPolicyScreenStyles.entranceDuration,
+    );
+
+    final CurvedAnimation animation = CurvedAnimation(
+      parent: _entranceController,
+      curve: TermsPolicyScreenStyles.entranceCurve,
+    );
+
+    _entranceOpacity = animation;
+
+    _entrancePosition = Tween<Offset>(
+      begin: TermsPolicyScreenStyles.entranceBeginOffset,
+      end: Offset.zero,
+    ).animate(animation);
+
+    _entranceController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    if (_selectedTab == index) {
+      return;
+    }
+
+    setState(() {
+      _selectedTab = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: TermsPolicyScreenStyles.backgroundColor,
-    appBar: PreferredSize(
-  preferredSize: const Size.fromHeight(100),
-  child: Stack(
-    children: <Widget>[
-      const AppHeader(),
-      SafeArea(
-        child: SizedBox(
-          height: 76,
-          child: Stack(
-            alignment: Alignment.center,
-            children: <Widget>[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: () => Navigator.maybePop(context),
-                  icon: const Icon(Icons.arrow_back),
-                  color: TermsPolicyScreenStyles.textPrimaryColor,
-                ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: TermsPolicyScreenStyles.backgroundColor,
+        body: FadeTransition(
+          opacity: _entranceOpacity,
+          child: SlideTransition(
+            position: _entrancePosition,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
-              const Text(
-                'Terms & Policy',
-                style: TermsPolicyScreenStyles.appBarTitleStyle,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  ),
-),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: TermsPolicyScreenStyles.screenPadding,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: TermsPolicyScreenStyles.contentMaxWidth,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const _HeroSection(),
-                  const SizedBox(height: TermsPolicyScreenStyles.space20),
-                  _PolicyTabs(
-                    selectedIndex: _selectedTab,
-                    onSelected: _selectTab,
+              slivers: <Widget>[
+                SliverToBoxAdapter(child: _buildHeader(context)),
+                SliverPadding(
+                  padding: TermsPolicyScreenStyles.contentPadding,
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate.fixed(<Widget>[
+                      const _PolicyIntroductionCard(),
+                      const SizedBox(
+                        height: TermsPolicyScreenStyles.sectionSpacing,
+                      ),
+                      _PolicyTabs(
+                        selectedIndex: _selectedTab,
+                        onSelected: _selectTab,
+                      ),
+                      const SizedBox(
+                        height: TermsPolicyScreenStyles.cardSpacing,
+                      ),
+                      AnimatedSwitcher(
+                        duration: TermsPolicyScreenStyles.contentSwitchDuration,
+                        switchInCurve:
+                            TermsPolicyScreenStyles.contentSwitchCurve,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                              final Animation<Offset> position = Tween<Offset>(
+                                begin: TermsPolicyScreenStyles
+                                    .contentSwitchBeginOffset,
+                                end: Offset.zero,
+                              ).animate(animation);
+
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: position,
+                                  child: child,
+                                ),
+                              );
+                            },
+                        child: _PolicyContent(
+                          key: ValueKey<int>(_selectedTab),
+                          title: _showingTerms
+                              ? TermsPolicyScreenStyles.termsContentTitle
+                              : TermsPolicyScreenStyles.privacyContentTitle,
+                          description: _showingTerms
+                              ? TermsPolicyScreenStyles.termsContentDescription
+                              : TermsPolicyScreenStyles
+                                    .privacyContentDescription,
+                          sections: _visibleSections,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: TermsPolicyScreenStyles.cardSpacing,
+                      ),
+                      _PolicyNotice(isTerms: _showingTerms),
+                      const SizedBox(
+                        height: TermsPolicyScreenStyles.bottomSpacing,
+                      ),
+                    ]),
                   ),
-                  const SizedBox(height: TermsPolicyScreenStyles.space16),
-                  _PolicyCard(sections: _visibleSections),
-                  const SizedBox(height: TermsPolicyScreenStyles.space14),
-                  _ImportantNote(isTerms: _showingTerms),
-                  if (_showingTerms) ...<Widget>[
-                    const SizedBox(height: TermsPolicyScreenStyles.space12),
-                    _AgreementRow(
-                      value: _hasAgreed,
-                      onChanged: _setAgreement,
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
   }
-}
 
-class _HeroSection extends StatelessWidget {
-  const _HeroSection();
+  Widget _buildHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool compact =
-            constraints.maxWidth < TermsPolicyScreenStyles.compactBreakpoint;
-        return Container(
-          padding: compact
-              ? TermsPolicyScreenStyles.compactHeroPadding
-              : TermsPolicyScreenStyles.heroPadding,
-          decoration: const BoxDecoration(
-            gradient: TermsPolicyScreenStyles.heroGradient,
-            borderRadius: TermsPolicyScreenStyles.cardRadius,
-            border: TermsPolicyScreenStyles.cardBorder,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        TermsPolicyScreenStyles.headerHorizontalPadding,
+        statusBarHeight + TermsPolicyScreenStyles.headerTopPadding,
+        TermsPolicyScreenStyles.headerHorizontalPadding,
+        TermsPolicyScreenStyles.headerBottomPadding,
+      ),
+      decoration: const BoxDecoration(
+        gradient: TermsPolicyScreenStyles.headerGradient,
+        borderRadius: TermsPolicyScreenStyles.headerRadius,
+      ),
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: TermsPolicyScreenStyles.decorationRight,
+            bottom: TermsPolicyScreenStyles.decorationBottom,
+            child: _HeaderBrailleDecoration(),
           ),
-          child: Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Container(
-                width: TermsPolicyScreenStyles.heroIconBoxSize,
-                height: TermsPolicyScreenStyles.heroIconBoxSize,
-                decoration: const BoxDecoration(
-                  color: TermsPolicyScreenStyles.primaryColor,
-                  borderRadius: TermsPolicyScreenStyles.heroIconRadius,
-                  boxShadow: TermsPolicyScreenStyles.cardShadow,
-                ),
-                child: const Icon(
-                  TermsPolicyScreenStyles.heroIcon,
-                  color: TermsPolicyScreenStyles.cardColor,
-                  size: TermsPolicyScreenStyles.heroIconSize,
-                ),
+              Row(
+                children: <Widget>[
+                  IconButton(
+                    tooltip: TermsPolicyScreenStyles.backTooltip,
+                    onPressed: () {
+                      Navigator.of(context).maybePop();
+                    },
+                    style: TermsPolicyScreenStyles.backButtonStyle,
+                    icon: const Icon(
+                      TermsPolicyScreenStyles.backIcon,
+                      size: TermsPolicyScreenStyles.backIconSize,
+                    ),
+                  ),
+                  const SizedBox(
+                    width: TermsPolicyScreenStyles.headerBackSpacing,
+                  ),
+                  const Expanded(
+                    child: Text(
+                      TermsPolicyScreenStyles.screenTitle,
+                      style: TermsPolicyScreenStyles.headerTitleStyle,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: TermsPolicyScreenStyles.space18),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Terms & Policy',
-                      style: TermsPolicyScreenStyles.heroTitleStyle,
-                    ),
-                    SizedBox(height: TermsPolicyScreenStyles.space8),
-                    Text(
-                      'Your trust and privacy are important to us.',
-                      style: TermsPolicyScreenStyles.heroSubtitleStyle,
-                    ),
-                  ],
+              const SizedBox(height: TermsPolicyScreenStyles.headerTextSpacing),
+              const Padding(
+                padding: TermsPolicyScreenStyles.headerDescriptionPadding,
+                child: SizedBox(
+                  width: TermsPolicyScreenStyles.headerDescriptionWidth,
+                  child: Text(
+                    TermsPolicyScreenStyles.screenDescription,
+                    style: TermsPolicyScreenStyles.headerDescriptionStyle,
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _PolicyIntroductionCard extends StatelessWidget {
+  const _PolicyIntroductionCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: TermsPolicyScreenStyles.introductionPadding,
+      decoration: const BoxDecoration(
+        color: TermsPolicyScreenStyles.surfaceColor,
+        borderRadius: TermsPolicyScreenStyles.cardRadius,
+        border: TermsPolicyScreenStyles.cardBorder,
+        boxShadow: TermsPolicyScreenStyles.cardShadow,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _PolicyIcon(
+            icon: TermsPolicyScreenStyles.heroIcon,
+            highlighted: true,
+          ),
+          SizedBox(width: TermsPolicyScreenStyles.introductionContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  TermsPolicyScreenStyles.introductionTitle,
+                  style: TermsPolicyScreenStyles.introductionTitleStyle,
+                ),
+                SizedBox(
+                  height:
+                      TermsPolicyScreenStyles.introductionDescriptionSpacing,
+                ),
+                Text(
+                  TermsPolicyScreenStyles.introductionDescription,
+                  style: TermsPolicyScreenStyles.bodyStyle,
+                ),
+                SizedBox(height: TermsPolicyScreenStyles.effectiveDateSpacing),
+                Text(
+                  TermsPolicyScreenStyles.effectiveDate,
+                  style: TermsPolicyScreenStyles.effectiveDateStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _PolicyTabs extends StatelessWidget {
-  const _PolicyTabs({
-    required this.selectedIndex,
-    required this.onSelected,
-  });
+  const _PolicyTabs({required this.selectedIndex, required this.onSelected});
 
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -242,28 +380,40 @@ class _PolicyTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: TermsPolicyScreenStyles.segmentHeight,
-      padding: TermsPolicyScreenStyles.segmentOuterPadding,
+      height: TermsPolicyScreenStyles.tabContainerHeight,
+      padding: TermsPolicyScreenStyles.tabContainerPadding,
       decoration: const BoxDecoration(
-        color: TermsPolicyScreenStyles.cardColor,
-        borderRadius: TermsPolicyScreenStyles.segmentRadius,
-        border: TermsPolicyScreenStyles.segmentBorder,
+        color: TermsPolicyScreenStyles.surfaceColor,
+        borderRadius: TermsPolicyScreenStyles.tabContainerRadius,
+        border: TermsPolicyScreenStyles.cardBorder,
+        boxShadow: TermsPolicyScreenStyles.tabShadow,
       ),
       child: Row(
         children: <Widget>[
           Expanded(
             child: _PolicyTab(
-              label: 'Terms of Use',
+              icon: TermsPolicyScreenStyles.termsIcon,
+              label: TermsPolicyScreenStyles.termsTabLabel,
+              accessibilityLabel:
+                  TermsPolicyScreenStyles.termsTabAccessibilityLabel,
               selected: selectedIndex == _TermsPolicyScreenState._termsTabIndex,
-              onTap: () => onSelected(_TermsPolicyScreenState._termsTabIndex),
+              onPressed: () {
+                onSelected(_TermsPolicyScreenState._termsTabIndex);
+              },
             ),
           ),
+          const SizedBox(width: TermsPolicyScreenStyles.tabSpacing),
           Expanded(
             child: _PolicyTab(
-              label: 'Privacy Policy',
+              icon: TermsPolicyScreenStyles.privacyIcon,
+              label: TermsPolicyScreenStyles.privacyTabLabel,
+              accessibilityLabel:
+                  TermsPolicyScreenStyles.privacyTabAccessibilityLabel,
               selected:
                   selectedIndex == _TermsPolicyScreenState._privacyTabIndex,
-              onTap: () => onSelected(_TermsPolicyScreenState._privacyTabIndex),
+              onPressed: () {
+                onSelected(_TermsPolicyScreenState._privacyTabIndex);
+              },
             ),
           ),
         ],
@@ -274,44 +424,131 @@ class _PolicyTabs extends StatelessWidget {
 
 class _PolicyTab extends StatelessWidget {
   const _PolicyTab({
+    required this.icon,
     required this.label,
+    required this.accessibilityLabel,
     required this.selected,
-    required this.onTap,
+    required this.onPressed,
   });
 
+  final IconData icon;
   final String label;
+  final String accessibilityLabel;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback onPressed;
+
+  void _handlePressed() {
+    HapticFeedback.selectionClick();
+    onPressed();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       selected: selected,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: TermsPolicyScreenStyles.segmentRadius,
-        child: AnimatedContainer(
-          duration: TermsPolicyScreenStyles.segmentAnimationDuration,
-          curve: TermsPolicyScreenStyles.segmentAnimationCurve,
-          padding: TermsPolicyScreenStyles.segmentPadding,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            gradient:
-                selected ? TermsPolicyScreenStyles.selectedSegmentGradient : null,
-            color: selected
-                ? null
-                : TermsPolicyScreenStyles.transparentColor,
-            borderRadius: TermsPolicyScreenStyles.segmentRadius,
-            boxShadow: selected
-                ? TermsPolicyScreenStyles.selectedSegmentShadow
-                : null,
-          ),
-          child: Text(
-            label,
-            style: selected
-                ? TermsPolicyScreenStyles.selectedSegmentStyle
-                : TermsPolicyScreenStyles.unselectedSegmentStyle,
+      label: accessibilityLabel,
+      hint: selected
+          ? TermsPolicyScreenStyles.selectedTabHint
+          : TermsPolicyScreenStyles.unselectedTabHint,
+      child: ExcludeSemantics(
+        child: AnimatedScale(
+          scale: selected
+              ? TermsPolicyScreenStyles.selectedTabScale
+              : TermsPolicyScreenStyles.unselectedTabScale,
+          duration: TermsPolicyScreenStyles.tabAnimationDuration,
+          curve: TermsPolicyScreenStyles.tabAnimationCurve,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: TermsPolicyScreenStyles.tabRadius,
+            clipBehavior: Clip.antiAlias,
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: selected
+                    ? TermsPolicyScreenStyles.selectedTabGradient
+                    : null,
+                color: selected
+                    ? null
+                    : TermsPolicyScreenStyles.unselectedTabBackgroundColor,
+                borderRadius: TermsPolicyScreenStyles.tabRadius,
+                border: selected
+                    ? null
+                    : Border.all(
+                        color: TermsPolicyScreenStyles.unselectedTabBorderColor,
+                      ),
+                boxShadow: selected
+                    ? TermsPolicyScreenStyles.selectedTabShadow
+                    : null,
+              ),
+              child: InkWell(
+                onTap: selected ? null : _handlePressed,
+                borderRadius: TermsPolicyScreenStyles.tabRadius,
+                splashColor: TermsPolicyScreenStyles.tabSplashColor,
+                highlightColor: TermsPolicyScreenStyles.tabHighlightColor,
+                child: Padding(
+                  padding: TermsPolicyScreenStyles.tabContentPadding,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      AnimatedContainer(
+                        duration: TermsPolicyScreenStyles.tabAnimationDuration,
+                        curve: TermsPolicyScreenStyles.tabAnimationCurve,
+                        width: TermsPolicyScreenStyles.tabIconContainerSize,
+                        height: TermsPolicyScreenStyles.tabIconContainerSize,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? TermsPolicyScreenStyles
+                                    .selectedTabIconBackgroundColor
+                              : TermsPolicyScreenStyles
+                                    .unselectedTabIconBackgroundColor,
+                          borderRadius:
+                              TermsPolicyScreenStyles.tabIconContainerRadius,
+                        ),
+                        child: Icon(
+                          icon,
+                          size: TermsPolicyScreenStyles.tabIconSize,
+                          color: selected
+                              ? TermsPolicyScreenStyles.surfaceColor
+                              : TermsPolicyScreenStyles.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(
+                        width: TermsPolicyScreenStyles.tabIconSpacing,
+                      ),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: selected
+                              ? TermsPolicyScreenStyles.selectedTabStyle
+                              : TermsPolicyScreenStyles.unselectedTabStyle,
+                        ),
+                      ),
+                      AnimatedSize(
+                        duration: TermsPolicyScreenStyles.tabAnimationDuration,
+                        curve: TermsPolicyScreenStyles.tabAnimationCurve,
+                        child: selected
+                            ? const Padding(
+                                padding: EdgeInsets.only(
+                                  left: TermsPolicyScreenStyles
+                                      .selectedCheckSpacing,
+                                ),
+                                child: Icon(
+                                  TermsPolicyScreenStyles.selectedTabIcon,
+                                  size: TermsPolicyScreenStyles
+                                      .selectedCheckIconSize,
+                                  color: TermsPolicyScreenStyles.surfaceColor,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -319,52 +556,64 @@ class _PolicyTab extends StatelessWidget {
   }
 }
 
-class _PolicyCard extends StatelessWidget {
-  const _PolicyCard({required this.sections});
+class _PolicyContent extends StatelessWidget {
+  const _PolicyContent({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.sections,
+  });
 
+  final String title;
+  final String description;
   final List<_PolicySectionData> sections;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final bool compact =
-            constraints.maxWidth < TermsPolicyScreenStyles.compactBreakpoint;
-        return Container(
-          padding: compact
-              ? TermsPolicyScreenStyles.compactPolicyCardPadding
-              : TermsPolicyScreenStyles.policyCardPadding,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: TermsPolicyScreenStyles.sectionTitleStyle),
+        const SizedBox(
+          height: TermsPolicyScreenStyles.sectionDescriptionSpacing,
+        ),
+        Text(
+          description,
+          style: TermsPolicyScreenStyles.sectionDescriptionStyle,
+        ),
+        const SizedBox(height: TermsPolicyScreenStyles.policyListSpacing),
+        Container(
+          clipBehavior: Clip.antiAlias,
           decoration: const BoxDecoration(
-            color: TermsPolicyScreenStyles.cardColor,
+            color: TermsPolicyScreenStyles.surfaceColor,
             borderRadius: TermsPolicyScreenStyles.cardRadius,
             border: TermsPolicyScreenStyles.cardBorder,
             boxShadow: TermsPolicyScreenStyles.cardShadow,
           ),
           child: Column(
-            children: List<Widget>.generate(
-              sections.length,
-              (int index) => _PolicyItem(
+            children: List<Widget>.generate(sections.length, (int index) {
+              return _PolicyItem(
+                number: index + 1,
                 section: sections[index],
-                compact: compact,
                 showDivider: index != sections.length - 1,
-              ),
-            ),
+              );
+            }, growable: false),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
 
 class _PolicyItem extends StatelessWidget {
   const _PolicyItem({
+    required this.number,
     required this.section,
-    required this.compact,
     required this.showDivider,
   });
 
+  final int number;
   final _PolicySectionData section;
-  final bool compact;
   final bool showDivider;
 
   @override
@@ -373,30 +622,36 @@ class _PolicyItem extends StatelessWidget {
       padding: TermsPolicyScreenStyles.policyItemPadding,
       decoration: showDivider
           ? const BoxDecoration(
-              border: TermsPolicyScreenStyles.itemDividerBorder,
+              border: TermsPolicyScreenStyles.policyDividerBorder,
             )
           : null,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: compact
-                ? TermsPolicyScreenStyles.compactPolicyIconBoxSize
-                : TermsPolicyScreenStyles.policyIconBoxSize,
-            height: compact
-                ? TermsPolicyScreenStyles.compactPolicyIconBoxSize
-                : TermsPolicyScreenStyles.policyIconBoxSize,
-            decoration: const BoxDecoration(
-              color: TermsPolicyScreenStyles.primarySoftColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              section.icon,
-              color: TermsPolicyScreenStyles.primaryColor,
-              size: TermsPolicyScreenStyles.policyIconSize,
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              _PolicyIcon(icon: section.icon),
+              Positioned(
+                right: TermsPolicyScreenStyles.numberBadgeRight,
+                top: TermsPolicyScreenStyles.numberBadgeTop,
+                child: Container(
+                  width: TermsPolicyScreenStyles.numberBadgeSize,
+                  height: TermsPolicyScreenStyles.numberBadgeSize,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: TermsPolicyScreenStyles.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$number',
+                    style: TermsPolicyScreenStyles.numberBadgeTextStyle,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: TermsPolicyScreenStyles.space16),
+          const SizedBox(width: TermsPolicyScreenStyles.policyContentSpacing),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,11 +660,11 @@ class _PolicyItem extends StatelessWidget {
                   section.title,
                   style: TermsPolicyScreenStyles.policyTitleStyle,
                 ),
-                const SizedBox(height: TermsPolicyScreenStyles.space8),
+                const SizedBox(
+                  height: TermsPolicyScreenStyles.policyBodySpacing,
+                ),
                 Text(
                   section.body,
-                  maxLines: TermsPolicyScreenStyles.policyBodyMaxLines,
-                  overflow: TextOverflow.visible,
                   style: TermsPolicyScreenStyles.policyBodyStyle,
                 ),
               ],
@@ -421,43 +676,53 @@ class _PolicyItem extends StatelessWidget {
   }
 }
 
-class _ImportantNote extends StatelessWidget {
-  const _ImportantNote({required this.isTerms});
+class _PolicyNotice extends StatelessWidget {
+  const _PolicyNotice({required this.isTerms});
 
   final bool isTerms;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: TermsPolicyScreenStyles.notePadding,
-      decoration: const BoxDecoration(
-        gradient: TermsPolicyScreenStyles.heroGradient,
+      padding: TermsPolicyScreenStyles.noticePadding,
+      decoration: BoxDecoration(
+        color: isTerms
+            ? TermsPolicyScreenStyles.noticeBackgroundColor
+            : TermsPolicyScreenStyles.privacyNoticeBackgroundColor,
         borderRadius: TermsPolicyScreenStyles.cardRadius,
-        border: TermsPolicyScreenStyles.cardBorder,
+        border: Border.all(
+          color: isTerms
+              ? TermsPolicyScreenStyles.noticeBorderColor
+              : TermsPolicyScreenStyles.privacyNoticeBorderColor,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Icon(
-            TermsPolicyScreenStyles.informationIcon,
-            color: TermsPolicyScreenStyles.primaryColor,
-            size: TermsPolicyScreenStyles.noteIconSize,
+          _PolicyIcon(
+            icon: isTerms
+                ? TermsPolicyScreenStyles.informationIcon
+                : TermsPolicyScreenStyles.dataProtectionIcon,
           ),
-          const SizedBox(width: TermsPolicyScreenStyles.space14),
+          const SizedBox(width: TermsPolicyScreenStyles.noticeContentSpacing),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  isTerms ? 'Important Note' : 'Your Privacy Matters',
-                  style: TermsPolicyScreenStyles.noteTitleStyle,
+                  isTerms
+                      ? TermsPolicyScreenStyles.termsNoticeTitle
+                      : TermsPolicyScreenStyles.privacyNoticeTitle,
+                  style: TermsPolicyScreenStyles.noticeTitleStyle,
                 ),
-                const SizedBox(height: TermsPolicyScreenStyles.space6),
+                const SizedBox(
+                  height: TermsPolicyScreenStyles.noticeDescriptionSpacing,
+                ),
                 Text(
                   isTerms
-                      ? 'These terms may be updated from time to time. Continued use of the app constitutes acceptance of the updated terms.'
-                      : 'We are committed to protecting your privacy and providing a secure, inclusive learning experience.',
-                  style: TermsPolicyScreenStyles.noteBodyStyle,
+                      ? TermsPolicyScreenStyles.termsNoticeDescription
+                      : TermsPolicyScreenStyles.privacyNoticeDescription,
+                  style: TermsPolicyScreenStyles.noticeBodyStyle,
                 ),
               ],
             ),
@@ -468,45 +733,64 @@ class _ImportantNote extends StatelessWidget {
   }
 }
 
-class _AgreementRow extends StatelessWidget {
-  const _AgreementRow({
-    required this.value,
-    required this.onChanged,
-  });
+class _PolicyIcon extends StatelessWidget {
+  const _PolicyIcon({required this.icon, this.highlighted = false});
 
-  final bool value;
-  final ValueChanged<bool?> onChanged;
+  final IconData icon;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => onChanged(!value),
-      borderRadius: TermsPolicyScreenStyles.cardRadius,
-      child: Padding(
-        padding: TermsPolicyScreenStyles.checkboxPadding,
-        child: Row(
-          children: <Widget>[
-            SizedBox(
-              width: TermsPolicyScreenStyles.checkboxSize,
-              height: TermsPolicyScreenStyles.checkboxSize,
-              child: Checkbox(
-                value: value,
-                onChanged: onChanged,
-                activeColor: TermsPolicyScreenStyles.primaryColor,
-                side: const BorderSide(
-                  color: TermsPolicyScreenStyles.primaryColor,
-                  width: TermsPolicyScreenStyles.cardBorderWidth,
+    return Container(
+      width: TermsPolicyScreenStyles.policyIconContainerSize,
+      height: TermsPolicyScreenStyles.policyIconContainerSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: highlighted
+            ? TermsPolicyScreenStyles.iconHighlightGradient
+            : null,
+        color: highlighted ? null : TermsPolicyScreenStyles.primarySoftColor,
+        borderRadius: TermsPolicyScreenStyles.policyIconRadius,
+      ),
+      child: Icon(
+        icon,
+        size: TermsPolicyScreenStyles.policyIconSize,
+        color: highlighted
+            ? TermsPolicyScreenStyles.surfaceColor
+            : TermsPolicyScreenStyles.primaryColor,
+      ),
+    );
+  }
+}
+
+class _HeaderBrailleDecoration extends StatelessWidget {
+  const _HeaderBrailleDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: TermsPolicyScreenStyles.decorationOpacity,
+      child: SizedBox(
+        width: TermsPolicyScreenStyles.decorationWidth,
+        child: Wrap(
+          spacing: TermsPolicyScreenStyles.decorationDotSpacing,
+          runSpacing: TermsPolicyScreenStyles.decorationDotSpacing,
+          children: List<Widget>.generate(
+            TermsPolicyScreenStyles.decorationDotCount,
+            (int index) {
+              return const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: TermsPolicyScreenStyles.surfaceColor,
+                  shape: BoxShape.circle,
                 ),
-              ),
-            ),
-            const SizedBox(width: TermsPolicyScreenStyles.space12),
-            const Expanded(
-              child: Text(
-                'I have read and agree to the Terms of Use.',
-                style: TermsPolicyScreenStyles.agreementStyle,
-              ),
-            ),
-          ],
+                child: SizedBox(
+                  width: TermsPolicyScreenStyles.decorationDotSize,
+                  height: TermsPolicyScreenStyles.decorationDotSize,
+                ),
+              );
+            },
+            growable: false,
+          ),
         ),
       ),
     );
