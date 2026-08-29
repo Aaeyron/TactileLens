@@ -1,217 +1,386 @@
 import 'package:flutter/material.dart';
 
 abstract final class AboutTactileLensScreenStyles {
-  static const String fontFamily = 'Poppins';
+  // ============================================================
+  // CONTENT
+  // ============================================================
 
-  // Brand palette
-  static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color primaryDarkColor = Color(0xFF0D47A1);
-  static const Color primaryAccentColor = Color(0xFF0D47A1);
-  static const Color primarySoftColor = Color(0xFFEAF2FC);
-  static const Color primaryFaintColor = Color(0xFFFFFFFF);
-  static const Color backgroundColor = Color(0xFFFFFFFF);
-  static const Color cardColor = Color(0xFFFFFFFF);
-  static const Color textPrimaryColor = Color(0xFF11112B);
-  static const Color textSecondaryColor = Color(0xFF4E4D66);
-  static const Color borderColor = Color(0x3D0D47A1);
-  static const Color featureBorderColor = Color(0x3D0D47A1);
-  static const Color shadowColor = Color(0x1A0D47A1);
-  static const Color heroHighlightColor = Color(0xFFFFFFFF);
-  static const Color heroEndColor = Color(0xFFFFFFFF);
+  static const String screenTitle = 'About TactileLens';
 
-  // Layout
-  static const double contentMaxWidth = 640;
-  static const double compactBreakpoint = 360;
-  static const int regularGridColumns = 3;
-  static const int compactGridColumns = 2;
-  static const double featureGridAspectRatio = 0.86;
-  static const double compactFeatureGridAspectRatio = 0.95;
-  static const double appBarElevation = 0;
-  static const double appBarScrolledUnderElevation = 0;
-  static const double cardBorderWidth = 1;
-  static const double featureBorderWidth = 1.15;
-  static const double dividerThickness = 1;
-  static const Offset projectValueOffset = Offset(0, 0);
-  static const double projectLabelColumnWidth = 92;
+  static const String screenDescription =
+      'Learn how TactileLens supports accessible and inclusive learning.';
 
-  // Spacing and padding
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(18, 18, 18, 32);
-  static const EdgeInsets appBarTitlePadding = EdgeInsets.zero;
-  static const EdgeInsets heroPadding = EdgeInsets.symmetric(horizontal: 24, vertical: 26);
-  static const EdgeInsets informationCardPadding = EdgeInsets.all(18);
-  static const EdgeInsets featureCardPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 16);
-  static const EdgeInsets projectCardPadding = EdgeInsets.fromLTRB(16, 8, 8, 8);
-  static const EdgeInsets projectRowPadding = EdgeInsets.symmetric(vertical: 9);
-  static const EdgeInsets footerCardPadding = EdgeInsets.all(18);
-  static const EdgeInsets badgePadding = EdgeInsets.symmetric(horizontal: 14, vertical: 7);
-  static const EdgeInsets roundIconPadding = EdgeInsets.all(14);
-  static const EdgeInsets smallIconPadding = EdgeInsets.all(10);
-  static const EdgeInsets featureIconPadding = EdgeInsets.all(10);
+  static const String backTooltip = 'Return to Profile';
 
-  static const double space2 = 2;
-  static const double space4 = 4;
-  static const double space6 = 6;
-  static const double space8 = 8;
-  static const double space10 = 10;
-  static const double space12 = 12;
-  static const double space14 = 14;
-  static const double space16 = 16;
-  static const double space18 = 18;
-  static const double space20 = 20;
-  static const double space24 = 24;
-  static const double space28 = 28;
-  static const double gridSpacing = 10;
+  static const String appName = 'TactileLens';
+  static const String tagline = 'See. Translate. Empower.';
+  static const String versionLabel = 'Version 1.0.0 · Offline First';
 
-  // Shapes
-  static const double cardRadiusValue = 18;
-  static const double featureRadiusValue = 16;
-  static const double badgeRadiusValue = 24;
-  static const double iconRadiusValue = 16;
-  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(cardRadiusValue));
-  static const BorderRadius featureRadius = BorderRadius.all(Radius.circular(featureRadiusValue));
-  static const BorderRadius badgeRadius = BorderRadius.all(Radius.circular(badgeRadiusValue));
-  static const BorderRadius iconRadius = BorderRadius.all(Radius.circular(iconRadiusValue));
+  static const String missionTitle = 'Our Mission';
+
+  static const String missionDescription =
+      'Empower SPED educators with accurate and accessible tools that '
+      'translate printed text and mathematics into UEB and Nemeth Braille.';
+
+  static const String overviewTitle = 'What is TactileLens?';
+
+  static const String overviewDescription =
+      'TactileLens is an AI-assisted learning tool that recognizes printed '
+      'documents and prepares accessible text and Braille outputs for '
+      'educators and learners.';
+
+  static const String featuresTitle = 'Key Features';
+
+  static const String featuresDescription =
+      'Tools designed to make learning materials easier to access and manage.';
+
+  static const String projectTitle = 'Project Information';
+
+  static const String projectDescription =
+      'Academic and development details behind TactileLens.';
+
+  static const String purposeTitle = 'Built for Inclusive Education';
+
+  static const String purposeDescription =
+      'TactileLens is developed to help educators prepare accessible '
+      'learning materials while promoting independence and inclusion.';
+
+  // ============================================================
+  // COLORS
+  // ============================================================
+
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0758DD);
+
+  static const Color backgroundColor = Color(0xFFF4F7FC);
+  static const Color surfaceColor = Colors.white;
+
+  static const Color textPrimaryColor = Color(0xFF10213D);
+  static const Color textSecondaryColor = Color(0xFF42526B);
+  static const Color textMutedColor = Color(0xFF728096);
+
+  static const Color outlineColor = Color(0xFFDDE5F0);
+  static const Color dividerColor = Color(0xFFE5EBF3);
+  static const Color primarySoftColor = Color(0xFFEDF4FF);
+
+  // ============================================================
+  // ANIMATION
+  // ============================================================
+
+  static const Duration entranceDuration = Duration(milliseconds: 440);
+  static const Curve entranceCurve = Curves.easeOutCubic;
+  static const double entranceVerticalOffset = 14;
+
+  // ============================================================
+  // HEADER
+  // ============================================================
+
+  static const double headerHorizontalPadding = 14;
+  static const double headerTopPadding = 12;
+  static const double headerBottomPadding = 27;
+  static const double headerBackSpacing = 5;
+  static const double headerTextSpacing = 15;
+
+  static const double headerDescriptionWidth = 270;
+
+  static const EdgeInsets headerDescriptionPadding = EdgeInsets.symmetric(
+    horizontal: 5,
+  );
+
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+  );
+
+  static const BorderRadius headerRadius = BorderRadius.only(
+    bottomLeft: Radius.elliptical(190, 34),
+    bottomRight: Radius.elliptical(190, 34),
+  );
+
+  static const double decorationRight = 18;
+  static const double decorationBottom = 22;
+  static const double decorationOpacity = 0.18;
+  static const double decorationWidth = 49;
+  static const double decorationDotSize = 4;
+  static const double decorationDotSpacing = 7;
+  static const int decorationDotCount = 12;
+
+  static const IconData backIcon = Icons.arrow_back_rounded;
+  static const double backIconSize = 25;
+
+  static final ButtonStyle backButtonStyle = IconButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: const Color(0x26FFFFFF),
+    shape: const CircleBorder(),
+  );
+
+  // ============================================================
+  // LAYOUT
+  // ============================================================
+
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(14, 17, 14, 30);
+
+  static const double sectionSpacing = 22;
+  static const double cardSpacing = 12;
+  static const double headingBottomSpacing = 12;
+  static const double bottomSpacing = 30;
+
+  // ============================================================
+  // SHARED CARDS
+  // ============================================================
+
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(15));
+
   static const Border cardBorder = Border.fromBorderSide(
-    BorderSide(color: borderColor, width: cardBorderWidth),
-  );
-  static const Border projectDividerBorder = Border(
-    bottom: BorderSide(color: borderColor, width: dividerThickness),
-  );
-  static const Border featureCardBorder = Border.fromBorderSide(
-    BorderSide(
-      color: featureBorderColor,
-      width: featureBorderWidth,
-    ),
-  );
-  static const Border accentContainerBorder = Border.fromBorderSide(
-    BorderSide(color: borderColor, width: cardBorderWidth),
+    BorderSide(color: outlineColor, width: 1),
   );
 
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(
-      color: shadowColor,
-      blurRadius: 18,
-      spreadRadius: 1,
-      offset: Offset(0, 6),
-    ),
+    BoxShadow(color: Color(0x0D102A43), blurRadius: 12, offset: Offset(0, 4)),
   ];
 
-  static const LinearGradient heroGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[heroHighlightColor, heroEndColor],
+  // ============================================================
+  // BRAND CARD
+  // ============================================================
+
+  static const EdgeInsets brandCardPadding = EdgeInsets.symmetric(
+    horizontal: 20,
+    vertical: 23,
   );
 
-  // Icon sizing
-  static const double heroLogoBoxSize = 82;
-  static const double heroLogoIconSize = 48;
-  static const double informationIconSize = 34;
-  static const double featureIconSize = 25;
-  static const double projectIconSize = 19;
-  static const double footerIconSize = 28;
+  static const double logoContainerSize = 78;
+  static const double logoIconSize = 43;
 
-  // Icons
-  static const IconData appIcon = Icons.more_vert_rounded;
+  static const IconData logoIcon = Icons.document_scanner_rounded;
+
+  static const LinearGradient logoGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF66A6FF), Color(0xFF1268F3)],
+  );
+
+  static const BorderRadius logoRadius = BorderRadius.all(Radius.circular(21));
+
+  static const List<BoxShadow> logoShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x331268F3), blurRadius: 16, offset: Offset(0, 6)),
+  ];
+
+  static const double logoDotsRight = 8;
+  static const double logoDotsBottom = 8;
+
+  static const double smallDotsWidth = 15;
+  static const double smallDotSize = 2.4;
+  static const double smallDotSpacing = 2.6;
+  static const int smallDotCount = 6;
+
+  static const double brandNameSpacing = 15;
+  static const double taglineSpacing = 5;
+  static const double versionSpacing = 15;
+
+  static const EdgeInsets versionBadgePadding = EdgeInsets.symmetric(
+    horizontal: 13,
+    vertical: 7,
+  );
+
+  static const BorderRadius versionBadgeRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
+
+  static const IconData verifiedIcon = Icons.verified_outlined;
+  static const double versionIconSize = 16;
+  static const double versionIconSpacing = 6;
+
+  // ============================================================
+  // INFORMATION CARDS
+  // ============================================================
+
+  static const EdgeInsets informationCardPadding = EdgeInsets.all(17);
+
+  static const double informationContentSpacing = 13;
+  static const double cardDescriptionSpacing = 6;
+
+  static const double iconContainerSize = 45;
+  static const double compactIconContainerSize = 40;
+
+  static const BorderRadius iconContainerRadius = BorderRadius.all(
+    Radius.circular(12),
+  );
+
+  static const double informationIconSize = 22;
+  static const double compactIconSize = 20;
+
+  // ============================================================
+  // FEATURES
+  // ============================================================
+
+  static const double featureSingleColumnBreakpoint = 340;
+  static const double featureSpacing = 10;
+  static const double featureMinimumHeight = 166;
+
+  static const EdgeInsets featureCardPadding = EdgeInsets.all(15);
+
+  static const BorderRadius featureRadius = BorderRadius.all(
+    Radius.circular(14),
+  );
+
+  static const List<BoxShadow> featureShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x09102A43), blurRadius: 8, offset: Offset(0, 3)),
+  ];
+
+  static const double featureTitleSpacing = 12;
+  static const double featureDescriptionSpacing = 5;
+
+  // ============================================================
+  // PROJECT INFORMATION
+  // ============================================================
+
+  static const EdgeInsets projectRowPadding = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 14,
+  );
+
+  static const Border projectDividerBorder = Border(
+    bottom: BorderSide(color: dividerColor, width: 1),
+  );
+
+  static const double projectContentSpacing = 12;
+  static const double projectValueSpacing = 4;
+
+  // ============================================================
+  // PURPOSE CARD
+  // ============================================================
+
+  static const EdgeInsets purposeCardPadding = EdgeInsets.all(18);
+
+  static const LinearGradient purposeGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+  );
+
+  static const IconData educatorIcon = Icons.groups_2_outlined;
+  static const double purposeIconSize = 31;
+  static const double purposeContentSpacing = 14;
+  static const double purposeDescriptionSpacing = 6;
+
+  // ============================================================
+  // ICONS
+  // ============================================================
+
   static const IconData missionIcon = Icons.track_changes_rounded;
   static const IconData overviewIcon = Icons.menu_book_rounded;
+
   static const IconData scanIcon = Icons.camera_alt_outlined;
   static const IconData aiIcon = Icons.auto_awesome_rounded;
+  static const IconData brailleIcon = Icons.translate_rounded;
   static const IconData offlineIcon = Icons.cloud_off_rounded;
   static const IconData organizedIcon = Icons.folder_outlined;
   static const IconData privacyIcon = Icons.shield_outlined;
-  static const IconData educatorIcon = Icons.groups_2_outlined;
+
   static const IconData projectTypeIcon = Icons.school_outlined;
   static const IconData institutionIcon = Icons.account_balance_outlined;
   static const IconData courseIcon = Icons.computer_outlined;
   static const IconData yearIcon = Icons.calendar_month_outlined;
-  static const IconData aboutProjectIcon = Icons.description_outlined;
 
-  // Typography
-  static const TextStyle appBarTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
-    fontSize: 20,
-    fontWeight: FontWeight.w700,
+  // ============================================================
+  // TYPOGRAPHY
+  // ============================================================
+
+  static const TextStyle headerTitleStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 21,
+    fontWeight: FontWeight.w800,
     letterSpacing: -0.25,
   );
-  static const TextStyle heroTitleStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle headerDescriptionStyle = TextStyle(
+    color: Color(0xFFE9F2FF),
+    fontSize: 13.5,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle brandTitleStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: FontWeight.w800,
-    height: 1.05,
-    letterSpacing: -0.8,
+    letterSpacing: -0.45,
   );
-  static const TextStyle heroTaglineStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle taglineStyle = TextStyle(
     color: primaryColor,
-    fontSize: 15,
-    fontWeight: FontWeight.w600,
-    height: 1.3,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
   );
-  static const TextStyle badgeTextStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
-    fontSize: 12.5,
-    fontWeight: FontWeight.w600,
+
+  static const TextStyle versionTextStyle = TextStyle(
+    color: primaryColor,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
   );
+
   static const TextStyle sectionTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
+    color: textPrimaryColor,
     fontSize: 18,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.2,
   );
+
+  static const double sectionDescriptionSpacing = 4;
+
+  static const TextStyle sectionDescriptionStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 12.5,
+    height: 1.4,
+  );
+
   static const TextStyle cardTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
+    color: textPrimaryColor,
     fontSize: 16,
     fontWeight: FontWeight.w800,
-    height: 1.25,
   );
+
   static const TextStyle bodyStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textPrimaryColor,
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    height: 1.55,
+    color: textSecondaryColor,
+    fontSize: 13,
+    height: 1.5,
   );
+
   static const TextStyle featureTitleStyle = TextStyle(
-    fontFamily: fontFamily,
     color: textPrimaryColor,
-    fontSize: 13.5,
-    fontWeight: FontWeight.w700,
-    height: 1.25,
-  );
-  static const TextStyle featureBodyStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textSecondaryColor,
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    height: 1.35,
-  );
-  static const TextStyle projectLabelStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
-    fontSize: 12.5,
-    fontWeight: FontWeight.w700,
-  );
-  static const TextStyle projectValueStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: textSecondaryColor,
-    fontSize: 12.5,
-    fontWeight: FontWeight.w500,
-  );
-  static const TextStyle footerTitleStyle = TextStyle(
-    fontFamily: fontFamily,
-    color: primaryColor,
     fontSize: 14,
     fontWeight: FontWeight.w800,
   );
-  static const TextStyle footerBodyStyle = TextStyle(
-    fontFamily: fontFamily,
+
+  static const TextStyle featureBodyStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 12.25,
+    height: 1.42,
+  );
+
+  static const TextStyle projectLabelStyle = TextStyle(
+    color: textMutedColor,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle projectValueStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 12.5,
-    height: 1.45,
+    fontSize: 13.5,
+    height: 1.35,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle purposeTitleStyle = TextStyle(
+    color: surfaceColor,
+    fontSize: 16,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle purposeBodyStyle = TextStyle(
+    color: Color(0xFFE9F2FF),
+    fontSize: 12.75,
+    height: 1.48,
   );
 }
