@@ -18,6 +18,11 @@ class SessionManager {
   static const String guestNicknameKey = 'guest_nickname';
   static const String guestRoleKey = 'guest_profile_role';
 
+  static const int guestNicknameMaximumLength = 40;
+
+  static const String studentRole = 'Student';
+  static const String educatorRole = 'Educator';
+
   static const String _accessTokenKey = 'access_token';
 
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
@@ -72,17 +77,8 @@ class SessionManager {
     required String nickname,
     required String role,
   }) async {
-    final String normalizedNickname = nickname.trim();
-    final String normalizedRole = role.trim();
-
-    if (normalizedNickname.isEmpty) {
-      throw const FormatException('The guest nickname cannot be empty.');
-    }
-
-    if (normalizedRole.isEmpty) {
-      throw const FormatException('The guest role cannot be empty.');
-    }
-
+    final String normalizedNickname = _normalizeGuestNickname(nickname);
+    final String normalizedRole = _normalizeGuestRole(role);
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     // Save both the persistent Guest Profile and the active guest session.
@@ -96,6 +92,45 @@ class SessionManager {
     await _removeRegisteredUserPreferences(prefs);
 
     await _secureStorage.delete(key: _accessTokenKey);
+  }
+
+  static Future<void> updateGuestProfile({
+    required String nickname,
+    required String role,
+  }) async {
+    final String normalizedNickname = _normalizeGuestNickname(nickname);
+    final String normalizedRole = _normalizeGuestRole(role);
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    await _preserveLegacyGuestProfile(prefs);
+
+    final bool guestIsActive = prefs.getBool(guestModeKey) ?? false;
+
+    if (!guestIsActive) {
+      throw StateError(
+        'A guest profile can only be edited while Guest Mode is active.',
+      );
+    }
+
+    final String? existingNickname = _normalizeOptionalText(
+      prefs.getString(guestNicknameKey),
+    );
+
+    final String? existingRole = _normalizeOptionalText(
+      prefs.getString(guestRoleKey),
+    );
+
+    if (existingNickname == null || existingRole == null) {
+      throw StateError('No saved guest profile was found on this device.');
+    }
+
+    await Future.wait(<Future<bool>>[
+      prefs.setString(guestNicknameKey, normalizedNickname),
+      prefs.setString(guestRoleKey, normalizedRole),
+      prefs.setString(roleKey, normalizedRole),
+      prefs.setBool(guestModeKey, true),
+    ]);
   }
 
   static Future<bool> hasGuestProfile() async {
@@ -279,6 +314,34 @@ class SessionManager {
     }
 
     await prefs.setString(guestRoleKey, activeRole);
+  }
+
+  static String _normalizeGuestNickname(String nickname) {
+    final String normalizedNickname = nickname.trim();
+
+    if (normalizedNickname.isEmpty) {
+      throw const FormatException('The guest nickname cannot be empty.');
+    }
+
+    if (normalizedNickname.length > guestNicknameMaximumLength) {
+      throw const FormatException(
+        'The guest nickname cannot exceed 40 characters.',
+      );
+    }
+
+    return normalizedNickname;
+  }
+
+  static String _normalizeGuestRole(String role) {
+    final String normalizedRole = role.trim().toLowerCase();
+
+    return switch (normalizedRole) {
+      'student' => studentRole,
+      'educator' => educatorRole,
+      _ => throw const FormatException(
+        'The guest role must be Student or Educator.',
+      ),
+    };
   }
 
   static String? _normalizeOptionalText(String? value) {

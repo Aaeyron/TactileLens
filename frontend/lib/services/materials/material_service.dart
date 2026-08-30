@@ -447,16 +447,78 @@ class MaterialService {
       throw const MaterialServiceException('Material not found.');
     }
 
-    final File storedFile = File(material.filePath);
+    final int deletedRows = await MaterialDatabase.instance.deleteMaterial(id);
 
-    await MaterialDatabase.instance.deleteMaterial(id);
+    if (deletedRows == 0) {
+      throw const MaterialServiceException(
+        'The material could not be deleted.',
+      );
+    }
+
+    await _deleteManagedGuestMaterialFile(material.filePath);
+  }
+
+  // ==========================
+  // Delete All Guest Materials
+  // ==========================
+
+  Future<int> deleteAllGuestMaterials() async {
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (!isGuest) {
+      throw const MaterialServiceException(
+        'Guest materials can only be cleared while Guest Mode is active.',
+      );
+    }
+
+    final List<MaterialModel> guestMaterials = await MaterialDatabase.instance
+        .getAllMaterials();
+
+    final int deletedRows = await MaterialDatabase.instance
+        .deleteAllGuestMaterials();
+
+    for (final MaterialModel material in guestMaterials) {
+      await _deleteManagedGuestMaterialFile(material.filePath);
+    }
+
+    return deletedRows;
+  }
+
+  // ==========================
+  // Managed Guest File Cleanup
+  // ==========================
+
+  Future<void> _deleteManagedGuestMaterialFile(String filePath) async {
+    final String normalizedFilePath = filePath.trim();
+
+    if (normalizedFilePath.isEmpty) {
+      return;
+    }
+
+    final Directory appDirectory = await getApplicationDocumentsDirectory();
+
+    final Directory materialsDirectory = Directory(
+      path.join(appDirectory.path, 'materials'),
+    );
+
+    final String resolvedMaterialsDirectory = path.canonicalize(
+      materialsDirectory.path,
+    );
+
+    final String resolvedFilePath = path.canonicalize(normalizedFilePath);
+
+    if (!path.isWithin(resolvedMaterialsDirectory, resolvedFilePath)) {
+      return;
+    }
+
+    final File storedFile = File(resolvedFilePath);
 
     try {
       if (await storedFile.exists()) {
         await storedFile.delete();
       }
-    } catch (_) {
-      // The database record is already removed.
+    } on FileSystemException {
+      // The database record is already removed. Ignore a missing or locked file.
     }
   }
 

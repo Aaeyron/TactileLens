@@ -8,6 +8,8 @@ class MaterialDatabase {
 
   static const String _materialsTable = 'materials';
 
+  static const String _guestOwnershipCondition = 'user_id IS NULL';
+
   // ==========================
   // Insert Material
   // ==========================
@@ -31,6 +33,7 @@ class MaterialDatabase {
 
     final List<Map<String, Object?>> queryResult = await database.query(
       _materialsTable,
+      where: _guestOwnershipCondition,
       orderBy: 'uploaded_at DESC, id DESC',
     );
 
@@ -50,7 +53,7 @@ class MaterialDatabase {
 
     final List<Map<String, Object?>> queryResult = await database.query(
       _materialsTable,
-      where: 'folder_id = ?',
+      where: '$_guestOwnershipCondition AND folder_id = ?',
       whereArgs: <Object>[folderId],
       orderBy: 'uploaded_at DESC, id DESC',
     );
@@ -71,7 +74,7 @@ class MaterialDatabase {
 
     final List<Map<String, Object?>> queryResult = await database.query(
       _materialsTable,
-      where: 'folder_id IS NULL',
+      where: '$_guestOwnershipCondition AND folder_id IS NULL',
       orderBy: 'uploaded_at DESC, id DESC',
     );
 
@@ -91,7 +94,7 @@ class MaterialDatabase {
 
     final List<Map<String, Object?>> queryResult = await database.query(
       _materialsTable,
-      where: 'id = ?',
+      where: '$_guestOwnershipCondition AND id = ?',
       whereArgs: <Object>[id],
       limit: 1,
     );
@@ -116,7 +119,7 @@ class MaterialDatabase {
     return database.update(
       _materialsTable,
       <String, dynamic>{'folder_id': folderId},
-      where: 'id = ?',
+      where: '$_guestOwnershipCondition AND id = ?',
       whereArgs: <Object>[materialId],
     );
   }
@@ -130,18 +133,18 @@ class MaterialDatabase {
 
     return database.delete(
       _materialsTable,
-      where: 'id = ?',
+      where: '$_guestOwnershipCondition AND id = ?',
       whereArgs: <Object>[id],
     );
   }
 
   // ==========================
-  // Delete All Materials
+  // Delete All Guest Materials
   // ==========================
 
-  Future<int> deleteAllMaterials() async {
+  Future<int> deleteAllGuestMaterials() async {
     final database = await AppDatabase.instance.database;
 
-    return database.delete(_materialsTable);
+    return database.delete(_materialsTable, where: _guestOwnershipCondition);
   }
 }

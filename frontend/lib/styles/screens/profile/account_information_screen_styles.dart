@@ -365,4 +365,354 @@ abstract final class AccountInformationStyles {
     fontSize: 12.5,
     height: 1.4,
   );
+
+  // ============================================================
+  // GUEST PROFILE MANAGEMENT
+  // ============================================================
+
+  static const String editGuestProfileLabel = 'Edit Guest Profile';
+
+  static const String editGuestProfileTooltip =
+      'Change your guest nickname and role';
+
+  static const String editGuestProfileTitle = 'Edit Guest Profile';
+
+  static const String editGuestProfileDescription =
+      'Update how you are identified while using TactileLens offline.';
+
+  static const String editNicknameLabel = 'Nickname';
+
+  static const String editNicknameHint = 'Enter your nickname';
+
+  static const String editNicknameHelper =
+      'This is how you will be identified in the app.';
+
+  static const String nicknameRequiredMessage = 'Please enter your nickname.';
+
+  static const String nicknameTooLongMessage =
+      'Nickname cannot exceed 40 characters.';
+
+  static const int nicknameMaximumLength = 40;
+
+  static const String editRoleLabel = 'Role';
+
+  static const String editRoleDescription =
+      'Choose the role that best describes you.';
+
+  static const String studentRoleLabel = 'Student';
+
+  static const String studentRoleDescription =
+      'Access learning materials and personal tools.';
+
+  static const String educatorRoleLabel = 'Educator';
+
+  static const String educatorRoleDescription =
+      'Create, manage, and share learning materials.';
+
+  static const String cancelEditLabel = 'Cancel';
+
+  static const String saveGuestProfileLabel = 'Save Changes';
+
+  static const String savingGuestProfileLabel = 'Saving...';
+
+  static const String guestProfileUpdatedMessage =
+      'Guest profile updated successfully.';
+
+  static const String guestProfileUpdateErrorMessage =
+      'Guest profile could not be updated. Please try again.';
+
+  // ============================================================
+  // DELETE GUEST DATA
+  // ============================================================
+
+  static const String guestDataSectionTitle = 'Guest Data';
+
+  static const String deleteGuestDataTitle = 'Delete Guest Data';
+
+  static const String deleteGuestDataDescription =
+      'Permanently remove your guest profile, scan history, materials, '
+      'folders, and locally saved files from this device.';
+
+  static const String deleteGuestDataTooltip =
+      'Permanently delete all guest data';
+
+  static const String deleteGuestDialogTitle = 'Delete guest data?';
+
+  static const String deleteGuestDialogDescription =
+      'This permanently deletes your nickname, role, scan history, '
+      'saved materials, folders, and local files from this device.';
+
+  static const String deleteGuestDialogWarning =
+      'This action cannot be undone.';
+
+  static const String cancelDeleteLabel = 'Cancel';
+
+  static const String confirmDeleteLabel = 'Delete Permanently';
+
+  static const String deletingGuestDataLabel = 'Deleting...';
+
+  static const String deleteGuestDataErrorMessage =
+      'Guest data could not be completely deleted. Please try again.';
+
+  // ============================================================
+  // GUEST MANAGEMENT COLORS
+  // ============================================================
+
+  static const Color editGuestBackgroundColor = Color(0xFFF5F9FF);
+
+  static const Color editGuestBorderColor = Color(0xFFCFE1FF);
+
+  static const Color selectedRoleBackgroundColor = Color(0xFFEAF2FF);
+
+  static const Color dangerColor = Color(0xFFDC2626);
+
+  static const Color dangerBackgroundColor = Color(0xFFFFF6F6);
+
+  static const Color dangerBorderColor = Color(0xFFFECACA);
+
+  static const Color dangerTextColor = Color(0xFFB42318);
+
+  static const Color warningBackgroundColor = Color(0xFFFFF1F1);
+
+  // ============================================================
+  // GUEST MANAGEMENT ICONS
+  // ============================================================
+
+  static const IconData editGuestIcon = Icons.edit_outlined;
+
+  static const IconData studentRoleIcon = Icons.school_outlined;
+
+  static const IconData educatorRoleIcon = Icons.co_present_outlined;
+
+  static const IconData selectedRoleIcon = Icons.check_rounded;
+
+  static const IconData guestDataIcon = Icons.phonelink_erase_outlined;
+
+  static const IconData deleteGuestDataIcon = Icons.delete_forever_outlined;
+
+  static const IconData warningIcon = Icons.warning_amber_rounded;
+
+  // ============================================================
+  // GUEST MANAGEMENT ANIMATIONS
+  // ============================================================
+
+  static const Duration roleSelectionDuration = Duration(milliseconds: 180);
+
+  static const Duration guestActionDuration = Duration(milliseconds: 220);
+
+  static const Curve guestActionCurve = Curves.easeOutCubic;
+
+  // ============================================================
+  // EDIT GUEST BUTTON
+  // ============================================================
+
+  static const double editGuestButtonSpacing = 16;
+
+  static final ButtonStyle editGuestButtonStyle = OutlinedButton.styleFrom(
+    foregroundColor: primaryColor,
+    backgroundColor: editGuestBackgroundColor,
+    side: const BorderSide(color: editGuestBorderColor, width: 1),
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+  );
+
+  // ============================================================
+  // EDIT GUEST BOTTOM SHEET
+  // ============================================================
+
+  static const BorderRadius guestSheetRadius = BorderRadius.only(
+    topLeft: Radius.circular(26),
+    topRight: Radius.circular(26),
+  );
+
+  static const EdgeInsets guestSheetPadding = EdgeInsets.fromLTRB(
+    20,
+    10,
+    20,
+    24,
+  );
+
+  static const double guestSheetSectionSpacing = 20;
+
+  static const double guestSheetItemSpacing = 10;
+
+  static const double guestSheetButtonSpacing = 10;
+
+  static const TextStyle guestSheetTitleStyle = TextStyle(
+    color: titleColor,
+    fontSize: 20,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.2,
+  );
+
+  static const TextStyle guestSheetDescriptionStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 13,
+    height: 1.45,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle guestFieldLabelStyle = TextStyle(
+    color: titleColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle guestFieldHelperStyle = TextStyle(
+    color: mutedColor,
+    fontSize: 11.5,
+    height: 1.4,
+  );
+
+  static const InputDecoration guestNicknameInputDecoration = InputDecoration(
+    hintText: editNicknameHint,
+    counterText: '',
+    filled: true,
+    fillColor: surfaceColor,
+    prefixIcon: Icon(nicknameIcon, color: primaryColor),
+    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: outlineColor),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: primaryColor, width: 1.6),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: dangerColor),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
+      borderSide: BorderSide(color: dangerColor, width: 1.6),
+    ),
+  );
+
+  // ============================================================
+  // GUEST ROLE OPTIONS
+  // ============================================================
+
+  static const EdgeInsets guestRoleOptionPadding = EdgeInsets.all(14);
+
+  static const BorderRadius guestRoleOptionRadius = BorderRadius.all(
+    Radius.circular(13),
+  );
+
+  static const double guestRoleOptionSpacing = 10;
+
+  static const double guestRoleIconContainerSize = 42;
+
+  static const double guestRoleIconSize = 21;
+
+  static const double guestRoleCheckSize = 18;
+
+  static const TextStyle guestRoleTitleStyle = TextStyle(
+    color: titleColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle guestRoleDescriptionStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 11.5,
+    height: 1.35,
+  );
+
+  // ============================================================
+  // GUEST EDIT ACTIONS
+  // ============================================================
+
+  static final ButtonStyle cancelGuestEditButtonStyle = TextButton.styleFrom(
+    foregroundColor: bodyColor,
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+    textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+  );
+
+  static final ButtonStyle saveGuestEditButtonStyle = FilledButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: primaryColor,
+    disabledBackgroundColor: outlineColor,
+    disabledForegroundColor: mutedColor,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+  );
+
+  // ============================================================
+  // DELETE GUEST DATA CARD
+  // ============================================================
+
+  static const EdgeInsets guestDataCardPadding = EdgeInsets.all(16);
+
+  static const Border guestDataCardBorder = Border.fromBorderSide(
+    BorderSide(color: dangerBorderColor, width: 1),
+  );
+
+  static const TextStyle guestDataTitleStyle = TextStyle(
+    color: dangerTextColor,
+    fontSize: 15,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle guestDataDescriptionStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 12.5,
+    height: 1.45,
+  );
+
+  static final ButtonStyle deleteGuestDataButtonStyle = TextButton.styleFrom(
+    foregroundColor: dangerColor,
+    backgroundColor: warningBackgroundColor,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+  );
+
+  // ============================================================
+  // DELETE CONFIRMATION DIALOG
+  // ============================================================
+
+  static const BorderRadius deleteDialogRadius = BorderRadius.all(
+    Radius.circular(20),
+  );
+
+  static const EdgeInsets deleteDialogIconPadding = EdgeInsets.all(12);
+
+  static const TextStyle deleteDialogTitleStyle = TextStyle(
+    color: titleColor,
+    fontSize: 19,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle deleteDialogDescriptionStyle = TextStyle(
+    color: bodyColor,
+    fontSize: 13,
+    height: 1.5,
+  );
+
+  static const TextStyle deleteDialogWarningStyle = TextStyle(
+    color: dangerTextColor,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w800,
+  );
+
+  static final ButtonStyle cancelDeleteButtonStyle = TextButton.styleFrom(
+    foregroundColor: bodyColor,
+    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+  );
+
+  static final ButtonStyle confirmDeleteButtonStyle = FilledButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: dangerColor,
+    disabledBackgroundColor: dangerBorderColor,
+    disabledForegroundColor: surfaceColor,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+  );
 }
