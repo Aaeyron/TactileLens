@@ -33,6 +33,24 @@ abstract final class _MaterialText {
   static const String itemPlural = 'Items';
   static const String addFolderLabel = 'Add Folder';
 
+  static const String folderOptionsTooltip = 'Folder options';
+  static const String deleteFolderLabel = 'Delete folder';
+
+  static const String deleteFolderDialogTitle = 'Delete Folder';
+
+  static const String deleteFolderDialogDescription =
+      'Delete this folder? Materials inside it will not be deleted. '
+      'They will be moved to Unfiled.';
+
+  static const String deleteFolderDialogWarning =
+      'The folder itself cannot be restored.';
+
+  static const String deleteFolderSuccessMessage =
+      'Folder deleted. Its materials are now Unfiled.';
+
+  static const String deleteFolderFailureMessage =
+      'Unable to delete the folder.';
+
   static const String mathNemethLabel = 'Math • Nemeth';
   static const String textUebLabel = 'Text • UEB';
 
@@ -97,6 +115,8 @@ enum _MaterialSort { newest, oldest, title }
 
 enum _MaterialMenuAction { preview, moveToFolder, delete }
 
+enum _FolderMenuAction { delete }
+
 class _FolderSelectionResult {
   const _FolderSelectionResult({required this.folderId});
 
@@ -134,6 +154,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   bool _isDeleting = false;
   bool _isCreatingFolder = false;
   bool _isMovingMaterial = false;
+
+  int? _deletingFolderId;
 
   String? _errorMessage;
 
@@ -1049,6 +1071,170 @@ class _MaterialsScreenState extends State<MaterialsScreen>
     }
   }
 
+  Future<void> _requestDeleteFolder(MaterialFolderModel folder) async {
+    final int? folderId = folder.id;
+
+    if (folderId == null || _deletingFolderId != null) {
+      return;
+    }
+
+    final bool confirmed = await _showDeleteFolderConfirmation(folder);
+
+    if (!mounted || !confirmed) {
+      return;
+    }
+
+    setState(() {
+      _deletingFolderId = folderId;
+    });
+
+    try {
+      await _folderService.deleteFolder(folderId);
+
+      if (!mounted) {
+        return;
+      }
+
+      await _refreshMaterials();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _deletingFolderId = null;
+      });
+
+      _showMessage(_MaterialText.deleteFolderSuccessMessage);
+    } on MaterialFolderServiceException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _deletingFolderId = null;
+      });
+
+      _showMessage(error.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _deletingFolderId = null;
+      });
+
+      _showMessage(_MaterialText.deleteFolderFailureMessage);
+    }
+  }
+
+  Future<bool> _showDeleteFolderConfirmation(MaterialFolderModel folder) async {
+    final bool? confirmed = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: MaterialScreenStyles.dialogBarrierColor,
+      transitionDuration: MaterialScreenStyles.dialogAnimationDuration,
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return AlertDialog(
+              backgroundColor: MaterialScreenStyles.surfaceColor,
+              shape: const RoundedRectangleBorder(
+                borderRadius: MaterialScreenStyles.dialogRadius,
+                side: BorderSide(color: MaterialScreenStyles.dangerBorderColor),
+              ),
+              title: const Row(
+                children: <Widget>[
+                  Icon(
+                    MaterialScreenStyles.folderWarningIcon,
+                    color: MaterialScreenStyles.dangerColor,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _MaterialText.deleteFolderDialogTitle,
+                      style: MaterialScreenStyles.dialogTitleStyle,
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    folder.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: MaterialScreenStyles.folderTitleStyle,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    _MaterialText.deleteFolderDialogDescription,
+                    style: MaterialScreenStyles.dialogDescriptionStyle,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    _MaterialText.deleteFolderDialogWarning,
+                    style: MaterialScreenStyles.folderDeleteWarningStyle,
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                  child: const Text(_MaterialText.cancelLabel),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  style: MaterialScreenStyles.deleteFolderButtonStyle,
+                  icon: const Icon(
+                    MaterialScreenStyles.deleteFolderIcon,
+                    size: MaterialScreenStyles.dialogButtonIconSize,
+                  ),
+                  label: const Text(_MaterialText.deleteFolderLabel),
+                ),
+              ],
+            );
+          },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final CurvedAnimation curvedAnimation = CurvedAnimation(
+              parent: animation,
+              curve: MaterialScreenStyles.dialogEntranceCurve,
+              reverseCurve: MaterialScreenStyles.dialogExitCurve,
+            );
+
+            return FadeTransition(
+              opacity: curvedAnimation,
+              child: ScaleTransition(
+                scale: Tween<double>(
+                  begin: MaterialScreenStyles.dialogInitialScale,
+                  end: 1,
+                ).animate(curvedAnimation),
+                child: child,
+              ),
+            );
+          },
+    );
+
+    return confirmed ?? false;
+  }
+
   Future<void> _showCreateFolderDialog() async {
     if (_isCreatingFolder) {
       return;
@@ -1432,8 +1618,15 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                 folder: folder,
                 cardIndex: index,
                 isSelected: false,
+                isDeleting: _deletingFolderId == folder.id,
                 onPressed: () {
                   _showFolderContents(folder);
+                },
+                onMenuSelected: (_FolderMenuAction action) {
+                  switch (action) {
+                    case _FolderMenuAction.delete:
+                      _requestDeleteFolder(folder);
+                  }
                 },
               );
             },
@@ -1696,74 +1889,151 @@ class _FolderCard extends StatelessWidget {
     required this.folder,
     required this.cardIndex,
     required this.isSelected,
+    required this.isDeleting,
     required this.onPressed,
+    required this.onMenuSelected,
   });
 
   final MaterialFolderModel folder;
   final int cardIndex;
   final bool isSelected;
+  final bool isDeleting;
   final VoidCallback onPressed;
+  final ValueChanged<_FolderMenuAction> onMenuSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: MaterialScreenStyles.folderRadius,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
+    return Semantics(
+      button: true,
+      label:
+          '${folder.name}, ${folder.itemCount} '
+          '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
+      child: Material(
+        color: Colors.transparent,
         borderRadius: MaterialScreenStyles.folderRadius,
-        child: AnimatedContainer(
-          duration: MaterialScreenStyles.folderSelectionDuration,
-          width: MaterialScreenStyles.folderCardWidth,
-          padding: MaterialScreenStyles.folderPadding,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? MaterialScreenStyles.selectedFolderBackgroundColor
-                : MaterialScreenStyles.surfaceColor,
-            borderRadius: MaterialScreenStyles.folderRadius,
-            border: Border.all(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: isDeleting ? null : onPressed,
+          borderRadius: MaterialScreenStyles.folderRadius,
+          child: AnimatedContainer(
+            duration: MaterialScreenStyles.folderSelectionDuration,
+            width: MaterialScreenStyles.folderCardWidth,
+            padding: MaterialScreenStyles.folderPadding,
+            decoration: BoxDecoration(
               color: isSelected
-                  ? MaterialScreenStyles.primaryColor
-                  : MaterialScreenStyles.outlineColor,
-              width: isSelected ? 1.5 : 1,
+                  ? MaterialScreenStyles.selectedFolderBackgroundColor
+                  : MaterialScreenStyles.surfaceColor,
+              borderRadius: MaterialScreenStyles.folderRadius,
+              border: Border.all(
+                color: isSelected
+                    ? MaterialScreenStyles.primaryColor
+                    : MaterialScreenStyles.outlineColor,
+                width: isSelected ? 1.5 : 1,
+              ),
+              boxShadow: MaterialScreenStyles.folderCardShadow,
             ),
-            boxShadow: MaterialScreenStyles.folderCardShadow,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: MaterialScreenStyles.folderIconContainerSize,
-                height: MaterialScreenStyles.folderIconContainerSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: MaterialScreenStyles.folderIconBackgroundColor,
-                  borderRadius: MaterialScreenStyles.folderIconContainerRadius,
+            child: Stack(
+              children: <Widget>[
+                Positioned.fill(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Container(
+                        width: MaterialScreenStyles.folderIconContainerSize,
+                        height: MaterialScreenStyles.folderIconContainerSize,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          color: MaterialScreenStyles.folderIconBackgroundColor,
+                          borderRadius:
+                              MaterialScreenStyles.folderIconContainerRadius,
+                        ),
+                        child: isDeleting
+                            ? const SizedBox(
+                                width: MaterialScreenStyles
+                                    .folderDeleteProgressSize,
+                                height: MaterialScreenStyles
+                                    .folderDeleteProgressSize,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: MaterialScreenStyles.primaryColor,
+                                ),
+                              )
+                            : const Icon(
+                                MaterialScreenStyles.folderIcon,
+                                size: MaterialScreenStyles.folderIconSize,
+                                color: MaterialScreenStyles.primaryColor,
+                              ),
+                      ),
+                      const SizedBox(
+                        height: MaterialScreenStyles.folderIconSpacing,
+                      ),
+                      Text(
+                        folder.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: MaterialScreenStyles.folderTitleStyle,
+                      ),
+                      const SizedBox(
+                        height: MaterialScreenStyles.folderCountSpacing,
+                      ),
+                      Text(
+                        '${folder.itemCount} '
+                        '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: MaterialScreenStyles.folderCountStyle,
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Icon(
-                  MaterialScreenStyles.folderIcon,
-                  size: MaterialScreenStyles.folderIconSize,
-                  color: MaterialScreenStyles.primaryColor,
+                Positioned(
+                  top: MaterialScreenStyles.folderOptionsTop,
+                  right: MaterialScreenStyles.folderOptionsRight,
+                  child: SizedBox(
+                    width: MaterialScreenStyles.folderOptionsButtonSize,
+                    height: MaterialScreenStyles.folderOptionsButtonSize,
+                    child: isDeleting
+                        ? const SizedBox.shrink()
+                        : PopupMenuButton<_FolderMenuAction>(
+                            tooltip: _MaterialText.folderOptionsTooltip,
+                            padding: MaterialScreenStyles.folderMenuPadding,
+                            iconSize:
+                                MaterialScreenStyles.folderOptionsIconSize,
+                            icon: const Icon(
+                              MaterialScreenStyles.folderOptionsIcon,
+                              color: MaterialScreenStyles.textMutedColor,
+                            ),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius:
+                                  MaterialScreenStyles.folderMenuRadius,
+                            ),
+                            onSelected: onMenuSelected,
+                            itemBuilder: (BuildContext context) {
+                              return const <PopupMenuEntry<_FolderMenuAction>>[
+                                PopupMenuItem<_FolderMenuAction>(
+                                  value: _FolderMenuAction.delete,
+                                  child: ListTile(
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    leading: Icon(
+                                      MaterialScreenStyles.deleteFolderIcon,
+                                      color: MaterialScreenStyles.dangerColor,
+                                    ),
+                                    title: Text(
+                                      _MaterialText.deleteFolderLabel,
+                                      style: MaterialScreenStyles
+                                          .folderMenuDeleteTextStyle,
+                                    ),
+                                  ),
+                                ),
+                              ];
+                            },
+                          ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: MaterialScreenStyles.folderIconSpacing),
-              Text(
-                folder.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: MaterialScreenStyles.folderTitleStyle,
-              ),
-              const SizedBox(height: MaterialScreenStyles.folderCountSpacing),
-              Text(
-                '${folder.itemCount} '
-                '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: MaterialScreenStyles.folderCountStyle,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

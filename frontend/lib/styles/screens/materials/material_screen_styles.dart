@@ -33,6 +33,10 @@ abstract final class MaterialScreenStyles {
   static const Color addFolderOutlineColor = Color(0xFFAAC8F8);
   static const Color selectedFolderBackgroundColor = Color(0xFFEAF3FF);
 
+  static const Color dangerColor = Color(0xFFDC2626);
+  static const Color dangerBackgroundColor = Color(0xFFFFF5F5);
+  static const Color dangerBorderColor = Color(0xFFFECACA);
+
   // ============================================================
   // ICONS
   // ============================================================
@@ -43,6 +47,10 @@ abstract final class MaterialScreenStyles {
 
   static const IconData folderIcon = Icons.folder_rounded;
   static const IconData addFolderIcon = Icons.create_new_folder_outlined;
+
+  static const IconData folderOptionsIcon = Icons.more_vert_rounded;
+  static const IconData deleteFolderIcon = Icons.delete_outline_rounded;
+  static const IconData folderWarningIcon = Icons.warning_amber_rounded;
 
   static const IconData imageIcon = Icons.image_outlined;
   static const IconData documentIcon = Icons.description_outlined;
@@ -223,6 +231,19 @@ abstract final class MaterialScreenStyles {
   static const double addFolderLabelSpacing = 10;
   static const double addFolderProgressSize = 27;
 
+  static const double folderOptionsButtonSize = 30;
+  static const double folderOptionsIconSize = 18;
+  static const double folderOptionsTop = 4;
+  static const double folderOptionsRight = 4;
+
+  static const double folderDeleteProgressSize = 18;
+
+  static const EdgeInsets folderMenuPadding = EdgeInsets.zero;
+
+  static const BorderRadius folderMenuRadius = BorderRadius.all(
+    Radius.circular(12),
+  );
+
   // ============================================================
   // MATERIAL CARDS
   // ============================================================
@@ -370,6 +391,16 @@ abstract final class MaterialScreenStyles {
     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
   );
 
+  static final ButtonStyle deleteFolderButtonStyle = FilledButton.styleFrom(
+    backgroundColor: dangerColor,
+    foregroundColor: surfaceColor,
+    disabledBackgroundColor: dangerBorderColor,
+    disabledForegroundColor: surfaceColor,
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+  );
+
   // ============================================================
   // TYPOGRAPHY
   // ============================================================
@@ -471,6 +502,19 @@ abstract final class MaterialScreenStyles {
     color: textSecondaryColor,
     fontSize: 14,
     height: 1.5,
+  );
+
+  static const TextStyle folderDeleteWarningStyle = TextStyle(
+    color: dangerColor,
+    fontSize: 12.5,
+    height: 1.4,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle folderMenuDeleteTextStyle = TextStyle(
+    color: dangerColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
   );
 
   static const TextStyle emptyFolderStyle = TextStyle(
