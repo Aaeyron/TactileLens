@@ -126,63 +126,118 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: MaterialDetailScreenStyles.backgroundColor,
-      appBar: AppBar(
-        toolbarHeight: MaterialDetailScreenStyles.headerSize.height,
-        automaticallyImplyLeading: false,
-        backgroundColor: MaterialDetailScreenStyles.surfaceColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leadingWidth: 72,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: IconButton(
-            tooltip: MaterialDetailScreenStyles.backTooltip,
-            onPressed: () {
-              Navigator.maybePop(context);
-            },
-            icon: const Icon(
-              MaterialDetailScreenStyles.backIcon,
-              size: MaterialDetailScreenStyles.headerIconSize,
-              color: MaterialDetailScreenStyles.primaryColor,
-            ),
-          ),
-        ),
-        title: const Text(
-          MaterialDetailScreenStyles.screenTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: MaterialDetailScreenStyles.headerTitleStyle,
-        ),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(
-            height: 1,
-            thickness: 1,
-            color: MaterialDetailScreenStyles.outlineColor,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: MaterialDetailScreenStyles.backgroundColor,
+        body: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: MaterialDetailScreenStyles.entranceDuration,
+          curve: MaterialDetailScreenStyles.entranceCurve,
+          builder:
+              (BuildContext context, double animationValue, Widget? child) {
+                return Opacity(
+                  opacity: animationValue,
+                  child: Transform.translate(
+                    offset: Offset(
+                      0,
+                      MaterialDetailScreenStyles.entranceOffsetY *
+                          (1 - animationValue),
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+          child: Column(
+            children: <Widget>[
+              _buildPageHeader(),
+              Expanded(
+                child: SafeArea(
+                  top: false,
+                  child: ListView(
+                    physics: const ClampingScrollPhysics(),
+                    padding: MaterialDetailScreenStyles.screenPadding,
+                    children: <Widget>[
+                      _buildMaterialInformation(),
+                      const SizedBox(
+                        height: MaterialDetailScreenStyles.sectionSpacing,
+                      ),
+                      _buildFilePreview(),
+                      if (_isScannedMaterial) ...<Widget>[
+                        const SizedBox(
+                          height: MaterialDetailScreenStyles.sectionSpacing,
+                        ),
+                        _buildRecognizedContent(),
+                        const SizedBox(
+                          height: MaterialDetailScreenStyles.sectionSpacing,
+                        ),
+                        _buildBrailleContent(),
+                      ] else ...<Widget>[
+                        const SizedBox(
+                          height: MaterialDetailScreenStyles.sectionSpacing,
+                        ),
+                        _buildFileInformation(),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: MaterialDetailScreenStyles.screenPadding,
+    );
+  }
+
+  Widget _buildPageHeader() {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(
+        minHeight: MaterialDetailScreenStyles.headerHeight,
+      ),
+      padding: MaterialDetailScreenStyles.headerPadding,
+      decoration: const BoxDecoration(
+        gradient: MaterialDetailScreenStyles.headerGradient,
+        borderRadius: MaterialDetailScreenStyles.headerRadius,
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            _buildMaterialInformation(),
-            const SizedBox(height: MaterialDetailScreenStyles.sectionSpacing),
-            _buildFilePreview(),
-            if (_isScannedMaterial) ...<Widget>[
-              const SizedBox(height: MaterialDetailScreenStyles.sectionSpacing),
-              _buildRecognizedContent(),
-              const SizedBox(height: MaterialDetailScreenStyles.sectionSpacing),
-              _buildBrailleContent(),
-            ] else ...<Widget>[
-              const SizedBox(height: MaterialDetailScreenStyles.sectionSpacing),
-              _buildFileInformation(),
-            ],
+            IconButton(
+              tooltip: MaterialDetailScreenStyles.backTooltip,
+              onPressed: () {
+                Navigator.maybePop(context);
+              },
+              style: MaterialDetailScreenStyles.headerBackButtonStyle,
+              icon: const Icon(
+                MaterialDetailScreenStyles.backIcon,
+                size: MaterialDetailScreenStyles.headerIconSize,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    MaterialDetailScreenStyles.screenTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: MaterialDetailScreenStyles.headerTitleStyle,
+                  ),
+                  SizedBox(height: 5),
+                  Text(
+                    MaterialDetailScreenStyles.screenSubtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: MaterialDetailScreenStyles.headerSubtitleStyle,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

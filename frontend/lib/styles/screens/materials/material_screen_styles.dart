@@ -74,9 +74,9 @@ abstract final class MaterialScreenStyles {
   // ANIMATION
   // ============================================================
 
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 520);
+  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
 
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 120);
+  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
 
   static const Curve entranceAnimationCurve = Curves.easeOutCubic;
 

@@ -36,7 +36,11 @@ class _AccountInformationScreenState extends State<AccountInformationScreen>
     _configureEntranceAnimation();
     _loadUser();
 
-    _entranceController.forward();
+    Future<void>.delayed(AccountInformationStyles.entranceDelay, () {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
   }
 
   void _configureEntranceAnimation() {

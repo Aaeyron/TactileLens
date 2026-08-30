@@ -77,7 +77,9 @@ abstract final class AccountInformationStyles {
   // ANIMATIONS
   // ============================================================
 
-  static const Duration entranceDuration = Duration(milliseconds: 420);
+  static const Duration entranceDuration = Duration(milliseconds: 540);
+
+  static const Duration entranceDelay = Duration(milliseconds: 100);
 
   static const Curve entranceCurve = Curves.easeOutCubic;
 

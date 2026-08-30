@@ -151,7 +151,11 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen>
       end: Offset.zero,
     ).animate(animation);
 
-    _entranceController.forward();
+    Future<void>.delayed(TermsPolicyScreenStyles.entranceDelay, () {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
   }
 
   @override
@@ -181,7 +185,7 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen>
           child: SlideTransition(
             position: _entrancePosition,
             child: CustomScrollView(
-              physics: const BouncingScrollPhysics(
+              physics: const ClampingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               slivers: <Widget>[

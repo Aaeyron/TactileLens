@@ -14,8 +14,10 @@ import '../../styles/screens/scan/scan_result_screen_styles.dart';
 abstract final class _ScanResultText {
   static const String appBarTitle = 'Scan Result';
 
-  static const String backTooltip = 'Go back';
+  static const String headerDescription =
+      'Review recognized content and accessible Braille output.';
 
+  static const String backTooltip = 'Go back';
   static const String newScanLabel = 'New Scan';
 
   static const String successTitle = 'Scan Successful!';
@@ -133,32 +135,159 @@ class ScanResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ScanResultScreenStyles.backgroundColor,
-      appBar: PreferredSize(
-        preferredSize: ScanResultScreenStyles.headerSize,
-        child: Material(
-          color: ScanResultScreenStyles.surfaceColor,
-          elevation: 1,
-          shadowColor: Colors.black12,
-          child: SafeArea(
-            child: SizedBox(
-              height: ScanResultScreenStyles.headerContentHeight,
-              child: Row(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: ScanResultScreenStyles.backgroundColor,
+        body: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: ScanResultScreenStyles.entranceSequenceDuration,
+          curve: ScanResultScreenStyles.entranceCurve,
+          builder:
+              (BuildContext context, double animationValue, Widget? child) {
+                return Opacity(
+                  opacity: animationValue,
+                  child: FractionalTranslation(
+                    translation: Offset(
+                      ScanResultScreenStyles.entranceBeginOffset.dx *
+                          (1 - animationValue),
+                      ScanResultScreenStyles.entranceBeginOffset.dy *
+                          (1 - animationValue),
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+          child: ListView(
+            padding: EdgeInsets.zero,
+            physics: const ClampingScrollPhysics(),
+            children: <Widget>[
+              _buildPageHeader(context),
+              Padding(
+                padding: ScanResultScreenStyles.screenPadding,
+                child: Column(
+                  children: <Widget>[
+                    _buildSuccessBanner(),
+                    const SizedBox(
+                      height: ScanResultScreenStyles.sectionSpacing,
+                    ),
+                    _ResultSection(
+                      number: _ScanResultText.imageSectionNumber,
+                      title: _ScanResultText.imageSectionTitle,
+                      child: _buildImagePreview(),
+                    ),
+                    const SizedBox(
+                      height: ScanResultScreenStyles.sectionSpacing,
+                    ),
+                    _ResultSection(
+                      number: _ScanResultText.contentSectionNumber,
+                      title: _ScanResultText.contentSectionTitle,
+                      action: result.hasContent
+                          ? _SectionAction(
+                              icon: ScanResultScreenStyles.copyIcon,
+                              label: _ScanResultText.copyLabel,
+                              tooltip: _ScanResultText.copyTooltip,
+                              onPressed: () {
+                                _copyToClipboard(
+                                  context: context,
+                                  content: _combinedContent,
+                                  confirmationMessage:
+                                      _ScanResultText.contentCopiedMessage,
+                                );
+                              },
+                            )
+                          : null,
+                      child: result.hasContent
+                          ? _buildRecognizedContent()
+                          : _buildEmptyResult(),
+                    ),
+                    const SizedBox(
+                      height: ScanResultScreenStyles.sectionSpacing,
+                    ),
+                    _ResultSection(
+                      number: _ScanResultText.brailleSectionNumber,
+                      title: _ScanResultText.brailleSectionTitle,
+                      action: result.hasBraille
+                          ? _SectionAction(
+                              icon: ScanResultScreenStyles.copyIcon,
+                              label: _ScanResultText.copyBrailleLabel,
+                              tooltip: _ScanResultText.copyBrailleTooltip,
+                              onPressed: () {
+                                _copyToClipboard(
+                                  context: context,
+                                  content: result.combinedBraille,
+                                  confirmationMessage:
+                                      _ScanResultText.brailleCopiedMessage,
+                                );
+                              },
+                            )
+                          : null,
+                      child: result.hasBraille
+                          ? _buildBrailleOutput()
+                          : _buildBrailleUnavailable(),
+                    ),
+                    if (result.hasContent) ...<Widget>[
+                      const SizedBox(
+                        height: ScanResultScreenStyles.sectionSpacing,
+                      ),
+                      _SaveMaterialButton(
+                        result: result,
+                        scannedImage: scannedImage,
+                      ),
+                    ],
+                    const SizedBox(
+                      height: ScanResultScreenStyles.bottomSpacing,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageHeader(BuildContext context) {
+    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        ScanResultScreenStyles.headerHorizontalPadding,
+        statusBarHeight + ScanResultScreenStyles.headerTopPadding,
+        ScanResultScreenStyles.headerHorizontalPadding,
+        ScanResultScreenStyles.headerBottomPadding,
+      ),
+      decoration: const BoxDecoration(
+        gradient: ScanResultScreenStyles.headerGradient,
+        borderRadius: ScanResultScreenStyles.headerRadius,
+      ),
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: ScanResultScreenStyles.headerDecorationRight,
+            bottom: ScanResultScreenStyles.headerDecorationBottom,
+            child: _ScanResultHeaderDecoration(),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
                 children: <Widget>[
                   IconButton(
                     tooltip: _ScanResultText.backTooltip,
                     onPressed: () {
                       Navigator.maybePop(context);
                     },
+                    style: ScanResultScreenStyles.backButtonStyle,
                     icon: const Icon(
                       ScanResultScreenStyles.backIcon,
                       size: ScanResultScreenStyles.headerIconSize,
-                      color: ScanResultScreenStyles.primaryColor,
                     ),
                   ),
                   const SizedBox(
-                    width: ScanResultScreenStyles.headerTitleSpacing,
+                    width: ScanResultScreenStyles.headerBackSpacing,
                   ),
                   const Expanded(
                     child: Text(
@@ -179,79 +308,24 @@ class ScanResultScreen extends StatelessWidget {
                     label: const Text(_ScanResultText.newScanLabel),
                     style: ScanResultScreenStyles.headerActionStyle,
                   ),
-                  const SizedBox(
-                    width: ScanResultScreenStyles.headerRightSpacing,
-                  ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: ScanResultScreenStyles.screenPadding,
-          children: <Widget>[
-            _buildSuccessBanner(),
-            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
-            _ResultSection(
-              number: _ScanResultText.imageSectionNumber,
-              title: _ScanResultText.imageSectionTitle,
-              child: _buildImagePreview(),
-            ),
-            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
-            _ResultSection(
-              number: _ScanResultText.contentSectionNumber,
-              title: _ScanResultText.contentSectionTitle,
-              action: result.hasContent
-                  ? _SectionAction(
-                      icon: ScanResultScreenStyles.copyIcon,
-                      label: _ScanResultText.copyLabel,
-                      tooltip: _ScanResultText.copyTooltip,
-                      onPressed: () {
-                        _copyToClipboard(
-                          context: context,
-                          content: _combinedContent,
-                          confirmationMessage:
-                              _ScanResultText.contentCopiedMessage,
-                        );
-                      },
-                    )
-                  : null,
-              child: result.hasContent
-                  ? _buildRecognizedContent()
-                  : _buildEmptyResult(),
-            ),
-            const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
-            _ResultSection(
-              number: _ScanResultText.brailleSectionNumber,
-              title: _ScanResultText.brailleSectionTitle,
-              action: result.hasBraille
-                  ? _SectionAction(
-                      icon: ScanResultScreenStyles.copyIcon,
-                      label: _ScanResultText.copyBrailleLabel,
-                      tooltip: _ScanResultText.copyBrailleTooltip,
-                      onPressed: () {
-                        _copyToClipboard(
-                          context: context,
-                          content: result.combinedBraille,
-                          confirmationMessage:
-                              _ScanResultText.brailleCopiedMessage,
-                        );
-                      },
-                    )
-                  : null,
-              child: result.hasBraille
-                  ? _buildBrailleOutput()
-                  : _buildBrailleUnavailable(),
-            ),
-            if (result.hasContent) ...<Widget>[
-              const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
-              _SaveMaterialButton(result: result, scannedImage: scannedImage),
+              const SizedBox(
+                height: ScanResultScreenStyles.headerDescriptionSpacing,
+              ),
+              const Padding(
+                padding: ScanResultScreenStyles.headerDescriptionPadding,
+                child: SizedBox(
+                  width: ScanResultScreenStyles.headerDescriptionWidth,
+                  child: Text(
+                    _ScanResultText.headerDescription,
+                    style: ScanResultScreenStyles.headerDescriptionStyle,
+                  ),
+                ),
+              ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -453,6 +527,37 @@ class ScanResultScreen extends StatelessWidget {
           ),
         ),
       );
+  }
+}
+
+class _ScanResultHeaderDecoration extends StatelessWidget {
+  const _ScanResultHeaderDecoration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: ScanResultScreenStyles.headerDecorationOpacity,
+      child: SizedBox(
+        width: ScanResultScreenStyles.headerDecorationWidth,
+        child: Wrap(
+          spacing: ScanResultScreenStyles.headerDotSpacing,
+          runSpacing: ScanResultScreenStyles.headerDotSpacing,
+          children: List<Widget>.generate(
+            ScanResultScreenStyles.headerDotCount,
+            (_) => const DecoratedBox(
+              decoration: BoxDecoration(
+                color: ScanResultScreenStyles.surfaceColor,
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox.square(
+                dimension: ScanResultScreenStyles.headerDotSize,
+              ),
+            ),
+            growable: false,
+          ),
+        ),
+      ),
+    );
   }
 }
 

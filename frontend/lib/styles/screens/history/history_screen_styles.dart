@@ -63,6 +63,21 @@ abstract final class HistoryScreenStyles {
   static const EdgeInsets screenPadding = contentPadding;
 
   // ============================================================
+  // ENTRANCE ANIMATION
+  // ============================================================
+
+  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
+
+  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
+
+  static const Curve entranceAnimationCurve = Curves.easeOutCubic;
+
+  static const double entranceFadeBegin = 0;
+  static const double entranceFadeEnd = 1;
+
+  static const Offset entranceSlideBegin = Offset(0, 0.025);
+
+  // ============================================================
   // FULL-WIDTH HEADER
   // ============================================================
 

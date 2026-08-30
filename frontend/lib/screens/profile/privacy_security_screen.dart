@@ -110,16 +110,17 @@ class PrivacySecurityScreen extends StatelessWidget {
         backgroundColor: PrivacySecurityScreenStyles.backgroundColor,
         body: TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: 1),
-          duration: PrivacySecurityScreenStyles.entranceDuration,
+          duration: PrivacySecurityScreenStyles.entranceSequenceDuration,
           curve: PrivacySecurityScreenStyles.entranceCurve,
           builder:
               (BuildContext context, double animationValue, Widget? child) {
                 return Opacity(
                   opacity: animationValue,
-                  child: Transform.translate(
-                    offset: Offset(
-                      0,
-                      PrivacySecurityScreenStyles.entranceVerticalOffset *
+                  child: FractionalTranslation(
+                    translation: Offset(
+                      PrivacySecurityScreenStyles.entranceBeginOffset.dx *
+                          (1 - animationValue),
+                      PrivacySecurityScreenStyles.entranceBeginOffset.dy *
                           (1 - animationValue),
                     ),
                     child: child,
@@ -127,7 +128,7 @@ class PrivacySecurityScreen extends StatelessWidget {
                 );
               },
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
+            physics: const ClampingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics(),
             ),
             slivers: <Widget>[

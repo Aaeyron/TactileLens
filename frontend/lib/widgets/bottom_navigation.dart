@@ -5,7 +5,7 @@ class BottomNavigation extends StatelessWidget {
 
   final int currentIndex;
 
-  static const Color _primaryColor = Color(0xFF0D47A1);
+  static const Color _primaryColor = Color(0xFF1268F3);
   static const Color _unselectedColor = Color(0xFF667085);
   static const Color _outlineColor = Color(0xFFD0D5DD);
 

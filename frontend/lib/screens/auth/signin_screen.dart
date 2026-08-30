@@ -28,9 +28,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _isSigningIn = false;
   bool _isGoogleSigningIn = false;
+  bool _isRestoringGuest = false;
 
   bool get _isBusy {
-    return _isSigningIn || _isGoogleSigningIn;
+    return _isSigningIn || _isGoogleSigningIn || _isRestoringGuest;
   }
 
   @override
@@ -461,18 +462,58 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  void _continueAsGuest() {
-    if (_isSigningIn) {
+  Future<void> _continueAsGuest() async {
+    if (_isBusy) {
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (BuildContext context) {
-          return const GuestSetupScreen();
-        },
-      ),
-    );
+    setState(() {
+      _isRestoringGuest = true;
+    });
+
+    try {
+      final bool restoredGuest = await SessionManager.activateSavedGuest();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (restoredGuest) {
+        Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(
+            builder: (BuildContext context) {
+              return const MainScreen();
+            },
+          ),
+          (Route<dynamic> route) => false,
+        );
+
+        return;
+      }
+
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) {
+            return const GuestSetupScreen();
+          },
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to restore Guest Mode: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage('Unable to continue as guest. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoringGuest = false;
+        });
+      }
+    }
   }
 
   void _togglePasswordVisibility() {
@@ -797,25 +838,36 @@ class _SignInScreenState extends State<SignInScreen> {
     return SizedBox(
       height: SignInStyles.buttonHeight,
       child: OutlinedButton(
-        onPressed: _isSigningIn ? null : _continueAsGuest,
+        onPressed: _isBusy ? null : _continueAsGuest,
         style: SignInStyles.guestButtonStyle,
-        child: const Row(
-          children: <Widget>[
-            Icon(SignInStyles.guestIcon, size: SignInStyles.buttonIconSize),
-            Expanded(
-              child: Text(
-                SignInStyles.guestLabel,
-                textAlign: TextAlign.center,
-                style: SignInStyles.guestButtonTextStyle,
+        child: _isRestoringGuest
+            ? const SizedBox.square(
+                dimension: SignInStyles.loadingIndicatorSize,
+                child: CircularProgressIndicator(
+                  strokeWidth: SignInStyles.loadingStrokeWidth,
+                  color: SignInStyles.primaryColor,
+                ),
+              )
+            : const Row(
+                children: <Widget>[
+                  Icon(
+                    SignInStyles.guestIcon,
+                    size: SignInStyles.buttonIconSize,
+                  ),
+                  Expanded(
+                    child: Text(
+                      SignInStyles.guestLabel,
+                      textAlign: TextAlign.center,
+                      style: SignInStyles.guestButtonTextStyle,
+                    ),
+                  ),
+                  Icon(
+                    SignInStyles.forwardIcon,
+                    size: SignInStyles.forwardIconSize,
+                    color: SignInStyles.forwardIconColor,
+                  ),
+                ],
               ),
-            ),
-            Icon(
-              SignInStyles.forwardIcon,
-              size: SignInStyles.forwardIconSize,
-              color: SignInStyles.forwardIconColor,
-            ),
-          ],
-        ),
       ),
     );
   }

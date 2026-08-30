@@ -67,9 +67,19 @@ abstract final class AboutTactileLensScreenStyles {
   // ANIMATION
   // ============================================================
 
-  static const Duration entranceDuration = Duration(milliseconds: 440);
-  static const Curve entranceCurve = Curves.easeOutCubic;
-  static const double entranceVerticalOffset = 14;
+  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
+
+  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
+
+  static const Duration entranceSequenceDuration = Duration(milliseconds: 640);
+
+  static const Curve entranceCurve = Interval(
+    0.15625,
+    1,
+    curve: Curves.easeOutCubic,
+  );
+
+  static const Offset entranceBeginOffset = Offset(0, 0.025);
 
   // ============================================================
   // HEADER

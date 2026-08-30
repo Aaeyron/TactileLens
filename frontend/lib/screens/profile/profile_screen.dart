@@ -46,7 +46,12 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _entranceOpacity;
+  late final Animation<Offset> _entrancePosition;
+
   String _firstName = '';
   String _lastName = '';
   String _email = '';
@@ -60,7 +65,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+
+    _initializeEntranceAnimation();
     _loadUser();
+  }
+
+  void _initializeEntranceAnimation() {
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: ProfileStyles.entranceAnimationDuration,
+    );
+
+    final CurvedAnimation entranceAnimation = CurvedAnimation(
+      parent: _entranceController,
+      curve: ProfileStyles.entranceAnimationCurve,
+    );
+
+    _entranceOpacity = Tween<double>(
+      begin: ProfileStyles.entranceFadeBegin,
+      end: ProfileStyles.entranceFadeEnd,
+    ).animate(entranceAnimation);
+
+    _entrancePosition = Tween<Offset>(
+      begin: ProfileStyles.entranceSlideBegin,
+      end: Offset.zero,
+    ).animate(entranceAnimation);
+
+    Future<void>.delayed(ProfileStyles.entranceAnimationDelay, () {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -314,74 +355,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: ProfileStyles.backgroundColor,
-        body: RefreshIndicator(
-          color: ProfileStyles.primaryColor,
-          backgroundColor: ProfileStyles.surfaceColor,
-          onRefresh: _loadUser,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: <Widget>[
-              SliverToBoxAdapter(child: _buildProfileHeader(context)),
-              SliverPadding(
-                padding: ProfileStyles.contentPadding,
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate.fixed(<Widget>[
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.accountInformationIcon,
-                      title: ProfileStyles.accountInformationTitle,
-                      description: _ProfileText.accountInformationDescription,
-                      onPressed: _openAccountInformation,
+        body: FadeTransition(
+          opacity: _entranceOpacity,
+          child: SlideTransition(
+            position: _entrancePosition,
+            child: RefreshIndicator(
+              color: ProfileStyles.primaryColor,
+              backgroundColor: ProfileStyles.surfaceColor,
+              onRefresh: _loadUser,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(child: _buildProfileHeader(context)),
+                  SliverPadding(
+                    padding: ProfileStyles.contentPadding,
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate.fixed(<Widget>[
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.accountInformationIcon,
+                          title: ProfileStyles.accountInformationTitle,
+                          description:
+                              _ProfileText.accountInformationDescription,
+                          onPressed: _openAccountInformation,
+                        ),
+                        const SizedBox(height: ProfileStyles.menuItemSpacing),
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.aboutTactileLensIcon,
+                          title: ProfileStyles.aboutTactileLensTitle,
+                          description: _ProfileText.aboutDescription,
+                          onPressed: _openAboutTactileLens,
+                        ),
+                        const SizedBox(height: ProfileStyles.menuItemSpacing),
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.termsIcon,
+                          title: ProfileStyles.termsTitle,
+                          description: _ProfileText.termsDescription,
+                          onPressed: _openTermsPolicy,
+                        ),
+                        const SizedBox(
+                          height: ProfileStyles.menuSectionSpacing,
+                        ),
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.settingsIcon,
+                          title: ProfileStyles.settingsTitle,
+                          description: _ProfileText.settingsDescription,
+                          onPressed: _openSettings,
+                        ),
+                        const SizedBox(height: ProfileStyles.menuItemSpacing),
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.privacyIcon,
+                          title: ProfileStyles.privacyTitle,
+                          description: _ProfileText.privacyDescription,
+                          onPressed: _openPrivacySecurity,
+                        ),
+                        const SizedBox(height: ProfileStyles.logoutTopSpacing),
+                        _ProfileMenuItem(
+                          icon: ProfileStyles.logoutIcon,
+                          title: _isGuest
+                              ? _ProfileText.exitGuestModeTitle
+                              : ProfileStyles.logoutTitle,
+                          description: _isGuest
+                              ? _ProfileText.exitGuestModeDescription
+                              : _ProfileText.logoutDescription,
+                          iconColor: ProfileStyles.logoutColor,
+                          titleStyle: ProfileStyles.logoutTitleStyle,
+                          descriptionStyle:
+                              ProfileStyles.logoutDescriptionStyle,
+                          arrowColor: ProfileStyles.logoutColor,
+                          iconBackgroundColor:
+                              ProfileStyles.logoutIconBackgroundColor,
+                          onPressed: _requestSessionExit,
+                        ),
+                        const SizedBox(height: ProfileStyles.bottomSpacing),
+                      ]),
                     ),
-                    const SizedBox(height: ProfileStyles.menuItemSpacing),
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.aboutTactileLensIcon,
-                      title: ProfileStyles.aboutTactileLensTitle,
-                      description: _ProfileText.aboutDescription,
-                      onPressed: _openAboutTactileLens,
-                    ),
-                    const SizedBox(height: ProfileStyles.menuItemSpacing),
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.termsIcon,
-                      title: ProfileStyles.termsTitle,
-                      description: _ProfileText.termsDescription,
-                      onPressed: _openTermsPolicy,
-                    ),
-                    const SizedBox(height: ProfileStyles.menuSectionSpacing),
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.settingsIcon,
-                      title: ProfileStyles.settingsTitle,
-                      description: _ProfileText.settingsDescription,
-                      onPressed: _openSettings,
-                    ),
-                    const SizedBox(height: ProfileStyles.menuItemSpacing),
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.privacyIcon,
-                      title: ProfileStyles.privacyTitle,
-                      description: _ProfileText.privacyDescription,
-                      onPressed: _openPrivacySecurity,
-                    ),
-                    const SizedBox(height: ProfileStyles.logoutTopSpacing),
-                    _ProfileMenuItem(
-                      icon: ProfileStyles.logoutIcon,
-                      title: _isGuest
-                          ? _ProfileText.exitGuestModeTitle
-                          : ProfileStyles.logoutTitle,
-                      description: _isGuest
-                          ? _ProfileText.exitGuestModeDescription
-                          : _ProfileText.logoutDescription,
-                      iconColor: ProfileStyles.logoutColor,
-                      titleStyle: ProfileStyles.logoutTitleStyle,
-                      descriptionStyle: ProfileStyles.logoutDescriptionStyle,
-                      arrowColor: ProfileStyles.logoutColor,
-                      iconBackgroundColor:
-                          ProfileStyles.logoutIconBackgroundColor,
-                      onPressed: _requestSessionExit,
-                    ),
-                    const SizedBox(height: ProfileStyles.bottomSpacing),
-                  ]),
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -140,25 +140,33 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: HistoryScreenStyles.entranceAnimationDuration,
     );
 
     final CurvedAnimation entranceAnimation = CurvedAnimation(
       parent: _entranceController,
-      curve: Curves.easeOutCubic,
+      curve: HistoryScreenStyles.entranceAnimationCurve,
     );
 
-    _entranceOpacity = entranceAnimation;
+    _entranceOpacity = Tween<double>(
+      begin: HistoryScreenStyles.entranceFadeBegin,
+      end: HistoryScreenStyles.entranceFadeEnd,
+    ).animate(entranceAnimation);
 
     _entrancePosition = Tween<Offset>(
-      begin: const Offset(0, 0.025),
+      begin: HistoryScreenStyles.entranceSlideBegin,
       end: Offset.zero,
     ).animate(entranceAnimation);
 
     _searchController.addListener(_handleSearchChanged);
 
     _loadHistory();
-    _entranceController.forward();
+
+    Future<void>.delayed(HistoryScreenStyles.entranceAnimationDelay, () {
+      if (mounted) {
+        _entranceController.forward();
+      }
+    });
   }
 
   @override

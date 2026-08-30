@@ -5,8 +5,9 @@ abstract final class MaterialDetailScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color backgroundColor = Color(0xFFF8F9FC);
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
   static const Color textPrimaryColor = Color(0xFF111827);
   static const Color textSecondaryColor = Color(0xFF667085);
@@ -23,34 +24,72 @@ abstract final class MaterialDetailScreenStyles {
   // HEADER
   // ============================================================
 
-  static const Size headerSize = Size.fromHeight(100);
+  static const double headerHeight = 156;
 
-  static const EdgeInsets headerPadding = EdgeInsets.symmetric(
-    horizontal: 20,
-    vertical: 12,
+  static const EdgeInsets headerPadding = EdgeInsets.fromLTRB(14, 10, 20, 24);
+
+  static const BorderRadius headerRadius = BorderRadius.only(
+    bottomLeft: Radius.circular(28),
+    bottomRight: Radius.circular(28),
   );
 
-  static const double headerIconSize = 27;
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1677FF), Color(0xFF0758DD)],
+  );
 
-  static const String screenTitle = 'Preview';
+  static const double headerIconSize = 25;
+
+  static const String screenTitle = 'Material Preview';
+
+  static const String screenSubtitle =
+      'Review saved content and accessible output.';
+
   static const String backTooltip = 'Go back to materials';
 
   static const IconData backIcon = Icons.arrow_back_rounded;
 
   static const TextStyle headerTitleStyle = TextStyle(
     fontFamily: 'Poppins',
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: textPrimaryColor,
+    fontSize: 22,
+    height: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.25,
+    color: surfaceColor,
   );
+
+  static const TextStyle headerSubtitleStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12.5,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+    color: Color(0xFFEAF2FF),
+  );
+
+  static final ButtonStyle headerBackButtonStyle = IconButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: const Color(0x24FFFFFF),
+    shape: const CircleBorder(),
+  );
+
+  // ============================================================
+  // ENTRANCE ANIMATION
+  // ============================================================
+
+  static const Duration entranceDuration = Duration(milliseconds: 520);
+
+  static const Curve entranceCurve = Curves.easeOutCubic;
+
+  static const double entranceOffsetY = 18;
 
   // ============================================================
   // SCREEN LAYOUT
   // ============================================================
 
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(16, 18, 16, 32);
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(14, 18, 14, 36);
 
-  static const double sectionSpacing = 16;
+  static const double sectionSpacing = 14;
   static const double itemSpacing = 12;
   static const double compactSpacing = 7;
   static const double metadataSpacing = 8;
@@ -60,9 +99,9 @@ abstract final class MaterialDetailScreenStyles {
   // CARDS
   // ============================================================
 
-  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(18));
+  static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(16));
 
-  static const BorderRadius innerRadius = BorderRadius.all(Radius.circular(14));
+  static const BorderRadius innerRadius = BorderRadius.all(Radius.circular(12));
 
   static const Border cardBorder = Border.fromBorderSide(
     BorderSide(color: outlineColor),
@@ -73,7 +112,7 @@ abstract final class MaterialDetailScreenStyles {
   );
 
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: shadowColor, blurRadius: 12, offset: Offset(0, 3)),
+    BoxShadow(color: Color(0x100F172A), blurRadius: 16, offset: Offset(0, 5)),
   ];
 
   static const EdgeInsets cardPadding = EdgeInsets.all(16);
@@ -211,12 +250,14 @@ abstract final class MaterialDetailScreenStyles {
   );
 
   static final ButtonStyle sectionActionStyle = TextButton.styleFrom(
-    foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    foregroundColor: const Color(0xFF1677FF),
+    backgroundColor: const Color(0xFF1677FF).withValues(alpha: 0.10),
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     textStyle: const TextStyle(
       fontFamily: 'Poppins',
       fontSize: 12,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
     ),
   );
 

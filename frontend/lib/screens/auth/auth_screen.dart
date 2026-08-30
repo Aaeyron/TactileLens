@@ -1,17 +1,89 @@
 import 'package:flutter/material.dart';
 
 import '../../styles/screens/auth/auth_screen_styles.dart';
+import '../../utils/session_manager.dart';
+import '../main/main_screen.dart';
 import 'guest_setup_screen.dart';
 import 'signin_screen.dart';
 import 'signup_screen.dart';
 
-class AuthScreen extends StatelessWidget {
+class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
+
+  @override
+  State<AuthScreen> createState() {
+    return _AuthScreenState();
+  }
+}
+
+class _AuthScreenState extends State<AuthScreen> {
+  bool _isRestoringGuest = false;
 
   void _openScreen(BuildContext context, Widget screen) {
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (BuildContext context) => screen));
+  }
+
+  Future<void> _continueAsGuest() async {
+    if (_isRestoringGuest) {
+      return;
+    }
+
+    setState(() {
+      _isRestoringGuest = true;
+    });
+
+    try {
+      final bool restoredGuest = await SessionManager.activateSavedGuest();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (restoredGuest) {
+        Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(
+            builder: (BuildContext context) {
+              return const MainScreen();
+            },
+          ),
+          (Route<dynamic> route) => false,
+        );
+
+        return;
+      }
+
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) {
+            return const GuestSetupScreen();
+          },
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to restore Guest Mode: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Unable to continue as guest. Please try again.'),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoringGuest = false;
+        });
+      }
+    }
   }
 
   @override
@@ -208,27 +280,33 @@ class AuthScreen extends StatelessWidget {
       width: double.infinity,
       height: AuthStyles.buttonHeight,
       child: OutlinedButton(
-        onPressed: () {
-          _openScreen(context, const GuestSetupScreen());
-        },
+        onPressed: _isRestoringGuest ? null : _continueAsGuest,
         style: AuthStyles.guestButtonStyle,
-        child: const Row(
-          children: <Widget>[
-            Icon(AuthStyles.guestIcon, size: AuthStyles.buttonIconSize),
-            Expanded(
-              child: Text(
-                AuthStyles.guestLabel,
-                textAlign: TextAlign.center,
-                style: AuthStyles.guestButtonTextStyle,
+        child: _isRestoringGuest
+            ? const SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: AuthStyles.primaryColor,
+                ),
+              )
+            : const Row(
+                children: <Widget>[
+                  Icon(AuthStyles.guestIcon, size: AuthStyles.buttonIconSize),
+                  Expanded(
+                    child: Text(
+                      AuthStyles.guestLabel,
+                      textAlign: TextAlign.center,
+                      style: AuthStyles.guestButtonTextStyle,
+                    ),
+                  ),
+                  Icon(
+                    AuthStyles.forwardIcon,
+                    size: AuthStyles.forwardIconSize,
+                    color: AuthStyles.forwardIconColor,
+                  ),
+                ],
               ),
-            ),
-            Icon(
-              AuthStyles.forwardIcon,
-              size: AuthStyles.forwardIconSize,
-              color: AuthStyles.forwardIconColor,
-            ),
-          ],
-        ),
       ),
     );
   }

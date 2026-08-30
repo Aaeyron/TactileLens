@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 abstract final class MainStyles {
   // Colors
   static const Color navBackgroundColor = Colors.white;
-  static const Color selectedItemColor = Color(0xFF0D47A1);
+  static const Color selectedItemColor = Color(0xFF1268F3);
   static const Color unselectedItemColor = Color(0xFF667085);
   static const Color navBorderColor = Color(0xFFD1D5DB);
 
-  static const Color fabBackgroundColor = Color(0xFF0D47A1);
+  static const Color fabBackgroundColor = Color(0xFF1268F3);
   static const Color fabIconColor = Colors.white;
 
   // Labels

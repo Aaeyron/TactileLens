@@ -71,16 +71,17 @@ class AboutTactileLensScreen extends StatelessWidget {
         backgroundColor: AboutTactileLensScreenStyles.backgroundColor,
         body: TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: 1),
-          duration: AboutTactileLensScreenStyles.entranceDuration,
+          duration: AboutTactileLensScreenStyles.entranceSequenceDuration,
           curve: AboutTactileLensScreenStyles.entranceCurve,
           builder:
               (BuildContext context, double animationValue, Widget? child) {
                 return Opacity(
                   opacity: animationValue,
-                  child: Transform.translate(
-                    offset: Offset(
-                      0,
-                      AboutTactileLensScreenStyles.entranceVerticalOffset *
+                  child: FractionalTranslation(
+                    translation: Offset(
+                      AboutTactileLensScreenStyles.entranceBeginOffset.dx *
+                          (1 - animationValue),
+                      AboutTactileLensScreenStyles.entranceBeginOffset.dy *
                           (1 - animationValue),
                     ),
                     child: child,
@@ -88,7 +89,7 @@ class AboutTactileLensScreen extends StatelessWidget {
                 );
               },
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
+            physics: const ClampingScrollPhysics(
               parent: AlwaysScrollableScrollPhysics(),
             ),
             slivers: <Widget>[

@@ -5,12 +5,14 @@ abstract final class ScanResultScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF0D47A1);
-  static const Color backgroundColor = Color(0xFFFFFFFF);
-  static const Color surfaceColor = Color(0xFFFFFFFF);
+  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryDarkColor = Color(0xFF0758DD);
 
-  static const Color textPrimaryColor = Color(0xFF111827);
-  static const Color textSecondaryColor = Color(0xFF4B5563);
+  static const Color backgroundColor = Color(0xFFF4F7FC);
+  static const Color surfaceColor = Colors.white;
+
+  static const Color textPrimaryColor = Color(0xFF10213D);
+  static const Color textSecondaryColor = Color(0xFF42526B);
 
   static const Color outlineColor = Color(0xFFDCE4EE);
   static const Color innerOutlineColor = Color(0xFFE4EAF2);
@@ -58,34 +60,92 @@ abstract final class ScanResultScreenStyles {
   ];
 
   // ============================================================
-  // HEADER
+  // ENTRANCE ANIMATION
   // ============================================================
 
-  static const Size headerSize = Size.fromHeight(100);
-  static const double headerContentHeight = 76;
-  static const double headerIconSize = 28;
-  static const double headerTitleSpacing = 4;
-  static const double headerRightSpacing = 12;
+  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
 
-  static const IconData backIcon = Icons.arrow_back;
+  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
 
-  static const IconData newScanIcon = Icons.center_focus_strong_outlined;
+  static const Duration entranceSequenceDuration = Duration(milliseconds: 640);
+
+  static const Curve entranceCurve = Interval(
+    0.15625,
+    1,
+    curve: Curves.easeOutCubic,
+  );
+
+  static const Offset entranceBeginOffset = Offset(0, 0.025);
+
+  // ============================================================
+  // INTEGRATED BLUE HEADER
+  // ============================================================
+
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+  );
+
+  static const double headerHorizontalPadding = 14;
+  static const double headerTopPadding = 12;
+  static const double headerBottomPadding = 27;
+
+  static const double headerIconSize = 25;
+  static const double headerBackSpacing = 5;
+  static const double headerDescriptionSpacing = 15;
+  static const double headerDescriptionWidth = 275;
+
+  static const EdgeInsets headerDescriptionPadding = EdgeInsets.symmetric(
+    horizontal: 5,
+  );
+
+  static const BorderRadius headerRadius = BorderRadius.only(
+    bottomLeft: Radius.elliptical(190, 34),
+    bottomRight: Radius.elliptical(190, 34),
+  );
+
+  static const double headerDecorationRight = 18;
+  static const double headerDecorationBottom = 20;
+  static const double headerDecorationOpacity = 0.18;
+  static const double headerDecorationWidth = 49;
+  static const double headerDotSize = 4;
+  static const double headerDotSpacing = 7;
+  static const int headerDotCount = 12;
+
+  static const IconData backIcon = Icons.arrow_back_rounded;
+
+  static const IconData newScanIcon = Icons.center_focus_strong_rounded;
+
+  static final ButtonStyle backButtonStyle = IconButton.styleFrom(
+    foregroundColor: surfaceColor,
+    backgroundColor: const Color(0x26FFFFFF),
+    shape: const CircleBorder(),
+  );
 
   static const TextStyle appBarTitleStyle = TextStyle(
-    fontFamily: 'Poppins',
-    fontSize: 20,
-    fontWeight: FontWeight.w600,
-    color: textPrimaryColor,
+    fontSize: 21,
+    height: 1.2,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.25,
+    color: surfaceColor,
+  );
+
+  static const TextStyle headerDescriptionStyle = TextStyle(
+    color: Color(0xFFE9F2FF),
+    fontSize: 13.5,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
   );
 
   static final ButtonStyle headerActionStyle = TextButton.styleFrom(
-    foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-    textStyle: const TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
+    foregroundColor: surfaceColor,
+    backgroundColor: const Color(0x1FFFFFFF),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)),
     ),
+    textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
   );
 
   // ============================================================
@@ -96,6 +156,7 @@ abstract final class ScanResultScreenStyles {
 
   static const double zero = 0;
   static const double sectionSpacing = 16;
+  static const double bottomSpacing = 12;
   static const double itemSpacing = 12;
   static const double compactSpacing = 4;
   static const double sectionHeaderSpacing = 14;
@@ -187,11 +248,13 @@ abstract final class ScanResultScreenStyles {
 
   static final ButtonStyle sectionActionStyle = TextButton.styleFrom(
     foregroundColor: primaryColor,
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    backgroundColor: primaryColor.withValues(alpha: 0.10),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     textStyle: const TextStyle(
       fontFamily: 'Poppins',
       fontSize: 13,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w700,
     ),
   );
 
