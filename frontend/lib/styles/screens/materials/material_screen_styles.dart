@@ -48,7 +48,6 @@ abstract final class MaterialScreenStyles {
   static const IconData folderIcon = Icons.folder_rounded;
   static const IconData addFolderIcon = Icons.create_new_folder_outlined;
 
-  static const IconData folderOptionsIcon = Icons.more_vert_rounded;
   static const IconData deleteFolderIcon = Icons.delete_outline_rounded;
   static const IconData folderWarningIcon = Icons.warning_amber_rounded;
 
@@ -226,23 +225,12 @@ abstract final class MaterialScreenStyles {
 
   static const Duration folderSelectionDuration = Duration(milliseconds: 220);
 
+  static const double folderDeleteProgressSize = 18;
+
   static const double addFolderOutlineWidth = 1.2;
   static const double addFolderCardIconSize = 37;
   static const double addFolderLabelSpacing = 10;
   static const double addFolderProgressSize = 27;
-
-  static const double folderOptionsButtonSize = 30;
-  static const double folderOptionsIconSize = 18;
-  static const double folderOptionsTop = 4;
-  static const double folderOptionsRight = 4;
-
-  static const double folderDeleteProgressSize = 18;
-
-  static const EdgeInsets folderMenuPadding = EdgeInsets.zero;
-
-  static const BorderRadius folderMenuRadius = BorderRadius.all(
-    Radius.circular(12),
-  );
 
   // ============================================================
   // MATERIAL CARDS
@@ -509,12 +497,6 @@ abstract final class MaterialScreenStyles {
     fontSize: 12.5,
     height: 1.4,
     fontWeight: FontWeight.w700,
-  );
-
-  static const TextStyle folderMenuDeleteTextStyle = TextStyle(
-    color: dangerColor,
-    fontSize: 14,
-    fontWeight: FontWeight.w600,
   );
 
   static const TextStyle emptyFolderStyle = TextStyle(

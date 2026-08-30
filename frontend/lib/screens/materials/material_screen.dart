@@ -33,7 +33,6 @@ abstract final class _MaterialText {
   static const String itemPlural = 'Items';
   static const String addFolderLabel = 'Add Folder';
 
-  static const String folderOptionsTooltip = 'Folder options';
   static const String deleteFolderLabel = 'Delete folder';
 
   static const String deleteFolderDialogTitle = 'Delete Folder';
@@ -114,8 +113,6 @@ enum _MaterialFilter { all, images, pdf, documents }
 enum _MaterialSort { newest, oldest, title }
 
 enum _MaterialMenuAction { preview, moveToFolder, delete }
-
-enum _FolderMenuAction { delete }
 
 class _FolderSelectionResult {
   const _FolderSelectionResult({required this.folderId});
@@ -627,6 +624,21 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                                       style: MaterialScreenStyles.metadataStyle,
                                     ),
                                   ],
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: _MaterialText.deleteFolderLabel,
+                                onPressed: _deletingFolderId == folder.id
+                                    ? null
+                                    : () async {
+                                        await _closeFolderAndRunAction(
+                                          folderContext,
+                                          () => _requestDeleteFolder(folder),
+                                        );
+                                      },
+                                icon: const Icon(
+                                  MaterialScreenStyles.deleteFolderIcon,
+                                  color: MaterialScreenStyles.dangerColor,
                                 ),
                               ),
                               IconButton(
@@ -1622,12 +1634,6 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                 onPressed: () {
                   _showFolderContents(folder);
                 },
-                onMenuSelected: (_FolderMenuAction action) {
-                  switch (action) {
-                    case _FolderMenuAction.delete:
-                      _requestDeleteFolder(folder);
-                  }
-                },
               );
             },
           ),
@@ -1891,7 +1897,6 @@ class _FolderCard extends StatelessWidget {
     required this.isSelected,
     required this.isDeleting,
     required this.onPressed,
-    required this.onMenuSelected,
   });
 
   final MaterialFolderModel folder;
@@ -1899,7 +1904,6 @@ class _FolderCard extends StatelessWidget {
   final bool isSelected;
   final bool isDeleting;
   final VoidCallback onPressed;
-  final ValueChanged<_FolderMenuAction> onMenuSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1932,105 +1936,48 @@ class _FolderCard extends StatelessWidget {
               ),
               boxShadow: MaterialScreenStyles.folderCardShadow,
             ),
-            child: Stack(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Positioned.fill(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Container(
-                        width: MaterialScreenStyles.folderIconContainerSize,
-                        height: MaterialScreenStyles.folderIconContainerSize,
-                        alignment: Alignment.center,
-                        decoration: const BoxDecoration(
-                          color: MaterialScreenStyles.folderIconBackgroundColor,
-                          borderRadius:
-                              MaterialScreenStyles.folderIconContainerRadius,
-                        ),
-                        child: isDeleting
-                            ? const SizedBox(
-                                width: MaterialScreenStyles
-                                    .folderDeleteProgressSize,
-                                height: MaterialScreenStyles
-                                    .folderDeleteProgressSize,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: MaterialScreenStyles.primaryColor,
-                                ),
-                              )
-                            : const Icon(
-                                MaterialScreenStyles.folderIcon,
-                                size: MaterialScreenStyles.folderIconSize,
-                                color: MaterialScreenStyles.primaryColor,
-                              ),
-                      ),
-                      const SizedBox(
-                        height: MaterialScreenStyles.folderIconSpacing,
-                      ),
-                      Text(
-                        folder.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: MaterialScreenStyles.folderTitleStyle,
-                      ),
-                      const SizedBox(
-                        height: MaterialScreenStyles.folderCountSpacing,
-                      ),
-                      Text(
-                        '${folder.itemCount} '
-                        '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                        style: MaterialScreenStyles.folderCountStyle,
-                      ),
-                    ],
+                Container(
+                  width: MaterialScreenStyles.folderIconContainerSize,
+                  height: MaterialScreenStyles.folderIconContainerSize,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: MaterialScreenStyles.folderIconBackgroundColor,
+                    borderRadius:
+                        MaterialScreenStyles.folderIconContainerRadius,
                   ),
-                ),
-                Positioned(
-                  top: MaterialScreenStyles.folderOptionsTop,
-                  right: MaterialScreenStyles.folderOptionsRight,
-                  child: SizedBox(
-                    width: MaterialScreenStyles.folderOptionsButtonSize,
-                    height: MaterialScreenStyles.folderOptionsButtonSize,
-                    child: isDeleting
-                        ? const SizedBox.shrink()
-                        : PopupMenuButton<_FolderMenuAction>(
-                            tooltip: _MaterialText.folderOptionsTooltip,
-                            padding: MaterialScreenStyles.folderMenuPadding,
-                            iconSize:
-                                MaterialScreenStyles.folderOptionsIconSize,
-                            icon: const Icon(
-                              MaterialScreenStyles.folderOptionsIcon,
-                              color: MaterialScreenStyles.textMutedColor,
-                            ),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius:
-                                  MaterialScreenStyles.folderMenuRadius,
-                            ),
-                            onSelected: onMenuSelected,
-                            itemBuilder: (BuildContext context) {
-                              return const <PopupMenuEntry<_FolderMenuAction>>[
-                                PopupMenuItem<_FolderMenuAction>(
-                                  value: _FolderMenuAction.delete,
-                                  child: ListTile(
-                                    dense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: Icon(
-                                      MaterialScreenStyles.deleteFolderIcon,
-                                      color: MaterialScreenStyles.dangerColor,
-                                    ),
-                                    title: Text(
-                                      _MaterialText.deleteFolderLabel,
-                                      style: MaterialScreenStyles
-                                          .folderMenuDeleteTextStyle,
-                                    ),
-                                  ),
-                                ),
-                              ];
-                            },
+                  child: isDeleting
+                      ? const SizedBox(
+                          width: MaterialScreenStyles.folderDeleteProgressSize,
+                          height: MaterialScreenStyles.folderDeleteProgressSize,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            color: MaterialScreenStyles.primaryColor,
                           ),
-                  ),
+                        )
+                      : const Icon(
+                          MaterialScreenStyles.folderIcon,
+                          size: MaterialScreenStyles.folderIconSize,
+                          color: MaterialScreenStyles.primaryColor,
+                        ),
+                ),
+                const SizedBox(height: MaterialScreenStyles.folderIconSpacing),
+                Text(
+                  folder.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: MaterialScreenStyles.folderTitleStyle,
+                ),
+                const SizedBox(height: MaterialScreenStyles.folderCountSpacing),
+                Text(
+                  '${folder.itemCount} '
+                  '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: MaterialScreenStyles.folderCountStyle,
                 ),
               ],
             ),
