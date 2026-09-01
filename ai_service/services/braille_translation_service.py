@@ -140,12 +140,29 @@ class BrailleTranslationService:
                 "content": braille_content,
                 "error": None,
             }
+
         except BrailleTranslationError as error:
             return {
                 "success": False,
                 "code": braille_code,
                 "content": "",
                 "error": str(error),
+            }
+
+        except Exception as error:
+            print(
+                "Unexpected Braille translation failure: "
+                f"{type(error).__name__}: {error}"
+            )
+
+            return {
+                "success": False,
+                "code": braille_code,
+                "content": "",
+                "error": (
+                    "Braille translation was unavailable for "
+                    "this document block."
+                ),
             }
 
     def _translate(

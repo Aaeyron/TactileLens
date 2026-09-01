@@ -1,3 +1,5 @@
+import '../../utils/document_reading_order.dart';
+
 class ScanDocumentResult {
   const ScanDocumentResult({
     required this.model,
@@ -30,8 +32,18 @@ class ScanDocumentResult {
       );
     }
 
-    final List<DocumentBlock> blocks = _parseBlocks(rawBlocks);
     final List<DocumentPage> pages = _parsePages(json['pages']);
+
+    final List<DocumentBlock> parsedBlocks = _parseBlocks(rawBlocks);
+
+    final List<DocumentBlock> orderedBlocks = pages.isNotEmpty
+        ? pages
+              .expand((DocumentPage page) => page.blocks)
+              .toList(growable: false)
+        : DocumentReadingOrder.sort<DocumentBlock>(
+            blocks: parsedBlocks,
+            boundingBoxOf: (DocumentBlock block) => block.boundingBox,
+          );
 
     final int reportedPageCount = _readInteger(json['page_count']);
 
@@ -41,7 +53,7 @@ class ScanDocumentResult {
       device: _readString(json['device']),
       pageCount: reportedPageCount > 0 ? reportedPageCount : pages.length,
       processingTimeMs: _readDouble(json['processing_time_ms']),
-      blocks: List<DocumentBlock>.unmodifiable(blocks),
+      blocks: List<DocumentBlock>.unmodifiable(orderedBlocks),
       pages: List<DocumentPage>.unmodifiable(pages),
     );
   }
@@ -113,10 +125,45 @@ class ScanDocumentResult {
     );
   }
 
+  String get combinedContent {
+    return _combinePageContent(
+      contentOf: (DocumentBlock block) => block.normalizedContent,
+    );
+  }
+
   String get combinedBraille {
-    return brailleBlocks
-        .map((DocumentBlock block) => block.brailleContent)
-        .where((String content) => content.trim().isNotEmpty)
+    return _combinePageContent(
+      contentOf: (DocumentBlock block) {
+        return block.hasBraille ? block.brailleContent : '';
+      },
+    );
+  }
+
+  String _combinePageContent({
+    required String Function(DocumentBlock block) contentOf,
+  }) {
+    if (pages.isNotEmpty) {
+      final List<String> pageContents = pages
+          .map((DocumentPage page) {
+            return page.blocks
+                .map(contentOf)
+                .map((String content) => content.trim())
+                .where((String content) => content.isNotEmpty)
+                .join('\n\n');
+          })
+          .where((String content) => content.isNotEmpty)
+          .toList(growable: false);
+
+      if (pageContents.isNotEmpty) {
+        // Three line breaks distinguish separate scanned pages.
+        return pageContents.join('\n\n\n');
+      }
+    }
+
+    return blocks
+        .map(contentOf)
+        .map((String content) => content.trim())
+        .where((String content) => content.isNotEmpty)
         .join('\n\n');
   }
 
@@ -139,7 +186,7 @@ class ScanDocumentResult {
       );
     }
 
-    // Preserve the reading order supplied by the backend.
+    // Page-level reading order is normalized after parsing.
     return blocks;
   }
 
@@ -200,18 +247,42 @@ class DocumentPage {
   }) {
     final dynamic rawBlocks = json['blocks'];
 
-    final List<DocumentBlock> blocks = rawBlocks is List
+    final int width = json['width'] is num ? (json['width'] as num).toInt() : 0;
+
+    final int height = json['height'] is num
+        ? (json['height'] as num).toInt()
+        : 0;
+
+    final List<DocumentBlock> parsedBlocks = rawBlocks is List
         ? ScanDocumentResult._parseBlocks(rawBlocks)
         : const <DocumentBlock>[];
+
+    final List<DocumentBlock> orderedBlocks =
+        DocumentReadingOrder.sort<DocumentBlock>(
+          blocks: parsedBlocks,
+          pageWidth: width.toDouble(),
+          boundingBoxOf: (DocumentBlock block) => block.boundingBox,
+        );
 
     return DocumentPage(
       pageIndex: json['page_index'] is num
           ? (json['page_index'] as num).toInt()
           : fallbackPageIndex,
-      width: json['width'] is num ? (json['width'] as num).toInt() : 0,
-      height: json['height'] is num ? (json['height'] as num).toInt() : 0,
-      blocks: List<DocumentBlock>.unmodifiable(blocks),
+      width: width,
+      height: height,
+      blocks: List<DocumentBlock>.unmodifiable(orderedBlocks),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'page_index': pageIndex,
+      'width': width,
+      'height': height,
+      'blocks': blocks
+          .map((DocumentBlock block) => block.toJson())
+          .toList(growable: false),
+    };
   }
 }
 

@@ -138,6 +138,9 @@ class PaddleOcrVlService:
                 image_path
             )
 
+            with Image.open(optimized_image_path) as optimized_image:
+                processed_width, processed_height = optimized_image.size
+
             preprocessing_seconds = (
                 time.perf_counter() - preprocessing_started
             )
@@ -183,8 +186,13 @@ class PaddleOcrVlService:
             serialization_started = time.perf_counter()
 
             pages = [
-                self._serialize_page(result)
-                for result in predictions
+                self._serialize_page(
+                    result,
+                    fallback_page_index=index,
+                    fallback_width=processed_width,
+                    fallback_height=processed_height,
+                )
+                for index, result in enumerate(predictions)
             ]
 
             ordered_blocks = [
@@ -328,6 +336,10 @@ class PaddleOcrVlService:
     def _serialize_page(
         self,
         result: Any,
+        *,
+        fallback_page_index: int,
+        fallback_width: int,
+        fallback_height: int,
     ) -> dict[str, Any]:
         json_result = result.json
 
@@ -341,39 +353,57 @@ class PaddleOcrVlService:
             [],
         )
 
+        if not isinstance(raw_blocks, list):
+            raw_blocks = []
+
         if self.debug_blocks:
             for index, block in enumerate(raw_blocks):
+                if not isinstance(block, dict):
+                    continue
+
                 print(
                     "OCR BLOCK",
                     index,
                     {
-                        "label": block.get(
-                            "block_label"
-                        ),
-                        "content": block.get(
-                            "block_content"
-                        ),
-                        "bbox": self._to_builtin(
-                            block.get("block_bbox")
-                        ),
+                        "label": block.get("block_label"),
+                        "content": block.get("block_content"),
+                        "bbox": self._normalized_bbox(block),
                     },
                 )
 
         blocks = [
-            self._serialize_block(block)
-            for block in raw_blocks
+            self._serialize_block(
+                block,
+                fallback_id=index,
+                fallback_order=index,
+            )
+            for index, block in enumerate(raw_blocks)
+            if isinstance(block, dict)
         ]
 
         return {
-            "page_index": result_data.get("page_index"),
-            "width": result_data.get("width"),
-            "height": result_data.get("height"),
+            "page_index": self._positive_integer_or_default(
+                result_data.get("page_index"),
+                fallback_page_index,
+                allow_zero=True,
+            ),
+            "width": self._positive_integer_or_default(
+                result_data.get("width"),
+                fallback_width,
+            ),
+            "height": self._positive_integer_or_default(
+                result_data.get("height"),
+                fallback_height,
+            ),
             "blocks": blocks,
         }
 
     def _serialize_block(
         self,
         block: dict[str, Any],
+        *,
+        fallback_id: int,
+        fallback_order: int,
     ) -> dict[str, Any]:
         block_type = str(
             block.get(
@@ -436,27 +466,34 @@ class PaddleOcrVlService:
         else:
             braille_source_content = normalized_content
 
-        braille_result = (
-            self._braille_translator.translate_block(
-                braille_source_content,
-                is_formula=is_formula,
-                is_table=is_table,
-            )
+        braille_result = self._braille_translator.translate_block(
+            braille_source_content,
+            is_formula=is_formula,
+            is_table=is_table,
+        )
+
+        bounding_box = self._normalized_bbox(block)
+
+        polygon_points = self._normalized_polygon(
+            block,
+            fallback_bbox=bounding_box,
         )
 
         return {
-            "id": block.get("block_id"),
-            "order": block.get("block_order"),
+            "id": self._integer_or_default(
+                block.get("block_id"),
+                fallback_id,
+            ),
+            "order": self._integer_or_default(
+                block.get("block_order"),
+                fallback_order,
+            ),
             "type": block_type,
             "content": normalized_content,
             "raw_content": raw_content,
             "normalized_content": normalized_content,
-            "bbox": self._to_builtin(
-                block.get("block_bbox")
-            ),
-            "polygon_points": self._to_builtin(
-                block.get("block_polygon_points")
-            ),
+            "bbox": bounding_box,
+            "polygon_points": polygon_points,
             "is_text": block_type == "text",
             "is_formula": is_formula,
             "is_table": is_table,
@@ -468,6 +505,129 @@ class PaddleOcrVlService:
             ],
             "braille_error": braille_result["error"],
         }
+
+    def _normalized_bbox(
+        self,
+        block: dict[str, Any],
+    ) -> list[float]:
+        raw_bbox = self._to_builtin(
+            block.get("block_bbox")
+        )
+
+        if isinstance(raw_bbox, list) and len(raw_bbox) >= 4:
+            try:
+                first_x = float(raw_bbox[0])
+                first_y = float(raw_bbox[1])
+                second_x = float(raw_bbox[2])
+                second_y = float(raw_bbox[3])
+
+                left = min(first_x, second_x)
+                top = min(first_y, second_y)
+                right = max(first_x, second_x)
+                bottom = max(first_y, second_y)
+
+                if right > left and bottom > top:
+                    return [left, top, right, bottom]
+            except (TypeError, ValueError):
+                pass
+
+        raw_polygon = self._to_builtin(
+            block.get("block_polygon_points")
+        )
+
+        if isinstance(raw_polygon, list):
+            valid_points: list[tuple[float, float]] = []
+
+            for point in raw_polygon:
+                if not isinstance(point, list) or len(point) < 2:
+                    continue
+
+                try:
+                    valid_points.append(
+                        (float(point[0]), float(point[1]))
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+            if valid_points:
+                x_values = [point[0] for point in valid_points]
+                y_values = [point[1] for point in valid_points]
+
+                left = min(x_values)
+                top = min(y_values)
+                right = max(x_values)
+                bottom = max(y_values)
+
+                if right > left and bottom > top:
+                    return [left, top, right, bottom]
+
+        return []
+
+    def _normalized_polygon(
+        self,
+        block: dict[str, Any],
+        *,
+        fallback_bbox: list[float],
+    ) -> list[list[float]]:
+        raw_polygon = self._to_builtin(
+            block.get("block_polygon_points")
+        )
+
+        normalized_points: list[list[float]] = []
+
+        if isinstance(raw_polygon, list):
+            for point in raw_polygon:
+                if not isinstance(point, list) or len(point) < 2:
+                    continue
+
+                try:
+                    normalized_points.append(
+                        [float(point[0]), float(point[1])]
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+        if normalized_points:
+            return normalized_points
+
+        if len(fallback_bbox) < 4:
+            return []
+
+        left, top, right, bottom = fallback_bbox
+
+        return [
+            [left, top],
+            [right, top],
+            [right, bottom],
+            [left, bottom],
+        ]
+
+    @staticmethod
+    def _integer_or_default(
+        value: Any,
+        default: int,
+    ) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _positive_integer_or_default(
+        value: Any,
+        default: int,
+        *,
+        allow_zero: bool = False,
+    ) -> int:
+        try:
+            parsed_value = int(value)
+        except (TypeError, ValueError):
+            return default
+
+        if allow_zero:
+            return parsed_value if parsed_value >= 0 else default
+
+        return parsed_value if parsed_value > 0 else default
 
     def _remove_temporary_image(
         self,

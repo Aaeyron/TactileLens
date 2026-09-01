@@ -8,6 +8,7 @@ const MAX_TITLE_LENGTH = 150;
 const MAX_CONTENT_LENGTH = 1_000_000;
 const MAX_BRAILLE_LENGTH = 2_000_000;
 const MAX_DOCUMENT_BLOCKS = 500;
+const MAX_DOCUMENT_PAGES = 100;
 
 // ==========================
 // Custom Service Errors
@@ -39,6 +40,7 @@ const createHistory = async ({
   recognizedContent,
   brailleContent,
   documentBlocks,
+  documentPages,
   modelName,
   pipelineVersion,
   processingTimeMs,
@@ -67,6 +69,8 @@ const createHistory = async ({
 
   const cleanDocumentBlocks = normalizeDocumentBlocks(documentBlocks);
 
+  const cleanDocumentPages = normalizeDocumentPages(documentPages);
+
   const cleanModelName = normalizeNullableString(modelName, 100, "Model name");
 
   const cleanPipelineVersion = normalizeNullableString(
@@ -83,6 +87,7 @@ const createHistory = async ({
     recognizedContent: cleanRecognizedContent,
     brailleContent: cleanBrailleContent,
     documentBlocks: cleanDocumentBlocks,
+    documentPages: cleanDocumentPages,
     sourceImagePath: null,
     modelName: cleanModelName,
     pipelineVersion: cleanPipelineVersion,
@@ -320,6 +325,48 @@ const normalizeDocumentBlocks = (value) => {
     return JSON.parse(JSON.stringify(value));
   } catch {
     throw new HistoryValidationError("Document blocks contain invalid data.");
+  }
+};
+
+const normalizeDocumentPages = (value) => {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    throw new HistoryValidationError("Document pages must be an array.");
+  }
+
+  if (value.length > MAX_DOCUMENT_PAGES) {
+    throw new HistoryValidationError(
+      `Document pages must not contain more than ${MAX_DOCUMENT_PAGES} items.`,
+    );
+  }
+
+  const containsInvalidPage = value.some(
+    (page) => page === null || typeof page !== "object" || Array.isArray(page),
+  );
+
+  if (containsInvalidPage) {
+    throw new HistoryValidationError("Every document page must be an object.");
+  }
+
+  const nestedBlockCount = value.reduce((total, page) => {
+    const pageBlocks = Array.isArray(page.blocks) ? page.blocks.length : 0;
+
+    return total + pageBlocks;
+  }, 0);
+
+  if (nestedBlockCount > MAX_DOCUMENT_BLOCKS) {
+    throw new HistoryValidationError(
+      `Document pages must not contain more than ${MAX_DOCUMENT_BLOCKS} total blocks.`,
+    );
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    throw new HistoryValidationError("Document pages contain invalid data.");
   }
 };
 

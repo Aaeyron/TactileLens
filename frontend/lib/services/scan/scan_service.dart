@@ -8,12 +8,7 @@ class ScanService {
   Future<File?> pickFile() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: [
-        'jpg',
-        'jpeg',
-        'png',
-        'pdf',
-      ],
+      allowedExtensions: <String>['jpg', 'jpeg', 'png'],
     );
 
     if (result == null) {

@@ -357,7 +357,7 @@ class _ScanScreenState extends State<ScanScreen> {
       }
 
       debugPrint(
-        'Sending image to PaddleOCR-VL: '
+        'Sending image to configured OCR pipeline: '
         '${imageToScan.path}',
       );
 
@@ -371,7 +371,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
       unawaited(_saveScanToHistory(scanResult, imageToScan));
 
-      debugPrint('PaddleOCR-VL scan completed successfully.');
+      debugPrint('Document OCR completed successfully.');
 
       debugPrint(
         'AI processing time: '
@@ -607,10 +607,11 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     /*
-   * Camera captures are already normalized and saved as PNG by
-   * CameraService. Do not apply EXIF orientation again here.
-   */
-    final img.Image normalizedImage = decodedImage;
+ * This is a no-op for normalized camera PNG files and physically
+ * rotates uploaded JPEG files according to their EXIF orientation.
+ * The crop preview and crop service must use identical dimensions.
+ */
+    final img.Image normalizedImage = img.bakeOrientation(decodedImage);
 
     final Rect actualRegion = _mapPreviewRegionToImage(
       selectedRegion: selectedRegion,

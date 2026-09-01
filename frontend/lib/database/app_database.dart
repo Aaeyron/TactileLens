@@ -8,7 +8,7 @@ class AppDatabase {
 
   static const String _databaseName = 'tactilelens.db';
 
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 5;
 
   Database? _database;
 
@@ -74,7 +74,8 @@ class AppDatabase {
         recognized_content TEXT NOT NULL DEFAULT '',
         braille_content TEXT NOT NULL DEFAULT '',
         document_blocks TEXT NOT NULL DEFAULT '[]',
-        model_name TEXT,
+document_pages TEXT NOT NULL DEFAULT '[]',
+model_name TEXT,
         pipeline_version TEXT,
         processing_time_ms REAL,
         FOREIGN KEY (folder_id)
@@ -91,7 +92,8 @@ class AppDatabase {
     recognized_content TEXT NOT NULL DEFAULT '',
     braille_content TEXT NOT NULL DEFAULT '',
     document_blocks TEXT NOT NULL DEFAULT '[]',
-    source_image_path TEXT,
+document_pages TEXT NOT NULL DEFAULT '[]',
+source_image_path TEXT,
     model_name TEXT,
     pipeline_version TEXT,
     processing_time_ms REAL,
@@ -213,6 +215,22 @@ class AppDatabase {
           CREATE INDEX IF NOT EXISTS
             material_folders_name_index
           ON material_folders (name)
+        ''');
+      });
+    }
+
+    if (oldVersion < 5) {
+      await database.transaction((Transaction transaction) async {
+        await transaction.execute('''
+          ALTER TABLE materials
+          ADD COLUMN document_pages TEXT
+          NOT NULL DEFAULT '[]'
+        ''');
+
+        await transaction.execute('''
+          ALTER TABLE scan_history
+          ADD COLUMN document_pages TEXT
+          NOT NULL DEFAULT '[]'
         ''');
       });
     }

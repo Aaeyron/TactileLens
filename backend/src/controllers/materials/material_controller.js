@@ -33,6 +33,29 @@ const readDocumentBlocks = (value) => {
     return [];
   }
 
+  const readDocumentPages = (value) => {
+    if (value === undefined || value === null || value === "") {
+      return [];
+    }
+
+    const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
+
+    if (!Array.isArray(parsedValue)) {
+      throw new TypeError("document_pages must be a JSON array.");
+    }
+
+    const containsInvalidPage = parsedValue.some(
+      (page) =>
+        page === null || typeof page !== "object" || Array.isArray(page),
+    );
+
+    if (containsInvalidPage) {
+      throw new TypeError("Every document page must be a JSON object.");
+    }
+
+    return parsedValue;
+  };
+
   const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
 
   if (!Array.isArray(parsedValue)) {
@@ -109,9 +132,11 @@ const uploadMaterial = async (req, res) => {
     }
 
     let documentBlocks;
+    let documentPages;
 
     try {
       documentBlocks = readDocumentBlocks(req.body.document_blocks);
+      documentPages = readDocumentPages(req.body.document_pages);
     } catch (error) {
       await removeUploadedFile(req.file);
 
@@ -134,6 +159,7 @@ const uploadMaterial = async (req, res) => {
       recognized_content: readRequiredText(req.body.recognized_content),
       braille_content: readRequiredText(req.body.braille_content),
       document_blocks: documentBlocks,
+      document_pages: documentPages,
       model_name: readOptionalText(req.body.model_name),
       pipeline_version: readOptionalText(req.body.pipeline_version),
       processing_time_ms: readOptionalNumber(req.body.processing_time_ms),

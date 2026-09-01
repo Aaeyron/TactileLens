@@ -10,6 +10,7 @@ const createHistory = async ({
   recognizedContent,
   brailleContent = "",
   documentBlocks = [],
+  documentPages = [],
   sourceImagePath = null,
   modelName = null,
   pipelineVersion = null,
@@ -22,6 +23,7 @@ const createHistory = async ({
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       source_image_path,
       model_name,
       pipeline_version,
@@ -33,10 +35,11 @@ const createHistory = async ({
       $3,
       $4,
       $5::jsonb,
-      $6,
+      $6::jsonb,
       $7,
       $8,
-      $9
+      $9,
+      $10
     )
     RETURNING
       id,
@@ -45,6 +48,7 @@ const createHistory = async ({
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       source_image_path,
       model_name,
       pipeline_version,
@@ -59,6 +63,7 @@ const createHistory = async ({
     recognizedContent,
     brailleContent,
     JSON.stringify(documentBlocks),
+    JSON.stringify(documentPages),
     sourceImagePath,
     modelName,
     pipelineVersion,
@@ -83,6 +88,7 @@ const getHistoryByUser = async ({ userId, limit, offset }) => {
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       source_image_path,
       model_name,
       pipeline_version,
@@ -130,6 +136,7 @@ const getHistoryById = async ({ historyId, userId }) => {
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       source_image_path,
       model_name,
       pipeline_version,
@@ -165,6 +172,7 @@ const updateHistoryTitle = async ({ historyId, userId, title }) => {
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       source_image_path,
       model_name,
       pipeline_version,
@@ -197,6 +205,10 @@ const deleteHistory = async ({ historyId, userId }) => {
 
   return result.rows[0] ?? null;
 };
+
+// ==========================
+// Export
+// ==========================
 
 module.exports = {
   createHistory,

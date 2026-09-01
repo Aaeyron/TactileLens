@@ -12,6 +12,7 @@ const createHistory = async (req, res) => {
       recognizedContent: req.body.recognized_content,
       brailleContent: req.body.braille_content,
       documentBlocks: req.body.document_blocks,
+      documentPages: req.body.document_pages,
       modelName: req.body.model_name,
       pipelineVersion: req.body.pipeline_version,
       processingTimeMs: req.body.processing_time_ms,

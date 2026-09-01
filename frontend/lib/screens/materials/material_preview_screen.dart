@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../models/ai/scan_document_result.dart';
+import '../../widgets/document/document_layout_view.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/materials/material_preview_screen_styles.dart';
@@ -21,9 +23,22 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
   MaterialModel get _material => widget.material;
 
+  List<DocumentPage> get _documentPages {
+    return List<DocumentPage>.generate(_material.documentPages.length, (
+      int index,
+    ) {
+      return DocumentPage.fromJson(
+        Map<String, dynamic>.from(_material.documentPages[index]),
+        fallbackPageIndex: index,
+      );
+    }, growable: false);
+  }
+
   bool get _isScannedMaterial {
     return _material.recognizedContent.trim().isNotEmpty ||
-        _material.brailleContent.trim().isNotEmpty;
+        _material.brailleContent.trim().isNotEmpty ||
+        _material.documentPages.isNotEmpty ||
+        _material.documentBlocks.isNotEmpty;
   }
 
   bool get _isImage {
@@ -399,6 +414,14 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
   Widget _buildRecognizedContent() {
     final String content = _material.recognizedContent.trim();
+    final List<DocumentPage> pages = _documentPages;
+
+    final bool hasRecognizedLayout =
+        content.isNotEmpty ||
+        pages.any(
+          (DocumentPage page) =>
+              page.blocks.any((DocumentBlock block) => block.hasContent),
+        );
 
     return _MaterialSection(
       title: MaterialDetailScreenStyles.recognizedSectionTitle,
@@ -415,24 +438,33 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
                 );
               },
             ),
-      child: content.isEmpty
-          ? const _MaterialEmptyState(
+      child: hasRecognizedLayout
+          ? DocumentLayoutView(
+              pages: pages,
+              useBraille: false,
+              fallbackText: content,
+              fallbackBraille: _material.brailleContent,
+              semanticLabel:
+                  MaterialDetailScreenStyles.recognizedContentSemanticLabel,
+            )
+          : const _MaterialEmptyState(
               icon: MaterialDetailScreenStyles.emptyContentIcon,
               title: MaterialDetailScreenStyles.emptyContentTitle,
               description: MaterialDetailScreenStyles.emptyContentDescription,
-            )
-          : Semantics(
-              label: MaterialDetailScreenStyles.recognizedContentSemanticLabel,
-              child: SelectableText(
-                content,
-                style: MaterialDetailScreenStyles.recognizedContentStyle,
-              ),
             ),
     );
   }
 
   Widget _buildBrailleContent() {
     final String content = _material.brailleContent.trim();
+    final List<DocumentPage> pages = _documentPages;
+
+    final bool hasBrailleLayout =
+        content.isNotEmpty ||
+        pages.any(
+          (DocumentPage page) =>
+              page.blocks.any((DocumentBlock block) => block.hasBraille),
+        );
 
     return _MaterialSection(
       title: MaterialDetailScreenStyles.brailleSectionTitle,
@@ -449,18 +481,18 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
                 );
               },
             ),
-      child: content.isEmpty
-          ? const _MaterialEmptyState(
+      child: hasBrailleLayout
+          ? DocumentLayoutView(
+              pages: pages,
+              useBraille: true,
+              fallbackText: _material.recognizedContent,
+              fallbackBraille: content,
+              semanticLabel: MaterialDetailScreenStyles.brailleSemanticLabel,
+            )
+          : const _MaterialEmptyState(
               icon: MaterialDetailScreenStyles.emptyContentIcon,
               title: MaterialDetailScreenStyles.emptyBrailleTitle,
               description: MaterialDetailScreenStyles.emptyBrailleDescription,
-            )
-          : Semantics(
-              label: MaterialDetailScreenStyles.brailleSemanticLabel,
-              child: SelectableText(
-                content,
-                style: MaterialDetailScreenStyles.brailleContentStyle,
-              ),
             ),
     );
   }

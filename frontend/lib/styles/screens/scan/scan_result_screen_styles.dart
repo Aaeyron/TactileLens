@@ -280,6 +280,93 @@ abstract final class ScanResultScreenStyles {
 
   static const EdgeInsets contentPreviewPadding = EdgeInsets.all(16);
 
+  static const double contentViewSpacing = 16;
+  static const double contentViewOptionSpacing = 6;
+  static const double contentViewOptionIconSize = 18;
+
+  static const Duration contentViewAnimationDuration = Duration(
+    milliseconds: 260,
+  );
+
+  static const Curve contentViewAnimationCurve = Curves.easeOutCubic;
+
+  static const Offset contentViewBeginOffset = Offset(0, 0.025);
+
+  static const Color contentViewSelectorColor = Color(0xFFF1F5FB);
+  static const Color selectedContentViewColor = Color(0xFFE6F0FF);
+  static const Color disabledContentViewColor = Color(0xFF98A2B3);
+
+  static const EdgeInsets contentViewSelectorPadding = EdgeInsets.all(4);
+
+  static const EdgeInsets contentViewOptionPadding = EdgeInsets.symmetric(
+    horizontal: 8,
+    vertical: 10,
+  );
+
+  static const BorderRadius contentViewSelectorRadius = BorderRadius.all(
+    Radius.circular(14),
+  );
+
+  static const BorderRadius contentViewOptionRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const Border contentViewSelectorBorder = Border.fromBorderSide(
+    BorderSide(color: innerOutlineColor, width: 1),
+  );
+
+  static const IconData originalLayoutIcon = Icons.dashboard_outlined;
+  static const IconData readingViewIcon = Icons.view_agenda_outlined;
+
+  static const TextStyle contentViewOptionTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const double documentPageSpacing = 16;
+  static const double minimumLayoutBlockWidth = 2;
+  static const double minimumLayoutBlockHeight = 2;
+  static const double minimumLayoutFontSize = 5;
+  static const double maximumLayoutFontSize = 15;
+  static const double layoutBlockFontScale = 0.48;
+
+  static const Color documentPageBackgroundColor = Colors.white;
+  static const Color documentPageOutlineColor = Color(0xFFD7E0EB);
+
+  static const BorderRadius documentPageRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const Border documentPageBorder = Border.fromBorderSide(
+    BorderSide(color: documentPageOutlineColor, width: 1),
+  );
+
+  static const List<BoxShadow> documentPageShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x12000000), blurRadius: 10, offset: Offset(0, 3)),
+  ];
+
+  static const TextStyle layoutBlockTextStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 10,
+    height: 1.1,
+    fontWeight: FontWeight.w400,
+    color: textPrimaryColor,
+  );
+
+  static const EdgeInsets layoutUnavailablePadding = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 28,
+  );
+
+  static const TextStyle layoutUnavailableStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+    color: textSecondaryColor,
+  );
+
   static const EdgeInsets formulaPreviewPadding = EdgeInsets.symmetric(
     horizontal: 14,
     vertical: 10,

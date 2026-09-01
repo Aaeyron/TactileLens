@@ -31,16 +31,12 @@ class ImageCropService {
     }
 
     /*
-     * Convert the EXIF camera orientation into actual pixel
-     * orientation. This ensures portrait and landscape images use
-     * the same dimensions that the user sees in the preview.
-     */
-    /*
- * Camera captures are already normalized and saved as PNG.
- * Uploaded images are decoded in their stored pixel orientation.
- * Do not apply orientation a second time here.
+ * Camera PNG files contain no EXIF rotation, so this is a no-op
+ * for captured images. Uploaded JPEG files may still contain EXIF
+ * orientation, which must be converted into physical pixel rotation
+ * before crop coordinates are applied.
  */
-    final img.Image normalizedImage = decodedImage;
+    final img.Image normalizedImage = img.bakeOrientation(decodedImage);
 
     final _CropBounds cropBounds = _calculateCropBounds(
       cropRect: cropRect,

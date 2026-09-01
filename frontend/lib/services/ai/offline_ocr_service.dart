@@ -1,9 +1,12 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../utils/document_reading_order.dart';
 import '../braille/offline_braille_service.dart';
 
 class OfflineOcrService {
@@ -32,86 +35,114 @@ class OfflineOcrService {
     try {
       final InputImage inputImage = InputImage.fromFile(imageFile);
 
-      final RecognizedText recognizedText = await _textRecognizer.processImage(
-        inputImage,
+      final Future<RecognizedText> recognitionFuture = _textRecognizer
+          .processImage(inputImage);
+
+      final Future<img.Image?> imageFuture = _decodeImage(imageFile);
+
+      final RecognizedText recognizedText = await recognitionFuture;
+
+      final img.Image? decodedImage = await imageFuture;
+
+      final List<DocumentBlock> detectedBlocks = <DocumentBlock>[];
+
+      int nextBlockId = 0;
+
+      for (final TextBlock recognizedBlock in recognizedText.blocks) {
+        for (final TextLine recognizedLine in recognizedBlock.lines) {
+          final String content = recognizedLine.text.trim();
+
+          if (content.isEmpty) {
+            continue;
+          }
+
+          final bool isFormula = _looksLikeFormula(content);
+
+          final OfflineBrailleResult brailleResult = await _brailleService
+              .translateBlock(content, isFormula: isFormula, isTable: false);
+
+          detectedBlocks.add(
+            DocumentBlock(
+              id: nextBlockId,
+              order: nextBlockId,
+              type: isFormula ? 'formula' : 'text',
+              rawContent: content,
+              normalizedContent: content,
+              boundingBox: <double>[
+                recognizedLine.boundingBox.left,
+                recognizedLine.boundingBox.top,
+                recognizedLine.boundingBox.right,
+                recognizedLine.boundingBox.bottom,
+              ],
+              polygonPoints: recognizedLine.cornerPoints
+                  .map(
+                    (point) => <double>[point.x.toDouble(), point.y.toDouble()],
+                  )
+                  .toList(growable: false),
+              isText: !isFormula,
+              isFormula: isFormula,
+              isTable: false,
+              tableRows: const <List<String>>[],
+              brailleContent: brailleResult.content,
+              brailleCode: brailleResult.code,
+              brailleSuccess: brailleResult.success,
+              brailleError: brailleResult.error ?? '',
+            ),
+          );
+
+          nextBlockId++;
+        }
+      }
+
+      final _PageDimensions pageDimensions = _resolvePageDimensions(
+        decodedImage: decodedImage,
+        blocks: detectedBlocks,
       );
 
-      final List<DocumentBlock> blocks = <DocumentBlock>[];
+      final List<DocumentBlock> sortedBlocks =
+          DocumentReadingOrder.sort<DocumentBlock>(
+            blocks: detectedBlocks,
+            pageWidth: pageDimensions.width.toDouble(),
+            boundingBoxOf: (DocumentBlock block) => block.boundingBox,
+          );
 
-      for (int index = 0; index < recognizedText.blocks.length; index++) {
-        final TextBlock recognizedBlock = recognizedText.blocks[index];
-
-        final String content = recognizedBlock.text.trim();
-
-        if (content.isEmpty) {
-          continue;
-        }
-
-        final OfflineBrailleResult brailleResult = await _brailleService
-            .translateText(content);
-
-        blocks.add(
-          DocumentBlock(
-            id: index,
-            order: index,
-            type: 'text',
-            rawContent: content,
-            normalizedContent: content,
-            boundingBox: <double>[
-              recognizedBlock.boundingBox.left,
-              recognizedBlock.boundingBox.top,
-              recognizedBlock.boundingBox.right,
-              recognizedBlock.boundingBox.bottom,
-            ],
-            polygonPoints: recognizedBlock.cornerPoints
-                .map(
-                  (point) => <double>[point.x.toDouble(), point.y.toDouble()],
-                )
-                .toList(growable: false),
-            isText: true,
-            isFormula: false,
-            isTable: false,
-            tableRows: const <List<String>>[],
-            brailleContent: brailleResult.content,
-            brailleCode: brailleResult.code,
-            brailleSuccess: brailleResult.success,
-            brailleError: brailleResult.error ?? '',
-          ),
-        );
-      }
+      final List<DocumentBlock> orderedBlocks =
+          List<DocumentBlock>.unmodifiable(<DocumentBlock>[
+            for (int index = 0; index < sortedBlocks.length; index++)
+              _withOrder(sortedBlocks[index], index),
+          ]);
 
       stopwatch.stop();
 
-      final List<DocumentBlock> immutableBlocks =
-          List<DocumentBlock>.unmodifiable(blocks);
-
       final DocumentPage page = DocumentPage(
         pageIndex: 0,
-        width: 0,
-        height: 0,
-        blocks: immutableBlocks,
+        width: pageDimensions.width,
+        height: pageDimensions.height,
+        blocks: orderedBlocks,
       );
 
-      final int successfulBrailleBlocks = immutableBlocks
+      final int successfulBrailleBlocks = orderedBlocks
           .where((DocumentBlock block) => block.hasBraille)
           .length;
 
       debugPrint(
         'Offline OCR completed in '
         '${stopwatch.elapsedMilliseconds} ms with '
-        '${immutableBlocks.length} text blocks and '
-        '$successfulBrailleBlocks Braille blocks.',
+        '${orderedBlocks.length} text blocks and '
+        '$successfulBrailleBlocks Braille blocks. '
+        'Page: ${pageDimensions.width}x'
+        '${pageDimensions.height}.',
       );
 
       return ScanDocumentResult(
         model:
             'google-ml-kit-text-recognition'
             '+liblouis-3.38.0',
-        pipelineVersion: 'offline-v2',
+        pipelineVersion: 'offline-v4-line-layout',
         device: 'mobile',
         pageCount: 1,
         processingTimeMs: stopwatch.elapsedMicroseconds / 1000,
-        blocks: immutableBlocks,
+        blocks: orderedBlocks,
         pages: <DocumentPage>[page],
       );
     } catch (error, stackTrace) {
@@ -136,6 +167,126 @@ class OfflineOcrService {
     }
   }
 
+  bool _looksLikeFormula(String content) {
+    final String value = content.trim();
+
+    if (value.isEmpty) {
+      return false;
+    }
+
+    // Common mathematical symbols strongly indicate an equation.
+    if (RegExp(r'[=≤≥≠≈±√∑∫∞]').hasMatch(value)) {
+      return true;
+    }
+
+    // Detect expressions such as:
+    // 2 + 3, x - 4, 3x / 2, A × B, and y^2.
+    if (RegExp(
+      r'(?:\d+(?:\.\d+)?|[A-Za-z])'
+      r'\s*[+\-×÷*/^<>]\s*'
+      r'(?:\d+(?:\.\d+)?|[A-Za-z])',
+    ).hasMatch(value)) {
+      return true;
+    }
+
+    // Detect common LaTeX-like output if OCR preserves it.
+    if (RegExp(
+      r'\\(?:frac|sqrt|sum|int|left|right|begin|end)',
+    ).hasMatch(value)) {
+      return true;
+    }
+
+    // Detect isolated parenthesized or bracketed numeric expressions.
+    if (RegExp(
+      r'^[\[(]?\s*'
+      r'(?:\d+(?:\.\d+)?|[A-Za-z])'
+      r'(?:\s*[+\-×÷*/^]\s*'
+      r'(?:\d+(?:\.\d+)?|[A-Za-z]))+'
+      r'\s*[\])]?$',
+    ).hasMatch(value)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<img.Image?> _decodeImage(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+
+      final img.Image? decodedImage = img.decodeImage(bytes);
+
+      if (decodedImage == null) {
+        return null;
+      }
+
+      return img.bakeOrientation(decodedImage);
+    } catch (error) {
+      debugPrint(
+        'Unable to decode offline page dimensions: '
+        '$error',
+      );
+
+      return null;
+    }
+  }
+
+  _PageDimensions _resolvePageDimensions({
+    required img.Image? decodedImage,
+    required List<DocumentBlock> blocks,
+  }) {
+    double maximumRight = 0;
+    double maximumBottom = 0;
+
+    for (final DocumentBlock block in blocks) {
+      if (block.boundingBox.length < 4) {
+        continue;
+      }
+
+      maximumRight = math.max(
+        maximumRight,
+        math.max(block.boundingBox[0], block.boundingBox[2]),
+      );
+
+      maximumBottom = math.max(
+        maximumBottom,
+        math.max(block.boundingBox[1], block.boundingBox[3]),
+      );
+    }
+
+    final int decodedWidth = decodedImage?.width ?? 0;
+    final int decodedHeight = decodedImage?.height ?? 0;
+
+    final int width = math.max(decodedWidth, maximumRight.ceil());
+
+    final int height = math.max(decodedHeight, maximumBottom.ceil());
+
+    return _PageDimensions(
+      width: math.max(width, 1),
+      height: math.max(height, 1),
+    );
+  }
+
+  DocumentBlock _withOrder(DocumentBlock block, int order) {
+    return DocumentBlock(
+      id: block.id,
+      order: order,
+      type: block.type,
+      rawContent: block.rawContent,
+      normalizedContent: block.normalizedContent,
+      boundingBox: block.boundingBox,
+      polygonPoints: block.polygonPoints,
+      isText: block.isText,
+      isFormula: block.isFormula,
+      isTable: block.isTable,
+      tableRows: block.tableRows,
+      brailleContent: block.brailleContent,
+      brailleCode: block.brailleCode,
+      brailleSuccess: block.brailleSuccess,
+      brailleError: block.brailleError,
+    );
+  }
+
   Future<void> dispose() async {
     if (_disposed) {
       return;
@@ -144,6 +295,13 @@ class OfflineOcrService {
     _disposed = true;
     await _textRecognizer.close();
   }
+}
+
+class _PageDimensions {
+  const _PageDimensions({required this.width, required this.height});
+
+  final int width;
+  final int height;
 }
 
 class OfflineOcrException implements Exception {

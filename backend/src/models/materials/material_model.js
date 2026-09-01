@@ -18,6 +18,7 @@ const createMaterial = async (materialData) => {
     recognized_content = "",
     braille_content = "",
     document_blocks = [],
+    document_pages = [],
     model_name = null,
     pipeline_version = null,
     processing_time_ms = null,
@@ -37,6 +38,7 @@ const createMaterial = async (materialData) => {
       recognized_content,
       braille_content,
       document_blocks,
+      document_pages,
       model_name,
       pipeline_version,
       processing_time_ms
@@ -54,9 +56,10 @@ const createMaterial = async (materialData) => {
       $10,
       $11,
       $12::jsonb,
-      $13,
+      $13::jsonb,
       $14,
-      $15
+      $15,
+      $16
     )
     RETURNING *;
   `;
@@ -74,6 +77,7 @@ const createMaterial = async (materialData) => {
     recognized_content,
     braille_content,
     JSON.stringify(document_blocks),
+    JSON.stringify(document_pages),
     model_name,
     pipeline_version,
     processing_time_ms,

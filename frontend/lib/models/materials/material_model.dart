@@ -16,6 +16,7 @@ class MaterialModel {
     this.recognizedContent = '',
     this.brailleContent = '',
     this.documentBlocks = const <Map<String, dynamic>>[],
+    this.documentPages = const <Map<String, dynamic>>[],
     this.modelName,
     this.pipelineVersion,
     this.processingTimeMs,
@@ -40,6 +41,7 @@ class MaterialModel {
   final String recognizedContent;
   final String brailleContent;
   final List<Map<String, dynamic>> documentBlocks;
+  final List<Map<String, dynamic>> documentPages;
   final String? modelName;
   final String? pipelineVersion;
   final double? processingTimeMs;
@@ -54,6 +56,10 @@ class MaterialModel {
 
   bool get hasRecognizedContent {
     return recognizedContent.trim().isNotEmpty;
+  }
+
+  bool get hasDocumentPages {
+    return documentPages.isNotEmpty;
   }
 
   bool get hasBrailleContent {
@@ -82,7 +88,8 @@ class MaterialModel {
       ),
       recognizedContent: _readString(json['recognized_content']),
       brailleContent: _readString(json['braille_content']),
-      documentBlocks: _readDocumentBlocks(json['document_blocks']),
+      documentBlocks: _readJsonObjectList(json['document_blocks']),
+      documentPages: _readJsonObjectList(json['document_pages']),
       modelName: _readOptionalString(json['model_name']),
       pipelineVersion: _readOptionalString(json['pipeline_version']),
       processingTimeMs: _readOptionalDouble(json['processing_time_ms']),
@@ -105,6 +112,7 @@ class MaterialModel {
       'recognized_content': recognizedContent,
       'braille_content': brailleContent,
       'document_blocks': jsonEncode(documentBlocks),
+      'document_pages': jsonEncode(documentPages),
       'model_name': modelName,
       'pipeline_version': pipelineVersion,
       'processing_time_ms': processingTimeMs,
@@ -127,6 +135,7 @@ class MaterialModel {
       recognizedContent: recognizedContent,
       brailleContent: brailleContent,
       documentBlocks: documentBlocks,
+      documentPages: documentPages,
       modelName: modelName,
       pipelineVersion: pipelineVersion,
       processingTimeMs: processingTimeMs,
@@ -193,7 +202,7 @@ class MaterialModel {
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  static List<Map<String, dynamic>> _readDocumentBlocks(dynamic value) {
+  static List<Map<String, dynamic>> _readJsonObjectList(dynamic value) {
     dynamic parsedValue = value;
 
     if (value is String) {
