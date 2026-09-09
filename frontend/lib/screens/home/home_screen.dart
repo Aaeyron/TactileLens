@@ -359,10 +359,24 @@ class _HomeScreenState extends State<HomeScreen>
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        const Expanded(
-                          child: Text(
-                            _HomeText.appName,
-                            style: HomeStyles.appNameStyle,
+                        Expanded(
+                          child: Semantics(
+                            image: true,
+                            label: _HomeText.appName,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: ClipRRect(
+                                borderRadius: HomeStyles.headerLogoRadius,
+                                child: Image.asset(
+                                  HomeStyles.headerLogoAsset,
+                                  width: HomeStyles.headerLogoSize,
+                                  height: HomeStyles.headerLogoSize,
+                                  fit: BoxFit.cover,
+                                  filterQuality: FilterQuality.high,
+                                  excludeFromSemantics: true,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         Semantics(
