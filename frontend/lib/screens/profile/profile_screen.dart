@@ -469,11 +469,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                 children: <Widget>[
                   Positioned(
                     left: 0,
-                    right: 0,
                     top: 0,
-                    child: Text(
-                      ProfileStyles.appName,
-                      style: ProfileStyles.appNameStyle,
+                    child: Semantics(
+                      image: true,
+                      label: ProfileStyles.appName,
+                      child: ClipRRect(
+                        borderRadius: ProfileStyles.headerLogoRadius,
+                        child: Image.asset(
+                          ProfileStyles.headerLogoAsset,
+                          width: ProfileStyles.headerLogoSize,
+                          height: ProfileStyles.headerLogoSize,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.high,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
                     ),
                   ),
                   Positioned(

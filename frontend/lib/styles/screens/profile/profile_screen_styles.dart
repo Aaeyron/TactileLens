@@ -7,7 +7,10 @@ abstract final class ProfileStyles {
 
   static const String appName = 'TactileLens';
 
+  static const String headerLogoAsset = 'assets/icons/tactilelens_app_icon.png';
+
   static const String defaultUserName = 'TactileLens User';
+
   static const String defaultGuestName = 'Guest';
 
   static const String defaultRole = 'Learner';
@@ -117,6 +120,12 @@ abstract final class ProfileStyles {
   static const double headerBottomPadding = 22;
 
   static const double headerContentHeight = 158;
+
+  static const double headerLogoSize = 42;
+
+  static const BorderRadius headerLogoRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
 
   static const BorderRadius headerRadius = BorderRadius.only(
     bottomLeft: Radius.elliptical(180, 48),
@@ -253,14 +262,6 @@ abstract final class ProfileStyles {
   // ============================================================
   // TYPOGRAPHY
   // ============================================================
-
-  static const TextStyle appNameStyle = TextStyle(
-    color: surfaceColor,
-    fontSize: 18,
-    height: 1.2,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.2,
-  );
 
   static const TextStyle profileNameStyle = TextStyle(
     color: surfaceColor,
