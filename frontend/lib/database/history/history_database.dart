@@ -22,6 +22,7 @@ class HistoryDatabase {
     required String recognizedContent,
     required String brailleContent,
     required List<Map<String, dynamic>> documentBlocks,
+    List<Map<String, dynamic>> documentPages = const <Map<String, dynamic>>[],
     String? sourceImagePath,
     String? modelName,
     String? pipelineVersion,
@@ -42,6 +43,7 @@ class HistoryDatabase {
         'recognized_content': recognizedContent.trim(),
         'braille_content': brailleContent.trim(),
         'document_blocks': jsonEncode(documentBlocks),
+        'document_pages': jsonEncode(documentPages),
         'source_image_path': storedImagePath,
         'model_name': _nullableText(modelName),
         'pipeline_version': _nullableText(pipelineVersion),
@@ -267,24 +269,7 @@ class HistoryDatabase {
   }
 
   HistoryRecord _recordFromRow(Map<String, Object?> row) {
-    final Map<String, dynamic> values = Map<String, dynamic>.from(row);
-    final dynamic rawBlocks = values['document_blocks'];
-
-    if (rawBlocks is String && rawBlocks.trim().isNotEmpty) {
-      try {
-        final dynamic decodedBlocks = jsonDecode(rawBlocks);
-
-        values['document_blocks'] = decodedBlocks is List
-            ? decodedBlocks
-            : const <dynamic>[];
-      } on FormatException {
-        values['document_blocks'] = const <dynamic>[];
-      }
-    } else {
-      values['document_blocks'] = const <dynamic>[];
-    }
-
-    return HistoryRecord.fromJson(values);
+    return HistoryRecord.fromJson(Map<String, dynamic>.from(row));
   }
 
   String? _nullableText(String? value) {

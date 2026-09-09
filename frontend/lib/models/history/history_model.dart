@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class HistoryRecord {
   const HistoryRecord({
     required this.id,
@@ -6,6 +8,7 @@ class HistoryRecord {
     required this.recognizedContent,
     required this.brailleContent,
     required this.documentBlocks,
+    this.documentPages = const <Map<String, dynamic>>[],
     required this.createdAt,
     required this.updatedAt,
     this.sourceImagePath,
@@ -20,6 +23,7 @@ class HistoryRecord {
   final String recognizedContent;
   final String brailleContent;
   final List<Map<String, dynamic>> documentBlocks;
+  final List<Map<String, dynamic>> documentPages;
   final String? sourceImagePath;
   final String? modelName;
   final String? pipelineVersion;
@@ -34,7 +38,8 @@ class HistoryRecord {
       title: _readString(json['title'], fallback: 'Untitled Scan'),
       recognizedContent: _readString(json['recognized_content']),
       brailleContent: _readString(json['braille_content']),
-      documentBlocks: _parseDocumentBlocks(json['document_blocks']),
+      documentBlocks: _parseJsonObjectList(json['document_blocks']),
+      documentPages: _parseJsonObjectList(json['document_pages']),
       sourceImagePath: _readNullableString(json['source_image_path']),
       modelName: _readNullableString(json['model_name']),
       pipelineVersion: _readNullableString(json['pipeline_version']),
@@ -52,6 +57,7 @@ class HistoryRecord {
       recognizedContent: recognizedContent,
       brailleContent: brailleContent,
       documentBlocks: documentBlocks,
+      documentPages: documentPages,
       sourceImagePath: sourceImagePath,
       modelName: modelName,
       pipelineVersion: pipelineVersion,
@@ -115,13 +121,29 @@ class HistoryRecord {
     return parsedDate.toLocal();
   }
 
-  static List<Map<String, dynamic>> _parseDocumentBlocks(dynamic value) {
-    if (value is! List) {
+  static List<Map<String, dynamic>> _parseJsonObjectList(dynamic value) {
+    dynamic parsedValue = value;
+
+    if (value is String) {
+      if (value.trim().isEmpty) {
+        return const <Map<String, dynamic>>[];
+      }
+
+      try {
+        parsedValue = jsonDecode(value);
+      } on FormatException {
+        return const <Map<String, dynamic>>[];
+      }
+    }
+
+    if (parsedValue is! List) {
       return const <Map<String, dynamic>>[];
     }
 
     return List<Map<String, dynamic>>.unmodifiable(
-      value.whereType<Map>().map((block) => Map<String, dynamic>.from(block)),
+      parsedValue.whereType<Map>().map((Map item) {
+        return Map<String, dynamic>.from(item);
+      }),
     );
   }
 }

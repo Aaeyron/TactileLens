@@ -33,33 +33,32 @@ const readDocumentBlocks = (value) => {
     return [];
   }
 
-  const readDocumentPages = (value) => {
-    if (value === undefined || value === null || value === "") {
-      return [];
-    }
-
-    const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
-
-    if (!Array.isArray(parsedValue)) {
-      throw new TypeError("document_pages must be a JSON array.");
-    }
-
-    const containsInvalidPage = parsedValue.some(
-      (page) =>
-        page === null || typeof page !== "object" || Array.isArray(page),
-    );
-
-    if (containsInvalidPage) {
-      throw new TypeError("Every document page must be a JSON object.");
-    }
-
-    return parsedValue;
-  };
-
   const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
 
   if (!Array.isArray(parsedValue)) {
     throw new TypeError("document_blocks must be a JSON array.");
+  }
+
+  return parsedValue;
+};
+
+const readDocumentPages = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+
+  const parsedValue = typeof value === "string" ? JSON.parse(value) : value;
+
+  if (!Array.isArray(parsedValue)) {
+    throw new TypeError("document_pages must be a JSON array.");
+  }
+
+  const containsInvalidPage = parsedValue.some(
+    (page) => page === null || typeof page !== "object" || Array.isArray(page),
+  );
+
+  if (containsInvalidPage) {
+    throw new TypeError("Every document page must be a JSON object.");
   }
 
   return parsedValue;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import '../../utils/session_manager.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -38,12 +39,13 @@ class AIService {
   /// Require PaddleOCR-VL and report connection failures.
   static const String _configuredScanMode = String.fromEnvironment(
     'AI_SCAN_MODE',
-    defaultValue: 'offline',
+    defaultValue: 'session',
   );
 
   static const String offlineMode = 'offline';
   static const String hybridMode = 'hybrid';
   static const String remoteMode = 'remote';
+  static const String sessionMode = 'session';
 
   final http.Client _client;
   final OfflineOcrService _offlineOcrService;
@@ -60,14 +62,32 @@ class AIService {
       throw const AIServiceException('The selected image could not be found.');
     }
 
-    if (_scanMode == offlineMode) {
+    String effectiveMode = _scanMode;
+
+    if (effectiveMode == sessionMode) {
+      if (await SessionManager.isGuest()) {
+        effectiveMode = offlineMode;
+      } else if (await SessionManager.isLoggedIn()) {
+        effectiveMode = remoteMode;
+      } else {
+        throw const AIServiceException(
+          'Please sign in or enter Guest Mode before scanning.',
+        );
+      }
+    }
+
+    _ensureAvailable();
+
+    debugPrint('OCR selected mode: $effectiveMode');
+
+    if (effectiveMode == offlineMode) {
       return _scanOffline(imageFile);
     }
 
     try {
       return await _scanRemotely(imageFile);
     } on AIServiceConnectionException catch (error) {
-      if (_scanMode != hybridMode) {
+      if (effectiveMode != hybridMode) {
         rethrow;
       }
 
@@ -217,12 +237,17 @@ class AIService {
     final String normalized = value.trim().toLowerCase();
 
     switch (normalized) {
+      case sessionMode:
+      case offlineMode:
       case hybridMode:
       case remoteMode:
         return normalized;
-      case offlineMode:
       default:
-        return offlineMode;
+        throw ArgumentError.value(
+          value,
+          'scanMode',
+          'Expected session, offline, hybrid, or remote.',
+        );
     }
   }
 

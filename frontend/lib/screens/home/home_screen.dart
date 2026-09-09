@@ -274,14 +274,8 @@ class _HomeScreenState extends State<HomeScreen>
         type.contains(_HomeText.pngFileType);
   }
 
-  bool _hasLocalPreview(MaterialModel material) {
-    final String filePath = material.filePath.trim();
-
-    if (!_isImageMaterial(material) || filePath.isEmpty) {
-      return false;
-    }
-
-    return File(filePath).existsSync();
+  bool _hasImagePreview(MaterialModel material) {
+    return _isImageMaterial(material) && material.filePath.trim().isNotEmpty;
   }
 
   String _greetingDescription() {
@@ -583,7 +577,8 @@ class _HomeScreenState extends State<HomeScreen>
                 icon: _getMaterialIcon(material),
                 category: _getMaterialCategory(material),
                 relativeTime: _formatRelativeTime(material.uploadDate),
-                showImagePreview: _hasLocalPreview(material),
+                showImagePreview: _hasImagePreview(material),
+                previewUrl: _materialService.getFileUrl(material.filePath),
                 onPressed: widget.onMaterialsPressed,
               ),
               if (index < materials.length - 1)
@@ -715,6 +710,7 @@ class _RecentActivityCard extends StatelessWidget {
     required this.category,
     required this.relativeTime,
     required this.showImagePreview,
+    required this.previewUrl,
     required this.onPressed,
   });
 
@@ -723,6 +719,7 @@ class _RecentActivityCard extends StatelessWidget {
   final String category;
   final String relativeTime;
   final bool showImagePreview;
+  final String previewUrl;
   final VoidCallback onPressed;
 
   @override
@@ -743,6 +740,7 @@ class _RecentActivityCard extends StatelessWidget {
                 material: material,
                 fallbackIcon: icon,
                 showImagePreview: showImagePreview,
+                previewUrl: previewUrl,
               ),
               const SizedBox(width: HomeStyles.recentContentSpacing),
               Expanded(
@@ -786,14 +784,44 @@ class _MaterialThumbnail extends StatelessWidget {
     required this.material,
     required this.fallbackIcon,
     required this.showImagePreview,
+    required this.previewUrl,
   });
 
   final MaterialModel material;
   final IconData fallbackIcon;
   final bool showImagePreview;
+  final String previewUrl;
 
   @override
   Widget build(BuildContext context) {
+    final File localFile = File(material.filePath);
+
+    final Widget preview;
+
+    if (!showImagePreview) {
+      preview = _ThumbnailFallback(icon: fallbackIcon);
+    } else if (localFile.existsSync()) {
+      preview = Image.file(
+        localFile,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+              return _ThumbnailFallback(icon: fallbackIcon);
+            },
+      );
+    } else {
+      preview = Image.network(
+        previewUrl,
+        fit: BoxFit.cover,
+        filterQuality: FilterQuality.medium,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+              return _ThumbnailFallback(icon: fallbackIcon);
+            },
+      );
+    }
+
     return Container(
       width: HomeStyles.thumbnailWidth,
       height: HomeStyles.thumbnailHeight,
@@ -803,17 +831,7 @@ class _MaterialThumbnail extends StatelessWidget {
         borderRadius: HomeStyles.thumbnailRadius,
         border: HomeStyles.thumbnailBorder,
       ),
-      child: showImagePreview
-          ? Image.file(
-              File(material.filePath),
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.medium,
-              errorBuilder:
-                  (BuildContext context, Object error, StackTrace? stackTrace) {
-                    return _ThumbnailFallback(icon: fallbackIcon);
-                  },
-            )
-          : _ThumbnailFallback(icon: fallbackIcon),
+      child: preview,
     );
   }
 }

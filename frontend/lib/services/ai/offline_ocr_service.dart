@@ -50,11 +50,13 @@ class OfflineOcrService {
 
       for (final TextBlock recognizedBlock in recognizedText.blocks) {
         for (final TextLine recognizedLine in recognizedBlock.lines) {
-          final String content = recognizedLine.text.trim();
+          final String rawContent = recognizedLine.text.trim();
 
-          if (content.isEmpty) {
+          if (rawContent.isEmpty) {
             continue;
           }
+
+          final String content = _normalizeRecognizedContent(rawContent);
 
           final bool isFormula = _looksLikeFormula(content);
 
@@ -66,7 +68,7 @@ class OfflineOcrService {
               id: nextBlockId,
               order: nextBlockId,
               type: isFormula ? 'formula' : 'text',
-              rawContent: content,
+              rawContent: rawContent,
               normalizedContent: content,
               boundingBox: <double>[
                 recognizedLine.boundingBox.left,
@@ -138,7 +140,7 @@ class OfflineOcrService {
         model:
             'google-ml-kit-text-recognition'
             '+liblouis-3.38.0',
-        pipelineVersion: 'offline-v4-line-layout',
+        pipelineVersion: 'offline-v6-superscript-normalization',
         device: 'mobile',
         pageCount: 1,
         processingTimeMs: stopwatch.elapsedMicroseconds / 1000,
@@ -165,6 +167,97 @@ class OfflineOcrService {
         'and keep the document in focus.',
       );
     }
+  }
+
+  String _normalizeUnicodeSuperscripts(String content) {
+    const Map<String, String> superscriptCharacters = <String, String>{
+      '⁰': '0',
+      '¹': '1',
+      '²': '2',
+      '³': '3',
+      '⁴': '4',
+      '⁵': '5',
+      '⁶': '6',
+      '⁷': '7',
+      '⁸': '8',
+      '⁹': '9',
+      '⁺': '+',
+      '⁻': '-',
+    };
+
+    return content.replaceAllMapped(RegExp(r'[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+'), (Match match) {
+      final String source = match.group(0) ?? '';
+
+      final String exponent = source.split('').map((String character) {
+        return superscriptCharacters[character] ?? character;
+      }).join();
+
+      if (exponent.isEmpty) {
+        return source;
+      }
+
+      return exponent.length == 1 ? '^$exponent' : '^{$exponent}';
+    });
+  }
+
+  String _normalizeRecognizedContent(String content) {
+    String value = _normalizeUnicodeSuperscripts(
+      content,
+    ).replaceAll('−', '-').replaceAll('–', '-').replaceAll('—', '-').trim();
+
+    final bool hasMathContext =
+        RegExp(r'[=+\-*/^()]').hasMatch(value) && RegExp(r'\d').hasMatch(value);
+
+    if (!hasMathContext) {
+      return value;
+    }
+
+    // ML Kit may confuse an italic mathematical x with r, especially
+    // after a coefficient: 2r - 4 becomes 2x - 4.
+    value = value.replaceAllMapped(RegExp(r'(\d)[rR](\s*[+\-=])'), (
+      Match match,
+    ) {
+      return '${match.group(1)}x${match.group(2)}';
+    });
+
+    // Correct a common radical misread inside parentheses:
+    // (V2x - 4) becomes (\sqrt{2x - 4}).
+    value = value.replaceAllMapped(RegExp(r'\(\s*[Vv]\s*([^()]*)\)'), (
+      Match match,
+    ) {
+      final String radicand = match.group(1)?.trim() ?? '';
+
+      final bool looksLikeRadicand =
+          radicand.isNotEmpty &&
+          RegExp(r'\d').hasMatch(radicand) &&
+          RegExp(r'[+\-*/]').hasMatch(radicand);
+
+      if (!looksLikeRadicand) {
+        return match.group(0) ?? '';
+      }
+
+      return r'(\sqrt{' + radicand + '})';
+    });
+
+    // Correct a simple radical such as V16 only when it appears at the
+    // beginning or immediately after an equation delimiter.
+    value = value.replaceAllMapped(
+      RegExp(r'(^|[=(])\s*[Vv]\s*(\d+(?:\.\d+)?)'),
+      (Match match) {
+        final String prefix = match.group(1) ?? '';
+        final String radicand = match.group(2) ?? '';
+
+        return prefix + r'\sqrt{' + radicand + '}';
+      },
+    );
+
+    // A superscript 2 is sometimes recognized as an apostrophe after a
+    // closing parenthesis: (x - 2)' = becomes (x - 2)^2 =.
+    value = value.replaceAllMapped(RegExp(r"(\))\s*['’](\s*=)"), (Match match) {
+      return '${match.group(1)}^2${match.group(2)}';
+    });
+
+    return value;
   }
 
   bool _looksLikeFormula(String content) {

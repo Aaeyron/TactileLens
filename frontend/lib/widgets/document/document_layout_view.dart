@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
@@ -20,11 +23,11 @@ class DocumentLayoutView extends StatelessWidget {
   final String? semanticLabel;
 
   static const double _pageSpacing = 16;
-  static const double _minimumPageHeight = 160;
-  static const double _minimumBlockSize = 1;
-  static const double _minimumFontSize = 6;
-  static const double _maximumFontSize = 18;
-  static const double _richBlockReferenceWidth = 320;
+
+  // Consistent base sizes, independent of OCR bounding-box height.
+  static const double _contentFontSize = 18;
+  static const double _brailleFontSize = 24;
+  static const double _richBlockReferenceWidth = 420;
 
   static const Color _pageColor = Colors.white;
   static const Color _braillePageColor = Color(0xFFF5F9FF);
@@ -97,8 +100,8 @@ class DocumentLayoutView extends StatelessWidget {
         _fallbackContent,
         style: TextStyle(
           color: useBraille ? _brailleColor : _textColor,
-          fontSize: useBraille ? 17 : 15,
-          height: useBraille ? 1.5 : 1.45,
+          fontSize: useBraille ? _brailleFontSize : _contentFontSize,
+          height: useBraille ? 1.55 : 1.45,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -185,34 +188,36 @@ class _DocumentLayoutPage extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        final double detectedWidth = _maximumRight();
-        final double detectedHeight = _maximumBottom();
+        final double sourceWidth = math.max(
+          page.width.toDouble(),
+          _maximumRight(),
+        );
 
-        final double sourceWidth = page.width > 0
-            ? page.width.toDouble()
-            : detectedWidth;
-
-        final double sourceHeight = page.height > 0
-            ? page.height.toDouble()
-            : detectedHeight;
-
-        if (sourceWidth <= 0 || sourceHeight <= 0) {
-          return _buildFallbackPage();
-        }
+        final double sourceHeight = math.max(
+          page.height.toDouble(),
+          _maximumBottom(),
+        );
 
         final double availableWidth = constraints.hasBoundedWidth
             ? constraints.maxWidth
-            : sourceWidth;
+            : 360;
 
-        final double scale = availableWidth / sourceWidth;
+        if (availableWidth <= 0 || sourceWidth <= 0 || sourceHeight <= 0) {
+          return _buildFallbackPage();
+        }
 
-        final double canvasHeight = (sourceHeight * scale)
-            .clamp(DocumentLayoutView._minimumPageHeight, double.infinity)
-            .toDouble();
+        final List<DocumentBlock> visibleBlocks = page.blocks
+            .where((block) => _contentOf(block).isNotEmpty)
+            .toList(growable: false);
+
+        final double viewportHeight =
+            (sourceHeight * availableWidth / sourceWidth)
+                .clamp(220.0, 560.0)
+                .toDouble();
 
         return Container(
           width: availableWidth,
-          height: canvasHeight,
+          height: viewportHeight,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: useBraille
@@ -222,65 +227,42 @@ class _DocumentLayoutPage extends StatelessWidget {
             border: Border.all(color: DocumentLayoutView._borderColor),
             boxShadow: DocumentLayoutView._pageShadow,
           ),
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: positionedBlocks
-                .map((DocumentBlock block) {
-                  final double sourceLeft = block.boundingBox[0];
-                  final double sourceTop = block.boundingBox[1];
-                  final double sourceRight = block.boundingBox[2];
-                  final double sourceBottom = block.boundingBox[3];
+          child: _ScrollableDocumentCanvas(
+            child: _MeasuredDocumentCanvas(
+              sourceSize: Size(sourceWidth, sourceHeight),
+              minimumWidth: availableWidth,
+              bounds: visibleBlocks
+                  .map((block) {
+                    if (!_hasValidBounds(block)) {
+                      return null;
+                    }
 
-                  final double left =
-                      sourceLeft.clamp(0, sourceWidth).toDouble() * scale;
-
-                  final double top =
-                      sourceTop.clamp(0, sourceHeight).toDouble() * scale;
-
-                  final double width = ((sourceRight - sourceLeft) * scale)
-                      .clamp(
-                        DocumentLayoutView._minimumBlockSize,
-                        availableWidth,
-                      )
-                      .toDouble();
-
-                  final double height = ((sourceBottom - sourceTop) * scale)
-                      .clamp(DocumentLayoutView._minimumBlockSize, canvasHeight)
-                      .toDouble();
-
-                  final String content = _contentOf(block);
-
-                  final int lineCount = content
-                      .split('\n')
-                      .length
-                      .clamp(1, 1000);
-
-                  final double fontSize = ((height / lineCount) * 0.68)
-                      .clamp(
-                        DocumentLayoutView._minimumFontSize,
-                        DocumentLayoutView._maximumFontSize,
-                      )
-                      .toDouble();
-
-                  return Positioned(
-                    left: left,
-                    top: top,
-                    width: width,
-                    height: height,
-                    child: ClipRect(
-                      child: Semantics(
-                        label: content,
-                        child: _PositionedDocumentContent(
-                          block: block,
-                          content: content,
-                          useBraille: useBraille,
-                          fontSize: fontSize,
-                        ),
+                    return Rect.fromLTRB(
+                      block.boundingBox[0],
+                      block.boundingBox[1],
+                      block.boundingBox[2],
+                      block.boundingBox[3],
+                    );
+                  })
+                  .toList(growable: false),
+              children: visibleBlocks
+                  .map((block) {
+                    return Semantics(
+                      sortKey: OrdinalSortKey(block.order.toDouble()),
+                      label: _contentOf(block),
+                      excludeSemantics: true,
+                      child: _PositionedDocumentContent(
+                        block: block,
+                        content: _contentOf(block),
+                        useBraille: useBraille,
+                        fontSize: useBraille
+                            ? DocumentLayoutView._brailleFontSize
+                            : DocumentLayoutView._contentFontSize,
                       ),
-                    ),
-                  );
-                })
-                .toList(growable: false),
+                    );
+                  })
+                  .toList(growable: false),
+            ),
           ),
         );
       },
@@ -309,12 +291,239 @@ class _DocumentLayoutPage extends StatelessWidget {
           color: useBraille
               ? DocumentLayoutView._brailleColor
               : DocumentLayoutView._textColor,
-          fontSize: useBraille ? 17 : 15,
-          height: useBraille ? 1.5 : 1.45,
+          fontSize: useBraille
+              ? DocumentLayoutView._brailleFontSize
+              : DocumentLayoutView._contentFontSize,
+          height: useBraille ? 1.55 : 1.45,
           fontWeight: FontWeight.w500,
         ),
       ),
     );
+  }
+}
+
+// Independent controllers avoid sharing the surrounding screen's scroll state.
+class _ScrollableDocumentCanvas extends StatefulWidget {
+  const _ScrollableDocumentCanvas({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ScrollableDocumentCanvas> createState() {
+    return _ScrollableDocumentCanvasState();
+  }
+}
+
+class _ScrollableDocumentCanvasState extends State<_ScrollableDocumentCanvas> {
+  final ScrollController _horizontal = ScrollController();
+  final ScrollController _vertical = ScrollController();
+
+  @override
+  void dispose() {
+    _horizontal.dispose();
+    _vertical.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _horizontal,
+      thumbVisibility: true,
+      scrollbarOrientation: ScrollbarOrientation.bottom,
+      notificationPredicate: (notification) {
+        return notification.metrics.axis == Axis.horizontal;
+      },
+      child: Scrollbar(
+        controller: _vertical,
+        thumbVisibility: true,
+        notificationPredicate: (notification) {
+          return notification.metrics.axis == Axis.vertical;
+        },
+        child: SingleChildScrollView(
+          controller: _vertical,
+          primary: false,
+          child: SingleChildScrollView(
+            controller: _horizontal,
+            primary: false,
+            scrollDirection: Axis.horizontal,
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MeasuredDocumentCanvas extends MultiChildRenderObjectWidget {
+  const _MeasuredDocumentCanvas({
+    required this.sourceSize,
+    required this.minimumWidth,
+    required this.bounds,
+    required super.children,
+  });
+
+  final Size sourceSize;
+  final double minimumWidth;
+  final List<Rect?> bounds;
+
+  @override
+  _RenderDocumentCanvas createRenderObject(BuildContext context) {
+    return _RenderDocumentCanvas(sourceSize, minimumWidth, bounds);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderDocumentCanvas renderObject,
+  ) {
+    renderObject.update(sourceSize, minimumWidth, bounds);
+  }
+}
+
+class _DocumentCanvasParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderDocumentCanvas extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _DocumentCanvasParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _DocumentCanvasParentData> {
+  _RenderDocumentCanvas(this._sourceSize, this._minimumWidth, this._bounds);
+
+  Size _sourceSize;
+  double _minimumWidth;
+  List<Rect?> _bounds;
+
+  static const double _padding = 20;
+  static const double _gap = 12;
+
+  void update(Size sourceSize, double minimumWidth, List<Rect?> bounds) {
+    _sourceSize = sourceSize;
+    _minimumWidth = minimumWidth;
+    _bounds = bounds;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _DocumentCanvasParentData) {
+      child.parentData = _DocumentCanvasParentData();
+    }
+  }
+
+  @override
+  void performLayout() {
+    final List<RenderBox> children = getChildrenAsList();
+
+    double scale = math.max(
+      0.001,
+      (_minimumWidth - _padding * 2) / _sourceSize.width,
+    );
+
+    // Measure actual rendered content before positioning it.
+    // Expand page coordinates rather than shrinking individual glyphs.
+    for (int i = 0; i < children.length; i++) {
+      final RenderBox child = children[i];
+
+      child.layout(const BoxConstraints(), parentUsesSize: true);
+
+      final Rect? box = _bounds[i];
+
+      if (box != null) {
+        scale = math.max(scale, (child.size.width + _gap) / box.width);
+
+        scale = math.max(scale, (child.size.height + _gap) / box.height);
+      }
+    }
+
+    double right = math.max(
+      _minimumWidth - _padding,
+      _sourceSize.width * scale + _padding,
+    );
+
+    double bottom = _sourceSize.height * scale + _padding;
+
+    final List<Rect> placed = <Rect>[];
+
+    final List<int> ordered = List<int>.generate(children.length, (i) => i);
+
+    // Position valid blocks top-to-bottom.
+    ordered.sort((a, b) {
+      final Rect? first = _bounds[a];
+      final Rect? second = _bounds[b];
+
+      if (first == null) {
+        return second == null ? a.compareTo(b) : 1;
+      }
+
+      if (second == null) {
+        return -1;
+      }
+
+      final int vertical = first.top.compareTo(second.top);
+
+      return vertical != 0 ? vertical : first.left.compareTo(second.left);
+    });
+
+    for (final int i in ordered) {
+      final RenderBox child = children[i];
+      final Rect? box = _bounds[i];
+
+      final double left = box == null
+          ? _padding
+          : math.max(0.0, box.left) * scale + _padding;
+
+      double top = box == null
+          ? bottom + _gap
+          : math.max(0.0, box.top) * scale + _padding;
+
+      Rect target = Offset(left, top) & child.size;
+
+      // If OCR boxes overlap, move only colliding content downward.
+      // Keep the horizontal column position.
+      bool collision;
+
+      do {
+        collision = false;
+
+        for (final Rect other in placed) {
+          if (target.overlaps(other.inflate(_gap / 2))) {
+            top = other.bottom + _gap;
+            target = Offset(left, top) & child.size;
+            collision = true;
+          }
+        }
+      } while (collision);
+
+      final _DocumentCanvasParentData data =
+          child.parentData! as _DocumentCanvasParentData;
+
+      data.offset = target.topLeft;
+
+      placed.add(target);
+
+      right = math.max(right, target.right);
+      bottom = math.max(bottom, target.bottom);
+    }
+
+    size = constraints.constrain(Size(right + _padding, bottom + _padding));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    defaultPaint(context, offset);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return defaultHitTestChildren(result, position: position);
+  }
+
+  @override
+  void applyPaintTransform(RenderBox child, Matrix4 transform) {
+    final _DocumentCanvasParentData data =
+        child.parentData! as _DocumentCanvasParentData;
+
+    transform.translateByDouble(data.offset.dx, data.offset.dy, 0, 1);
   }
 }
 
@@ -334,14 +543,18 @@ class _PositionedDocumentContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (useBraille) {
-      return Text(
-        content,
-        overflow: TextOverflow.clip,
-        style: TextStyle(
-          color: DocumentLayoutView._brailleColor,
-          fontSize: fontSize,
-          height: 1.1,
-          fontWeight: FontWeight.w500,
+      return ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: DocumentLayoutView._richBlockReferenceWidth,
+        ),
+        child: Text(
+          content,
+          style: TextStyle(
+            color: DocumentLayoutView._brailleColor,
+            fontSize: fontSize,
+            height: 1.41,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       );
     }
@@ -354,14 +567,18 @@ class _PositionedDocumentContent extends StatelessWidget {
       return _buildFormula();
     }
 
-    return Text(
-      content,
-      overflow: TextOverflow.clip,
-      style: TextStyle(
-        color: DocumentLayoutView._textColor,
-        fontSize: fontSize,
-        height: 1.15,
-        fontWeight: FontWeight.w500,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: DocumentLayoutView._richBlockReferenceWidth,
+      ),
+      child: Text(
+        content,
+        style: TextStyle(
+          color: DocumentLayoutView._textColor,
+          fontSize: fontSize,
+          height: 1.35,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
@@ -373,35 +590,31 @@ class _PositionedDocumentContent extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: SizedBox(
-          width: DocumentLayoutView._richBlockReferenceWidth,
-          child: Math.tex(
-            formula,
-            mathStyle: MathStyle.display,
-            textStyle: const TextStyle(
-              color: DocumentLayoutView._textColor,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-            ),
-            onErrorFallback: (_) {
-              return Text(
-                _readableFormulaFallback(formula),
-                style: const TextStyle(
-                  color: DocumentLayoutView._textColor,
-                  fontSize: 16,
-                  height: 1.35,
-                  fontWeight: FontWeight.w500,
-                ),
-              );
-            },
-          ),
-        ),
+    // No FittedBox: equations use the same base size as ordinary text.
+    return Math.tex(
+      formula,
+      mathStyle: MathStyle.display,
+      textStyle: TextStyle(
+        color: DocumentLayoutView._textColor,
+        fontSize: fontSize,
+        fontWeight: FontWeight.w500,
       ),
+      onErrorFallback: (_) {
+        return ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: DocumentLayoutView._richBlockReferenceWidth,
+          ),
+          child: Text(
+            // Preserve the notation when LaTeX parsing fails.
+            formula,
+            style: TextStyle(
+              color: DocumentLayoutView._textColor,
+              fontSize: fontSize,
+              height: 1.35,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -432,55 +645,48 @@ class _PositionedDocumentContent extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Align(
-      alignment: Alignment.topLeft,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: DocumentLayoutView._richBlockReferenceWidth,
-          child: Table(
-            border: TableBorder.all(
-              color: DocumentLayoutView._tableBorderColor,
-              width: 1,
+    return SizedBox(
+      width: math.max(
+        DocumentLayoutView._richBlockReferenceWidth,
+        columnCount * 140.0,
+      ),
+      child: Table(
+        border: TableBorder.all(
+          color: DocumentLayoutView._tableBorderColor,
+          width: 1,
+        ),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: List<TableRow>.generate(rows.length, (int rowIndex) {
+          final List<String> row = rows[rowIndex];
+
+          return TableRow(
+            decoration: BoxDecoration(
+              color: rowIndex == 0
+                  ? DocumentLayoutView._tableHeaderColor
+                  : DocumentLayoutView._pageColor,
             ),
-            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-            children: List<TableRow>.generate(rows.length, (int rowIndex) {
-              final List<String> row = rows[rowIndex];
+            children: List<Widget>.generate(columnCount, (int columnIndex) {
+              final String cell = columnIndex < row.length
+                  ? row[columnIndex]
+                  : '';
 
-              return TableRow(
-                decoration: BoxDecoration(
-                  color: rowIndex == 0
-                      ? DocumentLayoutView._tableHeaderColor
-                      : DocumentLayoutView._pageColor,
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                child: Text(
+                  cell,
+                  style: TextStyle(
+                    color: DocumentLayoutView._textColor,
+                    fontSize: fontSize,
+                    height: 1.25,
+                    fontWeight: rowIndex == 0
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
                 ),
-                children: List<Widget>.generate(columnCount, (int columnIndex) {
-                  final String cell = columnIndex < row.length
-                      ? row[columnIndex]
-                      : '';
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 7,
-                    ),
-                    child: Text(
-                      cell,
-                      style: TextStyle(
-                        color: DocumentLayoutView._textColor,
-                        fontSize: 13,
-                        height: 1.25,
-                        fontWeight: rowIndex == 0
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }, growable: false),
               );
             }, growable: false),
-          ),
-        ),
+          );
+        }, growable: false),
       ),
     );
   }
@@ -509,21 +715,5 @@ class _PositionedDocumentContent extends StatelessWidget {
     }
 
     return formula;
-  }
-
-  String _readableFormulaFallback(String value) {
-    return value
-        .replaceAll(r'\times', '×')
-        .replaceAll(r'\div', '÷')
-        .replaceAll(r'\pm', '±')
-        .replaceAll(r'\leq', '≤')
-        .replaceAll(r'\geq', '≥')
-        .replaceAll(r'\neq', '≠')
-        .replaceAll(r'\cdot', '·')
-        .replaceAll(r'\left', '')
-        .replaceAll(r'\right', '')
-        .replaceAll('{', '')
-        .replaceAll('}', '')
-        .trim();
   }
 }

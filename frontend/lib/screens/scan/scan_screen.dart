@@ -116,7 +116,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final ScanService _scanService = ScanService();
   final CameraService _cameraService = CameraService();
-  final AIService _aiService = AIService();
+  final AIService _aiService = AIService(scanMode: AIService.sessionMode);
   final HistoryService _historyService = HistoryService();
 
   final ImageCropService _imageCropService = ImageCropService();
@@ -300,6 +300,9 @@ class _ScanScreenState extends State<ScanScreen> {
         recognizedContent: recognizedContent,
         brailleContent: result.combinedBraille,
         documentBlocks: documentBlocks,
+        documentPages: result.pages
+            .map((DocumentPage page) => page.toJson())
+            .toList(growable: false),
         sourceImagePath: scannedImage.path,
         modelName: result.model,
         pipelineVersion: result.pipelineVersion,

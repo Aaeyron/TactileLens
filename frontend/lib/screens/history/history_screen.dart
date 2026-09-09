@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../models/ai/scan_document_result.dart';
 import '../../models/history/history_model.dart';
 import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
+import '../../widgets/document/document_layout_view.dart';
 
 abstract final class _HistoryText {
   static const String screenTitle = 'History';
@@ -619,7 +621,28 @@ class _HistoryScreenState extends State<HistoryScreen>
     return confirmed ?? false;
   }
 
+  List<DocumentPage> _readDocumentPages(HistoryRecord record) {
+    return List<DocumentPage>.generate(record.documentPages.length, (
+      int index,
+    ) {
+      return DocumentPage.fromJson(
+        Map<String, dynamic>.from(record.documentPages[index]),
+        fallbackPageIndex: index,
+      );
+    }, growable: false);
+  }
+
   void _showRecordDetails(HistoryRecord record) {
+    final List<DocumentPage> pages = _readDocumentPages(record);
+
+    final String recognizedFallback = record.recognizedContent.trim().isEmpty
+        ? _HistoryText.emptyRecognizedContent
+        : record.recognizedContent;
+
+    final String brailleFallback = record.brailleContent.trim().isEmpty
+        ? _HistoryText.noBrailleContent
+        : record.brailleContent;
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -646,9 +669,11 @@ class _HistoryScreenState extends State<HistoryScreen>
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
                   const SizedBox(height: 7),
-                  SelectableText(
-                    record.recognizedContent,
-                    style: HistoryScreenStyles.detailContentStyle,
+                  DocumentLayoutView(
+                    pages: pages,
+                    useBraille: false,
+                    fallbackText: recognizedFallback,
+                    fallbackBraille: brailleFallback,
                   ),
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   const Text(
@@ -656,13 +681,11 @@ class _HistoryScreenState extends State<HistoryScreen>
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
                   const SizedBox(height: 7),
-                  SelectableText(
-                    record.brailleContent.trim().isEmpty
-                        ? _HistoryText.noBrailleContent
-                        : record.brailleContent,
-                    style: record.brailleContent.trim().isEmpty
-                        ? HistoryScreenStyles.detailContentStyle
-                        : HistoryScreenStyles.detailBrailleStyle,
+                  DocumentLayoutView(
+                    pages: pages,
+                    useBraille: true,
+                    fallbackText: recognizedFallback,
+                    fallbackBraille: brailleFallback,
                   ),
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   FilledButton(
