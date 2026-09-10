@@ -20,15 +20,21 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.tactilelens.app"
+    applicationId = "com.tactilelens.app"
 
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+    minSdk = flutter.minSdkVersion
+    targetSdk = flutter.targetSdkVersion
 
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+    versionCode = flutter.versionCode
+    versionName = flutter.versionName
 
-        externalNativeBuild {
+    // PaddleOCR-VL is currently compiled specifically for
+    // 64-bit ARM Android devices.
+    ndk {
+        abiFilters += listOf("arm64-v8a")
+    }
+
+    externalNativeBuild {
             cmake {
                 cppFlags += listOf(
                     "-std=c++17",

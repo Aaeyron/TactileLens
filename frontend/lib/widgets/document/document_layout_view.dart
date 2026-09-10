@@ -25,9 +25,9 @@ class DocumentLayoutView extends StatelessWidget {
   static const double _pageSpacing = 16;
 
   // Consistent base sizes, independent of OCR bounding-box height.
-  static const double _contentFontSize = 18;
-  static const double _brailleFontSize = 24;
-  static const double _richBlockReferenceWidth = 420;
+  static const double _contentFontSize = 14;
+  static const double _brailleFontSize = 18;
+  static const double _richBlockReferenceWidth = 320;
 
   static const Color _pageColor = Colors.white;
   static const Color _braillePageColor = Color(0xFFF5F9FF);
@@ -212,7 +212,7 @@ class _DocumentLayoutPage extends StatelessWidget {
 
         final double viewportHeight =
             (sourceHeight * availableWidth / sourceWidth)
-                .clamp(220.0, 560.0)
+                .clamp(220.0, 420.0)
                 .toDouble();
 
         return Container(
@@ -227,7 +227,7 @@ class _DocumentLayoutPage extends StatelessWidget {
             border: Border.all(color: DocumentLayoutView._borderColor),
             boxShadow: DocumentLayoutView._pageShadow,
           ),
-          child: _ScrollableDocumentCanvas(
+          child: _ZoomableDocumentCanvas(
             child: _MeasuredDocumentCanvas(
               sourceSize: Size(sourceWidth, sourceHeight),
               minimumWidth: availableWidth,
@@ -302,52 +302,80 @@ class _DocumentLayoutPage extends StatelessWidget {
   }
 }
 
-// Independent controllers avoid sharing the surrounding screen's scroll state.
-class _ScrollableDocumentCanvas extends StatefulWidget {
-  const _ScrollableDocumentCanvas({required this.child});
+class _ZoomableDocumentCanvas extends StatefulWidget {
+  const _ZoomableDocumentCanvas({required this.child});
 
   final Widget child;
 
   @override
-  State<_ScrollableDocumentCanvas> createState() {
-    return _ScrollableDocumentCanvasState();
+  State<_ZoomableDocumentCanvas> createState() {
+    return _ZoomableDocumentCanvasState();
   }
 }
 
-class _ScrollableDocumentCanvasState extends State<_ScrollableDocumentCanvas> {
-  final ScrollController _horizontal = ScrollController();
-  final ScrollController _vertical = ScrollController();
+class _ZoomableDocumentCanvasState extends State<_ZoomableDocumentCanvas> {
+  static const double _minimumScale = 1;
+  static const double _maximumScale = 8;
+  static const double _zoomThreshold = 1.01;
+
+  final TransformationController _transformationController =
+      TransformationController();
+
+  bool _isZoomed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController.addListener(_handleTransformationChanged);
+  }
 
   @override
   void dispose() {
-    _horizontal.dispose();
-    _vertical.dispose();
+    _transformationController
+      ..removeListener(_handleTransformationChanged)
+      ..dispose();
+
     super.dispose();
+  }
+
+  void _handleTransformationChanged() {
+    final bool isZoomed =
+        _transformationController.value.getMaxScaleOnAxis() > _zoomThreshold;
+
+    if (isZoomed == _isZoomed || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isZoomed = isZoomed;
+    });
+  }
+
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scrollbar(
-      controller: _horizontal,
-      thumbVisibility: true,
-      scrollbarOrientation: ScrollbarOrientation.bottom,
-      notificationPredicate: (notification) {
-        return notification.metrics.axis == Axis.horizontal;
-      },
-      child: Scrollbar(
-        controller: _vertical,
-        thumbVisibility: true,
-        notificationPredicate: (notification) {
-          return notification.metrics.axis == Axis.vertical;
-        },
-        child: SingleChildScrollView(
-          controller: _vertical,
-          primary: false,
-          child: SingleChildScrollView(
-            controller: _horizontal,
-            primary: false,
-            scrollDirection: Axis.horizontal,
-            child: widget.child,
+    return Semantics(
+      label: 'Document preview. Pinch to zoom and drag to inspect.',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: _resetZoom,
+        child: InteractiveViewer(
+          transformationController: _transformationController,
+          minScale: _minimumScale,
+          maxScale: _maximumScale,
+          panEnabled: _isZoomed,
+          scaleEnabled: true,
+          clipBehavior: Clip.hardEdge,
+          boundaryMargin: const EdgeInsets.all(40),
+          child: SizedBox.expand(
+            child: FittedBox(
+              fit: BoxFit.contain,
+              alignment: Alignment.topCenter,
+              child: widget.child,
+            ),
           ),
         ),
       ),

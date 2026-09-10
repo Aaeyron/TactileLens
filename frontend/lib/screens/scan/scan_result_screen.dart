@@ -77,7 +77,7 @@ abstract final class _ScanResultText {
 
   static const String saveTitleLabel = 'Title';
 
-  static const String saveTitleHint = 'Example: Algebra Worksheet';
+  static const String saveTitleHint = 'Untitled Scan';
 
   static const String saveSubjectLabel = 'Subject';
 
@@ -88,17 +88,16 @@ abstract final class _ScanResultText {
   static const String saveDescriptionHint =
       'Add a short description of this material.';
 
-  static const String defaultMaterialTitle = 'Untitled Scan';
+  static const String defaultMaterialSubject = 'General Algebra';
 
-  static const String defaultMaterialSubject = 'Scanned Document';
+  static const String defaultMaterialDescription =
+      'Scanned General Algebra material.';
 
   static const String cancelLabel = 'Cancel';
 
   static const String confirmSaveLabel = 'Save';
 
   static const String emptyMaterialTitleError = 'Please enter a title.';
-
-  static const String emptyMaterialSubjectError = 'Please enter a subject.';
 
   static const String materialSavedMessage = 'Scan saved to your materials.';
 
@@ -751,19 +750,14 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
   late final TextEditingController _descriptionController;
 
   String? _titleError;
-  String? _subjectError;
 
   @override
   void initState() {
     super.initState();
 
-    _titleController = TextEditingController(
-      text: _ScanResultText.defaultMaterialTitle,
-    );
+    _titleController = TextEditingController();
 
-    _subjectController = TextEditingController(
-      text: _ScanResultText.defaultMaterialSubject,
-    );
+    _subjectController = TextEditingController();
 
     _descriptionController = TextEditingController();
   }
@@ -779,22 +773,21 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
   void _submit() {
     final String title = _titleController.text.trim();
 
-    final String subject = _subjectController.text.trim();
+    final String enteredSubject = _subjectController.text.trim();
 
-    final String description = _descriptionController.text.trim();
+    final String enteredDescription = _descriptionController.text.trim();
 
-    final bool hasTitleError = title.isEmpty;
-    final bool hasSubjectError = subject.isEmpty;
+    final String subject = enteredSubject.isEmpty
+        ? _ScanResultText.defaultMaterialSubject
+        : enteredSubject;
 
-    if (hasTitleError || hasSubjectError) {
+    final String description = enteredDescription.isEmpty
+        ? _ScanResultText.defaultMaterialDescription
+        : enteredDescription;
+
+    if (title.isEmpty) {
       setState(() {
-        _titleError = hasTitleError
-            ? _ScanResultText.emptyMaterialTitleError
-            : null;
-
-        _subjectError = hasSubjectError
-            ? _ScanResultText.emptyMaterialSubjectError
-            : null;
+        _titleError = _ScanResultText.emptyMaterialTitleError;
       });
 
       return;
@@ -866,17 +859,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
                   .copyWith(
                     labelText: _ScanResultText.saveSubjectLabel,
                     hintText: _ScanResultText.saveSubjectHint,
-                    errorText: _subjectError,
                   ),
-              onChanged: (_) {
-                if (_subjectError == null) {
-                  return;
-                }
-
-                setState(() {
-                  _subjectError = null;
-                });
-              },
             ),
             const SizedBox(
               height: ScanResultScreenStyles.saveDialogFieldSpacing,

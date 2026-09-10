@@ -12,6 +12,9 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val LIBLOUIS_CHANNEL =
             "com.tactilelens.app/liblouis"
+
+        private const val PADDLEOCR_VL_CHANNEL =
+            "com.tactilelens.app/paddleocr_vl"
     }
 
     private val mainHandler =
@@ -20,11 +23,21 @@ class MainActivity : FlutterActivity() {
     private val liblouisExecutor: ExecutorService =
         Executors.newSingleThreadExecutor()
 
+    private val paddleOcrVlExecutor: ExecutorService =
+        Executors.newSingleThreadExecutor()
+
     override fun configureFlutterEngine(
         flutterEngine: FlutterEngine,
     ) {
         super.configureFlutterEngine(flutterEngine)
 
+        configureLiblouisChannel(flutterEngine)
+        configurePaddleOcrVlChannel(flutterEngine)
+    }
+
+    private fun configureLiblouisChannel(
+        flutterEngine: FlutterEngine,
+    ) {
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             LIBLOUIS_CHANNEL,
@@ -61,19 +74,16 @@ class MainActivity : FlutterActivity() {
                     runLiblouisTask(result) {
                         val translation =
                             LiblouisNative.translateBlock(
-                                context =
-                                    applicationContext,
+                                context = applicationContext,
                                 content = content,
                                 isFormula = isFormula,
                                 isTable = isTable,
                             )
 
                         mapOf(
-                            "success" to
-                                translation.success,
+                            "success" to translation.success,
                             "code" to translation.code,
-                            "content" to
-                                translation.content,
+                            "content" to translation.content,
                             "error" to translation.error,
                         )
                     }
@@ -84,6 +94,56 @@ class MainActivity : FlutterActivity() {
                         mapOf(
                             "version" to
                                 LiblouisNative.runtimeVersion(),
+                        )
+                    }
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun configurePaddleOcrVlChannel(
+        flutterEngine: FlutterEngine,
+    ) {
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            PADDLEOCR_VL_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "initialize" -> {
+                    runPaddleOcrVlTask(result) {
+                        val initialized =
+                            PaddleOcrVlNative.nativeInitialize()
+
+                        mapOf(
+                            "success" to initialized,
+                            "version" to
+                                PaddleOcrVlNative
+                                    .nativeRuntimeVersion(),
+                            "system_information" to
+                                PaddleOcrVlNative
+                                    .nativeSystemInformation(),
+                        )
+                    }
+                }
+
+                "version" -> {
+                    runPaddleOcrVlTask(result) {
+                        mapOf(
+                            "version" to
+                                PaddleOcrVlNative
+                                    .nativeRuntimeVersion(),
+                        )
+                    }
+                }
+
+                "systemInformation" -> {
+                    runPaddleOcrVlTask(result) {
+                        mapOf(
+                            "system_information" to
+                                PaddleOcrVlNative
+                                    .nativeSystemInformation(),
                         )
                     }
                 }
@@ -117,8 +177,37 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun runPaddleOcrVlTask(
+        result: MethodChannel.Result,
+        operation: () -> Any?,
+    ) {
+        paddleOcrVlExecutor.execute {
+            try {
+                val value = operation()
+
+                mainHandler.post {
+                    result.success(value)
+                }
+            } catch (error: Throwable) {
+                mainHandler.post {
+                    result.error(
+                        "PADDLEOCR_VL_ERROR",
+                        error.message
+                            ?: "PaddleOCR-VL native runtime failed.",
+                        mapOf(
+                            "error_type" to
+                                error.javaClass.simpleName,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     override fun onDestroy() {
         liblouisExecutor.shutdown()
+        paddleOcrVlExecutor.shutdown()
+
         super.onDestroy()
     }
 }

@@ -1,3 +1,6 @@
 [submodule "frontend/third_party/liblouis"]
 	path = frontend/third_party/liblouis
 	url = https://github.com/liblouis/liblouis.git
+[submodule "frontend/third_party/llama.cpp"]
+	path = frontend/third_party/llama.cpp
+	url = https://github.com/ggml-org/llama.cpp.git
