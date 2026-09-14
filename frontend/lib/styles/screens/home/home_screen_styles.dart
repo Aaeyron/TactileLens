@@ -107,14 +107,6 @@ abstract final class HomeStyles {
   static const double heroDotSpacing = 7;
   static const int heroDotCount = 12;
 
-  static const String headerLogoAsset = 'assets/icons/tactilelens_app_icon.png';
-
-  static const double headerLogoSize = 42;
-
-  static const BorderRadius headerLogoRadius = BorderRadius.all(
-    Radius.circular(10),
-  );
-
   static const double notificationButtonSize = 42;
   static const double notificationIconSize = 25;
   static const double notificationTapRadius = 25;

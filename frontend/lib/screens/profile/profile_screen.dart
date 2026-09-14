@@ -467,23 +467,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               height: ProfileStyles.headerContentHeight,
               child: Stack(
                 children: <Widget>[
-                  Positioned(
+                  const Positioned(
                     left: 0,
                     top: 0,
-                    child: Semantics(
-                      image: true,
-                      label: ProfileStyles.appName,
-                      child: ClipRRect(
-                        borderRadius: ProfileStyles.headerLogoRadius,
-                        child: Image.asset(
-                          ProfileStyles.headerLogoAsset,
-                          width: ProfileStyles.headerLogoSize,
-                          height: ProfileStyles.headerLogoSize,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.high,
-                          excludeFromSemantics: true,
-                        ),
-                      ),
+                    child: Text(
+                      ProfileStyles.appName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ProfileStyles.appNameStyle,
                     ),
                   ),
                   Positioned(
