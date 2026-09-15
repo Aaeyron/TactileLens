@@ -28,10 +28,10 @@ class MainActivity : FlutterActivity() {
         Handler(Looper.getMainLooper())
 
     private val liblouisExecutor: ExecutorService =
-        Executors.newSingleThreadExecutor()
-
+        Executors.newSingleThreadExecutor() 
+    
     private val paddleOcrVlExecutor: ExecutorService =
-        Executors.newSingleThreadExecutor()
+    Executors.newSingleThreadExecutor()
 
     override fun configureFlutterEngine(
         flutterEngine: FlutterEngine,

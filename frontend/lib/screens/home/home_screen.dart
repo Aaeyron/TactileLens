@@ -9,7 +9,6 @@ import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
 
 abstract final class _HomeText {
-  static const String appName = 'TactileLens';
   static const String notificationTooltip = 'Notifications';
   static const String greetingPrefix = 'Hi';
   static const String defaultUserName = 'Learner';
@@ -327,7 +326,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final double statusBarHeight = MediaQuery.paddingOf(context).top;
+    final double statusBarHeight =
+    MediaQuery.viewPaddingOf(context).top;
 
     return SizedBox(
       height: statusBarHeight + HomeStyles.headerSectionHeight,
@@ -359,14 +359,7 @@ class _HomeScreenState extends State<HomeScreen>
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        const Expanded(
-                          child: Text(
-                            _HomeText.appName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: HomeStyles.appNameStyle,
-                          ),
-                        ),
+                        const Spacer(),
                         Semantics(
                           button: true,
                           label: _HomeText.notificationTooltip,

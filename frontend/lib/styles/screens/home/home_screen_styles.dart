@@ -263,14 +263,6 @@ abstract final class HomeStyles {
   // TYPOGRAPHY
   // ============================================================
 
-  static const TextStyle appNameStyle = TextStyle(
-    color: surfaceColor,
-    fontSize: 18,
-    height: 1.2,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.2,
-  );
-
   static const TextStyle greetingStyle = TextStyle(
     color: surfaceColor,
     fontSize: 25,

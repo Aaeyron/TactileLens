@@ -16,7 +16,7 @@ class TactileLensApp extends StatelessWidget {
           backgroundColor: Color(0xFF0D47A1),
           foregroundColor: Colors.white,
           systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Color(0xFF0D47A1),
+            statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.light,
             statusBarBrightness: Brightness.dark,
           ),
@@ -35,32 +35,6 @@ class TactileLensApp extends StatelessWidget {
           elevation: 6,
         ),
       ),
-      builder: (BuildContext context, Widget? child) {
-        final double statusBarHeight = MediaQuery.viewPaddingOf(context).top;
-
-        return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: const SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light,
-            statusBarBrightness: Brightness.dark,
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              if (child != null) child,
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: statusBarHeight,
-                child: const IgnorePointer(
-                  child: ColoredBox(color: Color(0xFF0D47A1)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
       home: const SplashScreen(),
     );
   }

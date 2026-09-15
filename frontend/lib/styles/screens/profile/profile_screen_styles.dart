@@ -5,8 +5,6 @@ abstract final class ProfileStyles {
   // CONTENT
   // ============================================================
 
-  static const String appName = 'TactileLens';
-
   static const String defaultUserName = 'TactileLens User';
 
   static const String defaultGuestName = 'Guest';
@@ -326,13 +324,5 @@ abstract final class ProfileStyles {
     color: surfaceColor,
     fontSize: 13,
     fontWeight: FontWeight.w500,
-  );
-
-  static const TextStyle appNameStyle = TextStyle(
-    color: surfaceColor,
-    fontSize: 18,
-    height: 1.2,
-    fontWeight: FontWeight.w700,
-    letterSpacing: -0.2,
   );
 }
