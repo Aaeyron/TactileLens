@@ -117,10 +117,7 @@ abstract final class GoogleSignInService {
 
     switch (error.code) {
       case GoogleSignInExceptionCode.canceled:
-        message = description.isNotEmpty
-            ? 'Google sign-in was canceled: '
-                  '$description'
-            : 'Google sign-in was canceled.';
+        message = 'Google sign-in was canceled.';
 
       case GoogleSignInExceptionCode.interrupted:
         message = description.isNotEmpty

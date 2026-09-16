@@ -271,7 +271,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'details=${error.details}',
       );
 
-      if (!mounted) {
+      if (error.wasCanceled || !mounted) {
         return;
       }
 

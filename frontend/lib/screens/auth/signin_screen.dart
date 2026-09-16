@@ -139,7 +139,7 @@ class _SignInScreenState extends State<SignInScreen> {
         'details=${error.details}',
       );
 
-      if (!mounted) {
+      if (error.wasCanceled || !mounted) {
         return;
       }
 
