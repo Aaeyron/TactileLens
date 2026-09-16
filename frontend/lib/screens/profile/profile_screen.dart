@@ -8,6 +8,7 @@ import '../auth/auth_screen.dart';
 import 'about_tactilelens_screen.dart';
 import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
+import 'settings_screen.dart';
 import 'terms_policy_screen.dart';
 
 abstract final class _ProfileText {
@@ -227,23 +228,13 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _openSettings() {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: ProfileStyles.snackBarDuration,
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: ProfileStyles.primaryColor,
-          margin: ProfileStyles.snackBarMargin,
-          shape: const RoundedRectangleBorder(
-            borderRadius: ProfileStyles.snackBarRadius,
-          ),
-          content: const Text(
-            ProfileStyles.settingsUnavailableMessage,
-            style: ProfileStyles.snackBarTextStyle,
-          ),
-        ),
-      );
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const SettingsScreen();
+        },
+      ),
+    );
   }
 
   Future<void> _requestSessionExit() async {
