@@ -29,6 +29,16 @@ abstract final class PrivacySecurityScreenStyles {
   static const String securityFeaturesDescription =
       'Core protections used across scanning, materials, and accounts.';
 
+  static const String accountSecurityTitle = 'Account Security';
+
+  static const String accountSecurityDescription =
+      'Manage the credentials used to protect your online account.';
+
+  static const String changePasswordTitle = 'Change Password';
+
+  static const String changePasswordDescription =
+      'Verify your current password and create a new secure password.';
+
   static const String overviewTitle = 'Privacy Overview';
 
   static const String promiseTitle = 'Our Privacy Commitment';
@@ -132,6 +142,21 @@ abstract final class PrivacySecurityScreenStyles {
   static const double cardSpacing = 13;
   static const double headingBottomSpacing = 12;
   static const double bottomSpacing = 30;
+
+  // ============================================================
+  // ACCOUNT SECURITY
+  // ============================================================
+
+  static const EdgeInsets accountActionPadding = EdgeInsets.all(16);
+
+  static const double accountActionContentSpacing = 13;
+  static const double accountActionDescriptionSpacing = 5;
+  static const double accountActionArrowSpacing = 10;
+  static const double accountActionArrowSize = 22;
+
+  static const IconData changePasswordIcon = Icons.lock_reset_rounded;
+
+  static const IconData accountActionArrowIcon = Icons.chevron_right_rounded;
 
   // ============================================================
   // SHARED CARDS
@@ -388,5 +413,17 @@ abstract final class PrivacySecurityScreenStyles {
     color: Color(0xFFE9F2FF),
     fontSize: 12.75,
     height: 1.48,
+  );
+
+  static const TextStyle accountActionTitleStyle = TextStyle(
+    color: textPrimaryColor,
+    fontSize: 14.5,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle accountActionDescriptionStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 12.5,
+    height: 1.45,
   );
 }

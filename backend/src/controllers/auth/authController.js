@@ -6,6 +6,8 @@ const {
   createGoogleUser,
   findUserByEmail,
   findUserByGoogleSub,
+  findUserById,
+  updateUserPassword,
 } = require("../../models/users/userModel");
 
 const {
@@ -16,6 +18,8 @@ const {
 const TOKEN_EXPIRATION = process.env.JWT_EXPIRES_IN || "7d";
 
 const ALLOWED_ROLES = new Set(["Student", "Educator"]);
+const PASSWORD_MINIMUM_LENGTH = 8;
+const PASSWORD_MAXIMUM_LENGTH = 128;
 
 // ==========================
 // Helpers
@@ -201,6 +205,117 @@ const login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Unable to sign in.",
+    });
+  }
+};
+
+// ==========================
+// Change Password
+// ==========================
+
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    const {
+      current_password: currentPassword,
+      new_password: newPassword,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        code: "authentication_required",
+        message: "Authentication is required.",
+      });
+    }
+
+    if (
+      typeof currentPassword !== "string" ||
+      typeof newPassword !== "string" ||
+      currentPassword.length === 0 ||
+      newPassword.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "password_fields_required",
+        message: "Current password and new password are required.",
+      });
+    }
+
+    if (
+      newPassword.length < PASSWORD_MINIMUM_LENGTH ||
+      newPassword.length > PASSWORD_MAXIMUM_LENGTH
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_new_password",
+        message:
+          "The new password must contain between 8 and 128 characters.",
+      });
+    }
+
+    const user = await findUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        code: "user_not_found",
+        message: "The authenticated account could not be found.",
+      });
+    }
+
+    if (!user.password) {
+      return res.status(409).json({
+        success: false,
+        code: "google_password_managed",
+        message:
+          "This account uses Google Sign-In. Manage your password through your Google Account.",
+      });
+    }
+
+    const currentPasswordIsValid = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!currentPasswordIsValid) {
+      return res.status(401).json({
+        success: false,
+        code: "incorrect_current_password",
+        message: "The current password is incorrect.",
+      });
+    }
+
+    const passwordIsUnchanged = await bcrypt.compare(
+      newPassword,
+      user.password,
+    );
+
+    if (passwordIsUnchanged) {
+      return res.status(400).json({
+        success: false,
+        code: "password_unchanged",
+        message:
+          "The new password must be different from your current password.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await updateUserPassword(userId, hashedPassword);
+
+    return res.status(200).json({
+      success: true,
+      message: "Your password was changed successfully.",
+    });
+  } catch (error) {
+    console.error("Password change failed:", error);
+
+    return res.status(500).json({
+      success: false,
+      code: "password_change_failed",
+      message: "Unable to change your password.",
     });
   }
 };
@@ -392,6 +507,7 @@ const loginWithGoogle = async (req, res) => {
 module.exports = {
   register,
   login,
+  changePassword,
   registerWithGoogle,
   loginWithGoogle,
 };

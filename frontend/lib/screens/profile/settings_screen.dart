@@ -691,7 +691,10 @@ class _SettingsSection extends StatelessWidget {
             border: SettingsScreenStyles.cardBorder,
             boxShadow: SettingsScreenStyles.cardShadow,
           ),
-          child: Column(children: children),
+          child: Material(
+            color: Colors.transparent,
+            child: Column(children: children),
+          ),
         ),
       ],
     );

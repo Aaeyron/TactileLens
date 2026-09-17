@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import '../../utils/session_manager.dart';
 
 class AuthService {
   const AuthService._();
@@ -57,6 +58,35 @@ class AuthService {
       body: jsonEncode(<String, dynamic>{
         'email': email.trim().toLowerCase(),
         'password': password,
+      }),
+    );
+  }
+
+  // ==========================
+  // Change Password
+  // ==========================
+
+  static Future<http.Response> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final String? accessToken = await SessionManager.getAccessToken();
+
+    if (accessToken == null) {
+      throw StateError('Your session is unavailable. Please sign in again.');
+    }
+
+    final Uri url = Uri.parse('$baseUrl/api/auth/password');
+
+    return http.patch(
+      url,
+      headers: <String, String>{
+        ..._jsonHeaders,
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode(<String, dynamic>{
+        'current_password': currentPassword,
+        'new_password': newPassword,
       }),
     );
   }

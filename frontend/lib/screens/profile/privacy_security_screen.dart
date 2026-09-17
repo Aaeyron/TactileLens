@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/privacy_security_screen_styles.dart';
+import '../../utils/session_manager.dart';
+import 'change_password_screen.dart';
 
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
@@ -102,6 +104,16 @@ class PrivacySecurityScreen extends StatelessWidget {
     ),
   ];
 
+  void _openChangePassword(BuildContext context) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return const ChangePasswordScreen();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -140,6 +152,11 @@ class PrivacySecurityScreen extends StatelessWidget {
                     const _SecurityStatusCard(),
                     const SizedBox(
                       height: PrivacySecurityScreenStyles.sectionSpacing,
+                    ),
+                    _RegisteredAccountSecurity(
+                      onChangePassword: () {
+                        _openChangePassword(context);
+                      },
                     ),
                     const _SectionHeading(
                       title: PrivacySecurityScreenStyles.privacyTopicsTitle,
@@ -355,6 +372,110 @@ class _StatusBadge extends StatelessWidget {
             style: PrivacySecurityScreenStyles.statusBadgeTextStyle,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RegisteredAccountSecurity extends StatelessWidget {
+  const _RegisteredAccountSecurity({required this.onChangePassword});
+
+  final VoidCallback onChangePassword;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: SessionManager.isGuest(),
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        final bool isGuest = snapshot.data ?? true;
+
+        if (isGuest) {
+          return const SizedBox.shrink();
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const _SectionHeading(
+              title: PrivacySecurityScreenStyles.accountSecurityTitle,
+              description:
+                  PrivacySecurityScreenStyles.accountSecurityDescription,
+            ),
+            const SizedBox(
+              height: PrivacySecurityScreenStyles.headingBottomSpacing,
+            ),
+            _AccountSecurityCard(onPressed: onChangePassword),
+            const SizedBox(height: PrivacySecurityScreenStyles.sectionSpacing),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AccountSecurityCard extends StatelessWidget {
+  const _AccountSecurityCard({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: PrivacySecurityScreenStyles.surfaceColor,
+        borderRadius: PrivacySecurityScreenStyles.cardRadius,
+        border: PrivacySecurityScreenStyles.cardBorder,
+        boxShadow: PrivacySecurityScreenStyles.cardShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: PrivacySecurityScreenStyles.accountActionPadding,
+            child: Row(
+              children: <Widget>[
+                const _PrivacyIcon(
+                  icon: PrivacySecurityScreenStyles.changePasswordIcon,
+                ),
+                const SizedBox(
+                  width:
+                      PrivacySecurityScreenStyles.accountActionContentSpacing,
+                ),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        PrivacySecurityScreenStyles.changePasswordTitle,
+                        style:
+                            PrivacySecurityScreenStyles.accountActionTitleStyle,
+                      ),
+                      SizedBox(
+                        height: PrivacySecurityScreenStyles
+                            .accountActionDescriptionSpacing,
+                      ),
+                      Text(
+                        PrivacySecurityScreenStyles.changePasswordDescription,
+                        style: PrivacySecurityScreenStyles
+                            .accountActionDescriptionStyle,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  width: PrivacySecurityScreenStyles.accountActionArrowSpacing,
+                ),
+                const Icon(
+                  PrivacySecurityScreenStyles.accountActionArrowIcon,
+                  color: PrivacySecurityScreenStyles.textMutedColor,
+                  size: PrivacySecurityScreenStyles.accountActionArrowSize,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
