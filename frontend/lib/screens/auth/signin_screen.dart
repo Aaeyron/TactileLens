@@ -101,6 +101,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
       final String role = _readRequiredString(user, 'role');
 
+      final String authProvider = _readAuthProvider(
+        user,
+        expectedProvider: SessionManager.googleAuthProvider,
+      );
+
       await SessionManager.saveAccessToken(rawToken.trim());
 
       try {
@@ -110,6 +115,7 @@ class _SignInScreenState extends State<SignInScreen> {
           lastName: lastName,
           email: userEmail,
           role: role,
+          authProvider: authProvider,
         );
       } catch (_) {
         await SessionManager.logout();
@@ -253,7 +259,12 @@ class _SignInScreenState extends State<SignInScreen> {
 
       final String role = _readRequiredString(user, 'role');
 
-      await SessionManager.saveAccessToken(rawToken);
+      final String authProvider = _readAuthProvider(
+        user,
+        expectedProvider: SessionManager.passwordAuthProvider,
+      );
+
+      await SessionManager.saveAccessToken(rawToken.trim());
 
       try {
         await SessionManager.saveUser(
@@ -262,6 +273,7 @@ class _SignInScreenState extends State<SignInScreen> {
           lastName: lastName,
           email: userEmail,
           role: role,
+          authProvider: authProvider,
         );
       } catch (_) {
         await SessionManager.logout();
@@ -333,6 +345,22 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     return value.trim();
+  }
+
+  String _readAuthProvider(
+    Map<String, dynamic> user, {
+    required String expectedProvider,
+  }) {
+    final String authProvider = _readRequiredString(
+      user,
+      'auth_provider',
+    ).toLowerCase();
+
+    if (authProvider != expectedProvider) {
+      throw const SignInException(SignInStyles.invalidResponseMessage);
+    }
+
+    return authProvider;
   }
 
   String? _readServerMessage(Map<String, dynamic> responseData) {

@@ -5,6 +5,8 @@ import '../../styles/screens/profile/privacy_security_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import 'change_password_screen.dart';
 
+enum _AccountSecurityType { guest, password, google, unknown }
+
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
 
@@ -382,41 +384,89 @@ class _RegisteredAccountSecurity extends StatelessWidget {
 
   final VoidCallback onChangePassword;
 
+  Future<_AccountSecurityType> _loadAccountSecurityType() async {
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (isGuest) {
+      return _AccountSecurityType.guest;
+    }
+
+    final String? authProvider = await SessionManager.getAuthProvider();
+
+    return switch (authProvider) {
+      SessionManager.passwordAuthProvider => _AccountSecurityType.password,
+      SessionManager.googleAuthProvider => _AccountSecurityType.google,
+      _ => _AccountSecurityType.unknown,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: SessionManager.isGuest(),
-      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-        final bool isGuest = snapshot.data ?? true;
+    return FutureBuilder<_AccountSecurityType>(
+      future: _loadAccountSecurityType(),
+      builder:
+          (BuildContext context, AsyncSnapshot<_AccountSecurityType> snapshot) {
+            final _AccountSecurityType? accountType = snapshot.data;
 
-        if (isGuest) {
-          return const SizedBox.shrink();
-        }
+            if (accountType == null ||
+                accountType == _AccountSecurityType.guest ||
+                accountType == _AccountSecurityType.unknown) {
+              return const SizedBox.shrink();
+            }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const _SectionHeading(
-              title: PrivacySecurityScreenStyles.accountSecurityTitle,
-              description:
-                  PrivacySecurityScreenStyles.accountSecurityDescription,
-            ),
-            const SizedBox(
-              height: PrivacySecurityScreenStyles.headingBottomSpacing,
-            ),
-            _AccountSecurityCard(onPressed: onChangePassword),
-            const SizedBox(height: PrivacySecurityScreenStyles.sectionSpacing),
-          ],
-        );
-      },
+            final Widget accountCard;
+
+            if (accountType == _AccountSecurityType.google) {
+              accountCard = const _AccountSecurityCard(
+                icon: PrivacySecurityScreenStyles.googlePasswordIcon,
+                title: PrivacySecurityScreenStyles.googlePasswordTitle,
+                description:
+                    PrivacySecurityScreenStyles.googlePasswordDescription,
+              );
+            } else {
+              accountCard = _AccountSecurityCard(
+                icon: PrivacySecurityScreenStyles.changePasswordIcon,
+                title: PrivacySecurityScreenStyles.changePasswordTitle,
+                description:
+                    PrivacySecurityScreenStyles.changePasswordDescription,
+                onPressed: onChangePassword,
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const _SectionHeading(
+                  title: PrivacySecurityScreenStyles.accountSecurityTitle,
+                  description:
+                      PrivacySecurityScreenStyles.accountSecurityDescription,
+                ),
+                const SizedBox(
+                  height: PrivacySecurityScreenStyles.headingBottomSpacing,
+                ),
+                accountCard,
+                const SizedBox(
+                  height: PrivacySecurityScreenStyles.sectionSpacing,
+                ),
+              ],
+            );
+          },
     );
   }
 }
 
 class _AccountSecurityCard extends StatelessWidget {
-  const _AccountSecurityCard({required this.onPressed});
+  const _AccountSecurityCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.onPressed,
+  });
 
-  final VoidCallback onPressed;
+  final IconData icon;
+  final String title;
+  final String description;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -436,42 +486,43 @@ class _AccountSecurityCard extends StatelessWidget {
             padding: PrivacySecurityScreenStyles.accountActionPadding,
             child: Row(
               children: <Widget>[
-                const _PrivacyIcon(
-                  icon: PrivacySecurityScreenStyles.changePasswordIcon,
-                ),
+                _PrivacyIcon(icon: icon),
                 const SizedBox(
                   width:
                       PrivacySecurityScreenStyles.accountActionContentSpacing,
                 ),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        PrivacySecurityScreenStyles.changePasswordTitle,
+                        title,
                         style:
                             PrivacySecurityScreenStyles.accountActionTitleStyle,
                       ),
-                      SizedBox(
+                      const SizedBox(
                         height: PrivacySecurityScreenStyles
                             .accountActionDescriptionSpacing,
                       ),
                       Text(
-                        PrivacySecurityScreenStyles.changePasswordDescription,
+                        description,
                         style: PrivacySecurityScreenStyles
                             .accountActionDescriptionStyle,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(
-                  width: PrivacySecurityScreenStyles.accountActionArrowSpacing,
-                ),
-                const Icon(
-                  PrivacySecurityScreenStyles.accountActionArrowIcon,
-                  color: PrivacySecurityScreenStyles.textMutedColor,
-                  size: PrivacySecurityScreenStyles.accountActionArrowSize,
-                ),
+                if (onPressed != null) ...<Widget>[
+                  const SizedBox(
+                    width:
+                        PrivacySecurityScreenStyles.accountActionArrowSpacing,
+                  ),
+                  const Icon(
+                    PrivacySecurityScreenStyles.accountActionArrowIcon,
+                    color: PrivacySecurityScreenStyles.textMutedColor,
+                    size: PrivacySecurityScreenStyles.accountActionArrowSize,
+                  ),
+                ],
               ],
             ),
           ),

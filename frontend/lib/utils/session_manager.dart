@@ -10,6 +10,10 @@ class SessionManager {
   static const String lastNameKey = 'last_name';
   static const String emailKey = 'email';
   static const String roleKey = 'role';
+  static const String authProviderKey = 'auth_provider';
+
+  static const String passwordAuthProvider = 'password';
+  static const String googleAuthProvider = 'google';
 
   // Current session type.
   static const String guestModeKey = 'guest_mode';
@@ -33,7 +37,9 @@ class SessionManager {
     required String lastName,
     required String email,
     required String role,
+    required String authProvider,
   }) async {
+    final String normalizedAuthProvider = _normalizeAuthProvider(authProvider);
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     // Preserve guest information created by older app versions before
@@ -46,6 +52,7 @@ class SessionManager {
       prefs.setString(lastNameKey, lastName.trim()),
       prefs.setString(emailKey, email.trim()),
       prefs.setString(roleKey, role.trim()),
+      prefs.setString(authProviderKey, normalizedAuthProvider),
       prefs.setBool(guestModeKey, false),
     ]);
 
@@ -275,6 +282,21 @@ class SessionManager {
     return _normalizeOptionalText(prefs.getString(guestRoleKey));
   }
 
+  static Future<String?> getAuthProvider() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    final String? authProvider = _normalizeOptionalText(
+      prefs.getString(authProviderKey),
+    );
+
+    if (authProvider == passwordAuthProvider ||
+        authProvider == googleAuthProvider) {
+      return authProvider;
+    }
+
+    return null;
+  }
+
   static Future<void> _removeRegisteredUserPreferences(
     SharedPreferences prefs,
   ) async {
@@ -283,6 +305,7 @@ class SessionManager {
       prefs.remove(firstNameKey),
       prefs.remove(lastNameKey),
       prefs.remove(emailKey),
+      prefs.remove(authProviderKey),
     ]);
   }
 
@@ -340,6 +363,18 @@ class SessionManager {
       'educator' => educatorRole,
       _ => throw const FormatException(
         'The guest role must be Student or Educator.',
+      ),
+    };
+  }
+
+  static String _normalizeAuthProvider(String authProvider) {
+    final String normalizedProvider = authProvider.trim().toLowerCase();
+
+    return switch (normalizedProvider) {
+      passwordAuthProvider => passwordAuthProvider,
+      googleAuthProvider => googleAuthProvider,
+      _ => throw const FormatException(
+        'The authentication provider must be password or google.',
       ),
     };
   }

@@ -236,19 +236,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final String accountRole = rawUser['role']?.toString().trim() ?? role;
 
-      if (userId == null || firstName.isEmpty || email.isEmpty) {
+      final String authProvider =
+          rawUser['auth_provider']?.toString().trim().toLowerCase() ?? '';
+
+      if (userId == null ||
+          firstName.isEmpty ||
+          email.isEmpty ||
+          authProvider != SessionManager.googleAuthProvider) {
         throw const FormatException('Incomplete Google account information.');
       }
 
       await SessionManager.saveAccessToken(accessToken);
 
-      await SessionManager.saveUser(
-        id: userId,
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        role: accountRole,
-      );
+      try {
+        await SessionManager.saveUser(
+          id: userId,
+          firstName: firstName,
+          lastName: lastName,
+          email: email,
+          role: accountRole,
+          authProvider: authProvider,
+        );
+      } catch (_) {
+        await SessionManager.logout();
+        rethrow;
+      }
 
       if (!mounted) {
         return;

@@ -32,12 +32,18 @@ abstract final class PrivacySecurityScreenStyles {
   static const String accountSecurityTitle = 'Account Security';
 
   static const String accountSecurityDescription =
-      'Manage the credentials used to protect your online account.';
+      'Review how the credentials for your online account are managed.';
 
   static const String changePasswordTitle = 'Change Password';
 
   static const String changePasswordDescription =
       'Verify your current password and create a new secure password.';
+
+  static const String googlePasswordTitle = 'Password Managed by Google';
+
+  static const String googlePasswordDescription =
+      'This account uses Google Sign-In. Manage its password through your '
+      'Google Account.';
 
   static const String overviewTitle = 'Privacy Overview';
 
@@ -155,6 +161,8 @@ abstract final class PrivacySecurityScreenStyles {
   static const double accountActionArrowSize = 22;
 
   static const IconData changePasswordIcon = Icons.lock_reset_rounded;
+
+  static const IconData googlePasswordIcon = Icons.manage_accounts_outlined;
 
   static const IconData accountActionArrowIcon = Icons.chevron_right_rounded;
 

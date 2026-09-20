@@ -55,6 +55,7 @@ const sanitizeUser = (user) => {
     last_name: user.last_name,
     email: user.email,
     role: user.role,
+    auth_provider: user.google_sub ? "google" : "password",
   };
 };
 
