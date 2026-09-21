@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
@@ -11,15 +12,57 @@ const {
 } = require("../../models/users/userModel");
 
 const {
+  findLatestPasswordResetRequest,
+  createPasswordResetToken,
+  findActivePasswordResetToken,
+  incrementPasswordResetAttempts,
+  invalidatePasswordResetToken,
+  consumeTokenAndUpdatePassword,
+} = require("../../models/auth/passwordResetModel");
+
+const {
   GoogleAuthServiceError,
   verifyGoogleIdToken,
 } = require("../../services/auth/google_auth_service");
+
+const {
+  sendPasswordResetCode,
+} = require("../../services/email/email_service");
 
 const TOKEN_EXPIRATION = process.env.JWT_EXPIRES_IN || "7d";
 
 const ALLOWED_ROLES = new Set(["Student", "Educator"]);
 const PASSWORD_MINIMUM_LENGTH = 8;
 const PASSWORD_MAXIMUM_LENGTH = 128;
+
+const PASSWORD_RESET_CODE_LENGTH = 6;
+const PASSWORD_RESET_MINIMUM_RESPONSE_TIME_MS = 750;
+
+const readPositiveIntegerEnvironment = (
+  name, 
+  fallbackValue,
+) => {
+  const parsedValue = Number.parseInt(
+    process.env[name] || "",
+    10,
+  );
+
+  return Number.isInteger(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallbackValue;
+};
+
+ const PASSWORD_RESET_CODE_TTL_MINUTES = 
+   readPositiveIntegerEnvironment( 
+    "PASSWORD_RESET_CODE_TTL_MINUTES",
+    10,
+ );
+
+ const PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS =
+  readPositiveIntegerEnvironment(
+    "PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS",
+    60,
+  );
 
 // ==========================
 // Helpers
@@ -79,6 +122,90 @@ const normalizeRole = (role) => {
   const normalizedRole = role.trim();
 
   return ALLOWED_ROLES.has(normalizedRole) ? normalizedRole : "";
+};
+
+const getPasswordResetSecret = () => {
+  const secret = process.env.PASSWORD_RESET_SECRET?.trim();
+
+  if (!secret) {
+    throw new Error(
+      "PASSWORD_RESET_SECRET is not configured.",
+    );
+  }
+
+  return secret;
+};
+
+const generatePasswordResetCode = () => {
+  const maximumValue = 10 ** PASSWORD_RESET_CODE_LENGTH;
+
+  return String(
+    crypto.randomInt(0, maximumValue),
+  ).padStart(PASSWORD_RESET_CODE_LENGTH, "0");
+};
+
+const normalizePasswordResetCode = (value) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.replace(/\s+/g, "");
+};
+
+const createPasswordResetTokenHash = ({
+  userId,
+  resetCode,
+  expiresAt,
+}) => {
+  const payload = [
+    userId,
+    resetCode,
+    expiresAt.toISOString(),
+  ].join(":");
+
+  return crypto
+    .createHmac("sha256", getPasswordResetSecret())
+    .update(payload)
+    .digest("hex");
+};
+
+const passwordResetTokenHashesMatch = (
+  expectedHash,
+  receivedHash,
+) => {
+  const normalizedExpectedHash =
+    expectedHash?.trim().toLowerCase() || "";
+
+  const normalizedReceivedHash =
+    receivedHash?.trim().toLowerCase() || "";
+
+  if (
+    !/^[a-f0-9]{64}$/.test(normalizedExpectedHash) ||
+    !/^[a-f0-9]{64}$/.test(normalizedReceivedHash)
+  ) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(
+    Buffer.from(normalizedExpectedHash, "hex"),
+    Buffer.from(normalizedReceivedHash, "hex"),
+  );
+};
+
+const waitForMinimumPasswordResetResponseTime = async (
+  startedAt,
+) => {
+  const elapsedMilliseconds = Date.now() - startedAt;
+
+  const remainingMilliseconds =
+    PASSWORD_RESET_MINIMUM_RESPONSE_TIME_MS -
+    elapsedMilliseconds;
+
+  if (remainingMilliseconds > 0) {
+    await new Promise((resolve) => {
+      setTimeout(resolve, remainingMilliseconds);
+    });
+  }
 };
 
 // ==========================
@@ -322,6 +449,287 @@ const changePassword = async (req, res) => {
 };
 
 // ==========================
+// Request Password Reset
+// ==========================
+
+const requestPasswordReset = async (req, res) => {
+  const startedAt = Date.now();
+
+  const responsePayload = {
+    success: true,
+    code: "password_reset_requested",
+    message:
+      "If a password account exists for that email, a reset code will be sent shortly.",
+    expires_in_minutes: PASSWORD_RESET_CODE_TTL_MINUTES,
+  };
+
+  try {
+    const { email } = req.body || {};
+
+    const normalizedEmail =
+      typeof email === "string"
+        ? email.trim().toLowerCase()
+        : "";
+
+    if (
+      normalizedEmail.length > 0 &&
+      normalizedEmail.length <= 320
+    ) {
+      const user = await findUserByEmail(normalizedEmail);
+
+      const isLocalPasswordAccount =
+        user &&
+        user.password &&
+        !user.google_sub;
+
+      if (isLocalPasswordAccount) {
+        const latestRequest =
+          await findLatestPasswordResetRequest(user.id);
+
+        const latestRequestTime = latestRequest
+          ? new Date(latestRequest.created_at).getTime()
+          : Number.NaN;
+
+        const cooldownMilliseconds =
+          PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS * 1000;
+
+        const cooldownIsActive =
+          Number.isFinite(latestRequestTime) &&
+          Date.now() - latestRequestTime <
+            cooldownMilliseconds;
+
+        if (!cooldownIsActive) {
+          const resetCode = generatePasswordResetCode();
+
+          const expiresAt = new Date(
+            Date.now() +
+              PASSWORD_RESET_CODE_TTL_MINUTES *
+                60 *
+                1000,
+          );
+
+          const tokenHash =
+            createPasswordResetTokenHash({
+              userId: user.id,
+              resetCode,
+              expiresAt,
+            });
+
+          const resetToken =
+            await createPasswordResetToken({
+              userId: user.id,
+              tokenHash,
+              expiresAt,
+            });
+
+          try {
+            await sendPasswordResetCode({
+              recipientEmail: user.email,
+              recipientFirstName: user.first_name,
+              resetCode,
+              expiresInMinutes:
+                PASSWORD_RESET_CODE_TTL_MINUTES,
+            });
+          } catch (emailError) {
+            try {
+              await invalidatePasswordResetToken(
+                resetToken.id,
+              );
+            } catch (invalidationError) {
+              console.error(
+                "Unable to invalidate an undelivered password reset token:",
+                invalidationError.message,
+              );
+            }
+
+            console.error(
+              "Password reset email delivery failed:",
+              emailError.code || "unknown_email_error",
+              emailError.message,
+            );
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error(
+      "Password reset request failed:",
+      error.message,
+    );
+  }
+
+  await waitForMinimumPasswordResetResponseTime(
+    startedAt,
+  );
+
+  return res.status(200).json(responsePayload);
+};
+
+// ==========================
+// Reset Forgotten Password
+// ==========================
+
+const resetPassword = async (req, res) => {
+  try {
+    const {
+      email,
+      reset_code: rawResetCode,
+      new_password: newPassword,
+    } = req.body || {};
+
+    const normalizedEmail =
+      typeof email === "string"
+        ? email.trim().toLowerCase()
+        : "";
+
+    const resetCode =
+      normalizePasswordResetCode(rawResetCode);
+
+    const resetCodePattern = new RegExp(
+      `^\\d{${PASSWORD_RESET_CODE_LENGTH}}$`,
+    );
+
+    if (
+      normalizedEmail.length === 0 ||
+      normalizedEmail.length > 320 ||
+      !resetCodePattern.test(resetCode) ||
+      typeof newPassword !== "string" ||
+      newPassword.length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_password_reset_request",
+        message:
+          "Email, reset code, and new password are required.",
+      });
+    }
+
+    if (
+      newPassword.length < PASSWORD_MINIMUM_LENGTH ||
+      newPassword.length > PASSWORD_MAXIMUM_LENGTH
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_new_password",
+        message:
+          "The new password must contain between 8 and 128 characters.",
+      });
+    }
+
+    const user = await findUserByEmail(normalizedEmail);
+
+    if (
+      !user ||
+      !user.password ||
+      user.google_sub
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_or_expired_reset_code",
+        message:
+          "The reset code is invalid or has expired.",
+      });
+    }
+
+    const resetToken =
+      await findActivePasswordResetToken(user.id);
+
+    if (!resetToken) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_or_expired_reset_code",
+        message:
+          "The reset code is invalid or has expired.",
+      });
+    }
+
+    const expiresAt = new Date(
+      resetToken.expires_at,
+    );
+
+    const submittedTokenHash =
+      createPasswordResetTokenHash({
+        userId: user.id,
+        resetCode,
+        expiresAt,
+      });
+
+    const resetCodeIsValid =
+      passwordResetTokenHashesMatch(
+        resetToken.token_hash,
+        submittedTokenHash,
+      );
+
+    if (!resetCodeIsValid) {
+      await incrementPasswordResetAttempts(
+        resetToken.id,
+      );
+
+      return res.status(400).json({
+        success: false,
+        code: "invalid_or_expired_reset_code",
+        message:
+          "The reset code is invalid or has expired.",
+      });
+    }
+
+    const passwordIsUnchanged = await bcrypt.compare(
+      newPassword,
+      user.password,
+    );
+
+    if (passwordIsUnchanged) {
+      return res.status(400).json({
+        success: false,
+        code: "password_unchanged",
+        message:
+          "The new password must be different from your current password.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10,
+    );
+
+    const updatedUser =
+      await consumeTokenAndUpdatePassword({
+        tokenId: resetToken.id,
+        userId: user.id,
+        hashedPassword,
+      });
+
+    if (!updatedUser) {
+      return res.status(400).json({
+        success: false,
+        code: "invalid_or_expired_reset_code",
+        message:
+          "The reset code is invalid or has expired.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      code: "password_reset_successful",
+      message:
+        "Your password was reset successfully. Sign in using your new password.",
+    });
+  } catch (error) {
+    console.error(
+      "Password reset failed:",
+      error.message,
+    );
+
+    return res.status(500).json({
+      success: false,
+      code: "password_reset_failed",
+      message:
+        "Unable to reset the password right now.",
+    });
+  }
+};
+
+// ==========================
 // Google Authentication Error Handler
 // ==========================
 
@@ -509,6 +917,8 @@ module.exports = {
   register,
   login,
   changePassword,
+  requestPasswordReset,
+  resetPassword,
   registerWithGoogle,
   loginWithGoogle,
 };

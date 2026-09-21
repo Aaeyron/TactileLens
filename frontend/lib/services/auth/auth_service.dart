@@ -63,6 +63,42 @@ class AuthService {
   }
 
   // ==========================
+  // Request Password Reset
+  // ==========================
+
+  static Future<http.Response> requestPasswordReset({required String email}) {
+    final Uri url = Uri.parse('$baseUrl/api/auth/forgot-password');
+
+    return http.post(
+      url,
+      headers: _jsonHeaders,
+      body: jsonEncode(<String, dynamic>{'email': email.trim().toLowerCase()}),
+    );
+  }
+
+  // ==========================
+  // Reset Password
+  // ==========================
+
+  static Future<http.Response> resetPassword({
+    required String email,
+    required String resetCode,
+    required String newPassword,
+  }) {
+    final Uri url = Uri.parse('$baseUrl/api/auth/reset-password');
+
+    return http.post(
+      url,
+      headers: _jsonHeaders,
+      body: jsonEncode(<String, dynamic>{
+        'email': email.trim().toLowerCase(),
+        'reset_code': resetCode.trim(),
+        'new_password': newPassword,
+      }),
+    );
+  }
+
+  // ==========================
   // Change Password
   // ==========================
 

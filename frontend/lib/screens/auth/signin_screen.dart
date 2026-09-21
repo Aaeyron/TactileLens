@@ -7,6 +7,7 @@ import '../../services/auth/google_sign_in_service.dart';
 import '../../styles/screens/auth/signin_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
+import 'forgot_password_screen.dart';
 import 'guest_setup_screen.dart';
 import 'signup_screen.dart';
 
@@ -476,6 +477,22 @@ class _SignInScreenState extends State<SignInScreen> {
       );
   }
 
+  void _openForgotPassword() {
+    if (_isBusy) {
+      return;
+    }
+
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return ForgotPasswordScreen(
+            initialEmail: emailController.text.trim(),
+          );
+        },
+      ),
+    );
+  }
+
   void _openSignUp() {
     if (_isSigningIn) {
       return;
@@ -765,11 +782,7 @@ class _SignInScreenState extends State<SignInScreen> {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: _isSigningIn
-            ? null
-            : () {
-                // Forgot-password functionality will be added later.
-              },
+        onPressed: _isBusy ? null : _openForgotPassword,
         style: SignInStyles.forgotPasswordButtonStyle,
         child: const Text(SignInStyles.forgotPasswordLabel),
       ),

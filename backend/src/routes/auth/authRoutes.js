@@ -4,6 +4,8 @@ const {
   register,
   login,
   changePassword,
+  requestPasswordReset,
+  resetPassword,
   registerWithGoogle,
   loginWithGoogle,
 } = require("../../controllers/auth/authController");
@@ -25,6 +27,24 @@ router.post("/register", register);
 // ==========================
 
 router.post("/login", login);
+
+// ==========================
+// Request Password Reset
+// ==========================
+
+router.post(
+  "/forgot-password",
+  requestPasswordReset,
+);
+
+// ==========================
+// Reset Forgotten Password
+// ==========================
+
+router.post(
+  "/reset-password",
+  resetPassword,
+);
 
 // ==========================
 // Change Password
