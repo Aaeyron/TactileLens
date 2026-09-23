@@ -16,8 +16,8 @@ abstract final class MaterialScreenStyles {
   static const Color textSecondaryColor = Color(0xFF42526B);
   static const Color textMutedColor = Color(0xFF728096);
 
-  static const Color outlineColor = Color(0xFFDDE5F0);
-  static const Color strongOutlineColor = Color(0xFFC6D2E1);
+  static const Color outlineColor = Color(0xFFE4EBF5);
+  static const Color strongOutlineColor = Color(0xFFD2DEED);
 
   static const Color filterBackgroundColor = Colors.white;
   static const Color recentCardBackgroundColor = Colors.white;
@@ -71,7 +71,7 @@ abstract final class MaterialScreenStyles {
 
   static const int maximumFolderNameLength = 80;
 
-  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(14, 18, 14, 30);
+  static const EdgeInsets contentPadding = EdgeInsets.fromLTRB(18, 22, 18, 30);
 
   static const double sectionSpacing = 24;
   static const double sectionContentSpacing = 9;
@@ -104,17 +104,25 @@ abstract final class MaterialScreenStyles {
 
   static const EdgeInsets pageHeaderPadding = EdgeInsets.zero;
 
-  static const double headerHorizontalPadding = 15;
+  static const double headerHorizontalPadding = 20;
   static const double headerTopPadding = 20;
   static const double headerBottomPadding = 17;
 
   static const BorderRadius pageHeaderRadius = BorderRadius.only(
-    bottomLeft: Radius.circular(28),
-    bottomRight: Radius.circular(28),
+    bottomLeft: Radius.circular(30),
+    bottomRight: Radius.circular(30),
   );
 
   static const Border pageHeaderBorder = Border();
-  static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[];
+
+  static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x221268F3),
+      blurRadius: 24,
+      spreadRadius: -8,
+      offset: Offset(0, 10),
+    ),
+  ];
 
   static const Color pageHeaderBackgroundColor = primaryColor;
 
@@ -135,6 +143,15 @@ abstract final class MaterialScreenStyles {
 
   static const double searchTopSpacing = 16;
   static const double searchHeight = 48;
+
+  static const List<BoxShadow> searchShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x180C2D5A),
+      blurRadius: 18,
+      spreadRadius: -4,
+      offset: Offset(0, 6),
+    ),
+  ];
   static const double sortButtonSpacing = 0;
 
   static const TextStyle searchTextStyle = TextStyle(
@@ -204,15 +221,21 @@ abstract final class MaterialScreenStyles {
   );
 
   static const BorderRadius folderRadius = BorderRadius.all(
-    Radius.circular(12),
+    Radius.circular(16),
   );
 
   static const BorderRadius folderIconContainerRadius = BorderRadius.all(
-    Radius.circular(10),
+    Radius.circular(12),
   );
 
   static const List<BoxShadow> folderCardShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x0D102A43), blurRadius: 10, offset: Offset(0, 4)),
+    BoxShadow(
+      color: Color(0x180F2748),
+      blurRadius: 16,
+      spreadRadius: -3,
+      offset: Offset(0, 5),
+    ),
+    BoxShadow(color: Color(0x081268F3), blurRadius: 5, offset: Offset(0, 1)),
   ];
 
   static const Color warmFolderBackgroundColor = surfaceColor;
@@ -227,8 +250,8 @@ abstract final class MaterialScreenStyles {
 
   static const double folderDeleteProgressSize = 18;
 
-  static const double addFolderOutlineWidth = 1.2;
-  static const double addFolderCardIconSize = 37;
+  static const double addFolderOutlineWidth = 1.4;
+  static const double addFolderCardIconSize = 34;
   static const double addFolderLabelSpacing = 10;
   static const double addFolderProgressSize = 27;
 
@@ -236,9 +259,9 @@ abstract final class MaterialScreenStyles {
   // MATERIAL CARDS
   // ============================================================
 
-  static const double materialCardHeight = 91;
-  static const double materialCardSpacing = 8;
-  static const double materialContentSpacing = 11;
+  static const double materialCardHeight = 100;
+  static const double materialCardSpacing = 12;
+  static const double materialContentSpacing = 13;
 
   static const double thumbnailWidth = 66;
   static const double thumbnailHeight = 73;
@@ -248,20 +271,25 @@ abstract final class MaterialScreenStyles {
   static const FilterQuality thumbnailFilterQuality = FilterQuality.medium;
 
   static const Border thumbnailBorder = Border.fromBorderSide(
-    BorderSide(color: outlineColor, width: 0.8),
+    BorderSide(color: Color(0xFFDCE7F5), width: 1),
   );
 
   static const double categorySpacing = 4;
   static const double metadataSpacing = 4;
 
-  static const EdgeInsets materialCardPadding = EdgeInsets.fromLTRB(7, 8, 4, 8);
+  static const EdgeInsets materialCardPadding = EdgeInsets.fromLTRB(
+    12,
+    10,
+    8,
+    10,
+  );
 
   static const BorderRadius materialCardRadius = BorderRadius.all(
-    Radius.circular(12),
+    Radius.circular(18),
   );
 
   static const BorderRadius thumbnailRadius = BorderRadius.all(
-    Radius.circular(7),
+    Radius.circular(11),
   );
 
   static const BorderRadius categoryRadius = BorderRadius.all(
@@ -271,6 +299,26 @@ abstract final class MaterialScreenStyles {
   static const Border cardBorder = Border.fromBorderSide(
     BorderSide(color: outlineColor, width: 1),
   );
+
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x180F2748),
+      blurRadius: 24,
+      spreadRadius: -5,
+      offset: Offset(0, 9),
+    ),
+    BoxShadow(color: Color(0x0A1268F3), blurRadius: 7, offset: Offset(0, 2)),
+  ];
+
+  static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x140F2748),
+      blurRadius: 18,
+      spreadRadius: -4,
+      offset: Offset(0, 6),
+    ),
+    BoxShadow(color: Color(0x080F2748), blurRadius: 4, offset: Offset(0, 1)),
+  ];
 
   static const double materialMenuButtonSize = 38;
   static const double materialMenuIconSize = 22;

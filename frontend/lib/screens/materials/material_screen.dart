@@ -1492,6 +1492,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       decoration: const BoxDecoration(
         gradient: MaterialScreenStyles.pageHeaderGradient,
         borderRadius: MaterialScreenStyles.pageHeaderRadius,
+        boxShadow: MaterialScreenStyles.pageHeaderShadow,
       ),
       child: Stack(
         children: <Widget>[
@@ -1527,8 +1528,12 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   }
 
   Widget _buildHeaderSearch() {
-    return SizedBox(
+    return Container(
       height: MaterialScreenStyles.searchHeight,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: MaterialScreenStyles.searchShadow,
+      ),
       child: TextField(
         controller: _searchController,
         style: MaterialScreenStyles.searchTextStyle,
@@ -1608,8 +1613,14 @@ class _MaterialsScreenState extends State<MaterialsScreen>
           height: MaterialScreenStyles.folderSectionContentSpacing,
         ),
         SizedBox(
-          height: MaterialScreenStyles.folderCardHeight,
+          height: MaterialScreenStyles.folderCardHeight + 20,
           child: ListView.separated(
+            padding: const EdgeInsets.only(
+              left: 2,
+              right: 2,
+              top: 2,
+              bottom: 14,
+            ),
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: _folders.length + 1,
@@ -1855,6 +1866,7 @@ class _AddFolderCard extends StatelessWidget {
               color: MaterialScreenStyles.addFolderOutlineColor,
               width: MaterialScreenStyles.addFolderOutlineWidth,
             ),
+            boxShadow: MaterialScreenStyles.folderCardShadow,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1947,6 +1959,9 @@ class _FolderCard extends StatelessWidget {
                     color: MaterialScreenStyles.folderIconBackgroundColor,
                     borderRadius:
                         MaterialScreenStyles.folderIconContainerRadius,
+                    border: Border.fromBorderSide(
+                      BorderSide(color: Color(0xFFD9E8FF), width: 1),
+                    ),
                   ),
                   child: isDeleting
                       ? const SizedBox(
@@ -2016,6 +2031,8 @@ class _RecentMaterialCard extends StatelessWidget {
       child: Material(
         color: MaterialScreenStyles.recentCardBackgroundColor,
         borderRadius: MaterialScreenStyles.materialCardRadius,
+        elevation: 3,
+        shadowColor: const Color(0x260F2748),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onPressed,
