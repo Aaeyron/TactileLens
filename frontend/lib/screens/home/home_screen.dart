@@ -326,8 +326,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final double statusBarHeight =
-    MediaQuery.viewPaddingOf(context).top;
+    final double statusBarHeight = MediaQuery.viewPaddingOf(context).top;
 
     return SizedBox(
       height: statusBarHeight + HomeStyles.headerSectionHeight,
@@ -346,6 +345,14 @@ class _HomeScreenState extends State<HomeScreen>
             decoration: const BoxDecoration(
               gradient: HomeStyles.greetingGradient,
               borderRadius: HomeStyles.blueHeaderRadius,
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x221268F3),
+                  blurRadius: 24,
+                  spreadRadius: -8,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
             child: Stack(
               children: <Widget>[
@@ -448,6 +455,9 @@ class _HomeScreenState extends State<HomeScreen>
                 decoration: const BoxDecoration(
                   color: HomeStyles.quickScanIconBackgroundColor,
                   borderRadius: HomeStyles.quickScanIconRadius,
+                  border: Border.fromBorderSide(
+                    BorderSide(color: Color(0xFFD7E8FF), width: 1),
+                  ),
                 ),
                 child: const Icon(
                   HomeStyles.scanIcon,

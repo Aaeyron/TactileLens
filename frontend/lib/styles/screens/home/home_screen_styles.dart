@@ -119,7 +119,6 @@ abstract final class HomeStyles {
     BorderSide(color: outlineColor, width: 1),
   );
 
-  
   static const List<BoxShadow> cardShadow = <BoxShadow>[
     BoxShadow(
       color: Color(0x180F2748),
@@ -127,11 +126,7 @@ abstract final class HomeStyles {
       spreadRadius: -5,
       offset: Offset(0, 12),
     ),
-    BoxShadow(
-      color: Color(0x0D1268F3),
-      blurRadius: 8,
-      offset: Offset(0, 2),
-    ),
+    BoxShadow(color: Color(0x0D1268F3), blurRadius: 8, offset: Offset(0, 2)),
   ];
 
   static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
@@ -141,11 +136,7 @@ abstract final class HomeStyles {
       spreadRadius: -4,
       offset: Offset(0, 7),
     ),
-    BoxShadow(
-      color: Color(0x080F2748),
-      blurRadius: 5,
-      offset: Offset(0, 1),
-    ),
+    BoxShadow(color: Color(0x080F2748), blurRadius: 5, offset: Offset(0, 1)),
   ];
 
   // ============================================================
@@ -154,8 +145,9 @@ abstract final class HomeStyles {
 
   static const EdgeInsets quickScanCardPadding = EdgeInsets.all(20);
 
-  static const BorderRadius quickScanCardRadius =
-    BorderRadius.all(Radius.circular(22));
+  static const BorderRadius quickScanCardRadius = BorderRadius.all(
+    Radius.circular(22),
+  );
 
   static const double quickScanDescriptionSpacing = 6;
   static const double quickScanIconSpacing = 14;
@@ -171,24 +163,20 @@ abstract final class HomeStyles {
   static const double quickScanButtonHeight = 50;
   static const double quickScanButtonIconSize = 19;
 
-  
-  static final ButtonStyle quickScanButtonStyle =
-      FilledButton.styleFrom(
-        backgroundColor: primaryColor,
-        foregroundColor: surfaceColor,
-        elevation: 2,
-        shadowColor: const Color(0x551268F3),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(14),
-          ),
-        ),
-        textStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.1,
-        ),
-      );
+  static final ButtonStyle quickScanButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: surfaceColor,
+    elevation: 2,
+    shadowColor: const Color(0x551268F3),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.1,
+    ),
+  );
 
   // ============================================================
   // SECONDARY QUICK ACTIONS
@@ -205,8 +193,9 @@ abstract final class HomeStyles {
   static const double secondaryActionIconContainerSize = 44;
   static const double secondaryActionIconSize = 22;
 
-  static const BorderRadius secondaryActionIconRadius =
-    BorderRadius.all(Radius.circular(13));
+  static const BorderRadius secondaryActionIconRadius = BorderRadius.all(
+    Radius.circular(13),
+  );
 
   static const double secondaryActionArrowSize = 20;
   static const double secondaryActionTitleSpacing = 12;
@@ -216,14 +205,14 @@ abstract final class HomeStyles {
   // RECENT ACTIVITY
   // ============================================================
 
-  static const BorderRadius recentListRadius =
-    BorderRadius.all(Radius.circular(20));
+  static const BorderRadius recentListRadius = BorderRadius.all(
+    Radius.circular(20),
+  );
 
-  static const EdgeInsets recentCardPadding =
-    EdgeInsets.symmetric(
-      horizontal: 15,
-      vertical: 13,
-    );
+  static const EdgeInsets recentCardPadding = EdgeInsets.symmetric(
+    horizontal: 15,
+    vertical: 13,
+  );
 
   static const double recentDividerHeight = 1;
   static const double recentDividerThickness = 1;
