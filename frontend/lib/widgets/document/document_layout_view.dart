@@ -1,10 +1,128 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../styles/screens/scan/scan_result_screen_styles.dart';
+
+String _toReadableMathText(String value) {
+  String result = value
+      .replaceAll('```latex', '')
+      .replaceAll('```math', '')
+      .replaceAll('```', '')
+      .replaceAll(r'\[', '')
+      .replaceAll(r'\]', '')
+      .replaceAll(r'\(', '')
+      .replaceAll(r'\)', '')
+      .replaceAll(r'$$', '')
+      .trim();
+
+  final RegExp fractionPattern = RegExp(
+    r'\\(?:dfrac|tfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}',
+  );
+
+  for (int attempt = 0; attempt < 5; attempt++) {
+    final String converted = result.replaceAllMapped(fractionPattern, (
+      Match match,
+    ) {
+      return '(${match.group(1)})⁄(${match.group(2)})';
+    });
+
+    if (converted == result) {
+      break;
+    }
+
+    result = converted;
+  }
+
+  result = result.replaceAllMapped(
+    RegExp(r'\\sqrt\s*\[([^\]]+)\]\s*\{([^{}]*)\}'),
+    (Match match) => '${match.group(1)}√(${match.group(2)})',
+  );
+
+  result = result.replaceAllMapped(
+    RegExp(r'\\sqrt\s*\{([^{}]*)\}'),
+    (Match match) => '√(${match.group(1)})',
+  );
+
+  result = result.replaceAllMapped(
+    RegExp(
+      r'\\(?:text|textrm|mathrm|mathbf|mathit|operatorname)\s*\{([^{}]*)\}',
+    ),
+    (Match match) => match.group(1) ?? '',
+  );
+
+  const Map<String, String> replacements = <String, String>{
+    r'\leq': '≤',
+    r'\le': '≤',
+    r'\geq': '≥',
+    r'\ge': '≥',
+    r'\neq': '≠',
+    r'\ne': '≠',
+    r'\times': '×',
+    r'\div': '÷',
+    r'\cdot': '·',
+    r'\pm': '±',
+    r'\sum': '∑',
+    r'\prod': '∏',
+    r'\int': '∫',
+    r'\infty': '∞',
+    r'\pi': 'π',
+    r'\theta': 'θ',
+    r'\alpha': 'α',
+    r'\beta': 'β',
+    r'\left': '',
+    r'\right': '',
+    r'\,': ' ',
+    r'\;': ' ',
+    r'\:': ' ',
+    r'\!': '',
+    r'\quad': ' ',
+    r'\qquad': '  ',
+  };
+
+  replacements.forEach((String source, String replacement) {
+    result = result.replaceAll(source, replacement);
+  });
+
+  result = result.replaceAllMapped(
+    RegExp(r'\^\{?(-?\d+)\}?'),
+    (Match match) => _toSuperscript(match.group(1) ?? ''),
+  );
+
+  return result
+      .replaceAllMapped(
+        RegExp(r'\\([A-Za-z]+)'),
+        (Match match) => match.group(1) ?? '',
+      )
+      .replaceAll('{', '(')
+      .replaceAll('}', ')')
+      .replaceAll(r'\_', '_')
+      .replaceAll(RegExp(r'[ \t]+'), ' ')
+      .trim();
+}
+
+String _toSuperscript(String value) {
+  const Map<String, String> characters = <String, String>{
+    '0': '⁰',
+    '1': '¹',
+    '2': '²',
+    '3': '³',
+    '4': '⁴',
+    '5': '⁵',
+    '6': '⁶',
+    '7': '⁷',
+    '8': '⁸',
+    '9': '⁹',
+    '-': '⁻',
+  };
+
+  return value
+      .split('')
+      .map((String character) => characters[character] ?? character)
+      .join();
+}
 
 class DocumentLayoutView extends StatelessWidget {
   const DocumentLayoutView({
@@ -18,703 +136,465 @@ class DocumentLayoutView extends StatelessWidget {
 
   final List<DocumentPage> pages;
   final bool useBraille;
+
   final String fallbackText;
   final String fallbackBraille;
+
   final String? semanticLabel;
-
-  static const double _pageSpacing = 16;
-
-  // Consistent base sizes, independent of OCR bounding-box height.
-  static const double _contentFontSize = 14;
-  static const double _brailleFontSize = 18;
-  static const double _richBlockReferenceWidth = 320;
-
-  static const Color _pageColor = Colors.white;
-  static const Color _braillePageColor = Color(0xFFF5F9FF);
-  static const Color _borderColor = Color(0xFFD7E0EA);
-  static const Color _textColor = Color(0xFF243447);
-  static const Color _brailleColor = Color(0xFF294861);
-  static const Color _tableBorderColor = Color(0xFFB8C7D6);
-  static const Color _tableHeaderColor = Color(0xFFEAF2F8);
-
-  static const BorderRadius _pageRadius = BorderRadius.all(Radius.circular(16));
-
-  static const List<BoxShadow> _pageShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x12000000), blurRadius: 12, offset: Offset(0, 4)),
-  ];
-
-  String get _fallbackContent {
-    return useBraille ? fallbackBraille.trim() : fallbackText.trim();
-  }
 
   @override
   Widget build(BuildContext context) {
-    if (pages.isEmpty) {
-      return _buildFallback();
+    if (useBraille) {
+      return _buildBrailleReadingView();
+    }
+
+    final List<DocumentPage> visiblePages = pages
+        .where((DocumentPage page) {
+          return page.blocks.any((DocumentBlock block) => block.hasContent);
+        })
+        .toList(growable: false);
+
+    if (visiblePages.isEmpty) {
+      return _buildPlainTextFallback();
     }
 
     return Semantics(
       container: true,
       label: semanticLabel,
-      child: Column(
-        children: List<Widget>.generate(pages.length, (int index) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: index == pages.length - 1 ? 0 : _pageSpacing,
-            ),
-            child: _DocumentLayoutPage(
-              page: pages[index],
-              useBraille: useBraille,
-            ),
-          );
-        }, growable: false),
+      child: Padding(
+        padding: ScanResultScreenStyles.contentPreviewPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: List<Widget>.generate(visiblePages.length, (int index) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == visiblePages.length - 1
+                    ? 0
+                    : ScanResultScreenStyles.documentPageSpacing,
+              ),
+              child: _ReadableDocumentPage(
+                page: visiblePages[index],
+                pageNumber: index + 1,
+                showPageLabel: visiblePages.length > 1,
+              ),
+            );
+          }, growable: false),
+        ),
       ),
     );
   }
 
-  Widget _buildFallback() {
-    if (_fallbackContent.isEmpty) {
-      return const Center(
+  Widget _buildBrailleReadingView() {
+    String content = fallbackBraille.trim();
+
+    if (content.isEmpty) {
+      content = pages
+          .expand((DocumentPage page) => page.blocks)
+          .where((DocumentBlock block) => block.hasBraille)
+          .map((DocumentBlock block) {
+            return block.brailleContent.trim();
+          })
+          .where((String value) => value.isNotEmpty)
+          .join('\n\n');
+    }
+
+    if (content.isEmpty) {
+      return const Padding(
+        padding: ScanResultScreenStyles.layoutUnavailablePadding,
+        child: Text(
+          'No Braille content is available.',
+          textAlign: TextAlign.center,
+          style: ScanResultScreenStyles.layoutUnavailableStyle,
+        ),
+      );
+    }
+
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: ScanResultScreenStyles.braillePreviewPadding,
+        child: SelectableText(
+          content,
+          style: ScanResultScreenStyles.brailleContentStyle,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlainTextFallback() {
+    final String content = _toReadableMathText(_normalizeProse(fallbackText));
+
+    if (content.isEmpty) {
+      return const Padding(
+        padding: ScanResultScreenStyles.layoutUnavailablePadding,
         child: Text(
           'No document content is available.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _brailleColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+          style: ScanResultScreenStyles.layoutUnavailableStyle,
         ),
       );
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: useBraille ? _braillePageColor : _pageColor,
-        borderRadius: _pageRadius,
-        border: Border.all(color: _borderColor),
-        boxShadow: _pageShadow,
-      ),
-      child: SelectableText(
-        _fallbackContent,
-        style: TextStyle(
-          color: useBraille ? _brailleColor : _textColor,
-          fontSize: useBraille ? _brailleFontSize : _contentFontSize,
-          height: useBraille ? 1.55 : 1.45,
-          fontWeight: FontWeight.w500,
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: ScanResultScreenStyles.contentPreviewPadding,
+        child: SelectableText(
+          content,
+          style: ScanResultScreenStyles.recognizedContentStyle,
         ),
       ),
     );
   }
+
+  static String _normalizeProse(String value) {
+    return value
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .replaceAll(RegExp(r' *\n *'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+  }
 }
 
-class _DocumentLayoutPage extends StatelessWidget {
-  const _DocumentLayoutPage({required this.page, required this.useBraille});
+class _ReadableDocumentPage extends StatelessWidget {
+  const _ReadableDocumentPage({
+    required this.page,
+    required this.pageNumber,
+    required this.showPageLabel,
+  });
 
   final DocumentPage page;
-  final bool useBraille;
-
-  String _contentOf(DocumentBlock block) {
-    return useBraille
-        ? block.brailleContent.trim()
-        : block.normalizedContent.trim();
-  }
-
-  bool _hasValidBounds(DocumentBlock block) {
-    if (block.boundingBox.length < 4) {
-      return false;
-    }
-
-    final double left = block.boundingBox[0];
-    final double top = block.boundingBox[1];
-    final double right = block.boundingBox[2];
-    final double bottom = block.boundingBox[3];
-
-    return left.isFinite &&
-        top.isFinite &&
-        right.isFinite &&
-        bottom.isFinite &&
-        right > left &&
-        bottom > top;
-  }
-
-  double _maximumRight() {
-    double maximum = 0;
-
-    for (final DocumentBlock block in page.blocks) {
-      if (_hasValidBounds(block) && block.boundingBox[2] > maximum) {
-        maximum = block.boundingBox[2];
-      }
-    }
-
-    return maximum;
-  }
-
-  double _maximumBottom() {
-    double maximum = 0;
-
-    for (final DocumentBlock block in page.blocks) {
-      if (_hasValidBounds(block) && block.boundingBox[3] > maximum) {
-        maximum = block.boundingBox[3];
-      }
-    }
-
-    return maximum;
-  }
-
-  List<DocumentBlock> get _positionedBlocks {
-    return page.blocks
-        .where((DocumentBlock block) {
-          return _contentOf(block).isNotEmpty && _hasValidBounds(block);
-        })
-        .toList(growable: false);
-  }
-
-  String get _fallbackContent {
-    return page.blocks
-        .map(_contentOf)
-        .where((String content) => content.isNotEmpty)
-        .join('\n\n');
-  }
+  final int pageNumber;
+  final bool showPageLabel;
 
   @override
   Widget build(BuildContext context) {
-    final List<DocumentBlock> positionedBlocks = _positionedBlocks;
+    final List<Widget> contentWidgets = _buildReadableContent();
 
-    if (positionedBlocks.isEmpty) {
-      return _buildFallbackPage();
-    }
-
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double sourceWidth = math.max(
-          page.width.toDouble(),
-          _maximumRight(),
-        );
-
-        final double sourceHeight = math.max(
-          page.height.toDouble(),
-          _maximumBottom(),
-        );
-
-        final double availableWidth = constraints.hasBoundedWidth
-            ? constraints.maxWidth
-            : 360;
-
-        if (availableWidth <= 0 || sourceWidth <= 0 || sourceHeight <= 0) {
-          return _buildFallbackPage();
-        }
-
-        final List<DocumentBlock> visibleBlocks = page.blocks
-            .where((block) => _contentOf(block).isNotEmpty)
-            .toList(growable: false);
-
-        final double viewportHeight =
-            (sourceHeight * availableWidth / sourceWidth)
-                .clamp(220.0, 420.0)
-                .toDouble();
-
-        return Container(
-          width: availableWidth,
-          height: viewportHeight,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: useBraille
-                ? DocumentLayoutView._braillePageColor
-                : DocumentLayoutView._pageColor,
-            borderRadius: DocumentLayoutView._pageRadius,
-            border: Border.all(color: DocumentLayoutView._borderColor),
-            boxShadow: DocumentLayoutView._pageShadow,
-          ),
-          child: _ZoomableDocumentCanvas(
-            child: _MeasuredDocumentCanvas(
-              sourceSize: Size(sourceWidth, sourceHeight),
-              minimumWidth: availableWidth,
-              bounds: visibleBlocks
-                  .map((block) {
-                    if (!_hasValidBounds(block)) {
-                      return null;
-                    }
-
-                    return Rect.fromLTRB(
-                      block.boundingBox[0],
-                      block.boundingBox[1],
-                      block.boundingBox[2],
-                      block.boundingBox[3],
-                    );
-                  })
-                  .toList(growable: false),
-              children: visibleBlocks
-                  .map((block) {
-                    return Semantics(
-                      sortKey: OrdinalSortKey(block.order.toDouble()),
-                      label: _contentOf(block),
-                      excludeSemantics: true,
-                      child: _PositionedDocumentContent(
-                        block: block,
-                        content: _contentOf(block),
-                        useBraille: useBraille,
-                        fontSize: useBraille
-                            ? DocumentLayoutView._brailleFontSize
-                            : DocumentLayoutView._contentFontSize,
-                      ),
-                    );
-                  })
-                  .toList(growable: false),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFallbackPage() {
-    if (_fallbackContent.isEmpty) {
+    if (contentWidgets.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: useBraille
-            ? DocumentLayoutView._braillePageColor
-            : DocumentLayoutView._pageColor,
-        borderRadius: DocumentLayoutView._pageRadius,
-        border: Border.all(color: DocumentLayoutView._borderColor),
-        boxShadow: DocumentLayoutView._pageShadow,
-      ),
-      child: SelectableText(
-        _fallbackContent,
-        style: TextStyle(
-          color: useBraille
-              ? DocumentLayoutView._brailleColor
-              : DocumentLayoutView._textColor,
-          fontSize: useBraille
-              ? DocumentLayoutView._brailleFontSize
-              : DocumentLayoutView._contentFontSize,
-          height: useBraille ? 1.55 : 1.45,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-class _ZoomableDocumentCanvas extends StatefulWidget {
-  const _ZoomableDocumentCanvas({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_ZoomableDocumentCanvas> createState() {
-    return _ZoomableDocumentCanvasState();
-  }
-}
-
-class _ZoomableDocumentCanvasState extends State<_ZoomableDocumentCanvas> {
-  static const double _minimumScale = 1;
-  static const double _maximumScale = 8;
-  static const double _zoomThreshold = 1.01;
-
-  final TransformationController _transformationController =
-      TransformationController();
-
-  bool _isZoomed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _transformationController.addListener(_handleTransformationChanged);
-  }
-
-  @override
-  void dispose() {
-    _transformationController
-      ..removeListener(_handleTransformationChanged)
-      ..dispose();
-
-    super.dispose();
-  }
-
-  void _handleTransformationChanged() {
-    final bool isZoomed =
-        _transformationController.value.getMaxScaleOnAxis() > _zoomThreshold;
-
-    if (isZoomed == _isZoomed || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _isZoomed = isZoomed;
-    });
-  }
-
-  void _resetZoom() {
-    _transformationController.value = Matrix4.identity();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Document preview. Pinch to zoom and drag to inspect.',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onDoubleTap: _resetZoom,
-        child: InteractiveViewer(
-          transformationController: _transformationController,
-          minScale: _minimumScale,
-          maxScale: _maximumScale,
-          panEnabled: _isZoomed,
-          scaleEnabled: true,
-          clipBehavior: Clip.hardEdge,
-          boundaryMargin: const EdgeInsets.all(40),
-          child: SizedBox.expand(
-            child: FittedBox(
-              fit: BoxFit.contain,
-              alignment: Alignment.topCenter,
-              child: widget.child,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (showPageLabel) ...<Widget>[
+          Text(
+            'Page $pageNumber',
+            style: ScanResultScreenStyles.documentPageLabelStyle,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MeasuredDocumentCanvas extends MultiChildRenderObjectWidget {
-  const _MeasuredDocumentCanvas({
-    required this.sourceSize,
-    required this.minimumWidth,
-    required this.bounds,
-    required super.children,
-  });
-
-  final Size sourceSize;
-  final double minimumWidth;
-  final List<Rect?> bounds;
-
-  @override
-  _RenderDocumentCanvas createRenderObject(BuildContext context) {
-    return _RenderDocumentCanvas(sourceSize, minimumWidth, bounds);
-  }
-
-  @override
-  void updateRenderObject(
-    BuildContext context,
-    _RenderDocumentCanvas renderObject,
-  ) {
-    renderObject.update(sourceSize, minimumWidth, bounds);
-  }
-}
-
-class _DocumentCanvasParentData extends ContainerBoxParentData<RenderBox> {}
-
-class _RenderDocumentCanvas extends RenderBox
-    with
-        ContainerRenderObjectMixin<RenderBox, _DocumentCanvasParentData>,
-        RenderBoxContainerDefaultsMixin<RenderBox, _DocumentCanvasParentData> {
-  _RenderDocumentCanvas(this._sourceSize, this._minimumWidth, this._bounds);
-
-  Size _sourceSize;
-  double _minimumWidth;
-  List<Rect?> _bounds;
-
-  static const double _padding = 20;
-  static const double _gap = 12;
-
-  void update(Size sourceSize, double minimumWidth, List<Rect?> bounds) {
-    _sourceSize = sourceSize;
-    _minimumWidth = minimumWidth;
-    _bounds = bounds;
-    markNeedsLayout();
-  }
-
-  @override
-  void setupParentData(RenderBox child) {
-    if (child.parentData is! _DocumentCanvasParentData) {
-      child.parentData = _DocumentCanvasParentData();
-    }
-  }
-
-  @override
-  void performLayout() {
-    final List<RenderBox> children = getChildrenAsList();
-
-    double scale = math.max(
-      0.001,
-      (_minimumWidth - _padding * 2) / _sourceSize.width,
-    );
-
-    // Measure actual rendered content before positioning it.
-    // Expand page coordinates rather than shrinking individual glyphs.
-    for (int i = 0; i < children.length; i++) {
-      final RenderBox child = children[i];
-
-      child.layout(const BoxConstraints(), parentUsesSize: true);
-
-      final Rect? box = _bounds[i];
-
-      if (box != null) {
-        scale = math.max(scale, (child.size.width + _gap) / box.width);
-
-        scale = math.max(scale, (child.size.height + _gap) / box.height);
-      }
-    }
-
-    double right = math.max(
-      _minimumWidth - _padding,
-      _sourceSize.width * scale + _padding,
-    );
-
-    double bottom = _sourceSize.height * scale + _padding;
-
-    final List<Rect> placed = <Rect>[];
-
-    final List<int> ordered = List<int>.generate(children.length, (i) => i);
-
-    // Position valid blocks top-to-bottom.
-    ordered.sort((a, b) {
-      final Rect? first = _bounds[a];
-      final Rect? second = _bounds[b];
-
-      if (first == null) {
-        return second == null ? a.compareTo(b) : 1;
-      }
-
-      if (second == null) {
-        return -1;
-      }
-
-      final int vertical = first.top.compareTo(second.top);
-
-      return vertical != 0 ? vertical : first.left.compareTo(second.left);
-    });
-
-    for (final int i in ordered) {
-      final RenderBox child = children[i];
-      final Rect? box = _bounds[i];
-
-      final double left = box == null
-          ? _padding
-          : math.max(0.0, box.left) * scale + _padding;
-
-      double top = box == null
-          ? bottom + _gap
-          : math.max(0.0, box.top) * scale + _padding;
-
-      Rect target = Offset(left, top) & child.size;
-
-      // If OCR boxes overlap, move only colliding content downward.
-      // Keep the horizontal column position.
-      bool collision;
-
-      do {
-        collision = false;
-
-        for (final Rect other in placed) {
-          if (target.overlaps(other.inflate(_gap / 2))) {
-            top = other.bottom + _gap;
-            target = Offset(left, top) & child.size;
-            collision = true;
-          }
-        }
-      } while (collision);
-
-      final _DocumentCanvasParentData data =
-          child.parentData! as _DocumentCanvasParentData;
-
-      data.offset = target.topLeft;
-
-      placed.add(target);
-
-      right = math.max(right, target.right);
-      bottom = math.max(bottom, target.bottom);
-    }
-
-    size = constraints.constrain(Size(right + _padding, bottom + _padding));
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    defaultPaint(context, offset);
-  }
-
-  @override
-  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    return defaultHitTestChildren(result, position: position);
-  }
-
-  @override
-  void applyPaintTransform(RenderBox child, Matrix4 transform) {
-    final _DocumentCanvasParentData data =
-        child.parentData! as _DocumentCanvasParentData;
-
-    transform.translateByDouble(data.offset.dx, data.offset.dy, 0, 1);
-  }
-}
-
-class _PositionedDocumentContent extends StatelessWidget {
-  const _PositionedDocumentContent({
-    required this.block,
-    required this.content,
-    required this.useBraille,
-    required this.fontSize,
-  });
-
-  final DocumentBlock block;
-  final String content;
-  final bool useBraille;
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    if (useBraille) {
-      return ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: DocumentLayoutView._richBlockReferenceWidth,
-        ),
-        child: Text(
-          content,
-          style: TextStyle(
-            color: DocumentLayoutView._brailleColor,
-            fontSize: fontSize,
-            height: 1.41,
-            fontWeight: FontWeight.w500,
+          const SizedBox(
+            height: ScanResultScreenStyles.documentPageLabelSpacing,
           ),
+        ],
+        ...contentWidgets,
+      ],
+    );
+  }
+
+  List<Widget> _buildReadableContent() {
+    final List<Widget> widgets = <Widget>[];
+    final List<String> pendingText = <String>[];
+
+    void flushPendingText() {
+      if (pendingText.isEmpty) {
+        return;
+      }
+
+      final String combinedText = pendingText
+          .map(_normalizeTextBlock)
+          .where((String value) => value.isNotEmpty)
+          .join(' ')
+          .replaceAll(RegExp(r' {2,}'), ' ')
+          .trim();
+
+      pendingText.clear();
+
+      if (combinedText.isEmpty) {
+        return;
+      }
+
+      _addWithSpacing(
+        widgets,
+        SelectableText(
+          combinedText,
+          style: ScanResultScreenStyles.recognizedContentStyle,
         ),
       );
     }
 
-    if (block.hasTableData) {
-      return _buildTable();
+    for (final DocumentBlock block in page.blocks) {
+      final String normalizedContent = block.normalizedContent.trim();
+      final String rawContent = block.rawContent.trim();
+
+      final String content = normalizedContent.isNotEmpty
+          ? normalizedContent
+          : rawContent;
+
+      final String formulaContent = rawContent.isNotEmpty
+          ? rawContent
+          : content;
+
+      if (block.hasTableData) {
+        flushPendingText();
+
+        _addWithSpacing(
+          widgets,
+          _ReadableDocumentTable(block: block, fallbackContent: content),
+        );
+
+        continue;
+      }
+
+      if (_containsMixedMathContent(formulaContent)) {
+        flushPendingText();
+
+        _addWithSpacing(
+          widgets,
+          _ReadableMixedMathContent(content: formulaContent),
+        );
+
+        continue;
+      }
+
+      if (_shouldRenderAsFormula(block, formulaContent)) {
+        flushPendingText();
+
+        _addWithSpacing(widgets, _ReadableFormula(content: formulaContent));
+
+        continue;
+      }
+
+      if (content.isNotEmpty) {
+        pendingText.add(content);
+      }
     }
+
+    flushPendingText();
+
+    return widgets;
+  }
+
+  void _addWithSpacing(List<Widget> widgets, Widget child) {
+    if (widgets.isNotEmpty) {
+      widgets.add(
+        const SizedBox(height: ScanResultScreenStyles.unifiedBlockSpacing),
+      );
+    }
+
+    widgets.add(child);
+  }
+
+  bool _containsMixedMathContent(String content) {
+    final Iterable<RegExpMatch> matches = _ReadableMixedMathContent
+        .inlineMathPattern
+        .allMatches(content);
+
+    if (matches.isEmpty) {
+      return false;
+    }
+
+    final String prose = content
+        .replaceAll(_ReadableMixedMathContent.inlineMathPattern, ' ')
+        .replaceAll(r'$', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    return prose.isNotEmpty;
+  }
+
+  bool _shouldRenderAsFormula(DocumentBlock block, String content) {
+    if (content.isEmpty) {
+      return false;
+    }
+
+    final String compactContent = content.replaceAll(RegExp(r'\s+'), '');
+
+    final bool hasLatexCommand = RegExp(r'\\[A-Za-z]+').hasMatch(content);
+
+    // Render LaTeX even when the backend mistakenly labels it as text.
+    if (hasLatexCommand) {
+      return true;
+    }
+
+    final bool hasRelation = RegExp(r'[=<>≤≥≠]').hasMatch(content);
+
+    final bool hasOperation = RegExp(
+      r'[A-Za-z0-9)\]}][+\-*/^_][A-Za-z0-9(\[{]',
+    ).hasMatch(compactContent);
+
+    final bool hasFunctionNotation = RegExp(
+      r'\b[A-Za-z]\s*\([^)]*\)',
+    ).hasMatch(content);
+
+    final int naturalWordCount = RegExp(
+      r'[A-Za-z]{3,}',
+    ).allMatches(content).length;
 
     if (block.isFormula) {
-      return _buildFormula();
+      return hasRelation ||
+          hasOperation ||
+          hasFunctionNotation ||
+          naturalWordCount < 3;
     }
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxWidth: DocumentLayoutView._richBlockReferenceWidth,
-      ),
-      child: Text(
-        content,
-        style: TextStyle(
-          color: DocumentLayoutView._textColor,
-          fontSize: fontSize,
-          height: 1.35,
-          fontWeight: FontWeight.w500,
-        ),
+    return naturalWordCount <= 1 &&
+        (hasRelation || hasOperation || hasFunctionNotation);
+  }
+
+  String _normalizeTextBlock(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+}
+
+class _ReadableMixedMathContent extends StatelessWidget {
+  const _ReadableMixedMathContent({required this.content});
+
+  final String content;
+
+  static final RegExp inlineMathPattern = RegExp(
+    r'\$\$([\s\S]*?)\$\$'
+    r'|\$([^$]+?)\$'
+    r'|\\\[([\s\S]*?)\\\]'
+    r'|\\\(([\s\S]*?)\\\)',
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> children = <Widget>[];
+    int contentIndex = 0;
+
+    for (final RegExpMatch match in inlineMathPattern.allMatches(content)) {
+      _addText(children, content.substring(contentIndex, match.start));
+
+      final String formula =
+          (match.group(1) ??
+                  match.group(2) ??
+                  match.group(3) ??
+                  match.group(4) ??
+                  '')
+              .trim();
+
+      _addFormula(children, formula);
+
+      contentIndex = match.end;
+    }
+
+    final String remainingContent = content.substring(contentIndex);
+
+    // Paddle occasionally omits the final closing dollar sign.
+    final int unmatchedDollarIndex = remainingContent.indexOf(r'$');
+
+    if (unmatchedDollarIndex >= 0) {
+      _addText(children, remainingContent.substring(0, unmatchedDollarIndex));
+
+      _addFormula(
+        children,
+        remainingContent
+            .substring(unmatchedDollarIndex + 1)
+            .replaceAll(r'$', '')
+            .trim(),
+      );
+    } else {
+      _addText(children, remainingContent);
+    }
+
+    if (children.isEmpty) {
+      return SelectableText(
+        _toReadableMathText(content),
+        style: ScanResultScreenStyles.recognizedContentStyle,
+      );
+    }
+
+    return Semantics(
+      label: _toReadableMathText(content).replaceAll(r'$', ''),
+      child: Wrap(
+        alignment: WrapAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
+        runSpacing: 8,
+        children: children,
       ),
     );
   }
 
-  Widget _buildFormula() {
+  static void _addText(List<Widget> children, String value) {
+    final String normalizedText = _toReadableMathText(
+      value,
+    ).replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    if (normalizedText.isEmpty) {
+      return;
+    }
+
+    children.add(
+      Text(
+        normalizedText,
+        style: ScanResultScreenStyles.recognizedContentStyle,
+      ),
+    );
+  }
+
+  static void _addFormula(List<Widget> children, String formula) {
+    if (formula.isEmpty) {
+      return;
+    }
+
+    children.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Math.tex(
+          formula,
+          mathStyle: MathStyle.text,
+          textStyle: ScanResultScreenStyles.recognizedContentStyle.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          onErrorFallback: (_) {
+            return Text(
+              _toReadableMathText(formula),
+              style: ScanResultScreenStyles.recognizedContentStyle,
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadableFormula extends StatelessWidget {
+  const _ReadableFormula({required this.content});
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
     final String formula = _prepareFormula(content);
 
     if (formula.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    // No FittedBox: equations use the same base size as ordinary text.
-    return Math.tex(
-      formula,
-      mathStyle: MathStyle.display,
-      textStyle: TextStyle(
-        color: DocumentLayoutView._textColor,
-        fontSize: fontSize,
-        fontWeight: FontWeight.w500,
-      ),
-      onErrorFallback: (_) {
-        return ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: DocumentLayoutView._richBlockReferenceWidth,
-          ),
-          child: Text(
-            // Preserve the notation when LaTeX parsing fails.
+    return Semantics(
+      label: 'Mathematical expression: ${_toReadableMathText(formula)}',
+      child: Padding(
+        padding: ScanResultScreenStyles.formulaPreviewPadding,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Math.tex(
             formula,
-            style: TextStyle(
-              color: DocumentLayoutView._textColor,
-              fontSize: fontSize,
-              height: 1.35,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTable() {
-    final List<List<String>> rows = block.tableRows;
-
-    if (rows.isEmpty) {
-      return Text(
-        content,
-        overflow: TextOverflow.clip,
-        style: TextStyle(
-          color: DocumentLayoutView._textColor,
-          fontSize: fontSize,
-          height: 1.15,
-        ),
-      );
-    }
-
-    int columnCount = 0;
-
-    for (final List<String> row in rows) {
-      if (row.length > columnCount) {
-        columnCount = row.length;
-      }
-    }
-
-    if (columnCount == 0) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      width: math.max(
-        DocumentLayoutView._richBlockReferenceWidth,
-        columnCount * 140.0,
-      ),
-      child: Table(
-        border: TableBorder.all(
-          color: DocumentLayoutView._tableBorderColor,
-          width: 1,
-        ),
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        children: List<TableRow>.generate(rows.length, (int rowIndex) {
-          final List<String> row = rows[rowIndex];
-
-          return TableRow(
-            decoration: BoxDecoration(
-              color: rowIndex == 0
-                  ? DocumentLayoutView._tableHeaderColor
-                  : DocumentLayoutView._pageColor,
-            ),
-            children: List<Widget>.generate(columnCount, (int columnIndex) {
-              final String cell = columnIndex < row.length
-                  ? row[columnIndex]
-                  : '';
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                child: Text(
-                  cell,
-                  style: TextStyle(
-                    color: DocumentLayoutView._textColor,
-                    fontSize: fontSize,
-                    height: 1.25,
-                    fontWeight: rowIndex == 0
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                  ),
-                ),
+            mathStyle: MathStyle.display,
+            textStyle: ScanResultScreenStyles.formulaContentStyle,
+            onErrorFallback: (_) {
+              return SelectableText(
+                _toReadableMathText(formula),
+                style: ScanResultScreenStyles.formulaContentStyle,
               );
-            }, growable: false),
-          );
-        }, growable: false),
+            },
+          ),
+        ),
       ),
     );
   }
@@ -743,5 +623,102 @@ class _PositionedDocumentContent extends StatelessWidget {
     }
 
     return formula;
+  }
+}
+
+class _ReadableDocumentTable extends StatelessWidget {
+  const _ReadableDocumentTable({
+    required this.block,
+    required this.fallbackContent,
+  });
+
+  final DocumentBlock block;
+  final String fallbackContent;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<List<String>> rows = block.tableRows;
+
+    if (rows.isEmpty) {
+      return SelectableText(
+        fallbackContent,
+        style: ScanResultScreenStyles.recognizedContentStyle,
+      );
+    }
+
+    int columnCount = 0;
+
+    for (final List<String> row in rows) {
+      columnCount = math.max(columnCount, row.length);
+    }
+
+    if (columnCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double availableWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : columnCount * ScanResultScreenStyles.tableMinimumColumnWidth;
+
+        final double tableWidth = math.max(
+          availableWidth,
+          columnCount * ScanResultScreenStyles.tableMinimumColumnWidth,
+        );
+
+        return ClipRRect(
+          borderRadius: ScanResultScreenStyles.tableRadius,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Container(
+              width: tableWidth,
+              decoration: const BoxDecoration(
+                color: ScanResultScreenStyles.tableBackgroundColor,
+                border: ScanResultScreenStyles.tableOuterBorder,
+              ),
+              child: Table(
+                border: TableBorder.all(
+                  color: ScanResultScreenStyles.tableBorderColor,
+                  width: ScanResultScreenStyles.tableBorderWidth,
+                ),
+                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                children: List<TableRow>.generate(rows.length, (int rowIndex) {
+                  final List<String> row = rows[rowIndex];
+
+                  return TableRow(
+                    decoration: BoxDecoration(
+                      color: rowIndex == 0
+                          ? ScanResultScreenStyles.tableLabelBackgroundColor
+                          : rowIndex.isEven
+                          ? ScanResultScreenStyles.tableAlternatingRowColor
+                          : ScanResultScreenStyles.tableBackgroundColor,
+                    ),
+                    children: List<Widget>.generate(columnCount, (
+                      int columnIndex,
+                    ) {
+                      final String cell = columnIndex < row.length
+                          ? row[columnIndex]
+                          : '';
+
+                      return Padding(
+                        padding: ScanResultScreenStyles.tableCellPadding,
+                        child: SelectableText(
+                          cell,
+                          style: rowIndex == 0
+                              ? ScanResultScreenStyles.tableLabelTextStyle
+                              : ScanResultScreenStyles.tableCellTextStyle,
+                        ),
+                      );
+                    }, growable: false),
+                  );
+                }, growable: false),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

@@ -35,9 +35,7 @@ class _HtmlTableParser(HTMLParser):
                 self._current_row = []
 
             cell_content = " ".join(
-                part.strip()
-                for part in self._current_cell_parts or []
-                if part.strip()
+                part.strip() for part in self._current_cell_parts or [] if part.strip()
             ).strip()
 
             self._current_row.append(cell_content)
@@ -80,18 +78,12 @@ class TableContentParser:
         lines = ["Table"]
 
         for index, row in enumerate(rows, start=1):
-            cells = [
-                cell.strip()
-                for cell in row
-                if cell.strip()
-            ]
+            cells = [cell.strip() for cell in row if cell.strip()]
 
             if not cells:
                 continue
 
-            lines.append(
-                f"Row {index}: {'; '.join(cells)}"
-            )
+            lines.append(f"Row {index}: {'; '.join(cells)}")
 
         lines.append("End table")
 

@@ -152,7 +152,7 @@ abstract final class ScanResultScreenStyles {
   // SCREEN LAYOUT
   // ============================================================
 
-  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(16, 18, 16, 28);
+  static const EdgeInsets screenPadding = EdgeInsets.fromLTRB(10, 18, 10, 28);
 
   static const double zero = 0;
   static const double sectionSpacing = 16;
@@ -160,7 +160,7 @@ abstract final class ScanResultScreenStyles {
   static const double itemSpacing = 12;
   static const double compactSpacing = 4;
   static const double sectionHeaderSpacing = 14;
-  static const double unifiedBlockSpacing = 14;
+  static const double unifiedBlockSpacing = 10;
 
   // ============================================================
   // SHARED CONTAINERS
@@ -220,7 +220,12 @@ abstract final class ScanResultScreenStyles {
   // NUMBERED SECTIONS
   // ============================================================
 
-  static const EdgeInsets sectionCardPadding = EdgeInsets.all(14);
+  static const EdgeInsets sectionCardPadding = EdgeInsets.fromLTRB(
+    10,
+    14,
+    10,
+    16,
+  );
 
   static const double sectionNumberSize = 30;
 
@@ -278,7 +283,10 @@ abstract final class ScanResultScreenStyles {
   // RECOGNIZED CONTENT
   // ============================================================
 
-  static const EdgeInsets contentPreviewPadding = EdgeInsets.all(16);
+  static const EdgeInsets contentPreviewPadding = EdgeInsets.symmetric(
+    horizontal: 10,
+    vertical: 14,
+  );
 
   static const double contentViewSpacing = 16;
   static const double contentViewOptionSpacing = 6;
@@ -325,6 +333,13 @@ abstract final class ScanResultScreenStyles {
   );
 
   static const double documentPageSpacing = 16;
+  static const double documentPageLabelSpacing = 14;
+  static const TextStyle documentPageLabelStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    color: primaryColor,
+  );
   static const double minimumLayoutBlockWidth = 2;
   static const double minimumLayoutBlockHeight = 2;
   static const double minimumLayoutFontSize = 5;
@@ -368,8 +383,7 @@ abstract final class ScanResultScreenStyles {
   );
 
   static const EdgeInsets formulaPreviewPadding = EdgeInsets.symmetric(
-    horizontal: 14,
-    vertical: 10,
+    vertical: 6,
   );
 
   static const BorderRadius formulaRadius = BorderRadius.all(
@@ -379,8 +393,8 @@ abstract final class ScanResultScreenStyles {
   static const TextStyle recognizedContentStyle = TextStyle(
     fontFamily: 'Poppins',
     fontFamilyFallback: recognizedContentFontFallback,
-    fontSize: 14,
-    height: 1.65,
+    fontSize: 15,
+    height: 1.45,
     fontWeight: FontWeight.w400,
     color: textPrimaryColor,
   );
@@ -388,8 +402,8 @@ abstract final class ScanResultScreenStyles {
   static const TextStyle formulaContentStyle = TextStyle(
     fontFamily: 'Poppins',
     fontFamilyFallback: recognizedContentFontFallback,
-    fontSize: 17,
-    height: 1.6,
+    fontSize: 18,
+    height: 1.35,
     fontWeight: FontWeight.w500,
     color: textPrimaryColor,
   );
@@ -399,7 +413,7 @@ abstract final class ScanResultScreenStyles {
   static const double tableBorderWidth = 1;
 
   static const EdgeInsets tableCellPadding = EdgeInsets.symmetric(
-    horizontal: 12,
+    horizontal: 10,
     vertical: 14,
   );
 
@@ -430,15 +444,15 @@ abstract final class ScanResultScreenStyles {
   // ============================================================
 
   static const EdgeInsets braillePreviewPadding = EdgeInsets.symmetric(
-    horizontal: 18,
-    vertical: 20,
+    horizontal: 10,
+    vertical: 14,
   );
 
   static const TextStyle brailleContentStyle = TextStyle(
     fontFamily: 'Noto Sans Symbols 2',
     fontFamilyFallback: brailleFontFallback,
-    fontSize: 23,
-    height: 1.7,
+    fontSize: 20,
+    height: 1.55,
     fontWeight: FontWeight.w400,
     color: textPrimaryColor,
   );

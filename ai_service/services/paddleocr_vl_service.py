@@ -42,12 +42,30 @@ class PaddleOcrVlService:
 
     LATEX_FORMULA_MARKERS = (
         r"\frac",
+        r"\dfrac",
+        r"\tfrac",
         r"\sqrt",
         r"\sum",
+        r"\prod",
         r"\int",
+        r"\lim",
         r"\begin",
         r"\left",
         r"\right",
+        r"\times",
+        r"\div",
+        r"\cdot",
+        r"\pm",
+        r"\leq",
+        r"\geq",
+        r"\neq",
+        r"\alpha",
+        r"\beta",
+        r"\gamma",
+        r"\theta",
+        r"\lambda",
+        r"\pi",
+        r"\sigma",
     )
 
     DEFAULT_MAX_IMAGE_DIMENSION = 2000
@@ -81,10 +99,7 @@ class PaddleOcrVlService:
             default=False,
         )
 
-        self.model_name = (
-            "PaddleOCR-VL-"
-            f"{self.pipeline_version.lstrip('v')}"
-        )
+        self.model_name = "PaddleOCR-VL-" f"{self.pipeline_version.lstrip('v')}"
 
         # Prevent concurrent requests from exhausting laptop GPU memory.
         self._inference_lock = threading.Lock()
@@ -94,8 +109,7 @@ class PaddleOcrVlService:
         initialization_started = time.perf_counter()
 
         print(
-            "Initializing PaddleOCR-VL "
-            f"{self.pipeline_version} on {self.device}..."
+            "Initializing PaddleOCR-VL " f"{self.pipeline_version} on {self.device}..."
         )
 
         self._pipeline = PaddleOCRVL(
@@ -109,23 +123,16 @@ class PaddleOcrVlService:
             use_queues=False,
         )
 
-        initialization_seconds = (
-            time.perf_counter() - initialization_started
-        )
+        initialization_seconds = time.perf_counter() - initialization_started
 
-        print(
-            "PaddleOCR-VL initialized in "
-            f"{initialization_seconds:.2f} seconds."
-        )
+        print("PaddleOCR-VL initialized in " f"{initialization_seconds:.2f} seconds.")
 
     def scan_document(
         self,
         image_path: Path,
     ) -> dict[str, Any]:
         if not image_path.is_file():
-            raise ValueError(
-                "The uploaded image could not be found."
-            )
+            raise ValueError("The uploaded image could not be found.")
 
         total_started = time.perf_counter()
 
@@ -134,22 +141,16 @@ class PaddleOcrVlService:
         try:
             preprocessing_started = time.perf_counter()
 
-            optimized_image_path = self._prepare_image(
-                image_path
-            )
+            optimized_image_path = self._prepare_image(image_path)
 
             with Image.open(optimized_image_path) as optimized_image:
                 processed_width, processed_height = optimized_image.size
 
-            preprocessing_seconds = (
-                time.perf_counter() - preprocessing_started
-            )
+            preprocessing_seconds = time.perf_counter() - preprocessing_started
 
             original_size = image_path.stat().st_size
 
-            optimized_size = (
-                optimized_image_path.stat().st_size
-            )
+            optimized_size = optimized_image_path.stat().st_size
 
             print(
                 "Image preprocessing completed in "
@@ -169,9 +170,7 @@ class PaddleOcrVlService:
                     )
                 )
 
-            inference_seconds = (
-                time.perf_counter() - inference_started
-            )
+            inference_seconds = time.perf_counter() - inference_started
 
             print(
                 "PaddleOCR-VL inference completed in "
@@ -179,9 +178,7 @@ class PaddleOcrVlService:
             )
 
             if not predictions:
-                raise ValueError(
-                    "No document content was recognized."
-                )
+                raise ValueError("No document content was recognized.")
 
             serialization_started = time.perf_counter()
 
@@ -195,19 +192,11 @@ class PaddleOcrVlService:
                 for index, result in enumerate(predictions)
             ]
 
-            ordered_blocks = [
-                block
-                for page in pages
-                for block in page["blocks"]
-            ]
+            ordered_blocks = [block for page in pages for block in page["blocks"]]
 
-            serialization_seconds = (
-                time.perf_counter() - serialization_started
-            )
+            serialization_seconds = time.perf_counter() - serialization_started
 
-            total_seconds = (
-                time.perf_counter() - total_started
-            )
+            total_seconds = time.perf_counter() - total_started
 
             print(
                 "OCR serialization and Braille translation "
@@ -229,19 +218,11 @@ class PaddleOcrVlService:
                 "page_count": len(pages),
                 "blocks": ordered_blocks,
                 "pages": pages,
-                "processing_time_ms": round(
-                    total_seconds * 1000
-                ),
+                "processing_time_ms": round(total_seconds * 1000),
                 "timings": {
-                    "preprocessing_ms": round(
-                        preprocessing_seconds * 1000
-                    ),
-                    "inference_ms": round(
-                        inference_seconds * 1000
-                    ),
-                    "serialization_ms": round(
-                        serialization_seconds * 1000
-                    ),
+                    "preprocessing_ms": round(preprocessing_seconds * 1000),
+                    "inference_ms": round(inference_seconds * 1000),
+                    "serialization_ms": round(serialization_seconds * 1000),
                 },
             }
         finally:
@@ -270,15 +251,11 @@ class PaddleOcrVlService:
 
         try:
             with Image.open(image_path) as source_image:
-                corrected_image = ImageOps.exif_transpose(
-                    source_image
-                )
+                corrected_image = ImageOps.exif_transpose(source_image)
 
                 rgb_image = corrected_image.convert("RGB")
 
-                original_width, original_height = (
-                    rgb_image.size
-                )
+                original_width, original_height = rgb_image.size
 
                 longest_side = max(
                     original_width,
@@ -286,10 +263,7 @@ class PaddleOcrVlService:
                 )
 
                 if longest_side > self.max_image_dimension:
-                    scale = (
-                        self.max_image_dimension
-                        / longest_side
-                    )
+                    scale = self.max_image_dimension / longest_side
 
                     resized_width = max(
                         1,
@@ -316,8 +290,7 @@ class PaddleOcrVlService:
                     )
                 else:
                     print(
-                        "OCR image retained at "
-                        f"{original_width}x{original_height}."
+                        "OCR image retained at " f"{original_width}x{original_height}."
                     )
 
                 rgb_image.save(
@@ -405,12 +378,16 @@ class PaddleOcrVlService:
         fallback_id: int,
         fallback_order: int,
     ) -> dict[str, Any]:
-        block_type = str(
-            block.get(
-                "block_label",
-                "unknown",
+        block_type = (
+            str(
+                block.get(
+                    "block_label",
+                    "unknown",
+                )
             )
-        ).strip().lower()
+            .strip()
+            .lower()
+        )
 
         raw_content = str(
             block.get(
@@ -420,49 +397,32 @@ class PaddleOcrVlService:
         ).strip()
 
         is_table = (
-            block_type in self.TABLE_BLOCK_TYPES
-            or "<table" in raw_content.lower()
+            block_type in self.TABLE_BLOCK_TYPES or "<table" in raw_content.lower()
         )
 
-        table_rows = (
-            TableContentParser.parse(raw_content)
-            if is_table
-            else []
+        # Formula detection must happen before content normalization.
+        # Paddle may occasionally label mathematical content as text.
+        is_formula = not is_table and (
+            block_type in self.FORMULA_BLOCK_TYPES
+            or any(marker in raw_content for marker in self.LATEX_FORMULA_MARKERS)
         )
+
+        table_rows = TableContentParser.parse(raw_content) if is_table else []
 
         if is_table and table_rows:
-            normalized_content = (
-                TableContentParser.to_accessible_text(
-                    table_rows
-                )
-            )
+            normalized_content = TableContentParser.to_accessible_text(table_rows)
         else:
-            normalized_content = (
-                OcrContentNormalizer.normalize(
-                    content=raw_content,
-                    block_type=block_type,
-                )
-            )
+            normalization_block_type = "formula" if is_formula else block_type
 
-        is_formula = (
-            not is_table
-            and (
-                block_type in self.FORMULA_BLOCK_TYPES
-                or any(
-                    marker in raw_content
-                    for marker in self.LATEX_FORMULA_MARKERS
-                )
+            normalized_content = OcrContentNormalizer.normalize(
+                content=raw_content,
+                block_type=normalization_block_type,
             )
-        )
 
         if is_table:
             braille_source_content = normalized_content
         elif is_formula:
-            braille_source_content = (
-                BrailleMathNormalizer.normalize(
-                    raw_content
-                )
-            )
+            braille_source_content = BrailleMathNormalizer.normalize(raw_content)
         else:
             braille_source_content = normalized_content
 
@@ -494,15 +454,13 @@ class PaddleOcrVlService:
             "normalized_content": normalized_content,
             "bbox": bounding_box,
             "polygon_points": polygon_points,
-            "is_text": block_type == "text",
+            "is_text": (not is_formula and not is_table),
             "is_formula": is_formula,
             "is_table": is_table,
             "table_rows": table_rows,
             "braille_content": braille_result["content"],
             "braille_code": braille_result["code"],
-            "braille_success": braille_result[
-                "success"
-            ],
+            "braille_success": braille_result["success"],
             "braille_error": braille_result["error"],
         }
 
@@ -510,9 +468,7 @@ class PaddleOcrVlService:
         self,
         block: dict[str, Any],
     ) -> list[float]:
-        raw_bbox = self._to_builtin(
-            block.get("block_bbox")
-        )
+        raw_bbox = self._to_builtin(block.get("block_bbox"))
 
         if isinstance(raw_bbox, list) and len(raw_bbox) >= 4:
             try:
@@ -531,9 +487,7 @@ class PaddleOcrVlService:
             except (TypeError, ValueError):
                 pass
 
-        raw_polygon = self._to_builtin(
-            block.get("block_polygon_points")
-        )
+        raw_polygon = self._to_builtin(block.get("block_polygon_points"))
 
         if isinstance(raw_polygon, list):
             valid_points: list[tuple[float, float]] = []
@@ -543,9 +497,7 @@ class PaddleOcrVlService:
                     continue
 
                 try:
-                    valid_points.append(
-                        (float(point[0]), float(point[1]))
-                    )
+                    valid_points.append((float(point[0]), float(point[1])))
                 except (TypeError, ValueError):
                     continue
 
@@ -569,9 +521,7 @@ class PaddleOcrVlService:
         *,
         fallback_bbox: list[float],
     ) -> list[list[float]]:
-        raw_polygon = self._to_builtin(
-            block.get("block_polygon_points")
-        )
+        raw_polygon = self._to_builtin(block.get("block_polygon_points"))
 
         normalized_points: list[list[float]] = []
 
@@ -581,9 +531,7 @@ class PaddleOcrVlService:
                     continue
 
                 try:
-                    normalized_points.append(
-                        [float(point[0]), float(point[1])]
-                    )
+                    normalized_points.append([float(point[0]), float(point[1])])
                 except (TypeError, ValueError):
                     continue
 
@@ -638,21 +586,13 @@ class PaddleOcrVlService:
         if optimized_image_path is None:
             return
 
-        if (
-            optimized_image_path.resolve()
-            == original_image_path.resolve()
-        ):
+        if optimized_image_path.resolve() == original_image_path.resolve():
             return
 
         try:
-            optimized_image_path.unlink(
-                missing_ok=True
-            )
+            optimized_image_path.unlink(missing_ok=True)
         except OSError as error:
-            print(
-                "Unable to delete temporary OCR image: "
-                f"{error}"
-            )
+            print("Unable to delete temporary OCR image: " f"{error}")
 
     def _to_builtin(
         self,
@@ -665,16 +605,10 @@ class PaddleOcrVlService:
             return value.item()
 
         if isinstance(value, dict):
-            return {
-                key: self._to_builtin(item)
-                for key, item in value.items()
-            }
+            return {key: self._to_builtin(item) for key, item in value.items()}
 
         if isinstance(value, (list, tuple)):
-            return [
-                self._to_builtin(item)
-                for item in value
-            ]
+            return [self._to_builtin(item) for item in value]
 
         return value
 
@@ -703,11 +637,9 @@ class PaddleOcrVlService:
         minimum: int,
         maximum: int,
     ) -> int:
-        value = (
-            PaddleOcrVlService._read_positive_integer(
-                name,
-                default,
-            )
+        value = PaddleOcrVlService._read_positive_integer(
+            name,
+            default,
         )
 
         return max(
@@ -721,10 +653,14 @@ class PaddleOcrVlService:
         *,
         default: bool,
     ) -> bool:
-        raw_value = os.getenv(
-            name,
-            "",
-        ).strip().lower()
+        raw_value = (
+            os.getenv(
+                name,
+                "",
+            )
+            .strip()
+            .lower()
+        )
 
         if not raw_value:
             return default
@@ -743,8 +679,6 @@ class PaddleOcrVlService:
         megabyte = 1024 * 1024
 
         if size >= megabyte:
-            return (
-                f"{size / megabyte:.1f} MB"
-            )
+            return f"{size / megabyte:.1f} MB"
 
         return f"{size / 1024:.1f} KB"

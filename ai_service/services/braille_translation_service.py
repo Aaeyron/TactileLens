@@ -14,60 +14,41 @@ class BrailleTranslationService:
     UEB_CODE: Final[str] = "ueb"
     NEMETH_CODE: Final[str] = "nemeth"
 
+    _NEMETH_INPUT_REPLACEMENTS: Final[dict[str, str]] = {
+        "≤": "<=",
+        "≥": ">=",
+        "≠": "!=",
+        "≈": "~=",
+    }
+
     def __init__(
         self,
         liblouis_root: Path | None = None,
         timeout_seconds: float = 15.0,
     ) -> None:
-        ai_service_directory = (
-            Path(__file__).resolve().parent.parent
-        )
+        ai_service_directory = Path(__file__).resolve().parent.parent
 
         configured_root = os.getenv("LIBLOUIS_ROOT")
 
         if liblouis_root is not None:
-            self._liblouis_root = (
-                liblouis_root.resolve()
-            )
+            self._liblouis_root = liblouis_root.resolve()
         elif configured_root:
-            self._liblouis_root = Path(
-                configured_root
-            ).resolve()
+            self._liblouis_root = Path(configured_root).resolve()
         else:
             self._liblouis_root = (
-                ai_service_directory
-                / "vendor"
-                / "liblouis"
+                ai_service_directory / "vendor" / "liblouis"
             ).resolve()
 
-        self._executable = (
-            self._liblouis_root
-            / "bin"
-            / "lou_translate.exe"
-        )
+        self._executable = self._liblouis_root / "bin" / "lou_translate.exe"
 
-        self._tables_directory = (
-            self._liblouis_root
-            / "share"
-            / "liblouis"
-            / "tables"
-        )
+        self._tables_directory = self._liblouis_root / "share" / "liblouis" / "tables"
 
-        self._display_table = (
-            self._tables_directory
-            / "unicode.dis"
-        )
+        self._display_table = self._tables_directory / "unicode.dis"
 
-        self._ueb_table = (
-            self._tables_directory
-            / "en-ueb-g2.ctb"
-        )
+        self._ueb_table = self._tables_directory / "en-ueb-g2.ctb"
 
         # This table includes the Liblouis Nemeth definitions.
-        self._nemeth_table = (
-            self._tables_directory
-            / "en-us-mathtext.ctb"
-        )
+        self._nemeth_table = self._tables_directory / "en-us-mathtext.ctb"
 
         self._timeout_seconds = timeout_seconds
 
@@ -94,8 +75,16 @@ class BrailleTranslationService:
     ) -> str:
         """Translate normalized mathematical content into Nemeth."""
 
+        normalized_content = content
+
+        for symbol, replacement in self._NEMETH_INPUT_REPLACEMENTS.items():
+            normalized_content = normalized_content.replace(
+                symbol,
+                replacement,
+            )
+
         return self._translate(
-            content=content,
+            content=normalized_content,
             translation_table=self._nemeth_table,
         )
 
@@ -110,11 +99,7 @@ class BrailleTranslationService:
 
         uses_nemeth = is_formula or is_table
 
-        braille_code = (
-            self.NEMETH_CODE
-            if uses_nemeth
-            else self.UEB_CODE
-        )
+        braille_code = self.NEMETH_CODE if uses_nemeth else self.UEB_CODE
 
         if not normalized_content:
             return {
@@ -160,8 +145,7 @@ class BrailleTranslationService:
                 "code": braille_code,
                 "content": "",
                 "error": (
-                    "Braille translation was unavailable for "
-                    "this document block."
+                    "Braille translation was unavailable for " "this document block."
                 ),
             }
 
@@ -178,9 +162,7 @@ class BrailleTranslationService:
 
         environment = os.environ.copy()
 
-        environment["LOUIS_TABLEPATH"] = str(
-            self._tables_directory
-        )
+        environment["LOUIS_TABLEPATH"] = str(self._tables_directory)
 
         command = [
             str(self._executable),
@@ -209,22 +191,16 @@ class BrailleTranslationService:
                 ),
             )
         except subprocess.TimeoutExpired as error:
-            raise BrailleTranslationError(
-                "Braille translation timed out."
-            ) from error
+            raise BrailleTranslationError("Braille translation timed out.") from error
         except OSError as error:
-            raise BrailleTranslationError(
-                "Liblouis could not be started."
-            ) from error
+            raise BrailleTranslationError("Liblouis could not be started.") from error
         except UnicodeError as error:
             raise BrailleTranslationError(
                 "Liblouis returned invalid Unicode output."
             ) from error
 
         if completed_process.returncode != 0:
-            error_message = (
-                completed_process.stderr.strip()
-            )
+            error_message = completed_process.stderr.strip()
 
             raise BrailleTranslationError(
                 error_message
@@ -234,9 +210,7 @@ class BrailleTranslationService:
                 )
             )
 
-        translated_content = (
-            completed_process.stdout.rstrip("\r\n")
-        )
+        translated_content = completed_process.stdout.rstrip("\r\n")
 
         if not translated_content.strip():
             raise BrailleTranslationError(
@@ -260,9 +234,7 @@ class BrailleTranslationService:
         ]
 
         if missing_files:
-            formatted_files = "\n".join(
-                missing_files
-            )
+            formatted_files = "\n".join(missing_files)
 
             raise FileNotFoundError(
                 "The Liblouis runtime is incomplete. "
