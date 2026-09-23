@@ -16,8 +16,8 @@ abstract final class HomeStyles {
   static const Color bodyColor = Color(0xFF42526B);
   static const Color mutedColor = Color(0xFF728096);
 
-  static const Color outlineColor = Color(0xFFDDE5F0);
-  static const Color dividerColor = Color(0xFFE8EDF4);
+  static const Color outlineColor = Color(0xFFE4EBF5);
+  static const Color dividerColor = Color(0xFFEDF1F7);
 
   static const Color thumbnailBackgroundColor = Color(0xFFF2F6FC);
   static const Color recentArrowColor = Color(0xFF8B98AA);
@@ -119,23 +119,43 @@ abstract final class HomeStyles {
     BorderSide(color: outlineColor, width: 1),
   );
 
+  
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x120F2748), blurRadius: 18, offset: Offset(0, 7)),
+    BoxShadow(
+      color: Color(0x180F2748),
+      blurRadius: 28,
+      spreadRadius: -5,
+      offset: Offset(0, 12),
+    ),
+    BoxShadow(
+      color: Color(0x0D1268F3),
+      blurRadius: 8,
+      offset: Offset(0, 2),
+    ),
   ];
 
   static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x0D102A43), blurRadius: 12, offset: Offset(0, 4)),
+    BoxShadow(
+      color: Color(0x140F2748),
+      blurRadius: 20,
+      spreadRadius: -4,
+      offset: Offset(0, 7),
+    ),
+    BoxShadow(
+      color: Color(0x080F2748),
+      blurRadius: 5,
+      offset: Offset(0, 1),
+    ),
   ];
 
   // ============================================================
   // QUICK SCAN
   // ============================================================
 
-  static const EdgeInsets quickScanCardPadding = EdgeInsets.all(17);
+  static const EdgeInsets quickScanCardPadding = EdgeInsets.all(20);
 
-  static const BorderRadius quickScanCardRadius = BorderRadius.all(
-    Radius.circular(18),
-  );
+  static const BorderRadius quickScanCardRadius =
+    BorderRadius.all(Radius.circular(22));
 
   static const double quickScanDescriptionSpacing = 6;
   static const double quickScanIconSpacing = 14;
@@ -148,18 +168,27 @@ abstract final class HomeStyles {
     Radius.circular(18),
   );
 
-  static const double quickScanButtonHeight = 46;
+  static const double quickScanButtonHeight = 50;
   static const double quickScanButtonIconSize = 19;
 
-  static final ButtonStyle quickScanButtonStyle = FilledButton.styleFrom(
-    backgroundColor: primaryColor,
-    foregroundColor: surfaceColor,
-    elevation: 0,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(12)),
-    ),
-    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-  );
+  
+  static final ButtonStyle quickScanButtonStyle =
+      FilledButton.styleFrom(
+        backgroundColor: primaryColor,
+        foregroundColor: surfaceColor,
+        elevation: 2,
+        shadowColor: const Color(0x551268F3),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(14),
+          ),
+        ),
+        textStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.1,
+        ),
+      );
 
   // ============================================================
   // SECONDARY QUICK ACTIONS
@@ -167,18 +196,17 @@ abstract final class HomeStyles {
 
   static const double secondaryActionSpacing = 12;
 
-  static const EdgeInsets secondaryActionPadding = EdgeInsets.all(14);
+  static const EdgeInsets secondaryActionPadding = EdgeInsets.all(16);
 
   static const BorderRadius secondaryActionRadius = BorderRadius.all(
-    Radius.circular(16),
+    Radius.circular(20),
   );
 
-  static const double secondaryActionIconContainerSize = 38;
-  static const double secondaryActionIconSize = 20;
+  static const double secondaryActionIconContainerSize = 44;
+  static const double secondaryActionIconSize = 22;
 
-  static const BorderRadius secondaryActionIconRadius = BorderRadius.all(
-    Radius.circular(10),
-  );
+  static const BorderRadius secondaryActionIconRadius =
+    BorderRadius.all(Radius.circular(13));
 
   static const double secondaryActionArrowSize = 20;
   static const double secondaryActionTitleSpacing = 12;
@@ -188,14 +216,14 @@ abstract final class HomeStyles {
   // RECENT ACTIVITY
   // ============================================================
 
-  static const BorderRadius recentListRadius = BorderRadius.all(
-    Radius.circular(16),
-  );
+  static const BorderRadius recentListRadius =
+    BorderRadius.all(Radius.circular(20));
 
-  static const EdgeInsets recentCardPadding = EdgeInsets.symmetric(
-    horizontal: 12,
-    vertical: 11,
-  );
+  static const EdgeInsets recentCardPadding =
+    EdgeInsets.symmetric(
+      horizontal: 15,
+      vertical: 13,
+    );
 
   static const double recentDividerHeight = 1;
   static const double recentDividerThickness = 1;
