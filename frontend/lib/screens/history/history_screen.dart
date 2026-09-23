@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../models/history/history_model.dart';
@@ -1302,15 +1303,189 @@ class _HistoryThumbnail extends StatelessWidget {
   Widget _buildFallback() {
     final String content = recognizedContent.trim();
 
+    if (content.isEmpty) {
+      return Padding(
+        padding: HistoryScreenStyles.previewPadding,
+        child: Text(
+          _HistoryText.emptyRecognizedContent,
+          maxLines: HistoryScreenStyles.previewMaximumLines,
+          overflow: TextOverflow.ellipsis,
+          style: HistoryScreenStyles.previewTextStyle,
+        ),
+      );
+    }
+
     return Padding(
       padding: HistoryScreenStyles.previewPadding,
-      child: Text(
-        content.isEmpty ? _HistoryText.emptyRecognizedContent : content,
-        maxLines: HistoryScreenStyles.previewMaximumLines,
-        overflow: TextOverflow.ellipsis,
-        style: HistoryScreenStyles.previewTextStyle,
+      child: ClipRect(child: _HistoryMathPreview(content: content)),
+    );
+  }
+}
+
+class _HistoryMathPreview extends StatelessWidget {
+  const _HistoryMathPreview({required this.content});
+
+  final String content;
+
+  static final RegExp _mathPattern = RegExp(
+    r'\$\$([\s\S]*?)\$\$'
+    r'|\$([^$]+?)\$'
+    r'|\\\[([\s\S]*?)\\\]'
+    r'|\\\(([\s\S]*?)\\\)',
+  );
+
+  static final RegExp _mathCommandPattern = RegExp(
+    r'\\(?:frac|dfrac|tfrac|sqrt|sum|int|prod|'
+    r'leq|geq|neq|approx|times|div|cdot|'
+    r'alpha|beta|theta|pi|infty)\b',
+  );
+
+  String _prepareFormula(String value) {
+    String result = value.trim();
+
+    result = result
+        .replaceAll('```latex', '')
+        .replaceAll('```math', '')
+        .replaceAll('```', '')
+        .trim();
+
+    if (result.startsWith(r'$$') && result.endsWith(r'$$')) {
+      result = result.substring(2, result.length - 2).trim();
+    } else if (result.startsWith(r'$') && result.endsWith(r'$')) {
+      result = result.substring(1, result.length - 1).trim();
+    } else if (result.startsWith(r'\[') && result.endsWith(r'\]')) {
+      result = result.substring(2, result.length - 2).trim();
+    } else if (result.startsWith(r'\(') && result.endsWith(r'\)')) {
+      result = result.substring(2, result.length - 2).trim();
+    }
+
+    return result;
+  }
+
+  String _readableFallback(String value) {
+    return value
+        .replaceAll(r'\leq', '≤')
+        .replaceAll(r'\le', '≤')
+        .replaceAll(r'\geq', '≥')
+        .replaceAll(r'\ge', '≥')
+        .replaceAll(r'\neq', '≠')
+        .replaceAll(r'\ne', '≠')
+        .replaceAll(r'\approx', '≈')
+        .replaceAll(r'\times', '×')
+        .replaceAll(r'\div', '÷')
+        .replaceAll(r'\cdot', '·')
+        .replaceAll(r'\pm', '±')
+        .replaceAll(r'\pi', 'π')
+        .replaceAll(r'\alpha', 'α')
+        .replaceAll(r'\beta', 'β')
+        .replaceAll(r'\theta', 'θ')
+        .replaceAll(r'\infty', '∞')
+        .replaceAll(r'\sum', '∑')
+        .replaceAll(r'\int', '∫')
+        .replaceAll(r'\prod', '∏')
+        .replaceAll(r'\left', '')
+        .replaceAll(r'\right', '')
+        .replaceAll(r'\,', ' ')
+        .replaceAll(r'\;', ' ')
+        .replaceAll(r'\:', ' ')
+        .replaceAll(r'\!', '')
+        .trim();
+  }
+
+  String _previewContent(String value) {
+    final String normalized = value
+        .replaceAll('```latex', '')
+        .replaceAll('```math', '')
+        .replaceAll('```', '')
+        .trim();
+
+    // Only preview the first nonempty line.
+    for (final String line in normalized.split('\n')) {
+      if (line.trim().isNotEmpty) {
+        return line.trim();
+      }
+    }
+
+    return normalized;
+  }
+
+  Widget _buildText(String value) {
+    return Text(
+      _readableFallback(value),
+      maxLines: 4,
+      overflow: TextOverflow.ellipsis,
+      style: HistoryScreenStyles.previewTextStyle,
+    );
+  }
+
+  Widget _buildFormula(String value) {
+    final String formula = _prepareFormula(value);
+
+    if (formula.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: 38,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topLeft,
+        child: Math.tex(
+          formula,
+          mathStyle: MathStyle.text,
+          textStyle: HistoryScreenStyles.previewTextStyle,
+          onErrorFallback: (_) => _buildText(formula),
+        ),
       ),
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String previewContent = _previewContent(content);
+
+    if (previewContent.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final RegExpMatch? match = _mathPattern.firstMatch(previewContent);
+
+    if (match != null) {
+      final String formula =
+          match.group(1) ??
+          match.group(2) ??
+          match.group(3) ??
+          match.group(4) ??
+          '';
+
+      final String precedingText = previewContent
+          .substring(0, match.start)
+          .trim();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (precedingText.isNotEmpty) _buildText(precedingText),
+          if (precedingText.isNotEmpty) const SizedBox(height: 3),
+          _buildFormula(formula),
+        ],
+      );
+    }
+
+    final bool looksLikeMath =
+        _mathCommandPattern.hasMatch(previewContent) ||
+        (RegExp(
+              r'^[\s\dA-Za-z()+\-*/^_=<>≤≥≠√×÷.]+$',
+            ).hasMatch(previewContent) &&
+            RegExp(r'[=<>≤≥≠√^+\-*/]').hasMatch(previewContent));
+
+    if (looksLikeMath) {
+      return _buildFormula(previewContent);
+    }
+
+    return _buildText(previewContent);
   }
 }
 

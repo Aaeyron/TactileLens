@@ -223,31 +223,28 @@ class DocumentLayoutView extends StatelessWidget {
   }
 
   Widget _buildPlainTextFallback() {
-    final String content = _toReadableMathText(_normalizeProse(fallbackText));
+  final String content = _normalizeProse(fallbackText);
 
-    if (content.isEmpty) {
-      return const Padding(
-        padding: ScanResultScreenStyles.layoutUnavailablePadding,
-        child: Text(
-          'No document content is available.',
-          textAlign: TextAlign.center,
-          style: ScanResultScreenStyles.layoutUnavailableStyle,
-        ),
-      );
-    }
-
-    return Semantics(
-      container: true,
-      label: semanticLabel,
-      child: Padding(
-        padding: ScanResultScreenStyles.contentPreviewPadding,
-        child: SelectableText(
-          content,
-          style: ScanResultScreenStyles.recognizedContentStyle,
-        ),
+  if (content.isEmpty) {
+    return const Padding(
+      padding: ScanResultScreenStyles.layoutUnavailablePadding,
+      child: Text(
+        'No document content is available.',
+        textAlign: TextAlign.center,
+        style: ScanResultScreenStyles.layoutUnavailableStyle,
       ),
     );
   }
+
+  return Semantics(
+    container: true,
+    label: semanticLabel,
+    child: Padding(
+      padding: ScanResultScreenStyles.contentPreviewPadding,
+      child: _ReadableMixedMathContent(content: content),
+    ),
+  );
+}
 
   static String _normalizeProse(String value) {
     return value
@@ -299,31 +296,27 @@ class _ReadableDocumentPage extends StatelessWidget {
     final List<String> pendingText = <String>[];
 
     void flushPendingText() {
-      if (pendingText.isEmpty) {
-        return;
-      }
+  if (pendingText.isEmpty) {
+    return;
+  }
 
-      final String combinedText = pendingText
-          .map(_normalizeTextBlock)
-          .where((String value) => value.isNotEmpty)
-          .join(' ')
-          .replaceAll(RegExp(r' {2,}'), ' ')
-          .trim();
+  final String combinedText = pendingText
+      .map(_normalizeTextBlock)
+      .where((String value) => value.isNotEmpty)
+      .join('\n')
+      .trim();
 
-      pendingText.clear();
+  pendingText.clear();
 
-      if (combinedText.isEmpty) {
-        return;
-      }
+  if (combinedText.isEmpty) {
+    return;
+  }
 
-      _addWithSpacing(
-        widgets,
-        SelectableText(
-          combinedText,
-          style: ScanResultScreenStyles.recognizedContentStyle,
-        ),
-      );
-    }
+  _addWithSpacing(
+    widgets,
+    _ReadableMixedMathContent(content: combinedText),
+  );
+}
 
     for (final DocumentBlock block in page.blocks) {
       final String normalizedContent = block.normalizedContent.trim();
@@ -368,8 +361,12 @@ class _ReadableDocumentPage extends StatelessWidget {
       }
 
       if (content.isNotEmpty) {
-        pendingText.add(content);
-      }
+  pendingText.add(
+    RegExp(r'\\[A-Za-z]+').hasMatch(formulaContent)
+        ? formulaContent
+        : content,
+  );
+}
     }
 
     flushPendingText();
@@ -449,6 +446,7 @@ class _ReadableDocumentPage extends StatelessWidget {
   }
 }
 
+
 class _ReadableMixedMathContent extends StatelessWidget {
   const _ReadableMixedMathContent({required this.content});
 
@@ -461,104 +459,183 @@ class _ReadableMixedMathContent extends StatelessWidget {
     r'|\\\(([\s\S]*?)\\\)',
   );
 
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> children = <Widget>[];
-    int contentIndex = 0;
+  static final RegExp _latexCommandPattern = RegExp(r'\\[A-Za-z]+');
 
-    for (final RegExpMatch match in inlineMathPattern.allMatches(content)) {
-      _addText(children, content.substring(contentIndex, match.start));
+  static final RegExp _mathExpressionPattern = RegExp(
+    r'\\[A-Za-z]+'
+    r'|[A-Za-z0-9)\]}]\s*[\^_=<>≤≥≠+\-*/]\s*[A-Za-z0-9(\[{]',
+  );
 
-      final String formula =
-          (match.group(1) ??
-                  match.group(2) ??
-                  match.group(3) ??
-                  match.group(4) ??
-                  '')
-              .trim();
+  static final RegExp _prosePattern = RegExp(
+    r'\b(?:solve|find|simplify|evaluate|calculate|'
+    r'determine|given|where|when|the|a|an|of|is|'
+    r'and|for|then|equation|expression|function|'
+    r'following|value|answer|which|what)\b',
+    caseSensitive: false,
+  );
 
-      _addFormula(children, formula);
+  static String _cleanFormula(String value) {
+    String formula = value
+        .replaceAll('```latex', '')
+        .replaceAll('```math', '')
+        .replaceAll('```', '')
+        .trim();
 
-      contentIndex = match.end;
+    if (formula.startsWith(r'$$') && formula.endsWith(r'$$')) {
+      formula = formula.substring(2, formula.length - 2).trim();
+    } else if (formula.startsWith(r'$') && formula.endsWith(r'$')) {
+      formula = formula.substring(1, formula.length - 1).trim();
+    } else if (formula.startsWith(r'\[') && formula.endsWith(r'\]')) {
+      formula = formula.substring(2, formula.length - 2).trim();
+    } else if (formula.startsWith(r'\(') && formula.endsWith(r'\)')) {
+      formula = formula.substring(2, formula.length - 2).trim();
     }
 
-    final String remainingContent = content.substring(contentIndex);
+    return formula;
+  }
 
-    // Paddle occasionally omits the final closing dollar sign.
-    final int unmatchedDollarIndex = remainingContent.indexOf(r'$');
+  static Widget _buildText(String value) {
+    final String readable = _toReadableMathText(value).trim();
 
-    if (unmatchedDollarIndex >= 0) {
-      _addText(children, remainingContent.substring(0, unmatchedDollarIndex));
-
-      _addFormula(
-        children,
-        remainingContent
-            .substring(unmatchedDollarIndex + 1)
-            .replaceAll(r'$', '')
-            .trim(),
-      );
-    } else {
-      _addText(children, remainingContent);
+    if (readable.isEmpty) {
+      return const SizedBox.shrink();
     }
 
-    if (children.isEmpty) {
-      return SelectableText(
-        _toReadableMathText(content),
-        style: ScanResultScreenStyles.recognizedContentStyle,
-      );
+    return SelectableText(
+      readable,
+      style: ScanResultScreenStyles.recognizedContentStyle,
+    );
+  }
+
+  static Widget _buildFormula(String value) {
+    final String formula = _cleanFormula(value);
+
+    if (formula.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     return Semantics(
-      label: _toReadableMathText(content).replaceAll(r'$', ''),
-      child: Wrap(
-        alignment: WrapAlignment.start,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 4,
-        runSpacing: 8,
-        children: children,
-      ),
-    );
-  }
-
-  static void _addText(List<Widget> children, String value) {
-    final String normalizedText = _toReadableMathText(
-      value,
-    ).replaceAll(RegExp(r'\s+'), ' ').trim();
-
-    if (normalizedText.isEmpty) {
-      return;
-    }
-
-    children.add(
-      Text(
-        normalizedText,
-        style: ScanResultScreenStyles.recognizedContentStyle,
-      ),
-    );
-  }
-
-  static void _addFormula(List<Widget> children, String formula) {
-    if (formula.isEmpty) {
-      return;
-    }
-
-    children.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
+      label: 'Mathematical expression: ${_toReadableMathText(formula)}',
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         child: Math.tex(
           formula,
           mathStyle: MathStyle.text,
-          textStyle: ScanResultScreenStyles.recognizedContentStyle.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
-          onErrorFallback: (_) {
-            return Text(
-              _toReadableMathText(formula),
-              style: ScanResultScreenStyles.recognizedContentStyle,
-            );
-          },
+          textStyle: ScanResultScreenStyles.recognizedContentStyle,
+          onErrorFallback: (_) => _buildText(formula),
         ),
       ),
+    );
+  }
+
+  static List<Widget> _buildUnmarkedContent(String value) {
+    final String text = value.trim();
+
+    if (text.isEmpty) {
+      return <Widget>[];
+    }
+
+    final RegExpMatch? mathMatch = _mathExpressionPattern.firstMatch(text);
+
+    if (mathMatch == null) {
+      return <Widget>[_buildText(text)];
+    }
+
+    // When the entire line is mathematical notation, render it as math.
+    if (!_prosePattern.hasMatch(text) &&
+        (_latexCommandPattern.hasMatch(text) ||
+            RegExp(r'[=<>≤≥≠^_]').hasMatch(text))) {
+      return <Widget>[_buildFormula(text)];
+    }
+
+    // For a sentence containing unmarked LaTeX, keep the preceding
+    // English text separate from the mathematical expression.
+    final RegExpMatch? latexMatch = _latexCommandPattern.firstMatch(text);
+
+    if (latexMatch == null) {
+      return <Widget>[_buildText(text)];
+    }
+
+    final String before = text.substring(0, latexMatch.start).trim();
+    final String formula = text.substring(latexMatch.start).trim();
+
+    return <Widget>[
+      if (before.isNotEmpty) _buildText(before),
+      if (formula.isNotEmpty) _buildFormula(formula),
+    ];
+  }
+
+  static List<Widget> _buildLine(String line) {
+    final List<Widget> widgets = <Widget>[];
+    int currentIndex = 0;
+
+    for (final RegExpMatch match in inlineMathPattern.allMatches(line)) {
+      widgets.addAll(
+        _buildUnmarkedContent(
+          line.substring(currentIndex, match.start),
+        ),
+      );
+
+      final String formula =
+          match.group(1) ??
+          match.group(2) ??
+          match.group(3) ??
+          match.group(4) ??
+          '';
+
+      if (formula.trim().isNotEmpty) {
+        widgets.add(_buildFormula(formula));
+      }
+
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < line.length) {
+      widgets.addAll(
+        _buildUnmarkedContent(line.substring(currentIndex)),
+      );
+    }
+
+    return widgets;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String normalizedContent = content
+        .replaceAll('```latex', '')
+        .replaceAll('```math', '')
+        .replaceAll('```', '')
+        .trim();
+
+    if (normalizedContent.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Widget> widgets = <Widget>[];
+
+    for (final String line in normalizedContent.split('\n')) {
+      final List<Widget> lineWidgets = _buildLine(line);
+
+      if (lineWidgets.isEmpty) {
+        continue;
+      }
+
+      if (widgets.isNotEmpty) {
+        widgets.add(
+          const SizedBox(
+            height: ScanResultScreenStyles.unifiedBlockSpacing,
+          ),
+        );
+      }
+
+      widgets.addAll(lineWidgets);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: widgets,
     );
   }
 }

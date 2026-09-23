@@ -179,10 +179,10 @@ abstract final class HistoryScreenStyles {
     BoxShadow(color: Color(0x0D102A43), blurRadius: 10, offset: Offset(0, 4)),
   ];
 
-  static const double previewWidth = 68;
-  static const double previewHeight = 94;
+  static const double previewWidth = 76;
+static const double previewHeight = 94;
 
-  static const EdgeInsets previewPadding = EdgeInsets.all(7);
+static const EdgeInsets previewPadding = EdgeInsets.all(6);
 
   static const BorderRadius previewRadius = BorderRadius.all(
     Radius.circular(7),
@@ -305,8 +305,9 @@ abstract final class HistoryScreenStyles {
 
   static const TextStyle previewTextStyle = TextStyle(
     color: textPrimaryColor,
-    fontSize: 7.5,
-    height: 1.3,
+    fontSize: 8,
+    height: 1.35,
+    fontWeight: FontWeight.w500,
   );
 
   static const TextStyle badgeTextStyle = TextStyle(
