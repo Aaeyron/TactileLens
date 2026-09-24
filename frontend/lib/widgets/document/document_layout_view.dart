@@ -223,28 +223,28 @@ class DocumentLayoutView extends StatelessWidget {
   }
 
   Widget _buildPlainTextFallback() {
-  final String content = _normalizeProse(fallbackText);
+    final String content = _normalizeProse(fallbackText);
 
-  if (content.isEmpty) {
-    return const Padding(
-      padding: ScanResultScreenStyles.layoutUnavailablePadding,
-      child: Text(
-        'No document content is available.',
-        textAlign: TextAlign.center,
-        style: ScanResultScreenStyles.layoutUnavailableStyle,
+    if (content.isEmpty) {
+      return const Padding(
+        padding: ScanResultScreenStyles.layoutUnavailablePadding,
+        child: Text(
+          'No document content is available.',
+          textAlign: TextAlign.center,
+          style: ScanResultScreenStyles.layoutUnavailableStyle,
+        ),
+      );
+    }
+
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: ScanResultScreenStyles.contentPreviewPadding,
+        child: _ReadableMixedMathContent(content: content),
       ),
     );
   }
-
-  return Semantics(
-    container: true,
-    label: semanticLabel,
-    child: Padding(
-      padding: ScanResultScreenStyles.contentPreviewPadding,
-      child: _ReadableMixedMathContent(content: content),
-    ),
-  );
-}
 
   static String _normalizeProse(String value) {
     return value
@@ -293,32 +293,97 @@ class _ReadableDocumentPage extends StatelessWidget {
 
   List<Widget> _buildReadableContent() {
     final List<Widget> widgets = <Widget>[];
-    final List<String> pendingText = <String>[];
+    final List<String> pendingContent = <String>[];
 
-    void flushPendingText() {
-  if (pendingText.isEmpty) {
-    return;
-  }
+    DocumentBlock? previousBlock;
 
-  final String combinedText = pendingText
-      .map(_normalizeTextBlock)
-      .where((String value) => value.isNotEmpty)
-      .join('\n')
-      .trim();
+    // A bbox is usable only when it contains four ordered coordinates:
+    // [left, top, right, bottom].
+    bool hasValidBox(DocumentBlock block) {
+      final List<double> box = block.boundingBox;
 
-  pendingText.clear();
+      return box.length >= 4 &&
+          box.take(4).every((double value) => value.isFinite) &&
+          box[2] > box[0] &&
+          box[3] > box[1];
+    }
 
-  if (combinedText.isEmpty) {
-    return;
-  }
+    double blockHeight(DocumentBlock block) {
+      return block.boundingBox[3] - block.boundingBox[1];
+    }
 
-  _addWithSpacing(
-    widgets,
-    _ReadableMixedMathContent(content: combinedText),
-  );
-}
+    void flushPendingContent() {
+      if (pendingContent.isEmpty) {
+        return;
+      }
 
-    for (final DocumentBlock block in page.blocks) {
+      final String combinedContent = pendingContent
+          .where((String value) => value.trim().isNotEmpty)
+          .join(' ')
+          .replaceAll(RegExp(r'[ \t]+'), ' ')
+          .trim();
+
+      pendingContent.clear();
+
+      if (combinedContent.isEmpty) {
+        return;
+      }
+
+      _addWithSpacing(
+        widgets,
+        _ReadableMixedMathContent(content: combinedContent),
+      );
+    }
+
+    bool startsNewParagraph(DocumentBlock previous, DocumentBlock current) {
+      // If OCR did not provide usable positions, do not invent a break.
+      if (!hasValidBox(previous) || !hasValidBox(current)) {
+        return false;
+      }
+
+      final List<double> a = previous.boundingBox;
+      final List<double> b = current.boundingBox;
+
+      final double averageHeight =
+          (blockHeight(previous) + blockHeight(current)) / 2;
+
+      // Positive vertical distance between the previous block's
+      // bottom edge and the current block's top edge.
+      final double verticalGap = b[1] - a[3];
+
+      // Blocks that overlap vertically are likely on the same
+      // printed line, even if OCR returned them separately.
+      if (verticalGap <= 0) {
+        return false;
+      }
+
+      // A gap noticeably larger than the typical text height
+      // is an indication of a paragraph or section break.
+      if (verticalGap > averageHeight * 0.75) {
+        return true;
+      }
+
+      // An indented block following an earlier line may indicate
+      // the start of a new paragraph.
+      if (page.width > 0) {
+        final double indentation = b[0] - a[0];
+        final double minimumIndent = page.width * 0.035;
+
+        if (indentation > minimumIndent && verticalGap > averageHeight * 0.15) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    bool isStandaloneFormula(DocumentBlock block) {
+      // Keep explicitly identified display equations separate.
+      // An inline formula should remain with its surrounding text.
+      return block.type == 'display_formula';
+    }
+
+    String readableBlockContent(DocumentBlock block) {
       final String normalizedContent = block.normalizedContent.trim();
       final String rawContent = block.rawContent.trim();
 
@@ -330,46 +395,78 @@ class _ReadableDocumentPage extends StatelessWidget {
           ? rawContent
           : content;
 
+      if (formulaContent.isEmpty) {
+        return content;
+      }
+
+      if (_containsMixedMathContent(formulaContent)) {
+        return formulaContent;
+      }
+
+      if (_shouldRenderAsFormula(block, formulaContent)) {
+        final String formula = formulaContent
+            .replaceAll('```latex', '')
+            .replaceAll('```math', '')
+            .replaceAll('```', '')
+            .trim();
+
+        if (formula.isEmpty) {
+          return content;
+        }
+
+        // Do not add another pair of delimiters if OCR already
+        // supplied a complete marked math expression.
+        if (_ReadableMixedMathContent.inlineMathPattern.hasMatch(formula)) {
+          return formula;
+        }
+
+        return r'$' + formula + r'$';
+      }
+
+      // Preserve raw LaTeX commands when normalization removed
+      // information needed for visual math rendering.
+      return RegExp(r'\\[A-Za-z]+').hasMatch(formulaContent)
+          ? formulaContent
+          : content;
+    }
+
+    for (final DocumentBlock block in page.blocks) {
+      final String content = readableBlockContent(block);
+
       if (block.hasTableData) {
-        flushPendingText();
+        flushPendingContent();
 
         _addWithSpacing(
           widgets,
           _ReadableDocumentTable(block: block, fallbackContent: content),
         );
 
+        previousBlock = null;
         continue;
       }
 
-      if (_containsMixedMathContent(formulaContent)) {
-        flushPendingText();
-
-        _addWithSpacing(
-          widgets,
-          _ReadableMixedMathContent(content: formulaContent),
-        );
-
+      if (content.isEmpty) {
         continue;
       }
 
-      if (_shouldRenderAsFormula(block, formulaContent)) {
-        flushPendingText();
+      if (isStandaloneFormula(block)) {
+        flushPendingContent();
 
-        _addWithSpacing(widgets, _ReadableFormula(content: formulaContent));
+        _addWithSpacing(widgets, _ReadableMixedMathContent(content: content));
 
+        previousBlock = null;
         continue;
       }
 
-      if (content.isNotEmpty) {
-  pendingText.add(
-    RegExp(r'\\[A-Za-z]+').hasMatch(formulaContent)
-        ? formulaContent
-        : content,
-  );
-}
+      if (previousBlock != null && startsNewParagraph(previousBlock, block)) {
+        flushPendingContent();
+      }
+
+      pendingContent.add(content);
+      previousBlock = block;
     }
 
-    flushPendingText();
+    flushPendingContent();
 
     return widgets;
   }
@@ -446,7 +543,6 @@ class _ReadableDocumentPage extends StatelessWidget {
   }
 }
 
-
 class _ReadableMixedMathContent extends StatelessWidget {
   const _ReadableMixedMathContent({required this.content});
 
@@ -457,21 +553,6 @@ class _ReadableMixedMathContent extends StatelessWidget {
     r'|\$([^$]+?)\$'
     r'|\\\[([\s\S]*?)\\\]'
     r'|\\\(([\s\S]*?)\\\)',
-  );
-
-  static final RegExp _latexCommandPattern = RegExp(r'\\[A-Za-z]+');
-
-  static final RegExp _mathExpressionPattern = RegExp(
-    r'\\[A-Za-z]+'
-    r'|[A-Za-z0-9)\]}]\s*[\^_=<>≤≥≠+\-*/]\s*[A-Za-z0-9(\[{]',
-  );
-
-  static final RegExp _prosePattern = RegExp(
-    r'\b(?:solve|find|simplify|evaluate|calculate|'
-    r'determine|given|where|when|the|a|an|of|is|'
-    r'and|for|then|equation|expression|function|'
-    r'following|value|answer|which|what)\b',
-    caseSensitive: false,
   );
 
   static String _cleanFormula(String value) {
@@ -494,88 +575,54 @@ class _ReadableMixedMathContent extends StatelessWidget {
     return formula;
   }
 
-  static Widget _buildText(String value) {
-    final String readable = _toReadableMathText(value).trim();
+  static TextSpan _textSpan(String value) {
+    final String readable = _toReadableMathText(value);
 
-    if (readable.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final bool hasLeadingSpace =
+        value.isNotEmpty && RegExp(r'^\s').hasMatch(value);
 
-    return SelectableText(
-      readable,
-      style: ScanResultScreenStyles.recognizedContentStyle,
+    final bool hasTrailingSpace =
+        value.isNotEmpty && RegExp(r'\s$').hasMatch(value);
+
+    return TextSpan(
+      text:
+          '${hasLeadingSpace ? ' ' : ''}'
+          '$readable'
+          '${hasTrailingSpace ? ' ' : ''}',
     );
   }
 
-  static Widget _buildFormula(String value) {
+  static InlineSpan _formulaSpan(String value) {
     final String formula = _cleanFormula(value);
 
     if (formula.isEmpty) {
-      return const SizedBox.shrink();
+      return const TextSpan(text: '');
     }
 
-    return Semantics(
-      label: 'Mathematical expression: ${_toReadableMathText(formula)}',
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Math.tex(
-          formula,
-          mathStyle: MathStyle.text,
-          textStyle: ScanResultScreenStyles.recognizedContentStyle,
-          onErrorFallback: (_) => _buildText(formula),
-        ),
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.middle,
+      child: Math.tex(
+        formula,
+        mathStyle: MathStyle.text,
+        textStyle: ScanResultScreenStyles.recognizedContentStyle,
+        onErrorFallback: (_) {
+          return Text(
+            _toReadableMathText(formula),
+            style: ScanResultScreenStyles.recognizedContentStyle,
+          );
+        },
       ),
     );
   }
 
-  static List<Widget> _buildUnmarkedContent(String value) {
-    final String text = value.trim();
-
-    if (text.isEmpty) {
-      return <Widget>[];
-    }
-
-    final RegExpMatch? mathMatch = _mathExpressionPattern.firstMatch(text);
-
-    if (mathMatch == null) {
-      return <Widget>[_buildText(text)];
-    }
-
-    // When the entire line is mathematical notation, render it as math.
-    if (!_prosePattern.hasMatch(text) &&
-        (_latexCommandPattern.hasMatch(text) ||
-            RegExp(r'[=<>≤≥≠^_]').hasMatch(text))) {
-      return <Widget>[_buildFormula(text)];
-    }
-
-    // For a sentence containing unmarked LaTeX, keep the preceding
-    // English text separate from the mathematical expression.
-    final RegExpMatch? latexMatch = _latexCommandPattern.firstMatch(text);
-
-    if (latexMatch == null) {
-      return <Widget>[_buildText(text)];
-    }
-
-    final String before = text.substring(0, latexMatch.start).trim();
-    final String formula = text.substring(latexMatch.start).trim();
-
-    return <Widget>[
-      if (before.isNotEmpty) _buildText(before),
-      if (formula.isNotEmpty) _buildFormula(formula),
-    ];
-  }
-
-  static List<Widget> _buildLine(String line) {
-    final List<Widget> widgets = <Widget>[];
+  static List<InlineSpan> _parseLine(String line) {
+    final List<InlineSpan> spans = <InlineSpan>[];
     int currentIndex = 0;
 
     for (final RegExpMatch match in inlineMathPattern.allMatches(line)) {
-      widgets.addAll(
-        _buildUnmarkedContent(
-          line.substring(currentIndex, match.start),
-        ),
-      );
+      if (match.start > currentIndex) {
+        spans.add(_textSpan(line.substring(currentIndex, match.start)));
+      }
 
       final String formula =
           match.group(1) ??
@@ -584,20 +631,16 @@ class _ReadableMixedMathContent extends StatelessWidget {
           match.group(4) ??
           '';
 
-      if (formula.trim().isNotEmpty) {
-        widgets.add(_buildFormula(formula));
-      }
+      spans.add(_formulaSpan(formula));
 
       currentIndex = match.end;
     }
 
     if (currentIndex < line.length) {
-      widgets.addAll(
-        _buildUnmarkedContent(line.substring(currentIndex)),
-      );
+      spans.add(_textSpan(line.substring(currentIndex)));
     }
 
-    return widgets;
+    return spans;
   }
 
   @override
@@ -612,30 +655,24 @@ class _ReadableMixedMathContent extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final List<Widget> widgets = <Widget>[];
+    final List<InlineSpan> spans = <InlineSpan>[];
 
-    for (final String line in normalizedContent.split('\n')) {
-      final List<Widget> lineWidgets = _buildLine(line);
+    final List<String> lines = normalizedContent.split('\n');
 
-      if (lineWidgets.isEmpty) {
-        continue;
+    for (int index = 0; index < lines.length; index++) {
+      if (index > 0) {
+        spans.add(const TextSpan(text: '\n'));
       }
 
-      if (widgets.isNotEmpty) {
-        widgets.add(
-          const SizedBox(
-            height: ScanResultScreenStyles.unifiedBlockSpacing,
-          ),
-        );
-      }
-
-      widgets.addAll(lineWidgets);
+      spans.addAll(_parseLine(lines[index]));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: widgets,
+    return SelectableText.rich(
+      TextSpan(
+        style: ScanResultScreenStyles.recognizedContentStyle,
+        children: spans,
+      ),
+      textAlign: TextAlign.start,
     );
   }
 }
