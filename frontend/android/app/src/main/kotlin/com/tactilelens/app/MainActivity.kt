@@ -13,6 +13,9 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val LIBLOUIS_CHANNEL =
             "com.tactilelens.app/liblouis"
+        
+        private const val PADDLE_ONNX_CHANNEL =
+            "com.tactilelens.app/paddle_onnx"
 
         private const val PADDLEOCR_VL_CHANNEL =
              "com.tactilelens.app/paddleocr_vl"
@@ -29,6 +32,9 @@ class MainActivity : FlutterActivity() {
 
     private val liblouisExecutor: ExecutorService =
         Executors.newSingleThreadExecutor() 
+
+    private val paddleOnnxExecutor: ExecutorService =
+    Executors.newSingleThreadExecutor()
     
     private val paddleOcrVlExecutor: ExecutorService =
     Executors.newSingleThreadExecutor()
@@ -39,6 +45,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         configureLiblouisChannel(flutterEngine)
+        configurePaddleOnnxChannel(flutterEngine)
         configurePaddleOcrVlChannel(flutterEngine)
     }
 
@@ -109,6 +116,37 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
+
+    private fun configurePaddleOnnxChannel(
+    flutterEngine: FlutterEngine,
+) {
+    MethodChannel(
+        flutterEngine.dartExecutor.binaryMessenger,
+        PADDLE_ONNX_CHANNEL,
+    ).setMethodCallHandler { call, result ->
+        when (call.method) {
+            "runtimeInfo" -> {
+                runPaddleOnnxTask(result) {
+                    PaddleOnnxNative.runtimeInfo()
+                }
+            }
+
+            "validateModels" -> {
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                runPaddleOnnxTask(result) {
+                    PaddleOnnxNative.validateModels(
+                        context = applicationContext,
+                        threadCount = threadCount,
+                    )
+                }
+            }
+
+            else -> result.notImplemented()
+        }
+    }
+}
 
    private fun configurePaddleOcrVlChannel(
     flutterEngine: FlutterEngine,
@@ -429,10 +467,38 @@ private fun loadPaddleOcrVlModels(
         }
     }
 
-    override fun onDestroy() {
-        liblouisExecutor.shutdown()
-        paddleOcrVlExecutor.shutdown()
+    private fun runPaddleOnnxTask(
+    result: MethodChannel.Result,
+    operation: () -> Any?,
+) {
+    paddleOnnxExecutor.execute {
+        try {
+            val value = operation()
 
-        super.onDestroy()
+            mainHandler.post {
+                result.success(value)
+            }
+        } catch (error: Throwable) {
+            mainHandler.post {
+                result.error(
+                    "PADDLE_ONNX_ERROR",
+                    error.message
+                        ?: "The offline ONNX runtime failed.",
+                    mapOf(
+                        "error_type" to
+                            error.javaClass.simpleName,
+                    ),
+                )
+            }
+        }
     }
+}
+
+    override fun onDestroy() {
+    liblouisExecutor.shutdown()
+    paddleOnnxExecutor.shutdown()
+    paddleOcrVlExecutor.shutdown()
+
+    super.onDestroy()
+}
 }

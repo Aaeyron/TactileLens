@@ -64,6 +64,12 @@ android {
     }
 }
 
+dependencies {
+    implementation(
+        "com.microsoft.onnxruntime:onnxruntime-android:1.30.0",
+    )
+}
+
 kotlin {
     compilerOptions {
         jvmTarget =

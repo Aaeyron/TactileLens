@@ -16,3 +16,6 @@ pnpm-debug.log*
 
 # Datasets
 datasets/
+
+# Local Android ONNX models
+frontend/android/app/src/main/assets/paddle_onnx/

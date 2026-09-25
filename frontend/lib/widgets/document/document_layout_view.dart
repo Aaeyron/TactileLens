@@ -452,7 +452,10 @@ class _ReadableDocumentPage extends StatelessWidget {
       if (isStandaloneFormula(block)) {
         flushPendingContent();
 
-        _addWithSpacing(widgets, _ReadableMixedMathContent(content: content));
+       _addWithSpacing(
+  widgets,
+  _ReadableFormula(content: content),
+);
 
         previousBlock = null;
         continue;
@@ -536,10 +539,6 @@ class _ReadableDocumentPage extends StatelessWidget {
 
     return naturalWordCount <= 1 &&
         (hasRelation || hasOperation || hasFunctionNotation);
-  }
-
-  String _normalizeTextBlock(String value) {
-    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }
 
