@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'services/ai/paddle_onnx_native_service.dart';
+import 'services/ai/paddleocr_vl_native_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,8 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   static const double _lowConfidence = 0.80;
 
   final PaddleOnnxNativeService _service = const PaddleOnnxNativeService();
-  final ImagePicker _picker = ImagePicker();
+    final ImagePicker _picker = ImagePicker();
+    final PaddleOcrVlNativeService _vlService = const PaddleOcrVlNativeService();
 
   // ---- Model validation (existing) ----
   bool _isRunning = true;
@@ -49,8 +51,18 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   String? _scanError;
   String? _imagePath;
   OfflineOcrResult? _scanResult;
-  int? _initWallMs;
+    int? _initWallMs;
   int? _scanWallMs;
+
+  // ---- Formula crop test (PaddleOCR-VL GGUF) ----
+  bool _isFormulaTesting = false;
+  String _formulaStatus = '';
+  String? _formulaError;
+  String? _formulaImagePath;
+  String? _formulaLatex;
+  int? _formulaLoadMs;
+  int? _formulaScanMs;
+  int? _formulaWallMs;
 
   @override
   void initState() {
@@ -193,10 +205,105 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     }
   }
 
+    // Temporary: measure PaddleOCR-VL formula recognition on ONE cropped
+  // equation. Decides whether VL is fast enough to be the offline math engine.
+  Future<void> _testFormulaCrop() async {
+    if (_isRunning || _isScanning || _isFormulaTesting) {
+      return;
+    }
+
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isFormulaTesting = true;
+      _formulaStatus =
+          'Loading PaddleOCR-VL models (first load can take a while)...';
+      _formulaError = null;
+      _formulaLatex = null;
+      _formulaImagePath = picked.path;
+      _formulaLoadMs = null;
+      _formulaScanMs = null;
+      _formulaWallMs = null;
+    });
+
+    try {
+      await _vlService.initialize();
+
+      final PaddleOcrVlModelStatus status = await _vlService.modelStatus();
+      int loadMs = status.loadTimeMs;
+
+      if (!status.loaded) {
+        final PaddleOcrVlModelLoadResult load = await _vlService.loadModels(
+          threadCount: _threadCount,
+        );
+
+        if (!load.loaded) {
+          throw PaddleOcrVlNativeException(
+            '${load.error ?? 'The PaddleOCR-VL models could not be loaded.'}\n'
+            'Model: ${load.modelPath}\n'
+            'Projector: ${load.projectorPath}',
+          );
+        }
+
+        loadMs = load.loadTimeMs;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _formulaLoadMs = loadMs;
+        _formulaStatus = 'Recognizing formula...';
+      });
+
+      final Stopwatch watch = Stopwatch()..start();
+      final PaddleOcrVlScanResult result = await _vlService.scanImage(
+        imagePath: picked.path,
+        prompt: 'Formula Recognition:',
+        maximumTokens: 256,
+        threadCount: _threadCount,
+      );
+      watch.stop();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isFormulaTesting = false;
+        _formulaScanMs = result.scanTimeMs;
+        _formulaWallMs = watch.elapsedMilliseconds;
+        _formulaLatex = result.content;
+        _formulaError =
+            result.success ? null : (result.error ?? 'No formula returned.');
+        _formulaStatus =
+            result.success ? 'Formula recognized.' : 'Formula recognition failed';
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Formula crop test failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isFormulaTesting = false;
+        _formulaStatus = 'Formula recognition failed';
+        _formulaError = error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final bool busy = _isRunning || _isScanning;
+      final bool busy = _isRunning || _isScanning || _isFormulaTesting;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Offline Paddle ONNX Test')),
@@ -261,9 +368,74 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 ),
               ],
 
+                            const Divider(height: 48),
+
+              // ---- Formula crop test (PaddleOCR-VL) ----
+              Text(
+                'Formula crop test (PaddleOCR-VL)',
+                style: textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pick an image cropped tightly around ONE equation.',
+                style: textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: busy ? null : _testFormulaCrop,
+                icon: const Icon(Icons.functions_rounded),
+                label: const Text('Pick equation crop'),
+              ),
+              if (_isFormulaTesting) ...<Widget>[
+                const SizedBox(height: 16),
+                const LinearProgressIndicator(),
+              ],
+              if (_formulaStatus.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 16),
+                Text(_formulaStatus, style: textTheme.titleMedium),
+              ],
+              if (_formulaError != null) ...<Widget>[
+                const SizedBox(height: 8),
+                SelectableText(
+                  _formulaError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              if (_formulaImagePath != null) ...<Widget>[
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(_formulaImagePath!),
+                    height: 120,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+              if (_formulaLatex != null && _formulaLatex!.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 16),
+                Text('LaTeX output:', style: textTheme.labelLarge),
+                const SizedBox(height: 4),
+                SelectableText(
+                  _formulaLatex!,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 16),
+                ),
+              ],
+              if (_formulaWallMs != null) ...<Widget>[
+                const SizedBox(height: 12),
+                SelectableText(
+                  'Model load: ${_formulaLoadMs ?? 0} ms\n'
+                  'Formula scan (native): ${_formulaScanMs ?? 0} ms\n'
+                  'Formula round trip (Flutter): $_formulaWallMs ms\n'
+                  'Threads: $_threadCount',
+                  style: textTheme.bodyMedium,
+                ),
+              ],
+
               const Divider(height: 48),
 
               // ---- Model validation (existing) ----
+
               Text('Model validation', style: textTheme.titleLarge),
               const SizedBox(height: 12),
               if (_isRunning) ...<Widget>[

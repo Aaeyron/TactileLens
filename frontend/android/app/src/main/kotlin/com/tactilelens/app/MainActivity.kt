@@ -1,11 +1,14 @@
 package com.tactilelens.app
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
@@ -317,9 +320,15 @@ class MainActivity : FlutterActivity() {
                             },
                 )
             } else {
+                               // llama.cpp's image loader only supports basic
+                // JPEG/PNG. Re-encode through Android so WebP/HEIC
+                // and edited gallery images also work.
+                val preparedImagePath =
+                    prepareImageForPaddleOcrVl(imagePath)
+
                 val content =
                     PaddleOcrVlNative.nativeScanImage(
-                        imagePath = imagePath,
+                        imagePath = preparedImagePath,
                         prompt = prompt,
                         maximumTokens =
                             maximumTokens,
@@ -402,6 +411,52 @@ class MainActivity : FlutterActivity() {
         }
     }
 }
+
+    /**
+     * Decodes any Android-supported image (JPEG, PNG, WebP, HEIC, ...)
+     * and writes a plain PNG copy that llama.cpp can read.
+     * Runs on the single-thread PaddleOCR-VL executor, so one fixed
+     * cache file is safe.
+     */
+    private fun prepareImageForPaddleOcrVl(
+        imagePath: String,
+    ): String {
+        val source = File(imagePath)
+
+        require(source.isFile) {
+            "The scan image does not exist: $imagePath"
+        }
+
+        val bitmap =
+            BitmapFactory.decodeFile(source.absolutePath)
+                ?: throw IllegalArgumentException(
+                    "Android could not decode the scan image: " +
+                        source.name,
+                )
+
+        try {
+            val output = File(
+                applicationContext.cacheDir,
+                "paddleocr_vl_input.png",
+            )
+
+            FileOutputStream(output).use { stream ->
+                check(
+                    bitmap.compress(
+                        Bitmap.CompressFormat.PNG,
+                        100,
+                        stream,
+                    ),
+                ) {
+                    "The scan image could not be converted to PNG."
+                }
+            }
+
+            return output.absolutePath
+        } finally {
+            bitmap.recycle()
+        }
+    }
 
  private fun paddleOcrVlModelDirectory(): File {
     val directory = File(
