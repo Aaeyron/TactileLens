@@ -8,6 +8,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : FlutterActivity() {
     companion object {
@@ -131,14 +132,77 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-            "validateModels" -> {
+            "recognizeTestImage" -> {
+    val threadCount =
+        call.argument<Int>("threadCount") ?: 4
+
+    runPaddleOnnxTask(result) {
+        PaddleOnnxTextRecognizer.recognizeAsset(
+            context = applicationContext,
+            assetPath =
+                "paddle_onnx_test/equation-crop.png",
+            threadCount = threadCount.coerceIn(1, 8),
+        )
+    }
+}
+
+                        "validateModels" -> {
                 val threadCount =
                     call.argument<Int>("threadCount") ?: 4
 
                 runPaddleOnnxTask(result) {
                     PaddleOnnxNative.validateModels(
                         context = applicationContext,
-                        threadCount = threadCount,
+                        threadCount = threadCount.coerceIn(1, 8),
+                    )
+                }
+            }
+
+            // ---- Full-page offline OCR (PaddleOCR SDK + PP-OCRv6) ----
+
+            "initializeOcr" -> {
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxOcrEngine.initialize(
+                            context = applicationContext,
+                            threadCount = threadCount,
+                        )
+                    }
+                }
+            }
+
+            "recognizeImage" -> {
+                val imagePath =
+                    call.argument<String>("imagePath")
+                        ?.trim()
+                        .orEmpty()
+
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxOcrEngine.recognizeFile(
+                            context = applicationContext,
+                            imagePath = imagePath,
+                            threadCount = threadCount,
+                        )
+                    }
+                }
+            }
+
+            "releaseOcr" -> {
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxOcrEngine.release()
+                    }
+
+                    mapOf(
+                        "success" to true,
+                        "loaded" to false,
                     )
                 }
             }
@@ -494,11 +558,22 @@ private fun loadPaddleOcrVlModels(
     }
 }
 
-    override fun onDestroy() {
-    liblouisExecutor.shutdown()
-    paddleOnnxExecutor.shutdown()
-    paddleOcrVlExecutor.shutdown()
+        override fun onDestroy() {
+        if (isFinishing) {
+            // Queue the release behind any running scan so it never
+            // frees the engine mid-recognition. shutdown() still lets
+            // already-queued tasks finish.
+            paddleOnnxExecutor.execute {
+                runBlocking {
+                    PaddleOnnxOcrEngine.release()
+                }
+            }
+        }
 
-    super.onDestroy()
-}
+        liblouisExecutor.shutdown()
+        paddleOnnxExecutor.shutdown()
+        paddleOcrVlExecutor.shutdown()
+
+        super.onDestroy()
+    }
 }

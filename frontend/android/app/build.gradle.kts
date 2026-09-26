@@ -22,7 +22,7 @@ android {
     defaultConfig {
     applicationId = "com.tactilelens.app"
 
-    minSdk = flutter.minSdkVersion
+    minSdk = 26
     targetSdk = flutter.targetSdkVersion
 
     versionCode = flutter.versionCode
@@ -65,8 +65,10 @@ android {
 }
 
 dependencies {
+    implementation(project(":ppocr-sdk"))
+
     implementation(
-        "com.microsoft.onnxruntime:onnxruntime-android:1.30.0",
+        "com.microsoft.onnxruntime:onnxruntime-android:1.21.1",
     )
 }
 

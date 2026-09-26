@@ -37,6 +37,8 @@ object PaddleOnnxNative {
         OrtEnvironment.getEnvironment()
     }
 
+
+
     fun runtimeInfo(): Map<String, Any> {
         return mapOf(
             "success" to true,
@@ -46,6 +48,10 @@ object PaddleOnnxNative {
                 .map { provider -> provider.name },
         )
     }
+
+    fun modelDirectory(context: Context): File {
+    return prepareModelFiles(context)
+}
 
     @Synchronized
     fun validateModels(
