@@ -40,8 +40,12 @@ dependencies {
         "com.microsoft.onnxruntime:onnxruntime-android:1.21.1",
     )
 
+    // Official OpenCV build (modern NDK). The old
+    // com.quickbirdstudios:opencv:4.5.3 was built against an
+    // older C++ runtime and fails to load next to the app's
+    // own CMake libraries (missing __sfp_handle_exceptions).
     implementation(
-        "com.quickbirdstudios:opencv:4.5.3",
+        "org.opencv:opencv:4.10.0",
     )
 
     implementation(
