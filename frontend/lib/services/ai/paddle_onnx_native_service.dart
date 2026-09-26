@@ -40,9 +40,52 @@ class PaddleOnnxNativeService {
     });
   }
 
-  /// Frees the native OCR engine. The next scan will reload the models.
+    /// Frees the native OCR engine. The next scan will reload the models.
   Future<Map<String, dynamic>> releaseOcr() {
     return _invokeMap('releaseOcr');
+  }
+
+  // ---- Page layout detection (PP-DocLayoutV3) ----
+
+  /// Loads the layout model once and keeps it in memory.
+  /// The first call also copies the model from the APK to internal storage.
+  Future<Map<String, dynamic>> initializeLayout({int threadCount = 4}) {
+    return _invokeMap('initializeLayout', <String, dynamic>{
+      'threadCount': threadCount.clamp(1, 8),
+    });
+  }
+
+  /// Frees the native layout model.
+  Future<Map<String, dynamic>> releaseLayout() {
+    return _invokeMap('releaseLayout');
+  }
+
+  /// Detects page regions (text, display/inline formulas, tables, ...)
+  /// in reading order.
+  Future<OfflineLayoutResult> detectLayoutResult({
+    required String imagePath,
+    int threadCount = 4,
+    double threshold = 0.5,
+  }) async {
+    final String normalizedImagePath = imagePath.trim();
+
+    if (normalizedImagePath.isEmpty) {
+      throw const PaddleOnnxNativeException(
+        'The image path is required for layout detection.',
+        code: 'missing_image_path',
+      );
+    }
+
+    final Map<String, dynamic> response = await _invokeMap(
+      'detectLayout',
+      <String, dynamic>{
+        'imagePath': normalizedImagePath,
+        'threadCount': threadCount.clamp(1, 8),
+        'threshold': threshold.clamp(0.05, 0.95).toDouble(),
+      },
+    );
+
+    return OfflineLayoutResult.fromMap(response);
   }
 
   // Production offline-recognition method (raw map).
@@ -219,6 +262,128 @@ class OfflineOcrPoint {
 
   final double x;
   final double y;
+}
+
+// ---- Typed offline layout result ----
+
+class OfflineLayoutResult {
+  const OfflineLayoutResult({
+    required this.success,
+    required this.isEmpty,
+    required this.regions,
+    required this.imageWidth,
+    required this.imageHeight,
+    required this.threshold,
+    required this.preprocessTimeMs,
+    required this.inferenceTimeMs,
+    required this.postprocessTimeMs,
+    required this.totalTimeMs,
+    required this.coldLoadTimeMs,
+    required this.threadCount,
+  });
+
+  factory OfflineLayoutResult.fromMap(Map<String, dynamic> map) {
+    final Object? rawRegions = map['regions'];
+
+    final List<OfflineLayoutRegion> regions = rawRegions is List
+        ? rawRegions
+            .whereType<Map>()
+            .map(OfflineLayoutRegion.fromMap)
+            .toList(growable: false)
+        : const <OfflineLayoutRegion>[];
+
+    return OfflineLayoutResult(
+      success: map['success'] == true,
+      isEmpty: map['is_empty'] == true || regions.isEmpty,
+      regions: regions,
+      imageWidth: _toInt(map['image_width']),
+      imageHeight: _toInt(map['image_height']),
+      threshold: _toDouble(map['threshold']),
+      preprocessTimeMs: _toInt(map['preprocess_time_ms']),
+      inferenceTimeMs: _toInt(map['inference_time_ms']),
+      postprocessTimeMs: _toInt(map['postprocess_time_ms']),
+      totalTimeMs: _toInt(map['total_time_ms']),
+      coldLoadTimeMs: _toInt(map['cold_load_time_ms']),
+      threadCount: _toInt(map['thread_count']),
+    );
+  }
+
+  final bool success;
+  final bool isEmpty;
+
+  /// Regions already sorted by the model's reading order.
+  final List<OfflineLayoutRegion> regions;
+
+  final int imageWidth;
+  final int imageHeight;
+  final double threshold;
+  final int preprocessTimeMs;
+  final int inferenceTimeMs;
+  final int postprocessTimeMs;
+  final int totalTimeMs;
+  final int coldLoadTimeMs;
+  final int threadCount;
+
+  /// All display + inline formula regions, in reading order.
+  List<OfflineLayoutRegion> get formulas => regions
+      .where((OfflineLayoutRegion region) => region.isFormula)
+      .toList(growable: false);
+}
+
+class OfflineLayoutRegion {
+  const OfflineLayoutRegion({
+    required this.order,
+    required this.labelId,
+    required this.label,
+    required this.category,
+    required this.score,
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  factory OfflineLayoutRegion.fromMap(Map<dynamic, dynamic> map) {
+    final Object? rawBox = map['box'];
+    final Map<dynamic, dynamic> box =
+        rawBox is Map ? rawBox : const <dynamic, dynamic>{};
+
+    return OfflineLayoutRegion(
+      order: _toInt(map['order']),
+      labelId: _toInt(map['label_id']),
+      label: (map['label'] as String?) ?? '',
+      category: (map['category'] as String?) ?? 'text',
+      score: _toDouble(map['score']),
+      left: _toDouble(box['left']),
+      top: _toDouble(box['top']),
+      right: _toDouble(box['right']),
+      bottom: _toDouble(box['bottom']),
+    );
+  }
+
+  /// Reading-order rank from the model (lower = earlier).
+  final int order;
+  final int labelId;
+
+  /// Raw model label, e.g. "text", "display_formula", "inline_formula".
+  final String label;
+
+  /// Simplified routing category:
+  /// text, formula_display, formula_inline, formula_number, table, figure.
+  final String category;
+
+  final double score;
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  double get width => right - left;
+  double get height => bottom - top;
+
+  bool get isDisplayFormula => category == 'formula_display';
+  bool get isInlineFormula => category == 'formula_inline';
+  bool get isFormula => isDisplayFormula || isInlineFormula;
 }
 
 int _toInt(Object? value) => value is num ? value.toInt() : 0;

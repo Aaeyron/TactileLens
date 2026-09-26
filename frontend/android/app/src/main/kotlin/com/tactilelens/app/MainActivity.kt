@@ -197,10 +197,64 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-            "releaseOcr" -> {
+                        "releaseOcr" -> {
                 runPaddleOnnxTask(result) {
                     runBlocking {
                         PaddleOnnxOcrEngine.release()
+                    }
+
+                    mapOf(
+                        "success" to true,
+                        "loaded" to false,
+                    )
+                }
+            }
+
+            // ---- Page layout detection (PP-DocLayoutV3) ----
+
+            "initializeLayout" -> {
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxLayoutDetector.initialize(
+                            context = applicationContext,
+                            threadCount = threadCount,
+                        )
+                    }
+                }
+            }
+
+            "detectLayout" -> {
+                val imagePath =
+                    call.argument<String>("imagePath")
+                        ?.trim()
+                        .orEmpty()
+
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                val threshold =
+                    (call.argument<Double>("threshold") ?: 0.5)
+                        .toFloat()
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxLayoutDetector.detectFile(
+                            context = applicationContext,
+                            imagePath = imagePath,
+                            threadCount = threadCount,
+                            threshold = threshold,
+                        )
+                    }
+                }
+            }
+
+            "releaseLayout" -> {
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxLayoutDetector.release()
                     }
 
                     mapOf(
@@ -618,9 +672,10 @@ private fun loadPaddleOcrVlModels(
             // Queue the release behind any running scan so it never
             // frees the engine mid-recognition. shutdown() still lets
             // already-queued tasks finish.
-            paddleOnnxExecutor.execute {
+                        paddleOnnxExecutor.execute {
                 runBlocking {
                     PaddleOnnxOcrEngine.release()
+                    PaddleOnnxLayoutDetector.release()
                 }
             }
         }
