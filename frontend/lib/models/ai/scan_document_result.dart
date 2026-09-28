@@ -301,8 +301,9 @@ class DocumentBlock {
     required this.tableRows,
     required this.brailleContent,
     required this.brailleCode,
-    required this.brailleSuccess,
+        required this.brailleSuccess,
     required this.brailleError,
+    this.needsReview = false,
   });
 
   final int id;
@@ -336,8 +337,15 @@ class DocumentBlock {
   /// Expected values are `ueb` and `nemeth`.
   final String brailleCode;
 
-  final bool brailleSuccess;
+    final bool brailleSuccess;
   final String brailleError;
+
+  /// True when recognition was uncertain (low OCR confidence, an
+  /// unfinished formula, or an equation rescued by the offline math
+  /// fallback). The teacher should compare it with the printed page
+  /// before using the Braille. Older records and online results
+  /// default to false.
+  final bool needsReview;
 
   String get content => normalizedContent;
 
@@ -430,8 +438,9 @@ class DocumentBlock {
       tableRows: tableRows,
       brailleContent: brailleContent,
       brailleCode: brailleCode,
-      brailleSuccess: brailleSuccess,
+            brailleSuccess: brailleSuccess,
       brailleError: brailleError,
+      needsReview: json['needs_review'] == true,
     );
   }
 
@@ -452,6 +461,7 @@ class DocumentBlock {
       'braille_code': brailleCode,
       'braille_success': brailleSuccess,
       'braille_error': brailleError,
+      'needs_review': needsReview,
     };
   }
 

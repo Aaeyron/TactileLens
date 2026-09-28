@@ -97,8 +97,14 @@ class OfflineOcrService {
           continue;
         }
 
-        final bool isFormula = source.isFormula;
-        final String normalizedContent = _normalizeContent(rawContent);
+                final bool isFormula = source.isFormula;
+
+        // OCR returns one entry per printed line; rejoin text into
+        // flowing paragraphs so the result screen and Braille don't break
+        // where the paper wrapped. Formulas are kept exactly as LaTeX.
+        final String normalizedContent = _normalizeContent(
+          isFormula ? rawContent : _reflowText(rawContent),
+        );
 
         final OfflineBrailleResult brailleResult = await _brailleService
             .translateBlock(
@@ -113,7 +119,10 @@ class OfflineOcrService {
           DocumentBlock(
             id: order,
             order: order,
-            type: isFormula ? 'formula' : 'text',
+            // Offline formula blocks are always equations on their own line
+            // (inline math stays inside its text block), so they are display
+            // formulas; DocumentLayoutView shows these on a separate line.
+            type: isFormula ? 'display_formula' : 'text',
             rawContent: rawContent,
             normalizedContent: normalizedContent,
             boundingBox: <double>[
@@ -136,6 +145,7 @@ class OfflineOcrService {
             brailleCode: brailleResult.code,
             brailleSuccess: brailleResult.success,
             brailleError: brailleResult.error ?? '',
+            needsReview: source.needsReview,
           ),
         );
       }
@@ -265,6 +275,44 @@ class OfflineOcrService {
       debugPrint('Offline scan: orientation check skipped ($error).');
       return null;
     }
+  }
+
+    static final RegExp _listItemStart = RegExp(
+    r'^(?:\(?\d{1,3}[.)]|\(?[a-zA-Z][.)]|[•\-–*])\s',
+  );
+
+  static final RegExp _startsLowercase = RegExp(r'^[a-z]');
+
+  /// Joins OCR lines into paragraphs:
+  /// - "equa-" + "tion" -> "equation"
+  /// - numbered or lettered items and bullets keep their own line
+  /// - every other line break becomes a space
+  String _reflowText(String content) {
+    final List<String> lines = content
+        .split('\n')
+        .map((String line) => line.trim())
+        .where((String line) => line.isNotEmpty)
+        .toList(growable: false);
+
+    if (lines.length < 2) {
+      return content.trim();
+    }
+
+    String result = lines.first;
+
+    for (int index = 1; index < lines.length; index++) {
+      final String line = lines[index];
+
+      if (_listItemStart.hasMatch(line)) {
+        result = '$result\n$line';
+      } else if (result.endsWith('-') && _startsLowercase.hasMatch(line)) {
+        result = result.substring(0, result.length - 1) + line;
+      } else {
+        result = '$result $line';
+      }
+    }
+
+    return result;
   }
 
   String _normalizeContent(String content) {

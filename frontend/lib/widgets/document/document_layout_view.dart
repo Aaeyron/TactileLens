@@ -294,6 +294,7 @@ class _ReadableDocumentPage extends StatelessWidget {
   List<Widget> _buildReadableContent() {
     final List<Widget> widgets = <Widget>[];
     final List<String> pendingContent = <String>[];
+    bool pendingNeedsReview = false;
 
     DocumentBlock? previousBlock;
 
@@ -323,7 +324,10 @@ class _ReadableDocumentPage extends StatelessWidget {
           .replaceAll(RegExp(r'[ \t]+'), ' ')
           .trim();
 
+            final bool needsReview = pendingNeedsReview;
+
       pendingContent.clear();
+      pendingNeedsReview = false;
 
       if (combinedContent.isEmpty) {
         return;
@@ -331,7 +335,10 @@ class _ReadableDocumentPage extends StatelessWidget {
 
       _addWithSpacing(
         widgets,
-        _ReadableMixedMathContent(content: combinedContent),
+        _ReviewMarker(
+          needsReview: needsReview,
+          child: _ReadableMixedMathContent(content: combinedContent),
+        ),
       );
     }
 
@@ -452,10 +459,13 @@ class _ReadableDocumentPage extends StatelessWidget {
       if (isStandaloneFormula(block)) {
         flushPendingContent();
 
-       _addWithSpacing(
-  widgets,
-  _ReadableFormula(content: content),
-);
+        _addWithSpacing(
+          widgets,
+          _ReviewMarker(
+            needsReview: block.needsReview,
+            child: _ReadableFormula(content: content),
+          ),
+        );
 
         previousBlock = null;
         continue;
@@ -466,6 +476,7 @@ class _ReadableDocumentPage extends StatelessWidget {
       }
 
       pendingContent.add(content);
+      pendingNeedsReview = pendingNeedsReview || block.needsReview;
       previousBlock = block;
     }
 
@@ -832,6 +843,66 @@ class _ReadableDocumentTable extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+
+/// Highlights a part of the scan the teacher should compare with the
+/// printed page before using the Braille (uncertain recognition).
+class _ReviewMarker extends StatelessWidget {
+  const _ReviewMarker({required this.needsReview, required this.child});
+
+  final bool needsReview;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!needsReview) {
+      return child;
+    }
+
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    return Semantics(
+      container: true,
+      label: 'Please check this part against the printed page.',
+      child: Container(
+        padding: const EdgeInsets.only(left: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: colors.tertiary, width: 3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            ExcludeSemantics(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.visibility_outlined,
+                    size: 16,
+                    color: colors.tertiary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Please check this part',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: colors.tertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }
