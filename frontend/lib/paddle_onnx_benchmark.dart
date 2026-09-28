@@ -64,6 +64,15 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   int? _formulaScanMs;
   int? _formulaWallMs;
 
+  // ---- Layout detection test (PP-DocLayoutV3) ----
+  bool _isLayoutTesting = false;
+  String _layoutStatus = '';
+  String? _layoutError;
+  String? _layoutImagePath;
+  OfflineLayoutResult? _layoutResult;
+  int? _layoutInitWallMs;
+  int? _layoutWallMs;
+
   @override
   void initState() {
     super.initState();
@@ -300,10 +309,87 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     }
   }
 
+    // Temporary: PP-DocLayoutV3 layout detection test.
+  // Remove once the full offline pipeline is connected to the scan flow.
+  Future<void> _detectLayout(ImageSource source) async {
+    if (_isRunning || _isScanning || _isFormulaTesting || _isLayoutTesting) {
+      return;
+    }
+
+    final XFile? picked = await _picker.pickImage(source: source);
+
+    if (picked == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLayoutTesting = true;
+      _layoutStatus =
+          'Loading layout model (the first run copies ~128 MB, please wait)...';
+      _layoutError = null;
+      _layoutResult = null;
+      _layoutImagePath = picked.path;
+      _layoutInitWallMs = null;
+      _layoutWallMs = null;
+    });
+
+    try {
+      final Stopwatch initWatch = Stopwatch()..start();
+      await _service.initializeLayout(threadCount: _threadCount);
+      initWatch.stop();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _layoutInitWallMs = initWatch.elapsedMilliseconds;
+        _layoutStatus = 'Detecting layout...';
+      });
+
+      final Stopwatch watch = Stopwatch()..start();
+      final OfflineLayoutResult result = await _service.detectLayoutResult(
+        imagePath: picked.path,
+        threadCount: _threadCount,
+      );
+      watch.stop();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLayoutTesting = false;
+        _layoutWallMs = watch.elapsedMilliseconds;
+        _layoutResult = result;
+        _layoutStatus = result.isEmpty
+            ? 'No regions detected.'
+            : 'Found ${result.regions.length} regions '
+                '(${result.formulas.length} formulas).';
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Layout detection failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLayoutTesting = false;
+        _layoutStatus = 'Layout detection failed';
+        _layoutError = error is PaddleOnnxNativeException && error.code != null
+            ? '[${error.code}] ${error.message}'
+            : error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-      final bool busy = _isRunning || _isScanning || _isFormulaTesting;
+         final bool busy =
+        _isRunning || _isScanning || _isFormulaTesting || _isLayoutTesting;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Offline Paddle ONNX Test')),
@@ -432,6 +518,73 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 ),
               ],
 
+                            const Divider(height: 48),
+
+              // ---- Layout detection test (PP-DocLayoutV3) ----
+              Text(
+                'Layout detection (PP-DocLayoutV3)',
+                style: textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Use a full page with text AND equations.',
+                style: textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: <Widget>[
+                  FilledButton.icon(
+                    onPressed:
+                        busy ? null : () => _detectLayout(ImageSource.camera),
+                    icon: const Icon(Icons.photo_camera_rounded),
+                    label: const Text('Detect (camera)'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed:
+                        busy ? null : () => _detectLayout(ImageSource.gallery),
+                    icon: const Icon(Icons.dashboard_rounded),
+                    label: const Text('Detect (gallery)'),
+                  ),
+                ],
+              ),
+              if (_isLayoutTesting) ...<Widget>[
+                const SizedBox(height: 16),
+                const LinearProgressIndicator(),
+              ],
+              if (_layoutStatus.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 16),
+                Text(_layoutStatus, style: textTheme.titleMedium),
+              ],
+              if (_layoutError != null) ...<Widget>[
+                const SizedBox(height: 8),
+                SelectableText(
+                  _layoutError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              if (_layoutImagePath != null) ...<Widget>[
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(_layoutImagePath!),
+                    height: 220,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+              if (_layoutResult != null) ...<Widget>[
+                const SizedBox(height: 16),
+                _buildLayoutMetrics(textTheme, _layoutResult!),
+                const SizedBox(height: 16),
+                ..._layoutResult!.regions.map(
+                  (OfflineLayoutRegion region) =>
+                      _buildLayoutRegionTile(context, region),
+                ),
+              ],
+
               const Divider(height: 48),
 
               // ---- Model validation (existing) ----
@@ -457,6 +610,75 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+    Widget _buildLayoutMetrics(TextTheme textTheme, OfflineLayoutResult result) {
+    final int displayCount = result.regions
+        .where((OfflineLayoutRegion r) => r.isDisplayFormula)
+        .length;
+    final int inlineCount = result.regions
+        .where((OfflineLayoutRegion r) => r.isInlineFormula)
+        .length;
+
+    final String metrics = <String>[
+      'Regions: ${result.regions.length} '
+          '(display formulas: $displayCount, inline formulas: $inlineCount)',
+      'Image: ${result.imageWidth} x ${result.imageHeight}',
+      'Preprocess: ${result.preprocessTimeMs} ms',
+      'Inference: ${result.inferenceTimeMs} ms',
+      'Postprocess: ${result.postprocessTimeMs} ms',
+      'Native total: ${result.totalTimeMs} ms',
+      'Cold load (native): ${result.coldLoadTimeMs} ms',
+      if (_layoutInitWallMs != null)
+        'initializeLayout round trip: $_layoutInitWallMs ms',
+      if (_layoutWallMs != null) 'Detect round trip (Flutter): $_layoutWallMs ms',
+      'Threshold: ${result.threshold.toStringAsFixed(2)}',
+      'Threads: ${result.threadCount}',
+    ].join('\n');
+
+    return SelectableText(metrics, style: textTheme.bodyMedium);
+  }
+
+  Widget _buildLayoutRegionTile(
+    BuildContext context,
+    OfflineLayoutRegion region,
+  ) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    final TextTheme textTheme = Theme.of(context).textTheme;
+
+    final Color? background = region.isDisplayFormula
+        ? colors.primaryContainer
+        : region.isInlineFormula
+            ? colors.tertiaryContainer
+            : null;
+
+    return Card(
+      color: background,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Order ${region.order}  •  ${region.label}  •  '
+              '${(region.score * 100).toStringAsFixed(1)}%',
+              style: textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'left ${region.left.toStringAsFixed(0)}, '
+              'top ${region.top.toStringAsFixed(0)}, '
+              'right ${region.right.toStringAsFixed(0)}, '
+              'bottom ${region.bottom.toStringAsFixed(0)}  '
+              '(${region.width.toStringAsFixed(0)} x '
+              '${region.height.toStringAsFixed(0)})',
+              style: textTheme.labelSmall,
+            ),
+          ],
         ),
       ),
     );

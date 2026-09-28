@@ -55,9 +55,88 @@ class PaddleOnnxNativeService {
     });
   }
 
-  /// Frees the native layout model.
+    /// Frees the native layout model.
   Future<Map<String, dynamic>> releaseLayout() {
     return _invokeMap('releaseLayout');
+  }
+
+  // ---- Full offline document pipeline (layout + OCR + formulas) ----
+
+  /// Loads the OCR, layout and formula models once and keeps them loaded.
+  /// The first call also copies the large models into internal storage.
+  Future<Map<String, dynamic>> initializeDocumentPipeline({
+    int threadCount = 4,
+  }) {
+    return _invokeMap('initializeDocumentPipeline', <String, dynamic>{
+      'threadCount': threadCount.clamp(1, 8),
+    });
+  }
+
+  /// Frees all three offline models.
+  Future<Map<String, dynamic>> releaseDocumentPipeline() {
+    return _invokeMap('releaseDocumentPipeline');
+  }
+
+  /// Full offline page scan: text + formulas in reading order.
+  Future<OfflineDocumentResult> scanDocumentResult({
+    required String imagePath,
+    int threadCount = 4,
+    double layoutThreshold = 0.5,
+  }) async {
+    final String normalizedImagePath = imagePath.trim();
+
+    if (normalizedImagePath.isEmpty) {
+      throw const PaddleOnnxNativeException(
+        'The image path is required for an offline document scan.',
+        code: 'missing_image_path',
+      );
+    }
+
+    final Map<String, dynamic> response = await _invokeMap(
+      'scanDocument',
+      <String, dynamic>{
+        'imagePath': normalizedImagePath,
+        'threadCount': threadCount.clamp(1, 8),
+        'layoutThreshold': layoutThreshold.clamp(0.05, 0.95).toDouble(),
+      },
+    );
+
+    return OfflineDocumentResult.fromMap(response);
+  }
+
+  /// One formula image (or one [left, top, right, bottom] box in it)
+  /// to LaTeX.
+  Future<OfflineFormulaResult> recognizeFormulaResult({
+    required String imagePath,
+    int threadCount = 4,
+    List<double>? box,
+  }) async {
+    final String normalizedImagePath = imagePath.trim();
+
+    if (normalizedImagePath.isEmpty) {
+      throw const PaddleOnnxNativeException(
+        'The image path is required for formula recognition.',
+        code: 'missing_image_path',
+      );
+    }
+
+    if (box != null && box.length != 4) {
+      throw const PaddleOnnxNativeException(
+        'The formula box must be [left, top, right, bottom].',
+        code: 'invalid_box',
+      );
+    }
+
+    final Map<String, dynamic> response = await _invokeMap(
+      'recognizeFormula',
+      <String, dynamic>{
+        'imagePath': normalizedImagePath,
+        'threadCount': threadCount.clamp(1, 8),
+        'box': ?box,
+      },
+    );
+
+    return OfflineFormulaResult.fromMap(response);
   }
 
   /// Detects page regions (text, display/inline formulas, tables, ...)
@@ -384,6 +463,226 @@ class OfflineLayoutRegion {
   bool get isDisplayFormula => category == 'formula_display';
   bool get isInlineFormula => category == 'formula_inline';
   bool get isFormula => isDisplayFormula || isInlineFormula;
+}
+
+// ---- Typed offline formula result ----
+
+class OfflineFormulaResult {
+  const OfflineFormulaResult({
+    required this.success,
+    required this.latex,
+    required this.rawLatex,
+    required this.tokenCount,
+    required this.reachedEnd,
+    required this.preprocessTimeMs,
+    required this.inferenceTimeMs,
+    required this.decodeTimeMs,
+    required this.totalTimeMs,
+    required this.coldLoadTimeMs,
+    required this.threadCount,
+  });
+
+  factory OfflineFormulaResult.fromMap(Map<String, dynamic> map) {
+    return OfflineFormulaResult(
+      success: map['success'] == true,
+      latex: (map['latex'] as String?) ?? '',
+      rawLatex: (map['raw_latex'] as String?) ?? '',
+      tokenCount: _toInt(map['token_count']),
+      reachedEnd: map['reached_end'] == true,
+      preprocessTimeMs: _toInt(map['preprocess_time_ms']),
+      inferenceTimeMs: _toInt(map['inference_time_ms']),
+      decodeTimeMs: _toInt(map['decode_time_ms']),
+      totalTimeMs: _toInt(map['total_time_ms']),
+      coldLoadTimeMs: _toInt(map['cold_load_time_ms']),
+      threadCount: _toInt(map['thread_count']),
+    );
+  }
+
+  final bool success;
+
+  /// Cleaned LaTeX, e.g. \left(\sqrt{2}\right)^{2}=2
+  final String latex;
+
+  /// Tokenizer output before space cleanup (for debugging).
+  final String rawLatex;
+
+  final int tokenCount;
+
+  /// False if the model hit its token limit before finishing.
+  final bool reachedEnd;
+
+  final int preprocessTimeMs;
+  final int inferenceTimeMs;
+  final int decodeTimeMs;
+  final int totalTimeMs;
+  final int coldLoadTimeMs;
+  final int threadCount;
+}
+
+// ---- Typed offline document result ----
+
+class OfflineDocumentResult {
+  const OfflineDocumentResult({
+    required this.success,
+    required this.isEmpty,
+    required this.blocks,
+    required this.markdown,
+    required this.formulaCount,
+    required this.inlineFormulaCount,
+    required this.regionCount,
+    required this.ocrLineCount,
+    required this.droppedFormulaLineCount,
+    required this.unassignedLineCount,
+    required this.needsReviewCount,
+    required this.imageWidth,
+    required this.imageHeight,
+    required this.layoutTimeMs,
+    required this.ocrTimeMs,
+    required this.formulaTimeMs,
+    required this.totalTimeMs,
+    required this.threadCount,
+  });
+
+  factory OfflineDocumentResult.fromMap(Map<String, dynamic> map) {
+    final Object? rawBlocks = map['blocks'];
+
+    final List<OfflineDocumentBlock> blocks = rawBlocks is List
+        ? rawBlocks
+            .whereType<Map>()
+            .map(OfflineDocumentBlock.fromMap)
+            .toList(growable: false)
+        : const <OfflineDocumentBlock>[];
+
+    return OfflineDocumentResult(
+      success: map['success'] == true,
+      isEmpty: map['is_empty'] == true || blocks.isEmpty,
+      blocks: blocks,
+      markdown: (map['markdown'] as String?) ?? '',
+      formulaCount: _toInt(map['formula_count']),
+      inlineFormulaCount: _toInt(map['inline_formula_count']),
+      regionCount: _toInt(map['region_count']),
+      ocrLineCount: _toInt(map['ocr_line_count']),
+      droppedFormulaLineCount: _toInt(map['dropped_formula_line_count']),
+      unassignedLineCount: _toInt(map['unassigned_line_count']),
+      needsReviewCount: _toInt(map['needs_review_count']),
+      imageWidth: _toInt(map['image_width']),
+      imageHeight: _toInt(map['image_height']),
+      layoutTimeMs: _toInt(map['layout_time_ms']),
+      ocrTimeMs: _toInt(map['ocr_time_ms']),
+      formulaTimeMs: _toInt(map['formula_time_ms']),
+      totalTimeMs: _toInt(map['total_time_ms']),
+      threadCount: _toInt(map['thread_count']),
+    );
+  }
+
+  final bool success;
+  final bool isEmpty;
+
+  /// Text and formula blocks, already in reading order.
+  final List<OfflineDocumentBlock> blocks;
+
+  /// Whole page as Markdown; display formulas are wrapped in $$ ... $$.
+  final String markdown;
+
+  final int formulaCount;
+  final int inlineFormulaCount;
+  final int regionCount;
+  final int ocrLineCount;
+  final int droppedFormulaLineCount;
+  final int unassignedLineCount;
+  final int needsReviewCount;
+  final int imageWidth;
+  final int imageHeight;
+  final int layoutTimeMs;
+  final int ocrTimeMs;
+  final int formulaTimeMs;
+  final int totalTimeMs;
+  final int threadCount;
+}
+
+class OfflineDocumentBlock {
+  const OfflineDocumentBlock({
+    required this.index,
+    required this.type,
+    required this.label,
+    required this.content,
+    required this.latex,
+    required this.score,
+    required this.confidence,
+    required this.minConfidence,
+    required this.lineCount,
+    required this.inlineFormulaCount,
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+    required this.needsReview,
+    required this.source,
+    required this.error,
+  });
+
+  factory OfflineDocumentBlock.fromMap(Map<dynamic, dynamic> map) {
+    final Object? rawBox = map['box'];
+    final Map<dynamic, dynamic> box =
+        rawBox is Map ? rawBox : const <dynamic, dynamic>{};
+
+    return OfflineDocumentBlock(
+      index: _toInt(map['index']),
+      type: (map['type'] as String?) ?? 'text',
+      label: (map['label'] as String?) ?? '',
+      content: (map['content'] as String?) ?? '',
+      latex: map['latex'] as String?,
+      score: _toDouble(map['score']),
+      confidence: _toDouble(map['confidence']),
+      minConfidence:
+          map['min_confidence'] is num ? _toDouble(map['min_confidence']) : null,
+      lineCount: _toInt(map['line_count']),
+      inlineFormulaCount: _toInt(map['inline_formula_count']),
+      left: _toDouble(box['left']),
+      top: _toDouble(box['top']),
+      right: _toDouble(box['right']),
+      bottom: _toDouble(box['bottom']),
+      needsReview: map['needs_review'] == true,
+      source: (map['source'] as String?) ?? '',
+      error: map['error'] as String?,
+    );
+  }
+
+  final int index;
+
+  /// "formula" for equations; otherwise the layout category
+  /// (text, table, figure, formula_number, ...).
+  final String type;
+
+  /// Raw layout label, e.g. "text", "display_formula", "paragraph_title".
+  final String label;
+
+  /// OCR text for text blocks, LaTeX for formula blocks.
+  final String content;
+
+  /// LaTeX for formula blocks, null otherwise.
+  final String? latex;
+
+  final double score;
+  final double confidence;
+  final double? minConfidence;
+  final int lineCount;
+  final int inlineFormulaCount;
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  /// True when the teacher should double-check this block.
+  final bool needsReview;
+
+  /// "ocr" or "formula".
+  final String source;
+
+  /// Set only if formula recognition failed for this block.
+  final String? error;
+
+  bool get isFormula => type == 'formula';
 }
 
 int _toInt(Object? value) => value is num ? value.toInt() : 0;

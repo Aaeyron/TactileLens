@@ -251,10 +251,113 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-            "releaseLayout" -> {
+                        "releaseLayout" -> {
                 runPaddleOnnxTask(result) {
                     runBlocking {
                         PaddleOnnxLayoutDetector.release()
+                    }
+
+                    mapOf(
+                        "success" to true,
+                        "loaded" to false,
+                    )
+                }
+            }
+
+            // ---- Formula recognition + full offline document pipeline ----
+
+            "initializeDocumentPipeline" -> {
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        val ocr = PaddleOnnxOcrEngine.initialize(
+                            context = applicationContext,
+                            threadCount = threadCount,
+                        )
+                        val layout = PaddleOnnxLayoutDetector.initialize(
+                            context = applicationContext,
+                            threadCount = threadCount,
+                        )
+                        val formula = PaddleOnnxFormulaRecognizer.initialize(
+                            context = applicationContext,
+                            threadCount = threadCount,
+                        )
+
+                        mapOf(
+                            "success" to true,
+                            "loaded" to true,
+                            "thread_count" to threadCount.coerceIn(1, 8),
+                            "ocr_cold_load_time_ms" to
+                                ocr["cold_load_time_ms"],
+                            "layout_cold_load_time_ms" to
+                                layout["cold_load_time_ms"],
+                            "formula_cold_load_time_ms" to
+                                formula["cold_load_time_ms"],
+                        )
+                    }
+                }
+            }
+
+            "recognizeFormula" -> {
+                val imagePath =
+                    call.argument<String>("imagePath")
+                        ?.trim()
+                        .orEmpty()
+
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                // Optional [left, top, right, bottom] in image pixels.
+                val box =
+                    call.argument<List<Number>>("box")
+                        ?.map { value -> value.toFloat() }
+                        ?.toFloatArray()
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxFormulaRecognizer.recognizeFile(
+                            context = applicationContext,
+                            imagePath = imagePath,
+                            threadCount = threadCount,
+                            box = box,
+                        )
+                    }
+                }
+            }
+
+            "scanDocument" -> {
+                val imagePath =
+                    call.argument<String>("imagePath")
+                        ?.trim()
+                        .orEmpty()
+
+                val threadCount =
+                    call.argument<Int>("threadCount") ?: 4
+
+                val layoutThreshold =
+                    (call.argument<Double>("layoutThreshold") ?: 0.5)
+                        .toFloat()
+
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        OfflineDocumentPipeline.scanDocument(
+                            context = applicationContext,
+                            imagePath = imagePath,
+                            threadCount = threadCount,
+                            layoutThreshold = layoutThreshold,
+                        )
+                    }
+                }
+            }
+
+            "releaseDocumentPipeline" -> {
+                runPaddleOnnxTask(result) {
+                    runBlocking {
+                        PaddleOnnxOcrEngine.release()
+                        PaddleOnnxLayoutDetector.release()
+                        PaddleOnnxFormulaRecognizer.release()
                     }
 
                     mapOf(
@@ -673,9 +776,10 @@ private fun loadPaddleOcrVlModels(
             // frees the engine mid-recognition. shutdown() still lets
             // already-queued tasks finish.
                         paddleOnnxExecutor.execute {
-                runBlocking {
+                                runBlocking {
                     PaddleOnnxOcrEngine.release()
                     PaddleOnnxLayoutDetector.release()
+                    PaddleOnnxFormulaRecognizer.release()
                 }
             }
         }
