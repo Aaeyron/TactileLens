@@ -6,27 +6,48 @@ import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
 import '../braille/offline_braille_service.dart';
-import 'paddleocr_vl_native_service.dart';
+import 'paddle_onnx_native_service.dart';
 
+/// Offline scanning (no internet) for printed English text and
+/// General Algebra:
+///
+///   PP-DocLayoutV3 (layout + reading order)
+///   + PP-OCRv6 (text lines)
+///   + PP-FormulaNet_plus-S (equations -> LaTeX)
+///   on ONNX Runtime, then offline Braille via Liblouis.
+///
+/// Returns the same [ScanDocumentResult] shape as before, so the scan,
+/// result and history screens work unchanged.
 class OfflineOcrService {
   OfflineOcrService({
-    PaddleOcrVlNativeService? paddleOcrVlService,
+    PaddleOnnxNativeService? onnxService,
     OfflineBrailleService? brailleService,
-  }) : _paddleOcrVlService =
-           paddleOcrVlService ?? const PaddleOcrVlNativeService(),
+    this.threadCount = 4,
+  }) : _onnxService = onnxService ?? const PaddleOnnxNativeService(),
        _brailleService = brailleService ?? const OfflineBrailleService();
 
-  final PaddleOcrVlNativeService _paddleOcrVlService;
+  final PaddleOnnxNativeService _onnxService;
   final OfflineBrailleService _brailleService;
 
-  bool _initialized = false;
+  /// CPU threads for the ONNX models.
+  final int threadCount;
+
   bool _modelsLoaded = false;
   bool _disposed = false;
+  Future<void>? _loading;
+
+  /// Whether the offline models are already loaded in memory.
+  bool get isReady => _modelsLoaded;
+
+  /// Loads the offline models ahead of time (call when the scan screen
+  /// opens). The very first run also copies ~350 MB of models into the
+  /// app's storage, so it can take a while. Safe to call repeatedly.
+  Future<void> prepare() => _ensureModelsLoaded();
 
   Future<ScanDocumentResult> scanDocument(File imageFile) async {
     if (_disposed) {
       throw const OfflineOcrException(
-        'The offline PaddleOCR-VL service is no longer available.',
+        'The offline scanner is no longer available.',
       );
     }
 
@@ -34,48 +55,51 @@ class OfflineOcrService {
       throw const OfflineOcrException('The selected image could not be found.');
     }
 
-    if (!_paddleOcrVlService.isSupported) {
+    if (!_onnxService.isSupported) {
       throw const OfflineOcrException(
-        'Offline PaddleOCR-VL is currently available only on Android.',
+        'Offline scanning is currently available only on Android.',
       );
     }
 
     final Stopwatch stopwatch = Stopwatch()..start();
+    File? uprightCopy;
 
     try {
       await _ensureModelsLoaded();
 
-      final PaddleOcrVlScanResult scanResult = await _paddleOcrVlService
-          .scanImage(
-            imagePath: imageFile.path,
-            prompt: 'OCR:',
-            maximumTokens: 512,
-            threadCount: 4,
+      uprightCopy = await _uprightCopyIfRotated(imageFile);
+
+      final OfflineDocumentResult result = await _onnxService
+          .scanDocumentResult(
+            imagePath: (uprightCopy ?? imageFile).path,
+            threadCount: threadCount,
           );
 
-      if (!scanResult.success || scanResult.content.trim().isEmpty) {
-        throw OfflineOcrException(
-          scanResult.error ?? 'PaddleOCR-VL returned no recognized content.',
+      if (result.isEmpty) {
+        throw const OfflineOcrException(
+          'No printed text or equations were found. Keep the whole page in '
+          'view, in good lighting, and try again.',
         );
       }
 
-      final img.Image? decodedImage = await _decodeImage(imageFile);
-      final int pageWidth = math.max(decodedImage?.width ?? 0, 1);
-      final int pageHeight = math.max(decodedImage?.height ?? 0, 1);
-      final List<String> recognizedSections = _splitRecognizedContent(
-        scanResult.content,
-      );
+      final int pageWidth = math.max(result.imageWidth, 1);
+      final int pageHeight = math.max(result.imageHeight, 1);
       final List<DocumentBlock> blocks = <DocumentBlock>[];
 
-      for (int index = 0; index < recognizedSections.length; index++) {
-        final String rawContent = recognizedSections[index].trim();
+      for (final OfflineDocumentBlock source in result.blocks) {
+        final String rawContent = source.content.trim();
 
         if (rawContent.isEmpty) {
+          debugPrint(
+            'Offline scan: skipped empty ${source.type} block '
+            '${source.index}${source.error == null ? '' : ' (${source.error})'}',
+          );
           continue;
         }
 
+        final bool isFormula = source.isFormula;
         final String normalizedContent = _normalizeContent(rawContent);
-        final bool isFormula = _looksLikeFormula(normalizedContent);
+
         final OfflineBrailleResult brailleResult = await _brailleService
             .translateBlock(
               normalizedContent,
@@ -83,23 +107,26 @@ class OfflineOcrService {
               isTable: false,
             );
 
-        final double top = pageHeight * index / recognizedSections.length;
-        final double bottom =
-            pageHeight * (index + 1) / recognizedSections.length;
+        final int order = blocks.length;
 
         blocks.add(
           DocumentBlock(
-            id: index,
-            order: index,
+            id: order,
+            order: order,
             type: isFormula ? 'formula' : 'text',
             rawContent: rawContent,
             normalizedContent: normalizedContent,
-            boundingBox: <double>[0, top, pageWidth.toDouble(), bottom],
+            boundingBox: <double>[
+              source.left,
+              source.top,
+              source.right,
+              source.bottom,
+            ],
             polygonPoints: <List<double>>[
-              <double>[0, top],
-              <double>[pageWidth.toDouble(), top],
-              <double>[pageWidth.toDouble(), bottom],
-              <double>[0, bottom],
+              <double>[source.left, source.top],
+              <double>[source.right, source.top],
+              <double>[source.right, source.bottom],
+              <double>[source.left, source.bottom],
             ],
             isText: !isFormula,
             isFormula: isFormula,
@@ -115,7 +142,7 @@ class OfflineOcrService {
 
       if (blocks.isEmpty) {
         throw const OfflineOcrException(
-          'PaddleOCR-VL returned no usable text or mathematical expressions.',
+          'No usable text or mathematical expressions were recognized.',
         );
       }
 
@@ -129,87 +156,115 @@ class OfflineOcrService {
       );
 
       debugPrint(
-        'Offline PaddleOCR-VL completed in '
-        '${stopwatch.elapsedMilliseconds} ms with '
-        '${blocks.length} document blocks. Native inference: '
-        '${scanResult.scanTimeMs} ms.',
+        'Offline ONNX scan: ${blocks.length} blocks '
+        '(${result.formulaCount} formulas, '
+        '${result.needsReviewCount} flagged for review) in '
+        '${stopwatch.elapsedMilliseconds} ms '
+        '[layout ${result.layoutTimeMs} ms, OCR ${result.ocrTimeMs} ms, '
+        'formulas ${result.formulaTimeMs} ms].',
       );
 
       return ScanDocumentResult(
-        model: 'PaddleOCR-VL-1.6-GGUF+liblouis-3.38.0',
-        pipelineVersion: 'offline-paddleocr-vl-v1',
+        model: 'PP-DocLayoutV3+PP-OCRv6+PP-FormulaNet_plus-S+liblouis-3.38.0',
+        pipelineVersion: 'offline-onnx-v1',
         device: 'mobile-cpu',
         pageCount: 1,
         processingTimeMs: stopwatch.elapsedMicroseconds / 1000,
         blocks: List<DocumentBlock>.unmodifiable(blocks),
         pages: <DocumentPage>[page],
       );
-    } on PaddleOcrVlNativeException catch (error, stackTrace) {
-      stopwatch.stop();
-      debugPrint('Offline PaddleOCR-VL failed: ${error.message}');
+    } on PaddleOnnxNativeException catch (error, stackTrace) {
+      debugPrint('Offline ONNX scan failed: ${error.message}');
       debugPrintStack(stackTrace: stackTrace);
       throw OfflineOcrException(error.message);
     } on OfflineOcrException {
-      stopwatch.stop();
       rethrow;
     } catch (error, stackTrace) {
-      stopwatch.stop();
-      debugPrint('Offline PaddleOCR-VL or Braille translation failed: $error');
+      debugPrint('Offline scan or Braille translation failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       throw const OfflineOcrException(
         'Offline document recognition failed. Try scanning again with clearer '
         'lighting and keep the document in focus.',
       );
-    }
-  }
-
-  Future<void> _ensureModelsLoaded() async {
-    if (!_initialized) {
-      await _paddleOcrVlService.initialize();
-      _initialized = true;
-    }
-
-    if (_modelsLoaded) {
-      final PaddleOcrVlModelStatus status = await _paddleOcrVlService
-          .modelStatus();
-
-      if (status.loaded) {
-        return;
+    } finally {
+      if (stopwatch.isRunning) {
+        stopwatch.stop();
       }
 
-      _modelsLoaded = false;
+      if (uprightCopy != null) {
+        try {
+          await uprightCopy.delete();
+        } catch (_) {
+          // Temporary file; ignore cleanup failures.
+        }
+      }
     }
-
-    final PaddleOcrVlModelLoadResult loadResult = await _paddleOcrVlService
-        .loadModels(threadCount: 4);
-
-    if (!loadResult.success || !loadResult.loaded) {
-      throw OfflineOcrException(
-        loadResult.error ??
-            'The offline PaddleOCR-VL model files could not be loaded.',
-      );
-    }
-
-    _modelsLoaded = true;
   }
 
-  List<String> _splitRecognizedContent(String content) {
-    final String cleaned = content
-        .replaceAll(RegExp(r'^```(?:latex|tex|text)?\s*'), '')
-        .replaceAll(RegExp(r'\s*```$'), '')
-        .trim();
-
-    if (cleaned.isEmpty) {
-      return const <String>[];
+  Future<void> _ensureModelsLoaded() {
+    if (_modelsLoaded) {
+      return Future<void>.value();
     }
 
-    final List<String> lines = cleaned
-        .split(RegExp(r'\r?\n'))
-        .map((String line) => line.trim())
-        .where((String line) => line.isNotEmpty)
-        .toList(growable: false);
+    return _loading ??= _loadModels().whenComplete(() => _loading = null);
+  }
 
-    return lines.isEmpty ? <String>[cleaned] : lines;
+  Future<void> _loadModels() async {
+    try {
+      final Stopwatch stopwatch = Stopwatch()..start();
+      final Map<String, dynamic> result = await _onnxService
+          .initializeDocumentPipeline(threadCount: threadCount);
+      stopwatch.stop();
+
+      if (result['success'] != true) {
+        throw const OfflineOcrException(
+          'The offline scanning models could not be loaded.',
+        );
+      }
+
+      _modelsLoaded = true;
+
+      debugPrint(
+        'Offline models ready in ${stopwatch.elapsedMilliseconds} ms '
+        '[OCR ${result['ocr_cold_load_time_ms']} ms, '
+        'layout ${result['layout_cold_load_time_ms']} ms, '
+        'formula ${result['formula_cold_load_time_ms']} ms].',
+      );
+    } on PaddleOnnxNativeException catch (error) {
+      throw OfflineOcrException(
+        'The offline scanning models could not be loaded: ${error.message}',
+      );
+    }
+  }
+
+  /// Camera photos often store rotation in EXIF instead of rotating pixels.
+  /// The native models read raw pixels, so give them an upright copy when
+  /// the photo is rotated. Returns null when no copy is needed.
+  Future<File?> _uprightCopyIfRotated(File imageFile) async {
+    try {
+      final Uint8List bytes = await imageFile.readAsBytes();
+      final img.ExifData? exif = img.decodeJpgExif(bytes);
+      final int orientation = exif?.imageIfd.orientation ?? 1;
+
+      if (orientation == 1) {
+        return null;
+      }
+
+      final String outputPath =
+          '${Directory.systemTemp.path}/tactilelens_offline_scan_'
+          '${DateTime.now().microsecondsSinceEpoch}.jpg';
+
+      final bool written = await compute(
+        _writeUprightJpeg,
+        <String, Object>{'bytes': bytes, 'path': outputPath},
+      );
+
+      return written ? File(outputPath) : null;
+    } catch (error) {
+      // Not a JPEG or no EXIF: scan the original file.
+      debugPrint('Offline scan: orientation check skipped ($error).');
+      return null;
+    }
   }
 
   String _normalizeContent(String content) {
@@ -218,48 +273,6 @@ class OfflineOcrService {
         .replaceAll('–', '-')
         .replaceAll('—', '-')
         .trim();
-  }
-
-  bool _looksLikeFormula(String content) {
-    final String value = content.trim();
-
-    if (value.isEmpty) {
-      return false;
-    }
-
-    if (RegExp(
-      r'\\(?:frac|sqrt|sum|int|left|right|begin|end)',
-    ).hasMatch(value)) {
-      return true;
-    }
-
-    if (value.startsWith(r'\[') ||
-        value.startsWith(r'$$') ||
-        value.startsWith(r'\(')) {
-      return true;
-    }
-
-    if (RegExp(r'[=≤≥≠≈±√∑∫∞]').hasMatch(value)) {
-      return true;
-    }
-
-    return RegExp(
-      r'(?:\d+(?:\.\d+)?|[A-Za-z])'
-      r'\s*[+\-×÷*/^<>]'
-      r'\s*(?:\d+(?:\.\d+)?|[A-Za-z])',
-    ).hasMatch(value);
-  }
-
-  Future<img.Image?> _decodeImage(File imageFile) async {
-    try {
-      final bytes = await imageFile.readAsBytes();
-      final img.Image? decodedImage = img.decodeImage(bytes);
-
-      return decodedImage == null ? null : img.bakeOrientation(decodedImage);
-    } catch (error) {
-      debugPrint('Unable to decode offline page dimensions: $error');
-      return null;
-    }
   }
 
   Future<void> dispose() async {
@@ -271,14 +284,31 @@ class OfflineOcrService {
 
     if (_modelsLoaded) {
       try {
-        await _paddleOcrVlService.unloadModels();
+        await _onnxService.releaseDocumentPipeline();
       } catch (error) {
-        debugPrint('Unable to unload offline PaddleOCR-VL models: $error');
+        debugPrint('Unable to release the offline models: $error');
       }
     }
 
     _modelsLoaded = false;
   }
+}
+
+/// Runs in a background isolate: decode, apply EXIF rotation, re-encode.
+bool _writeUprightJpeg(Map<String, Object> job) {
+  final img.Image? decoded = img.decodeImage(job['bytes']! as Uint8List);
+
+  if (decoded == null) {
+    return false;
+  }
+
+  final img.Image upright = img.bakeOrientation(decoded);
+
+  File(job['path']! as String).writeAsBytesSync(
+    img.encodeJpg(upright, quality: 95),
+  );
+
+  return true;
 }
 
 class OfflineOcrException implements Exception {

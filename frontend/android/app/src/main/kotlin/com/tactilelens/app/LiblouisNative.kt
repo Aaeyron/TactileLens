@@ -144,13 +144,15 @@ object LiblouisNative {
         )
     }
 
-    fun translateFormula(
+        fun translateFormula(
         context: Context,
         content: String,
     ): String {
+        // Same symbol replacements as the online
+        // BrailleTranslationService.translate_formula().
         return translate(
             context = context,
-            content = content,
+            content = BrailleMathNormalizer.toNemethInput(content),
             translationTable = NEMETH_TABLE,
         )
     }
@@ -180,11 +182,23 @@ object LiblouisNative {
         }
 
         return try {
-            val translatedContent =
+                        val translatedContent =
                 if (usesNemeth) {
+                    // Formulas arrive as LaTeX (e.g. \frac{x+1}{2}=3).
+                    // Convert to linear math exactly like the online
+                    // BrailleMathNormalizer before the Nemeth table.
+                    val nemethSource =
+                        if (isFormula) {
+                            BrailleMathNormalizer.normalize(
+                                normalizedContent,
+                            )
+                        } else {
+                            normalizedContent
+                        }
+
                     translateFormula(
                         context,
-                        normalizedContent,
+                        nemethSource,
                     )
                 } else {
                     translateText(
