@@ -17,8 +17,11 @@ import kotlinx.coroutines.withContext
  * 3. Each OCR line is assigned to the layout region it sits in. Lines that
  *    fall inside a display formula are dropped (plain OCR garbles math).
  * 4. Each display formula region is read by PP-FormulaNet_plus-S -> LaTeX.
- * 5. Blocks are returned in reading order, plus a Markdown version where
- *    display formulas are written as $$ ... $$.
+ * 5. SAFETY NET: text blocks that look like math (operators, stacked short
+ *    rows, no real words) are also sent to the formula model, because the
+ *    layout model sometimes labels equations as text or misses them.
+ *    Stacked stray lines are grouped first so fractions stay together.
+ * 6. Blocks are returned in reading order, plus Markdown with $$ ... $$.
  */
 object OfflineDocumentPipeline {
     private const val DISPLAY_FORMULA = "formula_display"
@@ -32,6 +35,13 @@ object OfflineDocumentPipeline {
 
     // Overlapping duplicate layout regions above this IoU are merged.
     private const val DUPLICATE_IOU = 0.8
+
+    // Math fallback only for short blocks (a stacked fraction is 2-3 rows).
+    private const val MAX_FALLBACK_LINES = 3
+
+    private val MATH_SYMBOL = Regex("""[=<>≤≥≠±+\-−×÷*/^√]""")
+    private val REAL_WORD = Regex("""[A-Za-z]{3,}""")
+    private const val MATH_CHARACTERS = "0123456789=<>≤≥≠±+-−×÷*/^√()[]."
 
     suspend fun scanDocument(
         context: Context,
@@ -63,11 +73,23 @@ object OfflineDocumentPipeline {
         val regions = removeDuplicates(parseRegions(layout["regions"]))
         val lines = parseLines(ocr["blocks"])
 
-        val displayFormulas = regions.filter { it.category == DISPLAY_FORMULA }
-        val inlineFormulas = regions.filter { it.category == INLINE_FORMULA }
         val containers = regions.filter {
             it.category != DISPLAY_FORMULA && it.category != INLINE_FORMULA
         }
+
+        // Inline formulas that are not inside any text region are really
+        // equations on their own line: treat them as display formulas.
+        val (standaloneInline, embeddedInline) = regions
+            .filter { it.category == INLINE_FORMULA }
+            .partition { inline ->
+                containers.none { container ->
+                    container.box.intersection(inline.box) / max(inline.box.area, 1.0) >=
+                        LINE_IN_REGION
+                }
+            }
+
+        val displayFormulas = regions.filter { it.category == DISPLAY_FORMULA } +
+            standaloneInline
 
         // 3. Assign OCR lines to regions
         val linesByRegion = HashMap<Region, MutableList<Line>>()
@@ -104,27 +126,28 @@ object OfflineDocumentPipeline {
         // 4. Build blocks in layout reading order
         val ordered = (containers + displayFormulas).sortedBy { it.order }
         val pending = mutableListOf<PendingBlock>()
-        var formulaMs = 0L
-        var formulaCount = 0
+        val stats = Stats()
 
         ordered.forEachIndexed { index, region ->
-            if (region.category == DISPLAY_FORMULA) {
+            if (region.category == DISPLAY_FORMULA || region in standaloneInline) {
                 val formulaStart = SystemClock.elapsedRealtime()
                 val block = recognizeFormulaBlock(
                     context = context,
                     imagePath = imagePath,
                     threadCount = threadCount,
-                    region = region,
+                    label = region.label,
+                    score = region.score,
+                    box = region.box,
                 )
-                formulaMs += SystemClock.elapsedRealtime() - formulaStart
-                formulaCount++
+                stats.formulaMs += SystemClock.elapsedRealtime() - formulaStart
+                stats.formulaCount++
 
                 pending += PendingBlock(index.toDouble(), region.box.top, block)
             } else {
                 val regionLines = linesByRegion[region].orEmpty()
 
                 if (regionLines.isNotEmpty()) {
-                    val inlineCount = inlineFormulas.count { inline ->
+                    val inlineCount = embeddedInline.count { inline ->
                         inline.box.intersection(region.box) / max(inline.box.area, 1.0) >=
                             LINE_IN_REGION
                     }
@@ -132,34 +155,44 @@ object OfflineDocumentPipeline {
                     pending += PendingBlock(
                         index.toDouble(),
                         region.box.top,
-                        textBlock(
+                        textOrFormulaBlock(
+                            context = context,
+                            imagePath = imagePath,
+                            threadCount = threadCount,
                             type = region.category,
                             label = region.label,
                             score = region.score,
-                            box = region.box,
+                            box = region.box.union(unionOf(regionLines)),
                             lines = regionLines,
                             inlineFormulaCount = inlineCount,
+                            stats = stats,
                         ),
                     )
                 }
             }
         }
 
-        // Lines the layout model missed: place them after the last region
-        // that starts above them.
-        for (line in orphanLines) {
-            val previous = ordered.indexOfLast { region -> region.box.top <= line.box.top }
+        // Lines the layout model missed: group stacked rows (so a fraction's
+        // numerator and denominator stay together), then place each group
+        // after the last region that starts above it.
+        for (group in groupStackedLines(orphanLines)) {
+            val groupBox = unionOf(group)
+            val previous = ordered.indexOfLast { region -> region.box.top <= groupBox.top }
 
             pending += PendingBlock(
                 previous + 0.5,
-                line.box.top,
-                textBlock(
+                groupBox.top,
+                textOrFormulaBlock(
+                    context = context,
+                    imagePath = imagePath,
+                    threadCount = threadCount,
                     type = "text",
                     label = "unassigned_text",
                     score = 0.0,
-                    box = line.box,
-                    lines = listOf(line),
+                    box = groupBox,
+                    lines = group,
                     inlineFormulaCount = 0,
+                    stats = stats,
                 ),
             )
         }
@@ -183,8 +216,9 @@ object OfflineDocumentPipeline {
             "blocks" to blocks,
             "markdown" to markdown,
             "block_count" to blocks.size,
-            "formula_count" to formulaCount,
-            "inline_formula_count" to inlineFormulas.size,
+            "formula_count" to stats.formulaCount,
+            "fallback_formula_count" to stats.fallbackCount,
+            "inline_formula_count" to embeddedInline.size,
             "region_count" to regions.size,
             "ocr_line_count" to lines.size,
             "dropped_formula_line_count" to droppedFormulaLines,
@@ -194,7 +228,7 @@ object OfflineDocumentPipeline {
             "image_height" to layout["image_height"],
             "layout_time_ms" to layoutMs,
             "ocr_time_ms" to ocrMs,
-            "formula_time_ms" to formulaMs,
+            "formula_time_ms" to stats.formulaMs,
             "total_time_ms" to totalMs,
             "thread_count" to threadCount,
         )
@@ -210,18 +244,101 @@ object OfflineDocumentPipeline {
         val block: Map<String, Any?>,
     )
 
+    private class Stats {
+        var formulaCount = 0
+        var fallbackCount = 0
+        var formulaMs = 0L
+    }
+
+    /**
+     * Text block, unless it looks like math: then try the formula model and
+     * keep the OCR text as a fallback if recognition fails.
+     */
+    private suspend fun textOrFormulaBlock(
+        context: Context,
+        imagePath: String,
+        threadCount: Int,
+        type: String,
+        label: String,
+        score: Double,
+        box: Box,
+        lines: List<Line>,
+        inlineFormulaCount: Int,
+        stats: Stats,
+    ): Map<String, Any?> {
+        val text = textBlock(type, label, score, box, lines, inlineFormulaCount)
+
+        if (lines.size > MAX_FALLBACK_LINES || !looksLikeMath(lines)) {
+            return text
+        }
+
+        val formulaStart = SystemClock.elapsedRealtime()
+        val formula = recognizeFormulaBlock(
+            context = context,
+            imagePath = imagePath,
+            threadCount = threadCount,
+            label = label,
+            score = score,
+            box = box,
+        )
+        stats.formulaMs += SystemClock.elapsedRealtime() - formulaStart
+
+        val latex = formula["latex"] as? String ?: ""
+
+        if (latex.isBlank() || formula["error"] != null || formula["reached_end"] == false) {
+            return text
+        }
+
+        stats.formulaCount++
+        stats.fallbackCount++
+
+        return formula + mapOf(
+            "source" to "formula_fallback",
+            "ocr_text" to text["content"],
+            "needs_review" to true,
+        )
+    }
+
+    /**
+     * Math if it has math symbols (or is a short stack of rows, like a
+     * fraction), no real words ("Solve for x" stays text), and mostly
+     * digits/operators.
+     */
+    private fun looksLikeMath(lines: List<Line>): Boolean {
+        val text = lines.joinToString(" ") { it.text }.trim()
+
+        if (text.isEmpty()) {
+            return false
+        }
+
+        if (!MATH_SYMBOL.containsMatchIn(text) && lines.size < 2) {
+            return false
+        }
+
+        if (REAL_WORD.findAll(text).count() > 1) {
+            return false
+        }
+
+        val mathCharacters = text.count { it in MATH_CHARACTERS }
+        val letters = text.count { it.isLetter() }
+
+        return mathCharacters >= 2 && letters <= mathCharacters * 2
+    }
+
     private suspend fun recognizeFormulaBlock(
         context: Context,
         imagePath: String,
         threadCount: Int,
-        region: Region,
+        label: String,
+        score: Double,
+        box: Box,
     ): Map<String, Any?> {
         return try {
             val result = PaddleOnnxFormulaRecognizer.recognizeFile(
                 context = context,
                 imagePath = imagePath,
                 threadCount = threadCount,
-                box = region.box.toFloatArray(),
+                box = box.toFloatArray(),
             )
 
             val latex = result["latex"] as? String ?: ""
@@ -229,13 +346,14 @@ object OfflineDocumentPipeline {
 
             mapOf(
                 "type" to "formula",
-                "label" to region.label,
+                "label" to label,
                 "content" to latex,
                 "latex" to latex,
-                "score" to region.score,
-                "confidence" to region.score,
-                "box" to region.box.toMap(),
+                "score" to score,
+                "confidence" to score,
+                "box" to box.toMap(),
                 "needs_review" to (latex.isBlank() || !reachedEnd),
+                "reached_end" to reachedEnd,
                 "source" to "formula",
                 "token_count" to result["token_count"],
                 "time_ms" to result["total_time_ms"],
@@ -243,12 +361,12 @@ object OfflineDocumentPipeline {
         } catch (error: Exception) {
             mapOf(
                 "type" to "formula",
-                "label" to region.label,
+                "label" to label,
                 "content" to "",
                 "latex" to "",
-                "score" to region.score,
+                "score" to score,
                 "confidence" to 0.0,
-                "box" to region.box.toMap(),
+                "box" to box.toMap(),
                 "needs_review" to true,
                 "source" to "formula",
                 "error" to (error.message ?: error.javaClass.simpleName),
@@ -283,6 +401,42 @@ object OfflineDocumentPipeline {
         )
     }
 
+    /**
+     * Groups lines that sit directly above/below each other and overlap
+     * horizontally (e.g. a fraction's numerator and denominator).
+     */
+    private fun groupStackedLines(lines: List<Line>): List<List<Line>> {
+        val groups = mutableListOf<MutableList<Line>>()
+
+        for (line in lines.sortedBy { it.box.top }) {
+            val lineHeight = max(line.box.bottom - line.box.top, 1.0)
+
+            val target = groups.lastOrNull { group ->
+                val groupBox = unionOf(group)
+                val horizontalOverlap =
+                    min(groupBox.right, line.box.right) - max(groupBox.left, line.box.left)
+                val verticalGap = line.box.top - groupBox.bottom
+
+                horizontalOverlap > 0.0 && verticalGap < lineHeight * 1.2
+            }
+
+            if (target != null) {
+                target.add(line)
+            } else {
+                groups.add(mutableListOf(line))
+            }
+        }
+
+        return groups
+    }
+
+    private fun unionOf(lines: List<Line>): Box = Box(
+        left = lines.minOf { it.box.left },
+        top = lines.minOf { it.box.top },
+        right = lines.maxOf { it.box.right },
+        bottom = lines.maxOf { it.box.bottom },
+    )
+
     // ------------------------------------------------------------------
     // Parsing the engines' result maps
     // ------------------------------------------------------------------
@@ -307,6 +461,13 @@ object OfflineDocumentPipeline {
             val union = area + other.area - overlap
             return if (union <= 0.0) 0.0 else overlap / union
         }
+
+        fun union(other: Box): Box = Box(
+            left = min(left, other.left),
+            top = min(top, other.top),
+            right = max(right, other.right),
+            bottom = max(bottom, other.bottom),
+        )
 
         fun toMap(): Map<String, Any?> = mapOf(
             "left" to left,
