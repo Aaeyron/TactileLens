@@ -39,6 +39,12 @@ object OfflineDocumentPipeline {
     // Math fallback only for short blocks (a stacked fraction is 2-3 rows).
     private const val MAX_FALLBACK_LINES = 3
 
+    // Longest OCR piece that may be attached to a formula box ("= 6", "+ 2x").
+    private const val MAX_ATTACHED_CHARACTERS = 16
+
+    // Longest OCR piece that may be attached to a formula box ("= 6", "+ 2x").
+    private const val MAX_ATTACHED_CHARACTERS = 16
+
     private val MATH_SYMBOL = Regex("""[=<>≤≥≠±+\-−×÷*/^√]""")
     private val REAL_WORD = Regex("""[A-Za-z]{3,}""")
     private const val MATH_CHARACTERS = "0123456789=<>≤≥≠±+-−×÷*/^√()[]."
@@ -88,8 +94,17 @@ object OfflineDocumentPipeline {
                 }
             }
 
-        val displayFormulas = regions.filter { it.category == DISPLAY_FORMULA } +
+                val displayFormulas = regions.filter { it.category == DISPLAY_FORMULA } +
             standaloneInline
+
+        // Layout boxes sometimes cover only part of an equation (e.g. just
+        // the fraction in "3x/10 = 6"). Grow each formula box over short,
+        // math-looking OCR pieces on the same row right next to it.
+        val formulaBoxes = HashMap<Region, Box>()
+
+        for (formula in displayFormulas) {
+            formulaBoxes[formula] = expandFormulaBox(formula.box, lines)
+        }
 
         // 3. Assign OCR lines to regions
         val linesByRegion = HashMap<Region, MutableList<Line>>()
@@ -103,8 +118,9 @@ object OfflineDocumentPipeline {
 
             val lineArea = max(line.box.area, 1.0)
 
-            val insideFormula = displayFormulas.any { formula ->
-                formula.box.intersection(line.box) / lineArea >= LINE_IN_REGION
+                        val insideFormula = displayFormulas.any { formula ->
+                formulaBoxes.getValue(formula).intersection(line.box) / lineArea >=
+                    LINE_IN_REGION
             }
 
             if (insideFormula) {
@@ -137,7 +153,7 @@ object OfflineDocumentPipeline {
                     threadCount = threadCount,
                     label = region.label,
                     score = region.score,
-                    box = region.box,
+                    box = formulaBoxes[region] ?: region.box,
                 )
                 stats.formulaMs += SystemClock.elapsedRealtime() - formulaStart
                 stats.formulaCount++
@@ -401,33 +417,103 @@ object OfflineDocumentPipeline {
         )
     }
 
-    /**
-     * Groups lines that sit directly above/below each other and overlap
-     * horizontally (e.g. a fraction's numerator and denominator).
+        /**
+     * Groups stray OCR lines that belong together: stacked rows (a
+     * fraction's numerator/denominator, paragraph lines) and pieces on the
+     * same row close together (e.g. "3x/10" and "= 6"). A group with real
+     * words is never merged with a group without them, so a sentence is
+     * not swallowed into an equation.
      */
     private fun groupStackedLines(lines: List<Line>): List<List<Line>> {
-        val groups = mutableListOf<MutableList<Line>>()
+        val groups = lines
+            .sortedBy { it.box.top }
+            .map { mutableListOf(it) }
+            .toMutableList()
 
-        for (line in lines.sortedBy { it.box.top }) {
-            val lineHeight = max(line.box.bottom - line.box.top, 1.0)
+        var merged = true
 
-            val target = groups.lastOrNull { group ->
-                val groupBox = unionOf(group)
-                val horizontalOverlap =
-                    min(groupBox.right, line.box.right) - max(groupBox.left, line.box.left)
-                val verticalGap = line.box.top - groupBox.bottom
+        while (merged) {
+            merged = false
 
-                horizontalOverlap > 0.0 && verticalGap < lineHeight * 1.2
-            }
+            search@ for (i in groups.indices) {
+                for (j in i + 1 until groups.size) {
+                    val first = groups[i]
+                    val second = groups[j]
 
-            if (target != null) {
-                target.add(line)
-            } else {
-                groups.add(mutableListOf(line))
+                    if (isWordy(first) != isWordy(second)) {
+                        continue
+                    }
+
+                    if (areNeighbors(unionOf(first), unionOf(second))) {
+                        first.addAll(second)
+                        groups.removeAt(j)
+                        merged = true
+                        break@search
+                    }
+                }
             }
         }
 
         return groups
+    }
+
+    private fun isWordy(lines: List<Line>): Boolean =
+        REAL_WORD.findAll(lines.joinToString(" ") { it.text }).count() > 1
+
+    private fun areNeighbors(a: Box, b: Box): Boolean {
+        val lineHeight = max(min(a.bottom - a.top, b.bottom - b.top), 1.0)
+        val horizontalOverlap = min(a.right, b.right) - max(a.left, b.left)
+        val verticalOverlap = min(a.bottom, b.bottom) - max(a.top, b.top)
+        val verticalGap = max(a.top, b.top) - min(a.bottom, b.bottom)
+        val horizontalGap = max(a.left, b.left) - min(a.right, b.right)
+
+        // Stacked: numerator over denominator, or consecutive lines.
+        if (horizontalOverlap > 0.0 && verticalGap < lineHeight * 1.2) {
+            return true
+        }
+
+        // Same row, close together: "3x/10" next to "= 6".
+        return verticalOverlap > 0.0 && horizontalGap < lineHeight * 1.5
+    }
+
+    /**
+     * Grows a formula box over short math-looking OCR pieces that sit on
+     * the same row right next to it (e.g. "= 6" beside a fraction).
+     */
+    private fun expandFormulaBox(start: Box, lines: List<Line>): Box {
+        var box = start
+        var changed = true
+
+        while (changed) {
+            changed = false
+
+            for (line in lines) {
+                if (line.text.isBlank() || line.text.length > MAX_ATTACHED_CHARACTERS) {
+                    continue
+                }
+
+                // Already inside the box.
+                if (box.intersection(line.box) >= line.box.area * 0.9) {
+                    continue
+                }
+
+                if (!looksLikeMath(listOf(line))) {
+                    continue
+                }
+
+                val height = max(box.bottom - box.top, 1.0)
+                val lineCenterY = (line.box.top + line.box.bottom) / 2.0
+                val sameRow = lineCenterY >= box.top && lineCenterY <= box.bottom
+                val gap = max(line.box.left - box.right, box.left - line.box.right)
+
+                if (sameRow && gap < height * 1.5) {
+                    box = box.union(line.box)
+                    changed = true
+                }
+            }
+        }
+
+        return box
     }
 
     private fun unionOf(lines: List<Line>): Box = Box(
