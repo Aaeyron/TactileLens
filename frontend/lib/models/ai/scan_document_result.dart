@@ -1,4 +1,5 @@
 import '../../utils/document_reading_order.dart';
+import '../../utils/math_text_formatter.dart';
 
 class ScanDocumentResult {
   const ScanDocumentResult({
@@ -127,7 +128,8 @@ class ScanDocumentResult {
 
   String get combinedContent {
     return _combinePageContent(
-      contentOf: (DocumentBlock block) => block.normalizedContent,
+      contentOf: (DocumentBlock block) =>
+          MathTextFormatter.ensureReadable(block.normalizedContent),
     );
   }
 
@@ -301,7 +303,7 @@ class DocumentBlock {
     required this.tableRows,
     required this.brailleContent,
     required this.brailleCode,
-        required this.brailleSuccess,
+    required this.brailleSuccess,
     required this.brailleError,
     this.needsReview = false,
   });
@@ -337,7 +339,7 @@ class DocumentBlock {
   /// Expected values are `ueb` and `nemeth`.
   final String brailleCode;
 
-    final bool brailleSuccess;
+  final bool brailleSuccess;
   final String brailleError;
 
   /// True when recognition was uncertain (low OCR confidence, an
@@ -347,7 +349,7 @@ class DocumentBlock {
   /// default to false.
   final bool needsReview;
 
-  String get content => normalizedContent;
+  String get content => MathTextFormatter.ensureReadable(normalizedContent);
 
   bool get hasContent {
     return normalizedContent.trim().isNotEmpty ||
@@ -438,7 +440,7 @@ class DocumentBlock {
       tableRows: tableRows,
       brailleContent: brailleContent,
       brailleCode: brailleCode,
-            brailleSuccess: brailleSuccess,
+      brailleSuccess: brailleSuccess,
       brailleError: brailleError,
       needsReview: json['needs_review'] == true,
     );

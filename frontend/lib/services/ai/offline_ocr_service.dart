@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../utils/math_text_formatter.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
 
@@ -97,21 +98,26 @@ class OfflineOcrService {
           continue;
         }
 
-                final bool isFormula = source.isFormula;
+        final bool isFormula = source.isFormula;
 
-        // OCR returns one entry per printed line; rejoin text into
-        // flowing paragraphs so the result screen and Braille don't break
-        // where the paper wrapped. Formulas are kept exactly as LaTeX.
-        final String normalizedContent = _normalizeContent(
-          isFormula ? rawContent : _reflowText(rawContent),
-        );
+        // What the user sees, copies, saves and hears: never LaTeX.
+        // Text: printed lines are rejoined into paragraphs.
+        // Formulas: LaTeX becomes readable symbols, e.g. √(x + 9) = 5.
+        final String normalizedContent = isFormula
+            ? _readableFormula(rawContent)
+            : MathTextFormatter.ensureReadable(
+                _normalizeContent(_reflowText(rawContent)),
+              );
+
+        // Formula Braille still starts from the model's LaTeX. The Kotlin
+        // BrailleMathNormalizer converts it to Nemeth-ready math exactly
+        // like the online server does. The LaTeX is never shown.
+        final String brailleInput = isFormula
+            ? _normalizeContent(rawContent)
+            : normalizedContent;
 
         final OfflineBrailleResult brailleResult = await _brailleService
-            .translateBlock(
-              normalizedContent,
-              isFormula: isFormula,
-              isTable: false,
-            );
+            .translateBlock(brailleInput, isFormula: isFormula, isTable: false);
 
         final int order = blocks.length;
 
@@ -264,10 +270,10 @@ class OfflineOcrService {
           '${Directory.systemTemp.path}/tactilelens_offline_scan_'
           '${DateTime.now().microsecondsSinceEpoch}.jpg';
 
-      final bool written = await compute(
-        _writeUprightJpeg,
-        <String, Object>{'bytes': bytes, 'path': outputPath},
-      );
+      final bool written = await compute(_writeUprightJpeg, <String, Object>{
+        'bytes': bytes,
+        'path': outputPath,
+      });
 
       return written ? File(outputPath) : null;
     } catch (error) {
@@ -277,7 +283,7 @@ class OfflineOcrService {
     }
   }
 
-    static final RegExp _listItemStart = RegExp(
+  static final RegExp _listItemStart = RegExp(
     r'^(?:\(?\d{1,3}[.)]|\(?[a-zA-Z][.)]|[•\-–*])\s',
   );
 
@@ -323,6 +329,14 @@ class OfflineOcrService {
         .trim();
   }
 
+  String _readableFormula(String latex) {
+    final String readable = MathTextFormatter.latexToReadable(latex);
+
+    return readable.isNotEmpty
+        ? readable
+        : MathTextFormatter.ensureReadable(latex);
+  }
+
   Future<void> dispose() async {
     if (_disposed) {
       return;
@@ -352,9 +366,9 @@ bool _writeUprightJpeg(Map<String, Object> job) {
 
   final img.Image upright = img.bakeOrientation(decoded);
 
-  File(job['path']! as String).writeAsBytesSync(
-    img.encodeJpg(upright, quality: 95),
-  );
+  File(
+    job['path']! as String,
+  ).writeAsBytesSync(img.encodeJpg(upright, quality: 95));
 
   return true;
 }

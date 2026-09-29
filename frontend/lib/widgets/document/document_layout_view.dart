@@ -5,123 +5,17 @@ import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+import '../../utils/math_text_formatter.dart';
 
+/// Plain or mixed text: converts only the LaTeX parts, keeps normal text.
 String _toReadableMathText(String value) {
-  String result = value
-      .replaceAll('```latex', '')
-      .replaceAll('```math', '')
-      .replaceAll('```', '')
-      .replaceAll(r'\[', '')
-      .replaceAll(r'\]', '')
-      .replaceAll(r'\(', '')
-      .replaceAll(r'\)', '')
-      .replaceAll(r'$$', '')
-      .trim();
-
-  final RegExp fractionPattern = RegExp(
-    r'\\(?:dfrac|tfrac|frac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}',
-  );
-
-  for (int attempt = 0; attempt < 5; attempt++) {
-    final String converted = result.replaceAllMapped(fractionPattern, (
-      Match match,
-    ) {
-      return '(${match.group(1)})⁄(${match.group(2)})';
-    });
-
-    if (converted == result) {
-      break;
-    }
-
-    result = converted;
-  }
-
-  result = result.replaceAllMapped(
-    RegExp(r'\\sqrt\s*\[([^\]]+)\]\s*\{([^{}]*)\}'),
-    (Match match) => '${match.group(1)}√(${match.group(2)})',
-  );
-
-  result = result.replaceAllMapped(
-    RegExp(r'\\sqrt\s*\{([^{}]*)\}'),
-    (Match match) => '√(${match.group(1)})',
-  );
-
-  result = result.replaceAllMapped(
-    RegExp(
-      r'\\(?:text|textrm|mathrm|mathbf|mathit|operatorname)\s*\{([^{}]*)\}',
-    ),
-    (Match match) => match.group(1) ?? '',
-  );
-
-  const Map<String, String> replacements = <String, String>{
-    r'\leq': '≤',
-    r'\le': '≤',
-    r'\geq': '≥',
-    r'\ge': '≥',
-    r'\neq': '≠',
-    r'\ne': '≠',
-    r'\times': '×',
-    r'\div': '÷',
-    r'\cdot': '·',
-    r'\pm': '±',
-    r'\sum': '∑',
-    r'\prod': '∏',
-    r'\int': '∫',
-    r'\infty': '∞',
-    r'\pi': 'π',
-    r'\theta': 'θ',
-    r'\alpha': 'α',
-    r'\beta': 'β',
-    r'\left': '',
-    r'\right': '',
-    r'\,': ' ',
-    r'\;': ' ',
-    r'\:': ' ',
-    r'\!': '',
-    r'\quad': ' ',
-    r'\qquad': '  ',
-  };
-
-  replacements.forEach((String source, String replacement) {
-    result = result.replaceAll(source, replacement);
-  });
-
-  result = result.replaceAllMapped(
-    RegExp(r'\^\{?(-?\d+)\}?'),
-    (Match match) => _toSuperscript(match.group(1) ?? ''),
-  );
-
-  return result
-      .replaceAllMapped(
-        RegExp(r'\\([A-Za-z]+)'),
-        (Match match) => match.group(1) ?? '',
-      )
-      .replaceAll('{', '(')
-      .replaceAll('}', ')')
-      .replaceAll(r'\_', '_')
-      .replaceAll(RegExp(r'[ \t]+'), ' ')
-      .trim();
+  return MathTextFormatter.ensureReadable(value);
 }
 
-String _toSuperscript(String value) {
-  const Map<String, String> characters = <String, String>{
-    '0': '⁰',
-    '1': '¹',
-    '2': '²',
-    '3': '³',
-    '4': '⁴',
-    '5': '⁵',
-    '6': '⁶',
-    '7': '⁷',
-    '8': '⁸',
-    '9': '⁹',
-    '-': '⁻',
-  };
-
-  return value
-      .split('')
-      .map((String character) => characters[character] ?? character)
-      .join();
+/// A whole formula as readable symbols. Used when Math.tex can't draw it
+/// and for the screen-reader label.
+String _formulaToReadable(String formula) {
+  return MathTextFormatter.latexToReadable(formula);
 }
 
 class DocumentLayoutView extends StatelessWidget {
@@ -323,7 +217,7 @@ class _ReadableDocumentPage extends StatelessWidget {
           .replaceAll(RegExp(r'[ \t]+'), ' ')
           .trim();
 
-               pendingContent.clear();
+      pendingContent.clear();
 
       if (combinedContent.isEmpty) {
         return;
@@ -420,7 +314,8 @@ class _ReadableDocumentPage extends StatelessWidget {
           return formula;
         }
 
-        return r'$' + formula + r'$';
+        // Math can't span line breaks; join OCR pieces onto one line.
+        return r'$' + formula.replaceAll(RegExp(r'\s*\n\s*'), ' ') + r'$';
       }
 
       // Preserve raw LaTeX commands when normalization removed
@@ -452,10 +347,7 @@ class _ReadableDocumentPage extends StatelessWidget {
       if (isStandaloneFormula(block)) {
         flushPendingContent();
 
-          _addWithSpacing(
-          widgets,
-          _ReadableFormula(content: content),
-        );
+        _addWithSpacing(widgets, _ReadableFormula(content: content));
 
         previousBlock = null;
         continue;
@@ -606,7 +498,7 @@ class _ReadableMixedMathContent extends StatelessWidget {
         textStyle: ScanResultScreenStyles.recognizedContentStyle,
         onErrorFallback: (_) {
           return Text(
-            _toReadableMathText(formula),
+            _formulaToReadable(formula),
             style: ScanResultScreenStyles.recognizedContentStyle,
           );
         },
@@ -690,7 +582,7 @@ class _ReadableFormula extends StatelessWidget {
     }
 
     return Semantics(
-      label: 'Mathematical expression: ${_toReadableMathText(formula)}',
+      label: 'Mathematical expression: ${_formulaToReadable(formula)}',
       child: Padding(
         padding: ScanResultScreenStyles.formulaPreviewPadding,
         child: SingleChildScrollView(
@@ -702,7 +594,7 @@ class _ReadableFormula extends StatelessWidget {
             textStyle: ScanResultScreenStyles.formulaContentStyle,
             onErrorFallback: (_) {
               return SelectableText(
-                _toReadableMathText(formula),
+                _formulaToReadable(formula),
                 style: ScanResultScreenStyles.formulaContentStyle,
               );
             },

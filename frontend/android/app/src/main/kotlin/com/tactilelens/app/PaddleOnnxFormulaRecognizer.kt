@@ -310,8 +310,11 @@ object PaddleOnnxFormulaRecognizer {
         return cropped
     }
 
-    private fun preprocess(source: Bitmap): FloatBuffer {
-        val cropped = cropMargin(source)
+        private fun preprocess(source: Bitmap): FloatBuffer {
+        // Photos have a gray/textured background; the model expects clean
+        // black-on-white. Stretch contrast first, then crop the margins.
+        val normalized = normalizeContrast(source)
+        val cropped = cropMargin(normalized)
 
         // PIL: resize short side to 384, then thumbnail into 384x384.
         // Net effect: the long side becomes 384, aspect ratio preserved.
@@ -323,6 +326,10 @@ object PaddleOnnxFormulaRecognizer {
 
         if (cropped !== source && cropped !== scaled) {
             cropped.recycle()
+        }
+
+        if (normalized !== source && normalized !== cropped && normalized !== scaled) {
+            normalized.recycle()
         }
 
         // Center on a BLACK 384x384 canvas (PIL ImageOps.expand default fill).
@@ -374,10 +381,79 @@ object PaddleOnnxFormulaRecognizer {
         return pixels
     }
 
+
+
+         /**
+     * Camera photos (of paper or of a screen) have a gray, textured
+     * background and low contrast, but the formula model was trained on
+     * clean black-on-white images. Stretch the contrast so the background
+     * becomes white and the ink black. Clean screenshots are practically
+     * unchanged (their background is already white).
+     */
+    private fun normalizeContrast(source: Bitmap): Bitmap {
+        val width = source.width
+        val height = source.height
+        val argb = IntArray(width * height)
+        source.getPixels(argb, 0, width, 0, 0, width, height)
+
+        val gray = IntArray(argb.size)
+        val histogram = IntArray(256)
+
+        for (i in argb.indices) {
+            val color = argb[i]
+            val value = (
+                ((color shr 16) and 0xFF) * 299 +
+                    ((color shr 8) and 0xFF) * 587 +
+                    (color and 0xFF) * 114
+                ) / 1000
+            gray[i] = value
+            histogram[value]++
+        }
+
+        // Darkest 1% = ink; the median = background (formulas are mostly
+        // white space around thin strokes).
+        val blackPoint = percentile(histogram, argb.size, 0.01)
+        val whitePoint = percentile(histogram, argb.size, 0.50)
+
+        if (whitePoint - blackPoint < 30) {
+            return source
+        }
+
+        val range = (whitePoint - blackPoint).toFloat()
+
+        for (i in argb.indices) {
+            val value = ((gray[i] - blackPoint) / range * 255f)
+                .roundToInt()
+                .coerceIn(0, 255)
+            argb[i] = (0xFF shl 24) or (value shl 16) or (value shl 8) or value
+        }
+
+        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        output.setPixels(argb, 0, width, 0, 0, width, height)
+
+        return output
+    }
+
+    private fun percentile(histogram: IntArray, total: Int, fraction: Double): Int {
+        val target = (total * fraction).toLong()
+        var count = 0L
+
+        for (value in 0..255) {
+            count += histogram[value]
+
+            if (count > target) {
+                return value
+            }
+        }
+
+        return 255
+    }
+
     /**
      * Port of UniMERNetImgDecode.crop_margin(): crops to the bounding box of
      * "ink" pixels (normalized grayscale < 200).
      */
+
     private fun cropMargin(source: Bitmap): Bitmap {
         val width = source.width
         val height = source.height
