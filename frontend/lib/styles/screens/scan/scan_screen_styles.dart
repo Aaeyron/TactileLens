@@ -11,9 +11,9 @@ abstract final class ScanScreenStyles {
 
   static const Color cameraBackgroundColor = Color(0xFF111820);
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0D47A1);
-  static const Color primarySoftColor = Color(0xFF94BBFF);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
+  static const Color primarySoftColor = Color(0xFFEDF3FB);
 
   static const Color surfaceColor = Colors.white;
   static const Color onPrimaryColor = Colors.white;
@@ -29,7 +29,7 @@ abstract final class ScanScreenStyles {
 
   static const Color controlBorderColor = Color(0xFF728094);
 
-  static const Color activeControlBorderColor = Color(0xFF4C91FF);
+  static const Color activeControlBorderColor = Color(0xFF165CC4);
 
   static const Color outsideFrameOverlayColor = Color(0x30000000);
 
@@ -100,7 +100,7 @@ abstract final class ScanScreenStyles {
   );
 
   static const TextStyle statusTextStyle = TextStyle(
-    color: primaryColor,
+    color: primarySoftColor,
     fontSize: 14,
     fontWeight: FontWeight.w700,
   );
@@ -144,7 +144,7 @@ abstract final class ScanScreenStyles {
   );
 
   static const List<BoxShadow> captureShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x451268F3), blurRadius: 20, offset: Offset(0, 7)),
+    BoxShadow(color: Color(0x45003797), blurRadius: 20, offset: Offset(0, 7)),
   ];
 
   // ==========================================================
@@ -235,7 +235,7 @@ abstract final class ScanScreenStyles {
 
   static const Color confirmationBodyColor = Color(0xFF53648F);
 
-  static const Color confirmationIconBackgroundColor = Color(0xFFE8F1FF);
+  static const Color confirmationIconBackgroundColor = Color(0xFFEDF3FB);
 
   static const Color confirmationHandleColor = Color(0xFFD1DCEB);
 

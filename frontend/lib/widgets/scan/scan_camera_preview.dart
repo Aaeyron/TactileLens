@@ -155,7 +155,7 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
           dimension: ScanCameraPreviewStyles.loadingIndicatorSize,
           child: CircularProgressIndicator(
             strokeWidth: ScanCameraPreviewStyles.loadingIndicatorStrokeWidth,
-            color: ScanCameraPreviewStyles.primaryColor,
+            color: ScanCameraPreviewStyles.loadingIndicatorColor,
           ),
         ),
       ),

@@ -1085,7 +1085,7 @@ class _CameraMessagePill extends StatelessWidget {
                 ? ScanScreenStyles.statusIconSize
                 : ScanScreenStyles.instructionIconSize,
             color: isStatus
-                ? ScanScreenStyles.primaryColor
+                ? ScanScreenStyles.primarySoftColor
                 : ScanScreenStyles.primaryTextColor,
           ),
           const SizedBox(width: ScanScreenStyles.overlaySpacing),
@@ -1124,7 +1124,7 @@ class _CameraControlButton extends StatelessWidget {
         : ScanScreenStyles.controlBorderColor;
 
     final Color iconColor = isActive
-        ? ScanScreenStyles.primaryColor
+        ? ScanScreenStyles.activeControlBorderColor
         : ScanScreenStyles.primarySoftColor;
 
     return Semantics(
@@ -1260,7 +1260,7 @@ class _ProcessingOverlay extends StatelessWidget {
               dimension: ScanScreenStyles.processingIndicatorSize,
               child: CircularProgressIndicator(
                 strokeWidth: ScanScreenStyles.processingIndicatorWidth,
-                color: ScanScreenStyles.primaryColor,
+                color: ScanScreenStyles.primarySoftColor,
               ),
             ),
             SizedBox(height: ScanScreenStyles.processingLabelSpacing),
@@ -1339,7 +1339,7 @@ class _ScanFramePainter extends CustomPainter {
     canvas.drawPath(overlayPath, overlayPaint);
 
     final Paint cornerPaint = Paint()
-      ..color = ScanScreenStyles.primaryColor
+      ..color = ScanScreenStyles.activeControlBorderColor
       ..strokeWidth = ScanScreenStyles.frameCornerWidth
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round

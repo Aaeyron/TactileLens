@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 abstract final class ScanActionButtonStyles {
-  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryColor = Color(0xFF003797);
   static const Color surfaceColor = Colors.white;
   static const Color disabledColor = Color(0xFF9E9E9E);
 

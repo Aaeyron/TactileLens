@@ -5,8 +5,8 @@ abstract final class ScanResultScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
 
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
@@ -25,9 +25,9 @@ abstract final class ScanResultScreenStyles {
 
   static const Color tableAlternatingRowColor = Color(0xFFF8FAFD);
 
-  static const Color tableLabelBackgroundColor = Color(0xFFEAF2FF);
+  static const Color tableLabelBackgroundColor = Color(0xFFEDF3FB);
 
-  static const Color tableBorderColor = Color(0xFFCAD7E7);
+  static const Color tableBorderColor = Color(0xFFCCD7EA);
 
   static const Color brailleBackgroundColor = Color(0xFFF5F8FC);
 
@@ -84,7 +84,7 @@ abstract final class ScanResultScreenStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const double headerHorizontalPadding = 14;
@@ -301,7 +301,7 @@ abstract final class ScanResultScreenStyles {
   static const Offset contentViewBeginOffset = Offset(0, 0.025);
 
   static const Color contentViewSelectorColor = Color(0xFFF1F5FB);
-  static const Color selectedContentViewColor = Color(0xFFE6F0FF);
+  static const Color selectedContentViewColor = Color(0xFFEDF3FB);
   static const Color disabledContentViewColor = Color(0xFF98A2B3);
 
   static const EdgeInsets contentViewSelectorPadding = EdgeInsets.all(4);

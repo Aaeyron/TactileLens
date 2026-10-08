@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 abstract final class ScanCameraPreviewStyles {
   // Colors
-  static const Color primaryColor = Color(0xFF1268F3);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color loadingIndicatorColor = Color(0xFF165CC4);
   static const Color backgroundColor = Color(0xFF111820);
   static const Color placeholderColor = Color(0xFFD8E1ED);
   static const Color focusIndicatorColor = Colors.white;
