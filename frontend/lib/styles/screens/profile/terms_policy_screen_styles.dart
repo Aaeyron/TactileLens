@@ -57,8 +57,8 @@ abstract final class TermsPolicyScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
 
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
@@ -70,13 +70,13 @@ abstract final class TermsPolicyScreenStyles {
   static const Color outlineColor = Color(0xFFDDE5F0);
   static const Color dividerColor = Color(0xFFE5EBF3);
 
-  static const Color primarySoftColor = Color(0xFFEDF4FF);
+  static const Color primarySoftColor = Color(0xFFEDF3FB);
 
   static const Color noticeBackgroundColor = Color(0xFFFFFAEB);
   static const Color noticeBorderColor = Color(0xFFF2D38A);
 
-  static const Color privacyNoticeBackgroundColor = Color(0xFFF0F7FF);
-  static const Color privacyNoticeBorderColor = Color(0xFFCCE0FF);
+  static const Color privacyNoticeBackgroundColor = Color(0xFFEDF3FB);
+  static const Color privacyNoticeBorderColor = Color(0xFFCCD7EA);
 
   // ============================================================
   // ANIMATION
@@ -114,7 +114,7 @@ abstract final class TermsPolicyScreenStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const BorderRadius headerRadius = BorderRadius.only(
@@ -212,17 +212,17 @@ abstract final class TermsPolicyScreenStyles {
   static const Color unselectedTabBorderColor = Color(0xFFE1E8F2);
 
   static const Color selectedTabIconBackgroundColor = Color(0x33FFFFFF);
-  static const Color unselectedTabIconBackgroundColor = Color(0xFFE6F0FF);
+  static const Color unselectedTabIconBackgroundColor = Color(0xFFEDF3FB);
 
-  static const Color tabSplashColor = Color(0x331268F3);
-  static const Color tabHighlightColor = Color(0x141268F3);
+  static const Color tabSplashColor = Color(0x33003797);
+  static const Color tabHighlightColor = Color(0x14003797);
 
   static const IconData selectedTabIcon = Icons.check_circle_rounded;
 
   static const LinearGradient selectedTabGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const List<BoxShadow> tabShadow = <BoxShadow>[
@@ -230,7 +230,7 @@ abstract final class TermsPolicyScreenStyles {
   ];
 
   static const List<BoxShadow> selectedTabShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x291268F3), blurRadius: 10, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x29003797), blurRadius: 10, offset: Offset(0, 4)),
   ];
 
   // ============================================================
@@ -259,7 +259,7 @@ abstract final class TermsPolicyScreenStyles {
   static const LinearGradient iconHighlightGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF66A6FF), Color(0xFF1268F3)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const double numberBadgeSize = 18;

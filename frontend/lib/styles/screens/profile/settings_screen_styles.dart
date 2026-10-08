@@ -91,9 +91,9 @@ abstract final class SettingsScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
-  static const Color primarySoftColor = Color(0xFFEDF4FF);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
+  static const Color primarySoftColor = Color(0xFFEDF3FB);
 
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
@@ -143,7 +143,7 @@ abstract final class SettingsScreenStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const BorderRadius headerRadius = BorderRadius.only(

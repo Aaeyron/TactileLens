@@ -54,8 +54,8 @@ abstract final class AccountInformationStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
 
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
@@ -67,10 +67,10 @@ abstract final class AccountInformationStyles {
   static const Color outlineColor = Color(0xFFDDE5F0);
   static const Color dividerColor = Color(0xFFE5EBF3);
 
-  static const Color roleBadgeBackgroundColor = Color(0xFFEAF2FF);
-  static const Color informationIconBackgroundColor = Color(0xFFEDF4FF);
+  static const Color roleBadgeBackgroundColor = Color(0xFFEDF3FB);
+  static const Color informationIconBackgroundColor = Color(0xFFEDF3FB);
 
-  static const Color securityBackgroundColor = Color(0xFFF6FAFF);
+  static const Color securityBackgroundColor = Color(0xFFEDF3FB);
   static const Color noticeBackgroundColor = Color(0xFFFFFAEB);
 
   // ============================================================
@@ -129,7 +129,7 @@ abstract final class AccountInformationStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const BorderRadius headerRadius = BorderRadius.only(
@@ -167,7 +167,7 @@ abstract final class AccountInformationStyles {
   static const LinearGradient avatarGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF66A6FF), Color(0xFF1268F3)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const List<BoxShadow> avatarShadow = <BoxShadow>[
@@ -272,7 +272,7 @@ abstract final class AccountInformationStyles {
   static const EdgeInsets securityPadding = EdgeInsets.all(16);
 
   static const Border securityBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFFCCE0FF), width: 1),
+    BorderSide(color: Color(0xFFCCD7EA), width: 1),
   );
 
   static const double securityDescriptionSpacing = 4;
@@ -458,11 +458,11 @@ abstract final class AccountInformationStyles {
   // GUEST MANAGEMENT COLORS
   // ============================================================
 
-  static const Color editGuestBackgroundColor = Color(0xFFF5F9FF);
+  static const Color editGuestBackgroundColor = Color(0xFFEDF3FB);
 
-  static const Color editGuestBorderColor = Color(0xFFCFE1FF);
+  static const Color editGuestBorderColor = Color(0xFFCCD7EA);
 
-  static const Color selectedRoleBackgroundColor = Color(0xFFEAF2FF);
+  static const Color selectedRoleBackgroundColor = Color(0xFFEDF3FB);
 
   static const Color dangerColor = Color(0xFFDC2626);
 
