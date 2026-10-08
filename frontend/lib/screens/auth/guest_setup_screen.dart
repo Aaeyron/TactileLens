@@ -4,10 +4,7 @@ import '../../styles/screens/auth/guest_setup_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
 
-enum _GuestRole {
-  student,
-  educator,
-}
+enum _GuestRole { student, educator }
 
 class GuestSetupScreen extends StatefulWidget {
   const GuestSetupScreen({super.key});
@@ -18,10 +15,8 @@ class GuestSetupScreen extends StatefulWidget {
   }
 }
 
-class _GuestSetupScreenState
-    extends State<GuestSetupScreen> {
-  final TextEditingController _nicknameController =
-      TextEditingController();
+class _GuestSetupScreenState extends State<GuestSetupScreen> {
+  final TextEditingController _nicknameController = TextEditingController();
 
   _GuestRole _selectedRole = _GuestRole.student;
   bool _isSaving = false;
@@ -46,13 +41,10 @@ class _GuestSetupScreenState
 
     FocusScope.of(context).unfocus();
 
-    final String nickname =
-        _nicknameController.text.trim();
+    final String nickname = _nicknameController.text.trim();
 
     if (nickname.isEmpty) {
-      _showMessage(
-        GuestStyles.nicknameRequiredMessage,
-      );
+      _showMessage(GuestStyles.nicknameRequiredMessage);
 
       return;
     }
@@ -91,9 +83,7 @@ class _GuestSetupScreenState
         _isSaving = false;
       });
 
-      _showMessage(
-        GuestStyles.guestSetupErrorMessage,
-      );
+      _showMessage(GuestStyles.guestSetupErrorMessage);
     }
   }
 
@@ -108,8 +98,7 @@ class _GuestSetupScreenState
         SnackBar(
           content: Text(message),
           behavior: SnackBarBehavior.floating,
-          backgroundColor:
-              GuestStyles.primaryDarkColor,
+          backgroundColor: GuestStyles.primaryDarkColor,
         ),
       );
   }
@@ -134,38 +123,22 @@ class _GuestSetupScreenState
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              keyboardDismissBehavior:
-                  ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: GuestStyles.pagePadding,
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   _buildBackButton(),
                   _buildIntroduction(),
-                  const SizedBox(
-                    height: GuestStyles.offlineTopSpacing,
-                  ),
+                  const SizedBox(height: GuestStyles.offlineTopSpacing),
                   _buildOfflineNotice(),
-                  const SizedBox(
-                    height:
-                        GuestStyles.sectionTopSpacing,
-                  ),
+                  const SizedBox(height: GuestStyles.sectionTopSpacing),
                   _buildNicknameSection(),
-                  const SizedBox(
-                    height:
-                        GuestStyles.sectionTopSpacing,
-                  ),
+                  const SizedBox(height: GuestStyles.sectionTopSpacing),
                   _buildRoleSection(),
-                  const SizedBox(
-                    height:
-                        GuestStyles.sectionTopSpacing,
-                  ),
+                  const SizedBox(height: GuestStyles.sectionTopSpacing),
                   _buildContinueButton(),
-                  const SizedBox(
-                    height:
-                        GuestStyles.sectionTopSpacing,
-                  ),
+                  const SizedBox(height: GuestStyles.sectionTopSpacing),
                   const _BottomIllustration(),
                 ],
               ),
@@ -216,22 +189,17 @@ class _GuestSetupScreenState
             child: Image.asset(
               GuestStyles.logoAsset,
               fit: BoxFit.contain,
-              semanticLabel:
-                  GuestStyles.logoSemanticLabel,
+              semanticLabel: GuestStyles.logoSemanticLabel,
             ),
           ),
         ),
-        const SizedBox(
-          height: GuestStyles.titleTopSpacing,
-        ),
+        const SizedBox(height: GuestStyles.titleTopSpacing),
         const Text(
           GuestStyles.title,
           textAlign: TextAlign.center,
           style: GuestStyles.titleStyle,
         ),
-        const SizedBox(
-          height: GuestStyles.descriptionTopSpacing,
-        ),
+        const SizedBox(height: GuestStyles.descriptionTopSpacing),
         const Text(
           GuestStyles.description,
           textAlign: TextAlign.center,
@@ -244,35 +212,24 @@ class _GuestSetupScreenState
   Widget _buildOfflineNotice() {
     return Container(
       padding: GuestStyles.offlineNoticePadding,
-      decoration:
-          GuestStyles.offlineNoticeDecoration,
+      decoration: GuestStyles.offlineNoticeDecoration,
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(
-            Icons.cloud_off_outlined,
-            color: GuestStyles.primaryColor,
-          ),
-          SizedBox(
-            width: GuestStyles.itemSpacing,
-          ),
+          Icon(Icons.cloud_off_outlined, color: GuestStyles.primaryColor),
+          SizedBox(width: GuestStyles.itemSpacing),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   GuestStyles.offlineTitle,
-                  style:
-                      GuestStyles.offlineTitleStyle,
+                  style: GuestStyles.offlineTitleStyle,
                 ),
-                SizedBox(
-                  height: GuestStyles.smallSpacing,
-                ),
+                SizedBox(height: GuestStyles.smallSpacing),
                 Text(
                   GuestStyles.offlineDescription,
-                  style: GuestStyles
-                      .offlineDescriptionStyle,
+                  style: GuestStyles.offlineDescriptionStyle,
                 ),
               ],
             ),
@@ -290,34 +247,24 @@ class _GuestSetupScreenState
           icon: Icons.person_outline_rounded,
           title: GuestStyles.nicknameLabel,
         ),
-        const SizedBox(
-          height: GuestStyles.itemSpacing,
-        ),
+        const SizedBox(height: GuestStyles.itemSpacing),
         SizedBox(
           height: GuestStyles.inputHeight,
           child: TextField(
             controller: _nicknameController,
             enabled: !_isSaving,
-            maxLength:
-                GuestStyles.nicknameMaximumLength,
-            textCapitalization:
-                TextCapitalization.words,
+            maxLength: GuestStyles.nicknameMaximumLength,
+            textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             style: GuestStyles.inputStyle,
-            decoration:
-                GuestStyles.nicknameInputDecoration,
+            decoration: GuestStyles.nicknameInputDecoration,
             onSubmitted: (_) {
               _continueAsGuest();
             },
           ),
         ),
-        const SizedBox(
-          height: GuestStyles.smallSpacing,
-        ),
-        const Text(
-          GuestStyles.nicknameHelper,
-          style: GuestStyles.helperStyle,
-        ),
+        const SizedBox(height: GuestStyles.smallSpacing),
+        const Text(GuestStyles.nicknameHelper, style: GuestStyles.helperStyle),
       ],
     );
   }
@@ -330,52 +277,36 @@ class _GuestSetupScreenState
           icon: Icons.groups_2_outlined,
           title: GuestStyles.roleLabel,
         ),
-        const SizedBox(
-          height: GuestStyles.smallSpacing,
-        ),
+        const SizedBox(height: GuestStyles.smallSpacing),
         const Text(
           GuestStyles.roleDescription,
           style: GuestStyles.sectionDescriptionStyle,
         ),
-        const SizedBox(
-          height: GuestStyles.itemSpacing,
-        ),
+        const SizedBox(height: GuestStyles.itemSpacing),
         Row(
           children: <Widget>[
             Expanded(
               child: _RoleOption(
                 title: GuestStyles.studentLabel,
-                description:
-                    GuestStyles.studentDescription,
+                description: GuestStyles.studentDescription,
                 icon: Icons.school_outlined,
-                accentColor:
-                    GuestStyles.primaryColor,
-                accentBackgroundColor:
-                    GuestStyles.primarySoftColor,
-                isSelected:
-                    _selectedRole ==
-                    _GuestRole.student,
+                accentColor: GuestStyles.primaryColor,
+                accentBackgroundColor: GuestStyles.primarySoftColor,
+                isSelected: _selectedRole == _GuestRole.student,
                 onPressed: () {
                   _selectRole(_GuestRole.student);
                 },
               ),
             ),
-            const SizedBox(
-              width: GuestStyles.roleCardGap,
-            ),
+            const SizedBox(width: GuestStyles.roleCardGap),
             Expanded(
               child: _RoleOption(
                 title: GuestStyles.educatorLabel,
-                description:
-                    GuestStyles.educatorDescription,
+                description: GuestStyles.educatorDescription,
                 icon: Icons.co_present_outlined,
-                accentColor:
-                    GuestStyles.educatorColor,
-                accentBackgroundColor:
-                    GuestStyles.educatorSoftColor,
-                isSelected:
-                    _selectedRole ==
-                    _GuestRole.educator,
+                accentColor: GuestStyles.educatorColor,
+                accentBackgroundColor: GuestStyles.educatorSoftColor,
+                isSelected: _selectedRole == _GuestRole.educator,
                 onPressed: () {
                   _selectRole(_GuestRole.educator);
                 },
@@ -393,60 +324,45 @@ class _GuestSetupScreenState
       label: GuestStyles.continueLabel,
       child: Container(
         height: GuestStyles.buttonHeight,
-        decoration:
-            GuestStyles.continueButtonDecoration,
+        decoration: GuestStyles.continueButtonDecoration,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap:
-                _isSaving ? null : _continueAsGuest,
+            onTap: _isSaving ? null : _continueAsGuest,
             borderRadius: GuestStyles.buttonRadius,
             child: Padding(
-              padding:
-                  GuestStyles.continueButtonPadding,
+              padding: GuestStyles.continueButtonPadding,
               child: _isSaving
                   ? const Center(
                       child: SizedBox.square(
-                        dimension: GuestStyles
-                            .loadingIndicatorSize,
-                        child:
-                            CircularProgressIndicator(
-                              strokeWidth: GuestStyles
-                                  .loadingIndicatorStrokeWidth,
-                              color:
-                                  GuestStyles.whiteColor,
-                            ),
+                        dimension: GuestStyles.loadingIndicatorSize,
+                        child: CircularProgressIndicator(
+                          strokeWidth: GuestStyles.loadingIndicatorStrokeWidth,
+                          color: GuestStyles.whiteColor,
+                        ),
                       ),
                     )
                   : const Stack(
                       alignment: Alignment.center,
                       children: <Widget>[
                         Align(
-                          alignment:
-                              Alignment.centerLeft,
+                          alignment: Alignment.centerLeft,
                           child: Icon(
-                            Icons
-                                .person_add_alt_1_outlined,
-                            size: GuestStyles
-                                .buttonIconSize,
-                            color:
-                                GuestStyles.whiteColor,
+                            Icons.person_add_alt_1_outlined,
+                            size: GuestStyles.buttonIconSize,
+                            color: GuestStyles.whiteColor,
                           ),
                         ),
                         Text(
                           GuestStyles.continueLabel,
-                          style:
-                              GuestStyles.buttonTextStyle,
+                          style: GuestStyles.buttonTextStyle,
                         ),
                         Align(
-                          alignment:
-                              Alignment.centerRight,
+                          alignment: Alignment.centerRight,
                           child: Icon(
                             Icons.arrow_forward_rounded,
-                            size: GuestStyles
-                                .buttonIconSize,
-                            color:
-                                GuestStyles.whiteColor,
+                            size: GuestStyles.buttonIconSize,
+                            color: GuestStyles.whiteColor,
                           ),
                         ),
                       ],
@@ -460,10 +376,7 @@ class _GuestSetupScreenState
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.icon,
-    required this.title,
-  });
+  const _SectionHeading({required this.icon, required this.title});
 
   final IconData icon;
   final String title;
@@ -477,13 +390,8 @@ class _SectionHeading extends StatelessWidget {
           size: GuestStyles.sectionIconSize,
           color: GuestStyles.primaryColor,
         ),
-        const SizedBox(
-          width: GuestStyles.itemSpacing,
-        ),
-        Text(
-          title,
-          style: GuestStyles.sectionTitleStyle,
-        ),
+        const SizedBox(width: GuestStyles.itemSpacing),
+        Text(title, style: GuestStyles.sectionTitleStyle),
       ],
     );
   }
@@ -520,82 +428,61 @@ class _RoleOption extends StatelessWidget {
           onTap: onPressed,
           borderRadius: GuestStyles.roleCardRadius,
           child: AnimatedContainer(
-            duration:
-                GuestStyles.roleAnimationDuration,
+            duration: GuestStyles.roleAnimationDuration,
             curve: Curves.easeOut,
             height: GuestStyles.roleCardHeight,
             padding: GuestStyles.roleCardPadding,
             decoration: BoxDecoration(
               color: isSelected
-                  ? GuestStyles
-                      .selectedRoleBackground
+                  ? GuestStyles.selectedRoleBackground
                   : GuestStyles.surfaceColor,
-              borderRadius:
-                  GuestStyles.roleCardRadius,
+              borderRadius: GuestStyles.roleCardRadius,
               border: Border.all(
                 color: isSelected
                     ? GuestStyles.primaryColor
                     : GuestStyles.outlineColor,
                 width: isSelected
-                    ? GuestStyles
-                        .selectedRoleBorderWidth
+                    ? GuestStyles.selectedRoleBorderWidth
                     : GuestStyles.roleBorderWidth,
               ),
-              boxShadow:
-                  GuestStyles.roleCardShadow,
+              boxShadow: GuestStyles.roleCardShadow,
             ),
             child: Stack(
               children: <Widget>[
                 Row(
                   children: <Widget>[
                     Container(
-                      width: GuestStyles
-                          .roleIconContainerSize,
-                      height: GuestStyles
-                          .roleIconContainerSize,
+                      width: GuestStyles.roleIconContainerSize,
+                      height: GuestStyles.roleIconContainerSize,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? GuestStyles
-                                .primarySoftColor
+                            ? GuestStyles.primarySoftColor
                             : accentBackgroundColor,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         icon,
-                        size:
-                            GuestStyles.roleIconSize,
+                        size: GuestStyles.roleIconSize,
                         color: isSelected
                             ? GuestStyles.primaryColor
                             : accentColor,
                       ),
                     ),
-                    const SizedBox(
-                      width: GuestStyles
-                          .roleContentSpacing,
-                    ),
+                    const SizedBox(width: GuestStyles.roleContentSpacing),
                     Expanded(
                       child: Column(
-                        mainAxisAlignment:
-                            MainAxisAlignment.center,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(
-                            title,
-                            style: GuestStyles
-                                .roleTitleStyle,
-                          ),
+                          Text(title, style: GuestStyles.roleTitleStyle),
                           const SizedBox(
-                            height: GuestStyles
-                                .roleDescriptionSpacing,
+                            height: GuestStyles.roleDescriptionSpacing,
                           ),
                           Text(
                             description,
                             maxLines: 2,
-                            overflow:
-                                TextOverflow.ellipsis,
-                            style: GuestStyles
-                                .roleDescriptionStyle,
+                            overflow: TextOverflow.ellipsis,
+                            style: GuestStyles.roleDescriptionStyle,
                           ),
                         ],
                       ),
@@ -603,15 +490,11 @@ class _RoleOption extends StatelessWidget {
                   ],
                 ),
                 Positioned(
-                  top: GuestStyles
-                      .roleSelectionOffset,
-                  right: GuestStyles
-                      .roleSelectionOffset,
+                  top: GuestStyles.roleSelectionOffset,
+                  right: GuestStyles.roleSelectionOffset,
                   child: Container(
-                    width: GuestStyles
-                        .roleSelectionSize,
-                    height: GuestStyles
-                        .roleSelectionSize,
+                    width: GuestStyles.roleSelectionSize,
+                    height: GuestStyles.roleSelectionSize,
                     decoration: BoxDecoration(
                       color: isSelected
                           ? GuestStyles.primaryColor
@@ -620,19 +503,15 @@ class _RoleOption extends StatelessWidget {
                       border: Border.all(
                         color: isSelected
                             ? GuestStyles.primaryColor
-                            : GuestStyles
-                                .unselectedRoleCircleColor,
-                        width: GuestStyles
-                            .roleSelectionBorderWidth,
+                            : GuestStyles.unselectedRoleCircleColor,
+                        width: GuestStyles.roleSelectionBorderWidth,
                       ),
                     ),
                     child: isSelected
                         ? const Icon(
                             Icons.check_rounded,
-                            color:
-                                GuestStyles.whiteColor,
-                            size: GuestStyles
-                                .roleCheckIconSize,
+                            color: GuestStyles.whiteColor,
+                            size: GuestStyles.roleCheckIconSize,
                           )
                         : null,
                   ),
@@ -646,8 +525,7 @@ class _RoleOption extends StatelessWidget {
   }
 }
 
-class _BackgroundDecorations
-    extends StatelessWidget {
+class _BackgroundDecorations extends StatelessWidget {
   const _BackgroundDecorations();
 
   @override
@@ -659,13 +537,10 @@ class _BackgroundDecorations
             top: GuestStyles.topCircleTop,
             right: GuestStyles.topCircleRight,
             child: Container(
-              width:
-                  GuestStyles.decorativeCircleSize,
-              height:
-                  GuestStyles.decorativeCircleSize,
+              width: GuestStyles.decorativeCircleSize,
+              height: GuestStyles.decorativeCircleSize,
               decoration: const BoxDecoration(
-                color: GuestStyles
-                    .decorationLightColor,
+                color: GuestStyles.decorationLightColor,
                 shape: BoxShape.circle,
               ),
             ),
@@ -694,27 +569,19 @@ class _BrailleDots extends StatelessWidget {
     return SizedBox(
       width: GuestStyles.decorativeDotSize * 4,
       child: Wrap(
-        spacing:
-            GuestStyles.decorativeDotSpacing,
-        runSpacing:
-            GuestStyles.decorativeDotSpacing,
-        children: List<Widget>.generate(
-          GuestStyles.decorativeDotCount,
-          (int index) {
-            return const DecoratedBox(
-              decoration: BoxDecoration(
-                color:
-                    GuestStyles.decorationColor,
-                shape: BoxShape.circle,
-              ),
-              child: SizedBox.square(
-                dimension:
-                    GuestStyles.decorativeDotSize,
-              ),
-            );
-          },
-          growable: false,
-        ),
+        spacing: GuestStyles.decorativeDotSpacing,
+        runSpacing: GuestStyles.decorativeDotSpacing,
+        children: List<Widget>.generate(GuestStyles.decorativeDotCount, (
+          int index,
+        ) {
+          return const DecoratedBox(
+            decoration: BoxDecoration(
+              color: GuestStyles.decorationColor,
+              shape: BoxShape.circle,
+            ),
+            child: SizedBox.square(dimension: GuestStyles.decorativeDotSize),
+          );
+        }, growable: false),
       ),
     );
   }

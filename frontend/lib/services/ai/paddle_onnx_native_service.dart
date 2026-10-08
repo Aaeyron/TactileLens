@@ -40,7 +40,7 @@ class PaddleOnnxNativeService {
     });
   }
 
-    /// Frees the native OCR engine. The next scan will reload the models.
+  /// Frees the native OCR engine. The next scan will reload the models.
   Future<Map<String, dynamic>> releaseOcr() {
     return _invokeMap('releaseOcr');
   }
@@ -55,7 +55,7 @@ class PaddleOnnxNativeService {
     });
   }
 
-    /// Frees the native layout model.
+  /// Frees the native layout model.
   Future<Map<String, dynamic>> releaseLayout() {
     return _invokeMap('releaseLayout');
   }
@@ -92,14 +92,12 @@ class PaddleOnnxNativeService {
       );
     }
 
-    final Map<String, dynamic> response = await _invokeMap(
-      'scanDocument',
-      <String, dynamic>{
-        'imagePath': normalizedImagePath,
-        'threadCount': threadCount.clamp(1, 8),
-        'layoutThreshold': layoutThreshold.clamp(0.05, 0.95).toDouble(),
-      },
-    );
+    final Map<String, dynamic> response =
+        await _invokeMap('scanDocument', <String, dynamic>{
+          'imagePath': normalizedImagePath,
+          'threadCount': threadCount.clamp(1, 8),
+          'layoutThreshold': layoutThreshold.clamp(0.05, 0.95).toDouble(),
+        });
 
     return OfflineDocumentResult.fromMap(response);
   }
@@ -127,14 +125,12 @@ class PaddleOnnxNativeService {
       );
     }
 
-    final Map<String, dynamic> response = await _invokeMap(
-      'recognizeFormula',
-      <String, dynamic>{
-        'imagePath': normalizedImagePath,
-        'threadCount': threadCount.clamp(1, 8),
-        'box': ?box,
-      },
-    );
+    final Map<String, dynamic> response =
+        await _invokeMap('recognizeFormula', <String, dynamic>{
+          'imagePath': normalizedImagePath,
+          'threadCount': threadCount.clamp(1, 8),
+          'box': ?box,
+        });
 
     return OfflineFormulaResult.fromMap(response);
   }
@@ -155,14 +151,12 @@ class PaddleOnnxNativeService {
       );
     }
 
-    final Map<String, dynamic> response = await _invokeMap(
-      'detectLayout',
-      <String, dynamic>{
-        'imagePath': normalizedImagePath,
-        'threadCount': threadCount.clamp(1, 8),
-        'threshold': threshold.clamp(0.05, 0.95).toDouble(),
-      },
-    );
+    final Map<String, dynamic> response =
+        await _invokeMap('detectLayout', <String, dynamic>{
+          'imagePath': normalizedImagePath,
+          'threadCount': threadCount.clamp(1, 8),
+          'threshold': threshold.clamp(0.05, 0.95).toDouble(),
+        });
 
     return OfflineLayoutResult.fromMap(response);
   }
@@ -258,9 +252,9 @@ class OfflineOcrResult {
 
     final List<OfflineOcrBlock> blocks = rawBlocks is List
         ? rawBlocks
-            .whereType<Map>()
-            .map(OfflineOcrBlock.fromMap)
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(OfflineOcrBlock.fromMap)
+              .toList(growable: false)
         : const <OfflineOcrBlock>[];
 
     return OfflineOcrResult(
@@ -302,9 +296,9 @@ class OfflineOcrBlock {
 
     final List<OfflineOcrPoint> box = rawBox is List
         ? rawBox
-            .whereType<Map>()
-            .map(OfflineOcrPoint.fromMap)
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(OfflineOcrPoint.fromMap)
+              .toList(growable: false)
         : const <OfflineOcrPoint>[];
 
     return OfflineOcrBlock(
@@ -333,10 +327,7 @@ class OfflineOcrPoint {
   const OfflineOcrPoint({required this.x, required this.y});
 
   factory OfflineOcrPoint.fromMap(Map<dynamic, dynamic> map) {
-    return OfflineOcrPoint(
-      x: _toDouble(map['x']),
-      y: _toDouble(map['y']),
-    );
+    return OfflineOcrPoint(x: _toDouble(map['x']), y: _toDouble(map['y']));
   }
 
   final double x;
@@ -366,9 +357,9 @@ class OfflineLayoutResult {
 
     final List<OfflineLayoutRegion> regions = rawRegions is List
         ? rawRegions
-            .whereType<Map>()
-            .map(OfflineLayoutRegion.fromMap)
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(OfflineLayoutRegion.fromMap)
+              .toList(growable: false)
         : const <OfflineLayoutRegion>[];
 
     return OfflineLayoutResult(
@@ -424,8 +415,9 @@ class OfflineLayoutRegion {
 
   factory OfflineLayoutRegion.fromMap(Map<dynamic, dynamic> map) {
     final Object? rawBox = map['box'];
-    final Map<dynamic, dynamic> box =
-        rawBox is Map ? rawBox : const <dynamic, dynamic>{};
+    final Map<dynamic, dynamic> box = rawBox is Map
+        ? rawBox
+        : const <dynamic, dynamic>{};
 
     return OfflineLayoutRegion(
       order: _toInt(map['order']),
@@ -548,9 +540,9 @@ class OfflineDocumentResult {
 
     final List<OfflineDocumentBlock> blocks = rawBlocks is List
         ? rawBlocks
-            .whereType<Map>()
-            .map(OfflineDocumentBlock.fromMap)
-            .toList(growable: false)
+              .whereType<Map>()
+              .map(OfflineDocumentBlock.fromMap)
+              .toList(growable: false)
         : const <OfflineDocumentBlock>[];
 
     return OfflineDocumentResult(
@@ -623,8 +615,9 @@ class OfflineDocumentBlock {
 
   factory OfflineDocumentBlock.fromMap(Map<dynamic, dynamic> map) {
     final Object? rawBox = map['box'];
-    final Map<dynamic, dynamic> box =
-        rawBox is Map ? rawBox : const <dynamic, dynamic>{};
+    final Map<dynamic, dynamic> box = rawBox is Map
+        ? rawBox
+        : const <dynamic, dynamic>{};
 
     return OfflineDocumentBlock(
       index: _toInt(map['index']),
@@ -634,8 +627,9 @@ class OfflineDocumentBlock {
       latex: map['latex'] as String?,
       score: _toDouble(map['score']),
       confidence: _toDouble(map['confidence']),
-      minConfidence:
-          map['min_confidence'] is num ? _toDouble(map['min_confidence']) : null,
+      minConfidence: map['min_confidence'] is num
+          ? _toDouble(map['min_confidence'])
+          : null,
       lineCount: _toInt(map['line_count']),
       inlineFormulaCount: _toInt(map['inline_formula_count']),
       left: _toDouble(box['left']),

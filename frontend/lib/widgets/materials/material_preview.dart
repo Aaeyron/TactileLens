@@ -8,10 +8,7 @@ import '../../styles/widgets/materials/material_widget_styles.dart';
 class MaterialPreview extends StatelessWidget {
   final MaterialModel material;
 
-  const MaterialPreview({
-    super.key,
-    required this.material,
-  });
+  const MaterialPreview({super.key, required this.material});
 
   IconData _getFileIcon(String fileType) {
     final type = fileType.toLowerCase();
@@ -21,23 +18,22 @@ class MaterialPreview extends StatelessWidget {
     }
 
     if (type.contains('image') ||
-    type.contains('jpg') ||
-    type.contains('jpeg') ||
-    type.contains('png')) {
-  return Icons.image_outlined;
-}
+        type.contains('jpg') ||
+        type.contains('jpeg') ||
+        type.contains('png')) {
+      return Icons.image_outlined;
+    }
 
     return Icons.insert_drive_file_outlined;
   }
 
   @override
-Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
+    print("FILE PATH: ${material.filePath}");
+    print("FILE URL: ${MaterialService().getFileUrl(material.filePath)}");
+    print("FILE TYPE: ${material.fileType}");
 
-  print("FILE PATH: ${material.filePath}");
-  print("FILE URL: ${MaterialService().getFileUrl(material.filePath)}");
-  print("FILE TYPE: ${material.fileType}");
-
-  final type = material.fileType.toLowerCase();
+    final type = material.fileType.toLowerCase();
 
     final isImage =
         type.contains('image') ||
@@ -45,58 +41,41 @@ Widget build(BuildContext context) {
         type.contains('jpeg') ||
         type.contains('png');
 
-  return Container(
+    return Container(
       width: MaterialWidgetStyles.materialPreviewWidth,
       height: MaterialWidgetStyles.materialPreviewHeight,
 
       decoration: BoxDecoration(
-      color: MaterialWidgetStyles.materialPreviewBackgroundColor,
-      borderRadius:
-          MaterialWidgetStyles.materialPreviewRadius,
-      border: Border.all(
-        color:
-            MaterialWidgetStyles.materialPreviewBorderColor,
-        width:
-            MaterialWidgetStyles.materialPreviewBorderWidth,
+        color: MaterialWidgetStyles.materialPreviewBackgroundColor,
+        borderRadius: MaterialWidgetStyles.materialPreviewRadius,
+        border: Border.all(
+          color: MaterialWidgetStyles.materialPreviewBorderColor,
+          width: MaterialWidgetStyles.materialPreviewBorderWidth,
+        ),
       ),
-    ),
 
       child: isImage
-        ? ClipRRect(
-            borderRadius:
-                MaterialWidgetStyles.materialPreviewRadius,
+          ? ClipRRect(
+              borderRadius: MaterialWidgetStyles.materialPreviewRadius,
 
-            child: material.filePath.startsWith("http") ||
-                    material.filePath.contains("uploads")
-                ? Image.network(
-                    MaterialService().getFileUrl(
-                      material.filePath,
+              child:
+                  material.filePath.startsWith("http") ||
+                      material.filePath.contains("uploads")
+                  ? Image.network(
+                      MaterialService().getFileUrl(material.filePath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(child: Icon(Icons.error));
+                      },
+                    )
+                  : Image.file(
+                      File(material.filePath),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(child: Icon(Icons.error));
+                      },
                     ),
-                    fit: BoxFit.cover,
-                    errorBuilder: (
-                      context,
-                      error,
-                      stackTrace,
-                    ) {
-                      return const Center(
-                        child: Icon(Icons.error),
-                      );
-                    },
-                  )
-                : Image.file(
-                    File(material.filePath),
-                    fit: BoxFit.cover,
-                    errorBuilder: (
-                      context,
-                      error,
-                      stackTrace,
-                    ) {
-                      return const Center(
-                        child: Icon(Icons.error),
-                      );
-                    },
-                  ),
-                )
+            )
           : Center(
               child: Icon(
                 _getFileIcon(material.fileType),

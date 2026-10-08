@@ -1,4 +1,4 @@
-import 'dart:io'; 
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../services/materials/material_service.dart';
@@ -8,20 +8,14 @@ import '../../utils/session_manager.dart';
 class UploadMaterialButton extends StatefulWidget {
   final VoidCallback onUploadSuccess;
 
-  const UploadMaterialButton({
-    super.key,
-    required this.onUploadSuccess,
-  });
+  const UploadMaterialButton({super.key, required this.onUploadSuccess});
 
   @override
-  State<UploadMaterialButton> createState() =>
-      _UploadMaterialButtonState();
+  State<UploadMaterialButton> createState() => _UploadMaterialButtonState();
 }
 
-class _UploadMaterialButtonState
-    extends State<UploadMaterialButton> {
-  final MaterialService _materialService =
-      MaterialService();
+class _UploadMaterialButtonState extends State<UploadMaterialButton> {
+  final MaterialService _materialService = MaterialService();
 
   bool _isUploading = false;
 
@@ -30,129 +24,91 @@ class _UploadMaterialButtonState
     // Select File
     // ==========================
 
-      final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
-        allowedExtensions: [
-        'pdf',
-        'jpg',
-        'jpeg',
-        'png',
-      ],
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
     );
 
-    if (result == null ||
-        result.files.single.path == null) {
+    if (result == null || result.files.single.path == null) {
       return;
     }
 
-    final File selectedFile =
-        File(result.files.single.path!);
+    final File selectedFile = File(result.files.single.path!);
 
     // ==========================
     // Material Details
     // ==========================
 
-    final titleController =
-        TextEditingController();
+    final titleController = TextEditingController();
 
-    final subjectController =
-        TextEditingController();
+    final subjectController = TextEditingController();
 
-    final descriptionController =
-        TextEditingController();
+    final descriptionController = TextEditingController();
 
     // ==========================
     // Show Upload Dialog
     // ==========================
 
     if (!mounted) {
-  return;
-}
+      return;
+    }
 
-final uploadData =
-    await showDialog<Map<String, String>>(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: const Text(
-        'Upload Material',
-      ),
+    final uploadData = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Upload Material'),
 
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 // ==========================
                 // Selected File
                 // ==========================
-
                 Text(
-                  selectedFile.path
-                      .split(Platform.pathSeparator)
-                      .last,
+                  selectedFile.path.split(Platform.pathSeparator).last,
                   maxLines: 2,
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
                 ),
 
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
 
                 // ==========================
                 // Title
                 // ==========================
-
                 TextField(
-                  controller:
-                      titleController,
-                  decoration:
-                      const InputDecoration(
-                    labelText:
-                        'Material Title',
-                    border:
-                        OutlineInputBorder(),
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Material Title',
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
 
                 // ==========================
                 // Subject
                 // ==========================
-
                 TextField(
-                  controller:
-                      subjectController,
-                  decoration:
-                      const InputDecoration(
-                    labelText:
-                        'Subject',
-                    border:
-                        OutlineInputBorder(),
+                  controller: subjectController,
+                  decoration: const InputDecoration(
+                    labelText: 'Subject',
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
 
                 // ==========================
                 // Description
                 // ==========================
-
                 TextField(
-                  controller:
-                      descriptionController,
+                  controller: descriptionController,
                   maxLines: 3,
-                  decoration:
-                      const InputDecoration(
-                    labelText:
-                        'Description',
-                    border:
-                        OutlineInputBorder(),
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -160,58 +116,33 @@ final uploadData =
           ),
 
           actions: [
-
             // ==========================
             // Cancel
             // ==========================
-
             TextButton(
               onPressed: () {
-                Navigator.pop(
-                  context,
-                );
+                Navigator.pop(context);
               },
-              child:
-                  const Text('Cancel'),
+              child: const Text('Cancel'),
             ),
 
             // ==========================
             // Continue
             // ==========================
-
             ElevatedButton(
               onPressed: () {
-                if (titleController
-                        .text
-                        .trim()
-                        .isEmpty ||
-                    subjectController
-                        .text
-                        .trim()
-                        .isEmpty) {
+                if (titleController.text.trim().isEmpty ||
+                    subjectController.text.trim().isEmpty) {
                   return;
                 }
 
-                Navigator.pop(
-                  context,
-                  {
-                    'title':
-                        titleController
-                            .text
-                            .trim(),
-                    'subject':
-                        subjectController
-                            .text
-                            .trim(),
-                    'description':
-                        descriptionController
-                            .text
-                            .trim(),
-                  },
-                );
+                Navigator.pop(context, {
+                  'title': titleController.text.trim(),
+                  'subject': subjectController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                });
               },
-              child:
-                  const Text('Upload'),
+              child: const Text('Upload'),
             ),
           ],
         );
@@ -235,25 +166,25 @@ final uploadData =
     });
 
     try {
-    final isGuest = await SessionManager.isGuest();
+      final isGuest = await SessionManager.isGuest();
 
-    final userId = await SessionManager.getUserId();
+      final userId = await SessionManager.getUserId();
 
-    if (!isGuest && userId == null) {
-      throw Exception("User ID not found.");
-    }
+      if (!isGuest && userId == null) {
+        throw Exception("User ID not found.");
+      }
 
-    print("========== UPLOAD ==========");
-    print("isGuest: $isGuest");
-    print("userId: $userId");
+      print("========== UPLOAD ==========");
+      print("isGuest: $isGuest");
+      print("userId: $userId");
 
-    await _materialService.uploadMaterial(
-      file: selectedFile,
-      userId: isGuest ? 0 : userId!,
-      title: uploadData['title']!,
-      subject: uploadData['subject']!,
-      description: uploadData['description'],
-    );
+      await _materialService.uploadMaterial(
+        file: selectedFile,
+        userId: isGuest ? 0 : userId!,
+        title: uploadData['title']!,
+        subject: uploadData['subject']!,
+        description: uploadData['description'],
+      );
 
       if (!mounted) {
         return;
@@ -263,19 +194,12 @@ final uploadData =
       // Success Message
       // ==========================
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Material uploaded successfully.',
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Material uploaded successfully.')),
       );
 
-  widget.onUploadSuccess();
-
+      widget.onUploadSuccess();
     } catch (error) {
-
       if (!mounted) {
         return;
       }
@@ -284,17 +208,10 @@ final uploadData =
       // Error Message
       // ==========================
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content: Text(
-            'Upload failed: $error',
-          ),
-        ),
-      );
-
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload failed: $error')));
     } finally {
-
       if (mounted) {
         setState(() {
           _isUploading = false;
@@ -304,56 +221,36 @@ final uploadData =
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height:
-          MaterialWidgetStyles.uploadButtonHeight,
+      height: MaterialWidgetStyles.uploadButtonHeight,
 
       child: ElevatedButton.icon(
-        onPressed:
-            _isUploading
-                ? null
-                : _uploadMaterial,
+        onPressed: _isUploading ? null : _uploadMaterial,
 
         icon: _isUploading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child:
-                    CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Icon(
-                Icons
-                    .upload_file_outlined,
-                size: MaterialWidgetStyles
-                    .uploadButtonIconSize,
+                Icons.upload_file_outlined,
+                size: MaterialWidgetStyles.uploadButtonIconSize,
               ),
 
         label: Text(
-          _isUploading
-              ? 'Uploading...'
-              : 'Upload Material',
+          _isUploading ? 'Uploading...' : 'Upload Material',
 
-          style: MaterialWidgetStyles
-              .uploadButtonTextStyle,
+          style: MaterialWidgetStyles.uploadButtonTextStyle,
         ),
 
-        style:
-            ElevatedButton.styleFrom(
-          backgroundColor:
-              MaterialWidgetStyles
-                  .uploadButtonColor,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: MaterialWidgetStyles.uploadButtonColor,
 
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                MaterialWidgetStyles
-                    .uploadButtonRadius,
+          shape: RoundedRectangleBorder(
+            borderRadius: MaterialWidgetStyles.uploadButtonRadius,
           ),
 
           elevation: 0,

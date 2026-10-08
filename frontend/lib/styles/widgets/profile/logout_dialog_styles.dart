@@ -13,37 +13,29 @@ class LogoutDialogStyles {
   // COLORS
   // ==========================================================
 
-  static const Color logoutIconColor =
-      Color(0xFFDC2626);
+  static const Color logoutIconColor = Color(0xFFDC2626);
 
-  static const Color logoutButtonColor =
-      Color(0xFFDC2626);
+  static const Color logoutButtonColor = Color(0xFFDC2626);
 
-  static const Color logoutButtonTextColor =
-      Colors.white;
+  static const Color logoutButtonTextColor = Colors.white;
 
   // ==========================================================
   // ICONS
   // ==========================================================
 
-  static const IconData logoutIcon =
-      Icons.logout_rounded;
+  static const IconData logoutIcon = Icons.logout_rounded;
 
   // ==========================================================
   // TEXT
   // ==========================================================
 
-  static const String dialogTitle =
-      "Log Out";
+  static const String dialogTitle = "Log Out";
 
-  static const String dialogMessage =
-      "Are you sure you want to log out?";
+  static const String dialogMessage = "Are you sure you want to log out?";
 
-  static const String cancelButtonText =
-      "Cancel";
+  static const String cancelButtonText = "Cancel";
 
-  static const String confirmButtonText =
-      "Log Out";
+  static const String confirmButtonText = "Log Out";
 
   // ==========================================================
   // SPACING

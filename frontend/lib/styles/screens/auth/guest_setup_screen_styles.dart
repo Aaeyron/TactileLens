@@ -5,8 +5,7 @@ abstract final class GuestStyles {
   // CONTENT
   // ==========================================================
 
-  static const String logoAsset =
-      'assets/icons/tactilelens_app_icon.png';
+  static const String logoAsset = 'assets/icons/tactilelens_app_icon.png';
 
   static const String logoSemanticLabel = 'TactileLens logo';
 
@@ -45,8 +44,7 @@ abstract final class GuestStyles {
 
   static const String continueLabel = 'Continue';
 
-  static const String nicknameRequiredMessage =
-      'Please enter your nickname.';
+  static const String nicknameRequiredMessage = 'Please enter your nickname.';
 
   static const String guestSetupErrorMessage =
       'Guest setup could not be completed. Please try again.';
@@ -72,21 +70,16 @@ abstract final class GuestStyles {
   static const Color educatorColor = Color(0xFF22B45E);
   static const Color educatorSoftColor = Color(0xFFEAF8EF);
 
-  static const Color selectedRoleBackground =
-      Color(0xFFF2F7FF);
+  static const Color selectedRoleBackground = Color(0xFFF2F7FF);
 
-  static const Color unselectedRoleCircleColor =
-      Color(0xFFB7C4DC);
+  static const Color unselectedRoleCircleColor = Color(0xFFB7C4DC);
 
-  static const Color offlineBackgroundColor =
-      Color(0xFFEDF5FF);
+  static const Color offlineBackgroundColor = Color(0xFFEDF5FF);
 
-  static const Color offlineBorderColor =
-      Color(0xFFC9DEFF);
+  static const Color offlineBorderColor = Color(0xFFC9DEFF);
 
   static const Color decorationColor = Color(0xFFD7E7FF);
-  static const Color decorationLightColor =
-      Color(0xFFEBF3FF);
+  static const Color decorationLightColor = Color(0xFFEBF3FF);
 
   static const Color whiteColor = Colors.white;
 
@@ -113,17 +106,12 @@ abstract final class GuestStyles {
 
   static const EdgeInsets logoPadding = EdgeInsets.all(12);
 
-  static const BorderRadius logoRadius = BorderRadius.all(
-    Radius.circular(25),
-  );
+  static const BorderRadius logoRadius = BorderRadius.all(Radius.circular(25));
 
   static const LinearGradient logoGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[
-      Color(0xFF4878FF),
-      Color(0xFF153AB8),
-    ],
+    colors: <Color>[Color(0xFF4878FF), Color(0xFF153AB8)],
   );
 
   static const List<BoxShadow> logoShadow = <BoxShadow>[
@@ -151,22 +139,17 @@ abstract final class GuestStyles {
   // OFFLINE NOTICE
   // ==========================================================
 
-  static const EdgeInsets offlineNoticePadding =
-      EdgeInsets.all(16);
+  static const EdgeInsets offlineNoticePadding = EdgeInsets.all(16);
 
-  static const BorderRadius offlineNoticeRadius =
-      BorderRadius.all(
-        Radius.circular(18),
-      );
+  static const BorderRadius offlineNoticeRadius = BorderRadius.all(
+    Radius.circular(18),
+  );
 
-  static const BoxDecoration offlineNoticeDecoration =
-      BoxDecoration(
-        color: offlineBackgroundColor,
-        borderRadius: offlineNoticeRadius,
-        border: Border.fromBorderSide(
-          BorderSide(color: offlineBorderColor),
-        ),
-      );
+  static const BoxDecoration offlineNoticeDecoration = BoxDecoration(
+    color: offlineBackgroundColor,
+    borderRadius: offlineNoticeRadius,
+    border: Border.fromBorderSide(BorderSide(color: offlineBorderColor)),
+  );
 
   // ==========================================================
   // NICKNAME FIELD
@@ -178,15 +161,12 @@ abstract final class GuestStyles {
 
   static const int nicknameMaximumLength = 40;
 
-  static const EdgeInsets inputContentPadding =
-      EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 18,
-      );
-
-  static const BorderRadius inputRadius = BorderRadius.all(
-    Radius.circular(16),
+  static const EdgeInsets inputContentPadding = EdgeInsets.symmetric(
+    horizontal: 18,
+    vertical: 18,
   );
+
+  static const BorderRadius inputRadius = BorderRadius.all(Radius.circular(16));
 
   // ==========================================================
   // ROLE CARDS
@@ -198,13 +178,11 @@ abstract final class GuestStyles {
   static const double roleBorderWidth = 1;
   static const double selectedRoleBorderWidth = 1.5;
 
-  static const EdgeInsets roleCardPadding =
-      EdgeInsets.all(12);
+  static const EdgeInsets roleCardPadding = EdgeInsets.all(12);
 
-  static const BorderRadius roleCardRadius =
-      BorderRadius.all(
-        Radius.circular(14),
-      );
+  static const BorderRadius roleCardRadius = BorderRadius.all(
+    Radius.circular(14),
+  );
 
   static const double roleIconContainerSize = 42;
   static const double roleIconSize = 23;
@@ -216,17 +194,11 @@ abstract final class GuestStyles {
   static const double roleCheckIconSize = 13;
   static const double roleSelectionOffset = 0;
 
-  static const Duration roleAnimationDuration =
-      Duration(milliseconds: 180);
+  static const Duration roleAnimationDuration = Duration(milliseconds: 180);
 
-  static const List<BoxShadow> roleCardShadow =
-      <BoxShadow>[
-        BoxShadow(
-          color: Color(0x141B65E9),
-          blurRadius: 12,
-          offset: Offset(0, 5),
-        ),
-      ];
+  static const List<BoxShadow> roleCardShadow = <BoxShadow>[
+    BoxShadow(color: Color(0x141B65E9), blurRadius: 12, offset: Offset(0, 5)),
+  ];
 
   // ==========================================================
   // CONTINUE BUTTON
@@ -239,39 +211,29 @@ abstract final class GuestStyles {
 
   static const double loadingIndicatorStrokeWidth = 2.5;
 
-  static const EdgeInsets continueButtonPadding =
-      EdgeInsets.symmetric(
-        horizontal: 20,
-      );
+  static const EdgeInsets continueButtonPadding = EdgeInsets.symmetric(
+    horizontal: 20,
+  );
 
   static const BorderRadius buttonRadius = BorderRadius.all(
     Radius.circular(17),
   );
 
-  static const LinearGradient primaryGradient =
-      LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: <Color>[
-          Color(0xFF1268F3),
-          Color(0xFF0057EE),
-        ],
-      );
+  static const LinearGradient primaryGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[Color(0xFF1268F3), Color(0xFF0057EE)],
+  );
 
   static const List<BoxShadow> buttonShadow = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x401268F3),
-      blurRadius: 18,
-      offset: Offset(0, 9),
-    ),
+    BoxShadow(color: Color(0x401268F3), blurRadius: 18, offset: Offset(0, 9)),
   ];
 
-  static const BoxDecoration continueButtonDecoration =
-      BoxDecoration(
-        gradient: primaryGradient,
-        borderRadius: buttonRadius,
-        boxShadow: buttonShadow,
-      );
+  static const BoxDecoration continueButtonDecoration = BoxDecoration(
+    gradient: primaryGradient,
+    borderRadius: buttonRadius,
+    boxShadow: buttonShadow,
+  );
 
   // ==========================================================
   // BACKGROUND DECORATIONS
@@ -319,13 +281,12 @@ abstract final class GuestStyles {
     color: titleColor,
   );
 
-  static const TextStyle sectionDescriptionStyle =
-      TextStyle(
-        fontSize: 14,
-        height: 1.4,
-        fontWeight: FontWeight.w400,
-        color: bodyColor,
-      );
+  static const TextStyle sectionDescriptionStyle = TextStyle(
+    fontSize: 14,
+    height: 1.4,
+    fontWeight: FontWeight.w400,
+    color: bodyColor,
+  );
 
   static const TextStyle offlineTitleStyle = TextStyle(
     fontSize: 15,
@@ -334,13 +295,12 @@ abstract final class GuestStyles {
     color: primaryDarkColor,
   );
 
-  static const TextStyle offlineDescriptionStyle =
-      TextStyle(
-        fontSize: 13,
-        height: 1.4,
-        fontWeight: FontWeight.w400,
-        color: bodyColor,
-      );
+  static const TextStyle offlineDescriptionStyle = TextStyle(
+    fontSize: 13,
+    height: 1.4,
+    fontWeight: FontWeight.w400,
+    color: bodyColor,
+  );
 
   static const TextStyle inputStyle = TextStyle(
     fontSize: 16,
@@ -366,13 +326,12 @@ abstract final class GuestStyles {
     color: titleColor,
   );
 
-  static const TextStyle roleDescriptionStyle =
-      TextStyle(
-        fontSize: 8.5,
-        height: 1.25,
-        fontWeight: FontWeight.w400,
-        color: bodyColor,
-      );
+  static const TextStyle roleDescriptionStyle = TextStyle(
+    fontSize: 8.5,
+    height: 1.25,
+    fontWeight: FontWeight.w400,
+    color: bodyColor,
+  );
 
   static const TextStyle buttonTextStyle = TextStyle(
     fontSize: 17,
@@ -399,35 +358,23 @@ abstract final class GuestStyles {
       fillColor: surfaceColor,
       enabledBorder: OutlineInputBorder(
         borderRadius: inputRadius,
-        borderSide: BorderSide(
-          color: outlineColor,
-        ),
+        borderSide: BorderSide(color: outlineColor),
       ),
       disabledBorder: OutlineInputBorder(
         borderRadius: inputRadius,
-        borderSide: BorderSide(
-          color: outlineColor,
-        ),
+        borderSide: BorderSide(color: outlineColor),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: inputRadius,
-        borderSide: BorderSide(
-          color: primaryColor,
-          width: 1.7,
-        ),
+        borderSide: BorderSide(color: primaryColor, width: 1.7),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: inputRadius,
-        borderSide: BorderSide(
-          color: Colors.redAccent,
-        ),
+        borderSide: BorderSide(color: Colors.redAccent),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: inputRadius,
-        borderSide: BorderSide(
-          color: Colors.redAccent,
-          width: 1.7,
-        ),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.7),
       ),
     );
   }

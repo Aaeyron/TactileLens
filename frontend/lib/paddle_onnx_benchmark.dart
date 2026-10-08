@@ -37,8 +37,8 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   static const double _lowConfidence = 0.80;
 
   final PaddleOnnxNativeService _service = const PaddleOnnxNativeService();
-    final ImagePicker _picker = ImagePicker();
-    final PaddleOcrVlNativeService _vlService = const PaddleOcrVlNativeService();
+  final ImagePicker _picker = ImagePicker();
+  final PaddleOcrVlNativeService _vlService = const PaddleOcrVlNativeService();
 
   // ---- Model validation (existing) ----
   bool _isRunning = true;
@@ -51,7 +51,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   String? _scanError;
   String? _imagePath;
   OfflineOcrResult? _scanResult;
-    int? _initWallMs;
+  int? _initWallMs;
   int? _scanWallMs;
 
   // ---- Formula crop test (PaddleOCR-VL GGUF) ----
@@ -214,7 +214,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     }
   }
 
-    // Temporary: measure PaddleOCR-VL formula recognition on ONE cropped
+  // Temporary: measure PaddleOCR-VL formula recognition on ONE cropped
   // equation. Decides whether VL is fast enough to be the offline math engine.
   Future<void> _testFormulaCrop() async {
     if (_isRunning || _isScanning || _isFormulaTesting) {
@@ -288,10 +288,12 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
         _formulaScanMs = result.scanTimeMs;
         _formulaWallMs = watch.elapsedMilliseconds;
         _formulaLatex = result.content;
-        _formulaError =
-            result.success ? null : (result.error ?? 'No formula returned.');
-        _formulaStatus =
-            result.success ? 'Formula recognized.' : 'Formula recognition failed';
+        _formulaError = result.success
+            ? null
+            : (result.error ?? 'No formula returned.');
+        _formulaStatus = result.success
+            ? 'Formula recognized.'
+            : 'Formula recognition failed';
       });
     } catch (error, stackTrace) {
       debugPrint('Formula crop test failed: $error');
@@ -309,7 +311,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     }
   }
 
-    // Temporary: PP-DocLayoutV3 layout detection test.
+  // Temporary: PP-DocLayoutV3 layout detection test.
   // Remove once the full offline pipeline is connected to the scan flow.
   Future<void> _detectLayout(ImageSource source) async {
     if (_isRunning || _isScanning || _isFormulaTesting || _isLayoutTesting) {
@@ -365,7 +367,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
         _layoutStatus = result.isEmpty
             ? 'No regions detected.'
             : 'Found ${result.regions.length} regions '
-                '(${result.formulas.length} formulas).';
+                  '(${result.formulas.length} formulas).';
       });
     } catch (error, stackTrace) {
       debugPrint('Layout detection failed: $error');
@@ -388,7 +390,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-         final bool busy =
+    final bool busy =
         _isRunning || _isScanning || _isFormulaTesting || _isLayoutTesting;
 
     return Scaffold(
@@ -406,14 +408,16 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 runSpacing: 12,
                 children: <Widget>[
                   FilledButton.icon(
-                    onPressed:
-                        busy ? null : () => _scanFullPage(ImageSource.camera),
+                    onPressed: busy
+                        ? null
+                        : () => _scanFullPage(ImageSource.camera),
                     icon: const Icon(Icons.photo_camera_rounded),
                     label: const Text('Scan with camera'),
                   ),
                   OutlinedButton.icon(
-                    onPressed:
-                        busy ? null : () => _scanFullPage(ImageSource.gallery),
+                    onPressed: busy
+                        ? null
+                        : () => _scanFullPage(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library_rounded),
                     label: const Text('Pick from gallery'),
                   ),
@@ -454,7 +458,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 ),
               ],
 
-                            const Divider(height: 48),
+              const Divider(height: 48),
 
               // ---- Formula crop test (PaddleOCR-VL) ----
               Text(
@@ -498,7 +502,8 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                   ),
                 ),
               ],
-              if (_formulaLatex != null && _formulaLatex!.isNotEmpty) ...<Widget>[
+              if (_formulaLatex != null &&
+                  _formulaLatex!.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 16),
                 Text('LaTeX output:', style: textTheme.labelLarge),
                 const SizedBox(height: 4),
@@ -518,7 +523,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 ),
               ],
 
-                            const Divider(height: 48),
+              const Divider(height: 48),
 
               // ---- Layout detection test (PP-DocLayoutV3) ----
               Text(
@@ -536,14 +541,16 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
                 runSpacing: 12,
                 children: <Widget>[
                   FilledButton.icon(
-                    onPressed:
-                        busy ? null : () => _detectLayout(ImageSource.camera),
+                    onPressed: busy
+                        ? null
+                        : () => _detectLayout(ImageSource.camera),
                     icon: const Icon(Icons.photo_camera_rounded),
                     label: const Text('Detect (camera)'),
                   ),
                   OutlinedButton.icon(
-                    onPressed:
-                        busy ? null : () => _detectLayout(ImageSource.gallery),
+                    onPressed: busy
+                        ? null
+                        : () => _detectLayout(ImageSource.gallery),
                     icon: const Icon(Icons.dashboard_rounded),
                     label: const Text('Detect (gallery)'),
                   ),
@@ -588,7 +595,6 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
               const Divider(height: 48),
 
               // ---- Model validation (existing) ----
-
               Text('Model validation', style: textTheme.titleLarge),
               const SizedBox(height: 12),
               if (_isRunning) ...<Widget>[
@@ -615,7 +621,7 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     );
   }
 
-    Widget _buildLayoutMetrics(TextTheme textTheme, OfflineLayoutResult result) {
+  Widget _buildLayoutMetrics(TextTheme textTheme, OfflineLayoutResult result) {
     final int displayCount = result.regions
         .where((OfflineLayoutRegion r) => r.isDisplayFormula)
         .length;
@@ -634,7 +640,8 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
       'Cold load (native): ${result.coldLoadTimeMs} ms',
       if (_layoutInitWallMs != null)
         'initializeLayout round trip: $_layoutInitWallMs ms',
-      if (_layoutWallMs != null) 'Detect round trip (Flutter): $_layoutWallMs ms',
+      if (_layoutWallMs != null)
+        'Detect round trip (Flutter): $_layoutWallMs ms',
       'Threshold: ${result.threshold.toStringAsFixed(2)}',
       'Threads: ${result.threadCount}',
     ].join('\n');
@@ -652,8 +659,8 @@ class _PaddleOnnxBenchmarkScreenState extends State<PaddleOnnxBenchmarkScreen> {
     final Color? background = region.isDisplayFormula
         ? colors.primaryContainer
         : region.isInlineFormula
-            ? colors.tertiaryContainer
-            : null;
+        ? colors.tertiaryContainer
+        : null;
 
     return Card(
       color: background,

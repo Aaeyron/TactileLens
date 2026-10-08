@@ -180,9 +180,9 @@ abstract final class HistoryScreenStyles {
   ];
 
   static const double previewWidth = 76;
-static const double previewHeight = 94;
+  static const double previewHeight = 94;
 
-static const EdgeInsets previewPadding = EdgeInsets.all(6);
+  static const EdgeInsets previewPadding = EdgeInsets.all(6);
 
   static const BorderRadius previewRadius = BorderRadius.all(
     Radius.circular(7),

@@ -623,25 +623,24 @@ object PaddleOnnxFormulaRecognizer {
         Regex("""($LETTER)\s+?($NO_LETTER)""")
 
     private fun normalizeLatex(input: String): String {
-        var text = input
-        val names = ArrayDeque<String>()
+        // Protect command spaces inside a text-style group locally. The old
+        // code saved the entire formula for each match and could duplicate
+        // it when replacing just one group, while stripping every space.
+        var text = TEXT_REG.replace(input) { match ->
+            var protectedGroup = match.value
 
-        for (match in TEXT_REG.findAll(input).toList()) {
-            for (inner in COMMAND_BEFORE_WORD.findAll(match.groupValues[1])) {
+            for (inner in COMMAND_BEFORE_WORD.findAll(match.value)) {
                 val command = inner.groupValues[1]
 
                 if (command.isNotBlank() && command !in KEEP_COMMANDS) {
-                    text = text.replace(command, command + "XXXXXXX")
-                    text = text.replace(" ", "")
-                    names.addLast(text)
+                    protectedGroup = protectedGroup.replace(
+                        "$command ",
+                        "${command}XXXXXXX",
+                    )
                 }
             }
-        }
 
-        if (names.isNotEmpty()) {
-            text = TEXT_REG.replace(text) { found ->
-                names.removeFirstOrNull() ?: found.value
-            }
+            protectedGroup
         }
 
         var next = text

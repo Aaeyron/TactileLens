@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import '../../styles/widgets/materials/material_widget_styles.dart';
 
 class MaterialsEmptyState extends StatelessWidget {
-  const MaterialsEmptyState({
-    super.key,
-  });
+  const MaterialsEmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +21,6 @@ class MaterialsEmptyState extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
 
         children: [
-
           // ==========================
           // Empty State Icon
           // ==========================
@@ -32,11 +29,9 @@ class MaterialsEmptyState extends StatelessWidget {
             height: MaterialWidgetStyles.emptyIconContainerSize,
 
             decoration: BoxDecoration(
-              color:
-                  MaterialWidgetStyles.emptyIconBackgroundColor,
+              color: MaterialWidgetStyles.emptyIconBackgroundColor,
 
-              borderRadius:
-                  MaterialWidgetStyles.emptyIconRadius,
+              borderRadius: MaterialWidgetStyles.emptyIconRadius,
             ),
 
             child: Icon(
@@ -46,11 +41,7 @@ class MaterialsEmptyState extends StatelessWidget {
             ),
           ),
 
-
-          const SizedBox(
-            height: MaterialWidgetStyles.emptyIconTextSpacing,
-          ),
-
+          const SizedBox(height: MaterialWidgetStyles.emptyIconTextSpacing),
 
           // ==========================
           // Empty State Title
@@ -61,11 +52,7 @@ class MaterialsEmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
 
-
-          const SizedBox(
-            height: MaterialWidgetStyles.emptySubtitleTopSpacing,
-          ),
-
+          const SizedBox(height: MaterialWidgetStyles.emptySubtitleTopSpacing),
 
           // ==========================
           // Empty State Description
@@ -75,7 +62,6 @@ class MaterialsEmptyState extends StatelessWidget {
             style: MaterialWidgetStyles.emptySubtitleStyle,
             textAlign: TextAlign.center,
           ),
-
         ],
       ),
     );
