@@ -36,8 +36,8 @@ abstract final class ProfileStyles {
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
   static const Color primaryBrightColor = primaryColor;
 
   static const Color titleColor = Color(0xFF10213D);
@@ -48,11 +48,9 @@ abstract final class ProfileStyles {
   static const Color outlineColor = Color(0xFFDDE5F0);
   static const Color dividerColor = Color(0xFFE7ECF3);
 
-  static const Color profileAvatarBackgroundColor = Color(0xFFEDF4FF);
-
-  static const Color profileAvatarIconColor = Color(0xFF1268F3);
-
-  static const Color roleBadgeBackgroundColor = Color(0xFFEDF4FF);
+  static const Color profileAvatarBackgroundColor = Color(0xFFEDF3FB);
+  static const Color profileAvatarIconColor = primaryColor;
+  static const Color roleBadgeBackgroundColor = Color(0xFFEDF3FB);
 
   static const Color menuIconBackgroundColor = Color(0xFFF4F7FC);
 
@@ -108,7 +106,7 @@ abstract final class ProfileStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const double headerHorizontalPadding = 16;
@@ -133,7 +131,7 @@ abstract final class ProfileStyles {
   );
 
   static const List<BoxShadow> avatarShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x24102A43), blurRadius: 18, offset: Offset(0, 7)),
+    BoxShadow(color: Color(0x24003797), blurRadius: 18, offset: Offset(0, 7)),
   ];
 
   // ============================================================
@@ -175,7 +173,7 @@ abstract final class ProfileStyles {
   );
 
   static const List<BoxShadow> cardShadow = <BoxShadow>[
-    BoxShadow(color: Color(0x0D102A43), blurRadius: 11, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x0D003797), blurRadius: 11, offset: Offset(0, 4)),
   ];
 
   // Compatibility values.
@@ -225,7 +223,7 @@ abstract final class ProfileStyles {
   );
 
   static const Border roleBadgeBorder = Border.fromBorderSide(
-    BorderSide(color: Color(0xFFD5E5FF)),
+    BorderSide(color: Color(0xFFCCD7EA)),
   );
 
   static const double roleIconSize = 19;
