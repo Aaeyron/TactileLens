@@ -8,9 +8,9 @@ abstract final class MaterialScreenStyles {
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryBrightColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryBrightColor = primaryColor;
+  static const Color primaryDarkColor = Color(0xFF00205C);
 
   static const Color textPrimaryColor = Color(0xFF10213D);
   static const Color textSecondaryColor = Color(0xFF42526B);
@@ -29,9 +29,10 @@ abstract final class MaterialScreenStyles {
   static const Color folderColor = primaryColor;
   static const Color folderSelectedColor = primaryDarkColor;
 
-  static const Color folderIconBackgroundColor = Color(0xFFEDF4FF);
-  static const Color addFolderOutlineColor = Color(0xFFAAC8F8);
-  static const Color selectedFolderBackgroundColor = Color(0xFFEAF3FF);
+  static const Color folderIconBackgroundColor = Color(0xFFEDF3FB);
+  static const Color addFolderOutlineColor = Color(0xFFCCD7EA);
+  static const Color selectedFolderBackgroundColor = Color(0xFFEDF3FB);
+
 
   static const Color dangerColor = Color(0xFFDC2626);
   static const Color dangerBackgroundColor = Color(0xFFFFF5F5);
@@ -96,11 +97,16 @@ abstract final class MaterialScreenStyles {
   // FULL-WIDTH HEADER
   // ============================================================
 
-  static const LinearGradient pageHeaderGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1474F5), Color(0xFF0758DD)],
-  );
+  
+static const LinearGradient pageHeaderGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: <Color>[
+    Color(0xFF165CC4),
+    Color(0xFF003797),
+  ],
+);
+
 
   static const EdgeInsets pageHeaderPadding = EdgeInsets.zero;
 
@@ -115,14 +121,16 @@ abstract final class MaterialScreenStyles {
 
   static const Border pageHeaderBorder = Border();
 
-  static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
-    BoxShadow(
-      color: Color(0x221268F3),
-      blurRadius: 24,
-      spreadRadius: -8,
-      offset: Offset(0, 10),
-    ),
-  ];
+  
+static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
+  BoxShadow(
+    color: Color(0x22003797),
+    blurRadius: 24,
+    spreadRadius: -8,
+    offset: Offset(0, 10),
+  ),
+];
+
 
   static const Color pageHeaderBackgroundColor = primaryColor;
 
@@ -234,8 +242,8 @@ abstract final class MaterialScreenStyles {
       blurRadius: 16,
       spreadRadius: -3,
       offset: Offset(0, 5),
-    ),
-    BoxShadow(color: Color(0x081268F3), blurRadius: 5, offset: Offset(0, 1)),
+    ), 
+    BoxShadow(color: Color(0x08003797), blurRadius: 5, offset: Offset(0, 1))
   ];
 
   static const Color warmFolderBackgroundColor = surfaceColor;
@@ -307,7 +315,9 @@ abstract final class MaterialScreenStyles {
       spreadRadius: -5,
       offset: Offset(0, 9),
     ),
-    BoxShadow(color: Color(0x0A1268F3), blurRadius: 7, offset: Offset(0, 2)),
+    
+BoxShadow(color: Color(0x0A003797), blurRadius: 7, offset: Offset(0, 2)),
+
   ];
 
   static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
@@ -391,7 +401,8 @@ abstract final class MaterialScreenStyles {
   );
 
   static const Color folderPickerBackgroundColor = Color(0xFFF8FAFC);
-  static const Color folderPickerSelectedColor = Color(0xFFEAF3FF);
+static const Color folderPickerSelectedColor = Color(0xFFEDF3FB);
+
 
   // ============================================================
   // SNACKBAR

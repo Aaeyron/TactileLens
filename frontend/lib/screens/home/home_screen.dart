@@ -347,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen>
               borderRadius: HomeStyles.blueHeaderRadius,
               boxShadow: <BoxShadow>[
                 BoxShadow(
-                  color: Color(0x221268F3),
+                  color: Color(0x22003797),
                   blurRadius: 24,
                   spreadRadius: -8,
                   offset: Offset(0, 10),

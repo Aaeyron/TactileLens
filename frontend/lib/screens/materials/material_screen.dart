@@ -595,7 +595,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                                 height: 42,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF4D8),
+                                color: const Color(0xFFEDF3FB),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -1960,7 +1960,7 @@ class _FolderCard extends StatelessWidget {
                     borderRadius:
                         MaterialScreenStyles.folderIconContainerRadius,
                     border: Border.fromBorderSide(
-                      BorderSide(color: Color(0xFFD9E8FF), width: 1),
+                    BorderSide(color: Color(0xFFCCD7EA), width: 1),
                     ),
                   ),
                   child: isDeleting
