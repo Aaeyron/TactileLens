@@ -56,6 +56,11 @@ object OfflineDocumentPipeline {
         private val LIST_MARKER =
         Regex("""^(\(?[A-Za-z][.)]\s*|\(?\d{1,3}[.)](?:\s+|$))""")
 
+    // Label glued to the equation by OCR: "6.3x2-x-2=0" -> "6.". Only used
+    // when the layout model says the formula starts AFTER the label, so a
+    // real decimal like "6.3x = 12" is never mistaken for a label.
+    private val GLUED_LIST_MARKER = Regex("""^\(?(?:\d{1,3}|[A-Za-z])[.)]""")
+
     private val LATEX_COMMAND = Regex("""\\([A-Za-z]+)""")
 
     private val EDGE_SPACING_START = Regex("""^(?:\\[ ,;:!]|\\q?quad|\s)+""")
@@ -72,7 +77,8 @@ object OfflineDocumentPipeline {
         "text", "textrm", "mathrm", "mathbf", "mathit", "operatorname",
         "mathbb", "mathcal", "boldsymbol", "displaystyle", "textstyle",
         "times", "div", "cdot", "cdots", "ldots", "dots", "pm", "mp",
-        "leq", "geq", "le", "ge", "neq", "ne", "approx", "equiv", "sim",
+        "leq", "geq", "le", "ge", "leqslant", "geqslant",
+        "neq", "ne", "not", "approx", "equiv", "sim",
         "lt", "gt", "infty", "circ", "degree", "prime", "angle",
         "alpha", "beta", "gamma", "delta", "epsilon", "varepsilon",
         "theta", "lambda", "mu", "pi", "rho", "sigma", "tau", "phi", "omega",
@@ -81,7 +87,7 @@ object OfflineDocumentPipeline {
         "sin", "cos", "tan", "sec", "csc", "cot",
         "quad", "qquad", "overline", "underline", "hat", "bar", "vec",
         "in", "notin", "subset", "cup", "cap", "emptyset",
-        "to", "rightarrow", "Rightarrow", "leftarrow", "Leftarrow",
+        "to", "mapsto", "rightarrow", "Rightarrow", "leftarrow", "Leftarrow",
         "leftrightarrow", "Leftrightarrow", "mid", "vert", "lvert", "rvert",
         "lbrace", "rbrace", "langle", "rangle",
         "lfloor", "rfloor", "lceil", "rceil",
@@ -94,7 +100,7 @@ object OfflineDocumentPipeline {
     // "{1}{1}{1}{1}...". Such output is rejected, never shown.
     private val RUNAWAY_OUTPUT = Regex("""(.)\1{15,}|(.{2,8})\2{6,}""")
 
-    
+
         // Longer than any single printed algebra line should ever be.
     private const val MAX_LATEX_LENGTH = 600
 
@@ -123,9 +129,31 @@ object OfflineDocumentPipeline {
     // Never split one formula box into more rows than this.
     private const val MAX_FORMULA_ROWS = 8
 
-    private val MATH_SYMBOL = Regex("""[=<>≤≥≠±+\-−×÷*/^√]""")
+    private val MATH_SYMBOL = Regex("""[=<>≤≥≠±+\-−×÷*/^√∛∜]""")
     private val REAL_WORD = Regex("""[A-Za-z]{3,}""")
     private const val MATH_CHARACTERS = "0123456789=<>≤≥≠±+-−×÷*/^√()[]."
+
+    // OCR can label a short formula as text even when it contains only one
+    // operator. These patterns cover common algebra without treating a
+    // sentence containing a number as a formula.
+    private val ALGEBRA_RELATION =
+        Regex("""[A-Za-z0-9)]\s*(?:=|≤|≥|<|>|≠)\s*[A-Za-z0-9(]""")
+    private val ALGEBRA_OPERATION =
+        Regex("""[A-Za-z0-9)]\s*[+\-−×÷*]\s*[A-Za-z0-9(]""")
+    private val ALGEBRA_FRACTION =
+        Regex("""[A-Za-z0-9)]\s*/\s*[A-Za-z0-9(]""")
+    private val ALGEBRA_EXPONENT =
+        Regex("""[A-Za-z0-9)]\s*\^\s*[A-Za-z0-9(]""")
+    private val ALGEBRA_FUNCTION =
+        Regex("""\b[A-Za-z]\s*\([^()\n]{1,32}\)\s*(?:=|≤|≥|<|>|≠|$)""")
+    private val DISTINCT_MATH_NOTATION =
+        Regex("""[√∛∜∑∏∫∞α-ωΑ-Ω]|[A-Za-z0-9)][⁰¹²³⁴⁵⁶⁷⁸⁹]""")
+    private val MONOMIAL =
+        Regex("""^[+\-]?\d+(?:\.\d+)?\s*[A-Za-z](?:\s*(?:\^\s*\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹]+))?$""")
+    private val MATH_FUNCTION_WORDS = setOf(
+        "sin", "cos", "tan", "sec", "csc", "cot", "log", "ln",
+        "sqrt", "abs", "max", "min", "lim",
+    )
 
     suspend fun scanDocument(
         context: Context,
@@ -263,9 +291,16 @@ object OfflineDocumentPipeline {
                 val regionLines = linesByRegion[region].orEmpty()
 
                 if (regionLines.isNotEmpty()) {
-                    val inlineCount = embeddedInline.count { inline ->
+                    val regionInline = embeddedInline.filter { inline ->
                         inline.box.intersection(region.box) / max(inline.box.area, 1.0) >=
                             LINE_IN_REGION
+                    }
+                    val inlineCount = regionInline.size
+
+                    // One formula filling most of the line ("6. 3x² − x − 2 = 0"):
+                    // the layout's formula box shows where the math starts.
+                    val formulaHint = regionInline.singleOrNull()?.box?.takeIf { hint ->
+                        hint.right - hint.left >= (region.box.right - region.box.left) * 0.6
                     }
 
                     pending += PendingBlock(
@@ -282,6 +317,7 @@ object OfflineDocumentPipeline {
                             lines = regionLines,
                             inlineFormulaCount = inlineCount,
                             stats = stats,
+                            formulaHint = formulaHint,
                         ),
                     )
                 }
@@ -325,7 +361,7 @@ object OfflineDocumentPipeline {
             },
         )
 
-        val markdown = blocks.joinToString("\n\n") { block ->   
+        val markdown = blocks.joinToString("\n\n") { block ->
             val content = block["content"] as? String ?: ""
             if (block["type"] == "formula") "$$\n$content\n$$" else content
         }
@@ -388,6 +424,7 @@ object OfflineDocumentPipeline {
         lines: List<Line>,
         inlineFormulaCount: Int,
         stats: Stats,
+        formulaHint: Box? = null,
     ): Map<String, Any?> {
         val text = textBlock(type, label, score, box, lines, inlineFormulaCount)
 
@@ -399,20 +436,96 @@ object OfflineDocumentPipeline {
         }
 
         val formulaStart = SystemClock.elapsedRealtime()
-        val formula = recognizeFormulaBlock(
-            context = context,
-            imagePath = imagePath,
-            threadCount = threadCount,
-            label = label,
-            score = score,
-            box = box,
-            lines = lines,
-        )
+        var formula: Map<String, Any?>? = null
+
+        // 1st choice: the layout's own formula box, so a label in front
+        // ("6.") stays out of the crop and is added back as text.
+        if (formulaHint != null) {
+            val all = unionOf(lines)
+            val hintHeight = max(formulaHint.bottom - formulaHint.top, 1.0)
+            val first = lines.minByOrNull { it.box.left }
+            val itemLabel = first
+                ?.takeIf { formulaHint.left > it.box.left + 4.0 }
+                ?.let { GLUED_LIST_MARKER.find(it.text)?.value?.trim() }
+
+            // The layout box can start a little too far right and clip the
+            // first character (the "3" in "6. 3x²"). Start right after the
+            // real blank gap behind the label instead; with no label, just
+            // widen the box a little to the left.
+            val formulaLeft = if (itemLabel != null && first != null) {
+                findLabelGap(imagePath, first.box, formulaHint.left + hintHeight * 0.6)
+                    ?: (formulaHint.left - hintHeight * 0.15)
+            } else {
+                formulaHint.left - hintHeight * 0.15
+            }
+
+            val hintBox = Box(
+                formulaLeft,
+                min(box.top, formulaHint.top),
+                max(formulaHint.right, all.right),
+                max(box.bottom, formulaHint.bottom),
+            )
+
+            Log.d(
+                TAG,
+                "Layout formula box ${formulaHint.describe()} -> crop ${hintBox.describe()}, " +
+                    "label=${itemLabel ?: "none"}",
+            )
+
+            val hinted = withItemLabel(
+                recognizeFormulaBlock(
+                    context = context,
+                    imagePath = imagePath,
+                    threadCount = threadCount,
+                    label = label,
+                    score = score,
+                    box = hintBox,
+                    lines = lines,
+                    splitLabel = false,
+                ),
+                itemLabel,
+            )
+
+            if (isAcceptedFormula(hinted)) {
+                formula = hinted
+            } else {
+                Log.d(TAG, "Layout formula box rejected: ${hinted["raw_latex"]}")
+            }
+        }
+
+        // 2nd choice: the whole block, with the usual label cut.
+        if (formula == null) {
+            formula = recognizeFormulaBlock(
+                context = context,
+                imagePath = imagePath,
+                threadCount = threadCount,
+                label = label,
+                score = score,
+                box = box,
+                lines = lines,
+            )
+
+            // Cutting off an item label can spoil the crop. If that read
+            // failed, read the whole box once more, label included.
+            if (!isAcceptedFormula(formula) && formula["label_split"] == true) {
+                Log.d(TAG, "Math fallback retry without label cut. First try: ${formula["raw_latex"]}")
+
+                formula = recognizeFormulaBlock(
+                    context = context,
+                    imagePath = imagePath,
+                    threadCount = threadCount,
+                    label = label,
+                    score = score,
+                    box = box,
+                    lines = lines,
+                    splitLabel = false,
+                )
+            }
+        }
+
         stats.formulaMs += SystemClock.elapsedRealtime() - formulaStart
 
-        val latex = formula["latex"] as? String ?: ""
-
-             if (latex.isBlank() || !isUsableFormula(formula) || looksBroken(latex)) {
+        if (!isAcceptedFormula(formula)) {
             Log.d(
                 TAG,
                 "Math fallback rejected (reached_end=${formula["reached_end"]}): " +
@@ -431,6 +544,110 @@ object OfflineDocumentPipeline {
         )
     }
 
+    private fun isAcceptedFormula(formula: Map<String, Any?>): Boolean {
+        val latex = formula["latex"] as? String ?: ""
+        return latex.isNotBlank() && isUsableFormula(formula) && !looksBroken(latex)
+    }
+
+    /** Puts an item label ("6.") back in front of the equation as text. */
+    private fun withItemLabel(formula: Map<String, Any?>, itemLabel: String?): Map<String, Any?> {
+        val latex = formula["latex"] as? String ?: ""
+
+        if (itemLabel.isNullOrBlank() || latex.isBlank()) {
+            return formula
+        }
+
+        val labelled = "\\text{$itemLabel}\\ $latex"
+        return formula + mapOf("content" to labelled, "latex" to labelled)
+    }
+
+    /**
+     * Finds the printed space between an item label and its equation
+     * ("6. 3x² − x − 2 = 0") by checking which pixel columns of the line
+     * have no ink. Returns the x where the equation's ink starts (the end
+     * of the widest blank gap before [searchRight]), or null if unsure.
+     */
+    private fun findLabelGap(imagePath: String, line: Box, searchRight: Double): Double? {
+        val bitmap = BitmapFactory.decodeFile(imagePath) ?: return null
+
+        try {
+            val left = line.left.toInt().coerceIn(0, bitmap.width - 1)
+            val right = searchRight.toInt().coerceIn(left + 1, bitmap.width)
+            val top = line.top.toInt().coerceIn(0, bitmap.height - 1)
+            val bottom = line.bottom.toInt().coerceIn(top + 1, bitmap.height)
+            val width = right - left
+            val height = bottom - top
+
+            if (width < 4 || height < 4) {
+                return null
+            }
+
+            val pixels = IntArray(width * height)
+            bitmap.getPixels(pixels, 0, width, left, top, width, height)
+
+            val gray = IntArray(pixels.size) { i ->
+                val c = pixels[i]
+                (
+                    ((c shr 16) and 0xFF) * 299 +
+                        ((c shr 8) and 0xFF) * 587 +
+                        (c and 0xFF) * 114
+                    ) / 1000
+            }
+
+            // Ink vs. paper, measured from this line (works for photos too).
+            val sorted = gray.sorted()
+            val ink = sorted[(sorted.size * 0.02).toInt()]
+            val paper = sorted[(sorted.size * 0.60).toInt()]
+
+            if (paper - ink < 40) {
+                return null
+            }
+
+            val threshold = (ink + paper) / 2
+            val allowedInk = max(1, height / 25)
+
+            val blank = BooleanArray(width) { x ->
+                var count = 0
+                for (y in 0 until height) {
+                    if (gray[y * width + x] < threshold) count++
+                }
+                count <= allowedInk
+            }
+
+            // Skip the empty margin before the label's first ink.
+            var x = 0
+            while (x < width && blank[x]) x++
+
+            var bestStart = -1
+            var bestLength = 0
+
+            while (x < width) {
+                if (blank[x]) {
+                    val start = x
+                    while (x < width && blank[x]) x++
+
+                    // A gap that runs to the end of the search area is not
+                    // between the label and the equation; ignore it.
+                    if (x < width && x - start > bestLength) {
+                        bestStart = start
+                        bestLength = x - start
+                    }
+                } else {
+                    x++
+                }
+            }
+
+            if (bestStart < 0 || bestLength < max(2, height / 12)) {
+                return null
+            }
+
+            // Last blank column: the equation's first ink is right after it.
+            return (left + bestStart + bestLength - 1).toDouble()
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
     /**
      * Math if it has math symbols (or is a short stack of rows, like a
      * fraction), no real words ("Solve for x" stays text), and mostly
@@ -443,11 +660,28 @@ object OfflineDocumentPipeline {
             return false
         }
 
-        if (!MATH_SYMBOL.containsMatchIn(text) && lines.size < 2) {
+        // A single instruction word such as "Solve" must not turn a whole
+        // sentence into a formula crop. Standard function names are allowed.
+        val hasProse = REAL_WORD.findAll(text).any { match ->
+            match.value.lowercase() !in MATH_FUNCTION_WORDS
+        }
+        if (hasProse) {
             return false
         }
 
-        if (REAL_WORD.findAll(text).count() > 1) {
+        if (
+            ALGEBRA_RELATION.containsMatchIn(text) ||
+            ALGEBRA_OPERATION.containsMatchIn(text) ||
+            ALGEBRA_FRACTION.containsMatchIn(text) ||
+            ALGEBRA_EXPONENT.containsMatchIn(text) ||
+            ALGEBRA_FUNCTION.containsMatchIn(text) ||
+            DISTINCT_MATH_NOTATION.containsMatchIn(text) ||
+            MONOMIAL.matches(text)
+        ) {
+            return true
+        }
+
+        if (!MATH_SYMBOL.containsMatchIn(text) && lines.size < 2) {
             return false
         }
 
@@ -833,9 +1067,10 @@ object OfflineDocumentPipeline {
         score: Double,
         box: Box,
         lines: List<Line>,
+        splitLabel: Boolean = true,
     ): Map<String, Any?> {
         // "b. g(x) = ..." -> read only "g(x) = ..." and keep "b." as text.
-        val split = splitListLabel(box, lines)
+        val split = if (splitLabel) splitListLabel(box, lines) else LabelledBox(box, null)
 
         return try {
             val result = PaddleOnnxFormulaRecognizer.recognizeFile(
@@ -864,6 +1099,7 @@ object OfflineDocumentPipeline {
                 "box" to box.toMap(),
                 "needs_review" to (latex.isBlank() || !reachedEnd),
                 "reached_end" to reachedEnd,
+                "label_split" to (split.label != null),
                 "source" to "formula",
                 "token_count" to result["token_count"],
                 "time_ms" to result["total_time_ms"],
@@ -894,14 +1130,14 @@ object OfflineDocumentPipeline {
     private fun splitListLabel(box: Box, lines: List<Line>): LabelledBox {
         val height = max(box.bottom - box.top, 1.0)
 
-        val first = lines
-            .filter { line ->
-                val centerY = (line.box.top + line.box.bottom) / 2.0
-                line.text.isNotBlank() &&
-                    box.intersection(line.box) > 0.0 &&
-                    centerY >= box.top && centerY <= box.bottom
-            }
-            .minByOrNull { it.box.left }
+                val inside = lines.filter { line ->
+            val centerY = (line.box.top + line.box.bottom) / 2.0
+            line.text.isNotBlank() &&
+                box.intersection(line.box) > 0.0 &&
+                centerY >= box.top && centerY <= box.bottom
+        }
+
+        val first = inside.minByOrNull { it.box.left }
             ?: return LabelledBox(box, null)
 
         val marker = LIST_MARKER.find(first.text) ?: return LabelledBox(box, null)
@@ -912,11 +1148,25 @@ object OfflineDocumentPipeline {
         }
 
         val lineWidth = first.box.right - first.box.left
-        val cut = if (marker.value.length >= first.text.length) {
+        val labelEnd = if (marker.value.length >= first.text.length) {
             first.box.right
         } else {
             first.box.left + lineWidth * marker.value.length / first.text.length
-        } + height * 0.15
+        }
+
+        // Small gap after the label, sized by the LABEL's height (a stacked
+        // fraction makes the whole box much taller), and never past the
+        // start of the next OCR piece, so the "x" of "x+1" is not cut off.
+        val labelHeight = max(first.box.bottom - first.box.top, 1.0)
+        val nextStart = inside
+            .filter { it !== first && it.box.left >= labelEnd - 2.0 }
+            .minOfOrNull { it.box.left }
+
+        var cut = labelEnd + labelHeight * 0.15
+        if (nextStart != null) {
+            cut = min(cut, nextStart - 1.0)
+        }
+        cut = max(cut, labelEnd)
 
         // Never cut away (almost) the whole equation.
         if (cut >= box.right - height * 0.5) {
