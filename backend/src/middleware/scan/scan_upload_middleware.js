@@ -27,7 +27,14 @@ const fileFilter = (req, file, cb) => {
   const mimeType = (file.mimetype || "").toLowerCase();
   const allowedMimeTypes = ALLOWED_IMAGE_TYPES[extension];
 
-  if (!allowedMimeTypes || !allowedMimeTypes.includes(mimeType)) {
+    // Flutter's http package sends files as application/octet-stream unless
+  // a type is set. Trust the allowed extension in that case.
+  const isGenericType = mimeType === "application/octet-stream";
+
+  if (
+    !allowedMimeTypes ||
+    (!allowedMimeTypes.includes(mimeType) && !isGenericType)
+  ) {
     const error = new Error(
       "Only JPG, JPEG, PNG, WEBP, BMP, and TIFF images are allowed.",
     );

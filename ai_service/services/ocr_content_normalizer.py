@@ -151,9 +151,12 @@ class OcrContentNormalizer:
             return ""
 
         if normalized_type in cls.FORMULA_BLOCK_TYPES:
-            return cls._normalize_formula(normalized_content)
+           result = cls._normalize_formula(normalized_content)
+        else:
+            result = cls._normalize_text(normalized_content)
 
-        return cls._normalize_text(normalized_content)
+        # Dollar signs are never meaningful in the readable output.
+        return result.replace("$", "")
 
     # ============================================================
     # FORMULA NORMALIZATION
