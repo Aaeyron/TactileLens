@@ -562,10 +562,6 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _togglePasswordVisibility() {
-    if (_isSigningIn) {
-      return;
-    }
-
     setState(() {
       isPasswordVisible = !isPasswordVisible;
     });
@@ -575,87 +571,76 @@ class _SignInScreenState extends State<SignInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SignInStyles.backgroundColor,
-      body: Stack(
-        children: <Widget>[
-          const Positioned(
-            top: SignInStyles.topDecorationOffset,
-            right: SignInStyles.topDecorationOffset,
-            child: _BackgroundCircle(size: SignInStyles.topDecorationSize),
-          ),
-          const Positioned(
-            bottom: SignInStyles.bottomDecorationOffset,
-            left: SignInStyles.bottomDecorationOffset,
-            child: _BackgroundCircle(size: SignInStyles.bottomDecorationSize),
-          ),
-          const Positioned(
-            top: SignInStyles.leftDotsTop,
-            left: SignInStyles.dotsSideOffset,
-            child: _BrailleDots(),
-          ),
-          const Positioned(
-            top: SignInStyles.rightDotsTop,
-            right: SignInStyles.dotsSideOffset,
-            child: _BrailleDots(),
-          ),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: SignInStyles.pagePadding,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight:
-                          constraints.maxHeight -
-                          SignInStyles.pagePadding.vertical,
-                    ),
-                    child: AutofillGroup(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          _buildBackButton(context),
-                          const SizedBox(height: SignInStyles.logoTopSpacing),
-                          _buildLogo(),
-                          const SizedBox(
-                            height: SignInStyles.logoBottomSpacing,
-                          ),
-                          const Text(
-                            SignInStyles.title,
-                            textAlign: TextAlign.center,
-                            style: SignInStyles.titleStyle,
-                          ),
-                          const SizedBox(
-                            height: SignInStyles.descriptionSpacing,
-                          ),
-                          _buildDescription(),
-                          const SizedBox(height: SignInStyles.formTopSpacing),
-                          _buildEmailField(),
-                          const SizedBox(height: SignInStyles.fieldSpacing),
-                          _buildPasswordField(),
-                          _buildForgotPasswordButton(),
-                          const SizedBox(height: SignInStyles.signInTopSpacing),
-                          _buildSignInButton(),
-                          const SizedBox(height: SignInStyles.dividerSpacing),
-                          const _OrDivider(),
-                          const SizedBox(height: SignInStyles.dividerSpacing),
-                          _buildGoogleButton(),
-                          const SizedBox(height: SignInStyles.signUpTopSpacing),
-                          _buildSignUpPrompt(),
-                          const SizedBox(height: SignInStyles.guestTopSpacing),
-                          _buildGuestButton(),
-                          const SizedBox(
-                            height: SignInStyles.bottomIllustrationSpacing,
-                          ),
-                          const _BottomIllustration(),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
+      body: TextFieldTapRegion(
+        child: Stack(
+          children: <Widget>[
+            const Positioned(
+              top: SignInStyles.topDecorationOffset,
+              right: SignInStyles.topDecorationOffset,
+              child: _BackgroundCircle(size: SignInStyles.topDecorationSize),
             ),
-          ),
-        ],
+            const Positioned(
+              bottom: SignInStyles.bottomDecorationOffset,
+              left: SignInStyles.bottomDecorationOffset,
+              child: _BackgroundCircle(size: SignInStyles.bottomDecorationSize),
+            ),
+            const Positioned(
+              top: SignInStyles.leftDotsTop,
+              left: SignInStyles.dotsSideOffset,
+              child: _BrailleDots(),
+            ),
+            const Positioned(
+              top: SignInStyles.rightDotsTop,
+              right: SignInStyles.dotsSideOffset,
+              child: _BrailleDots(),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: SignInStyles.pagePadding,
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      _buildBackButton(context),
+                      const SizedBox(height: SignInStyles.logoTopSpacing),
+                      _buildLogo(),
+                      const SizedBox(height: SignInStyles.logoBottomSpacing),
+                      const Text(
+                        SignInStyles.title,
+                        textAlign: TextAlign.center,
+                        style: SignInStyles.titleStyle,
+                      ),
+                      const SizedBox(height: SignInStyles.descriptionSpacing),
+                      _buildDescription(),
+                      const SizedBox(height: SignInStyles.formTopSpacing),
+                      _buildEmailField(),
+                      const SizedBox(height: SignInStyles.fieldSpacing),
+                      _buildPasswordField(),
+                      _buildForgotPasswordButton(),
+                      const SizedBox(height: SignInStyles.signInTopSpacing),
+                      _buildSignInButton(),
+                      const SizedBox(height: SignInStyles.dividerSpacing),
+                      const _OrDivider(),
+                      const SizedBox(height: SignInStyles.dividerSpacing),
+                      _buildGoogleButton(),
+                      const SizedBox(height: SignInStyles.signUpTopSpacing),
+                      _buildSignUpPrompt(),
+                      const SizedBox(height: SignInStyles.guestTopSpacing),
+                      _buildGuestButton(),
+                      const SizedBox(
+                        height: SignInStyles.bottomIllustrationSpacing,
+                      ),
+                      const _BottomIllustration(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -728,7 +713,6 @@ class _SignInScreenState extends State<SignInScreen> {
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
           controller: emailController,
-          enabled: !_isSigningIn,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           autofillHints: const <String>[AutofillHints.email],
@@ -750,7 +734,6 @@ class _SignInScreenState extends State<SignInScreen> {
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
           controller: passwordController,
-          enabled: !_isSigningIn,
           obscureText: !isPasswordVisible,
           textInputAction: TextInputAction.done,
           autofillHints: const <String>[AutofillHints.password],

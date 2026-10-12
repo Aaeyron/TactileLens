@@ -145,7 +145,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   List<MaterialFolderModel> _folders = <MaterialFolderModel>[];
 
   _MaterialFilter _selectedFilter = _MaterialFilter.all;
-  _MaterialSort _selectedSort = _MaterialSort.newest;
+  final _MaterialSort _selectedSort = _MaterialSort.newest;
 
   bool _isLoading = true;
   bool _isDeleting = false;
