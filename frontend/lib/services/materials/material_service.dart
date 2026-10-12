@@ -41,6 +41,18 @@ class MaterialService {
     return Uri.parse('$serverUrl/').resolve(normalizedPath).toString();
   }
 
+    // ==========================
+  // Server Material File
+  // ==========================
+
+  String getMaterialFileUrl(int materialId) {
+    return '$baseUrl/$materialId/file';
+  }
+
+  Future<Map<String, String>> getMaterialFileHeaders() {
+    return _authorizedHeaders(includeContentType: false);
+  }
+
   // ==========================
   // Get All Materials
   // ==========================
