@@ -5,7 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-const authRoutes = require("./routes/auth/authRoutes");
+const authRoutes = require("./routes/auth/auth_routes");
 
 const materialRoutes = require("./routes/materials/material_routes");
 

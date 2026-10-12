@@ -10,6 +10,30 @@ const BACKEND_DIRECTORY = path.resolve(__dirname, "../../..");
 const UPLOADS_DIRECTORY = path.join(BACKEND_DIRECTORY, "uploads");
 
 // ==========================
+// Resolve Safe Upload Path
+// ==========================
+
+const resolveSafeUploadPath = (storedPath) => {
+  if (typeof storedPath !== "string" || storedPath.trim().length === 0) {
+    return null;
+  }
+
+  const resolvedFilePath = path.isAbsolute(storedPath)
+    ? path.resolve(storedPath)
+    : path.resolve(BACKEND_DIRECTORY, storedPath);
+
+  const relativePath = path.relative(UPLOADS_DIRECTORY, resolvedFilePath);
+
+  const isInsideUploadsDirectory =
+    relativePath.length > 0 &&
+    relativePath !== ".." &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath);
+
+  return isInsideUploadsDirectory ? resolvedFilePath : null;
+};
+
+// ==========================
 // Create Material
 // ==========================
 
@@ -123,4 +147,5 @@ module.exports = {
   getMaterialById,
   moveMaterialToFolder,
   deleteMaterial,
+  resolveSafeUploadPath,
 };

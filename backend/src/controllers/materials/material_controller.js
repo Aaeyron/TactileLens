@@ -1,5 +1,7 @@
 const fs = require("fs");
 
+const path = require("path");
+
 const materialService = require("../../services/materials/material_service");
 
 const ALLOWED_SOURCE_TYPES = new Set(["uploaded_file", "scan_result"]);
@@ -171,7 +173,7 @@ const uploadMaterial = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Material saved successfully.",
-      data: material,
+      data: toPublicMaterial(material),
     });
   } catch (error) {
     if (!materialCreated) {
@@ -197,7 +199,7 @@ const getAllMaterials = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: materials,
+      data: materials.map(toPublicMaterial),
     });
   } catch (error) {
     console.error("Failed to retrieve materials:", error);
@@ -238,7 +240,7 @@ const getMaterialById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: material,
+      data: toPublicMaterial(material),
     });
   } catch (error) {
     console.error("Failed to retrieve material:", error);
@@ -306,7 +308,7 @@ const moveMaterialToFolder = async (req, res) => {
         folderId === null
           ? "Material removed from the folder."
           : "Material moved to the folder successfully.",
-      data: material,
+      data: toPublicMaterial(material),
     });
   } catch (error) {
     console.error("Failed to move material to folder:", error);
@@ -348,7 +350,7 @@ const deleteMaterial = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Material deleted successfully.",
-      data: material,
+      data: toPublicMaterial(material),
     });
   } catch (error) {
     console.error("Failed to delete material:", error);
@@ -356,6 +358,99 @@ const deleteMaterial = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to delete material.",
+    });
+  }
+};
+
+// ==========================
+// Public Material Shape
+// ==========================
+
+const toPublicMaterial = (material) => {
+  if (!material) {
+    return material;
+  }
+
+  // Never send the server's disk path to the phone.
+  const { file_path, ...publicFields } = material;
+
+  return publicFields;
+};
+
+// ==========================
+// Get One Owned Material File
+// ==========================
+
+const FILE_CONTENT_TYPES = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".bmp": "image/bmp",
+  ".tif": "image/tiff",
+  ".tiff": "image/tiff",
+  ".pdf": "application/pdf",
+};
+
+const getMaterialFile = async (req, res) => {
+  const notFound = () =>
+    res.status(404).json({
+      success: false,
+      message: "File not found.",
+    });
+
+  try {
+    const materialId = readMaterialId(req.params.id);
+
+    if (materialId === null) {
+      return res.status(400).json({
+        success: false,
+        message: "The material ID is invalid.",
+      });
+    }
+
+    const material = await materialService.getMaterialById({
+      materialId,
+      userId: req.user.id,
+    });
+
+    if (!material) {
+      return notFound();
+    }
+
+    const safePath = materialService.resolveSafeUploadPath(material.file_path);
+
+    if (!safePath) {
+      return notFound();
+    }
+
+    const contentType = FILE_CONTENT_TYPES[path.extname(safePath).toLowerCase()];
+
+    if (!contentType) {
+      return notFound();
+    }
+
+    try {
+      await fs.promises.access(safePath);
+    } catch {
+      return notFound();
+    }
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, max-age=300");
+
+    return res.sendFile(safePath, (error) => {
+      if (error && !res.headersSent) {
+        notFound();
+      }
+    });
+  } catch (error) {
+    console.error("Failed to send material file:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load the material file.",
     });
   }
 };
@@ -370,4 +465,5 @@ module.exports = {
   getMaterialById,
   moveMaterialToFolder,
   deleteMaterial,
+  getMaterialFile,
 };
