@@ -2,8 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../models/materials/material_model.dart';
-import '../../services/materials/material_service.dart';
 import '../../styles/widgets/materials/material_widget_styles.dart';
+import '../../utils/session_manager.dart';
+import 'material_file_image.dart';
 
 class MaterialPreview extends StatelessWidget {
   final MaterialModel material;
@@ -27,12 +28,39 @@ class MaterialPreview extends StatelessWidget {
     return Icons.insert_drive_file_outlined;
   }
 
+  Widget _buildImage() {
+    return FutureBuilder<bool>(
+      future: SessionManager.isGuest(),
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final bool isGuest = snapshot.data!;
+
+        if (!isGuest && material.id != null) {
+          return MaterialFileImage(
+            materialId: material.id!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(child: Icon(Icons.error));
+            },
+          );
+        }
+
+        return Image.file(
+          File(material.filePath),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return const Center(child: Icon(Icons.error));
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    print("FILE PATH: ${material.filePath}");
-    print("FILE URL: ${MaterialService().getFileUrl(material.filePath)}");
-    print("FILE TYPE: ${material.fileType}");
-
     final type = material.fileType.toLowerCase();
 
     final isImage =
@@ -57,24 +85,7 @@ class MaterialPreview extends StatelessWidget {
       child: isImage
           ? ClipRRect(
               borderRadius: MaterialWidgetStyles.materialPreviewRadius,
-
-              child:
-                  material.filePath.startsWith("http") ||
-                      material.filePath.contains("uploads")
-                  ? Image.network(
-                      MaterialService().getFileUrl(material.filePath),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(child: Icon(Icons.error));
-                      },
-                    )
-                  : Image.file(
-                      File(material.filePath),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Center(child: Icon(Icons.error));
-                      },
-                    ),
+              child: _buildImage(),
             )
           : Center(
               child: Icon(

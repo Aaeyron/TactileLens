@@ -56,16 +56,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
         type.contains('tiff');
   }
 
-  bool get _isRemoteFile {
-    final String path = _material.filePath.trim().replaceAll('\\', '/');
-
-    return path.startsWith('http://') ||
-        path.startsWith('https://') ||
-        path.contains('/uploads/') ||
-        path.startsWith('uploads/');
-  }
-
-    bool? _isGuestSession;
+  bool? _isGuestSession;
 
   @override
   void initState() {
@@ -364,18 +355,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
   }
 
   Widget _buildImagePreview() {
-    final Widget image = _isRemoteFile
-        ? Image.network(
-            _materialService.getFileUrl(_material.filePath),
-            fit: MaterialDetailScreenStyles.imagePreviewFit,
-            errorBuilder: _buildImageError,
-          )
-        : Image.file(
-            File(_material.filePath),
-            fit: MaterialDetailScreenStyles.imagePreviewFit,
-            errorBuilder: _buildImageError,
-          );
-
+    final Widget image = _buildImageContent();
     return Semantics(
       image: true,
       label: MaterialDetailScreenStyles.imageSemanticLabel,
@@ -389,6 +369,26 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
         clipBehavior: Clip.antiAlias,
         child: image,
       ),
+    );
+  }
+
+  Widget _buildImageContent() {
+    if (_isGuestSession == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_isGuestSession == false && _material.id != null) {
+      return MaterialFileImage(
+        materialId: _material.id!,
+        fit: MaterialDetailScreenStyles.imagePreviewFit,
+        errorBuilder: _buildImageError,
+      );
+    }
+
+    return Image.file(
+      File(_material.filePath),
+      fit: MaterialDetailScreenStyles.imagePreviewFit,
+      errorBuilder: _buildImageError,
     );
   }
 

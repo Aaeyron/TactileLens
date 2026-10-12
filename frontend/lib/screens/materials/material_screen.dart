@@ -10,6 +10,9 @@ import '../../styles/screens/materials/material_screen_styles.dart';
 import '../../widgets/materials/materials_empty_state.dart';
 import 'material_preview_screen.dart';
 
+import '../../utils/session_manager.dart';
+import '../../widgets/materials/material_file_image.dart';
+
 abstract final class _MaterialText {
   static const String pageTitle = 'Materials';
   static const String pageDescription =
@@ -154,6 +157,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
 
   int? _deletingFolderId;
 
+  bool _isGuestSession = false;
+
   String? _errorMessage;
 
   @override
@@ -289,6 +294,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       final List<MaterialFolderModel> folders = await _folderService
           .getFolders();
 
+      final bool isGuest = await SessionManager.isGuest();
+
       if (!mounted) {
         return;
       }
@@ -296,6 +303,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       setState(() {
         _materials = materials;
         _folders = folders;
+        _isGuestSession = isGuest;
         _isLoading = false;
       });
     } on MaterialServiceException catch (error) {
@@ -595,7 +603,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                                 height: 42,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                color: const Color(0xFFEDF3FB),
+                                  color: const Color(0xFFEDF3FB),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -716,9 +724,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
                                           ),
                                           isImage: _isImageMaterial(material),
                                           filePath: material.filePath,
-                                          fileUrl: _materialService.getFileUrl(
-                                            material.filePath,
-                                          ),
+                                          materialId: material.id,
+                                          isServerFile: !_isGuestSession,
                                           onPressed: () async {
                                             await _closeFolderAndRunAction(
                                               folderContext,
@@ -1727,7 +1734,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
             date: _formatDateTime(context, material.uploadDate),
             isImage: _isImageMaterial(material),
             filePath: material.filePath,
-            fileUrl: _materialService.getFileUrl(material.filePath),
+            materialId: material.id,
+            isServerFile: !_isGuestSession,
             onPressed: () {
               _openMaterialPreview(material);
             },
@@ -1960,7 +1968,7 @@ class _FolderCard extends StatelessWidget {
                     borderRadius:
                         MaterialScreenStyles.folderIconContainerRadius,
                     border: Border.fromBorderSide(
-                    BorderSide(color: Color(0xFFCCD7EA), width: 1),
+                      BorderSide(color: Color(0xFFCCD7EA), width: 1),
                     ),
                   ),
                   child: isDeleting
@@ -2010,7 +2018,8 @@ class _RecentMaterialCard extends StatelessWidget {
     required this.date,
     required this.isImage,
     required this.filePath,
-    required this.fileUrl,
+    required this.materialId,
+    required this.isServerFile,
     required this.onPressed,
     required this.onMenuSelected,
   });
@@ -2020,7 +2029,8 @@ class _RecentMaterialCard extends StatelessWidget {
   final String date;
   final bool isImage;
   final String filePath;
-  final String fileUrl;
+  final int? materialId;
+  final bool isServerFile;
   final VoidCallback onPressed;
   final ValueChanged<_MaterialMenuAction> onMenuSelected;
 
@@ -2049,7 +2059,8 @@ class _RecentMaterialCard extends StatelessWidget {
                 _MaterialThumbnail(
                   isImage: isImage,
                   filePath: filePath,
-                  fileUrl: fileUrl,
+                  materialId: materialId,
+                  isServerFile: isServerFile,
                 ),
                 const SizedBox(
                   width: MaterialScreenStyles.materialContentSpacing,
@@ -2137,12 +2148,14 @@ class _MaterialThumbnail extends StatelessWidget {
   const _MaterialThumbnail({
     required this.isImage,
     required this.filePath,
-    required this.fileUrl,
+    required this.materialId,
+    required this.isServerFile,
   });
 
   final bool isImage;
   final String filePath;
-  final String fileUrl;
+  final int? materialId;
+  final bool isServerFile;
 
   @override
   Widget build(BuildContext context) {
@@ -2160,31 +2173,26 @@ class _MaterialThumbnail extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    final File localFile = File(filePath);
+    if (isServerFile && materialId != null) {
+      return MaterialFileImage(
+        materialId: materialId!,
+        fit: MaterialScreenStyles.thumbnailImageFit,
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) {
+              return _buildFallback();
+            },
+      );
+    }
 
     return Image.file(
-      localFile,
+      File(filePath),
       fit: MaterialScreenStyles.thumbnailImageFit,
       alignment: Alignment.center,
       filterQuality: MaterialScreenStyles.thumbnailFilterQuality,
       gaplessPlayback: true,
       errorBuilder:
           (BuildContext context, Object error, StackTrace? stackTrace) {
-            if (fileUrl.trim().isEmpty) {
-              return _buildFallback();
-            }
-
-            return Image.network(
-              fileUrl,
-              fit: MaterialScreenStyles.thumbnailImageFit,
-              alignment: Alignment.center,
-              filterQuality: MaterialScreenStyles.thumbnailFilterQuality,
-              gaplessPlayback: true,
-              errorBuilder:
-                  (BuildContext context, Object error, StackTrace? stackTrace) {
-                    return _buildFallback();
-                  },
-            );
+            return _buildFallback();
           },
     );
   }
