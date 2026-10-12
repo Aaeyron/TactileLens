@@ -23,7 +23,7 @@ class AIService {
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5001',
+    defaultValue: 'http://10.0.2.2:5000',
   );
 
   /// Supported modes:
@@ -124,7 +124,16 @@ class AIService {
 
     final Stopwatch stopwatch = Stopwatch()..start();
 
+        final String? token = await SessionManager.getAccessToken();
+
+    if (token == null || token.isEmpty) {
+      throw const AIServiceException(
+        'Your session has expired. Please sign in again to use online scanning.',
+      );
+    }
+
     final http.MultipartRequest request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
       ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
     try {
@@ -137,6 +146,16 @@ class AIService {
       ).timeout(requestTimeout);
 
       final Map<String, dynamic> payload = _decodePayload(response.body);
+
+            // Node returns 502-504 when the AI server behind it is unreachable.
+      // Treat these as connection errors so hybrid mode can fall back.
+      if (response.statusCode == 502 ||
+          response.statusCode == 503 ||
+          response.statusCode == 504) {
+        throw AIServiceConnectionException(
+          _readErrorMessage(payload) ?? 'The AI service is unavailable.',
+        );
+      }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw AIServiceException(

@@ -385,7 +385,11 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      unawaited(_saveScanToHistory(scanResult, imageToScan));
+            // The backend saves online scans itself, so only save here when it
+      // did not (offline results and fallbacks).
+      if (!scanResult.historySavedByServer) {
+        unawaited(_saveScanToHistory(scanResult, imageToScan));
+      }
 
       debugPrint('Document OCR completed successfully.');
 

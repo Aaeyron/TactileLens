@@ -1,5 +1,7 @@
 import re
 
+from .latex_readable_converter import ensure_readable, latex_to_readable
+
 
 class OcrContentNormalizer:
     """Normalizes PaddleOCR-VL content for preview and translation."""
@@ -170,6 +172,9 @@ class OcrContentNormalizer:
 
         normalized = cls._replace_integer_exponents(normalized)
 
+        # Convert any remaining LaTeX (roots, fractions, operators, ...).
+        normalized = latex_to_readable(normalized)
+
         return cls._normalize_whitespace(normalized)
 
     # ============================================================
@@ -185,6 +190,9 @@ class OcrContentNormalizer:
             cls.PESO_SIGN,
             content,
         )
+
+        # Convert inline or bare LaTeX in mixed text, such as $\sqrt{2}$.
+        normalized = ensure_readable(normalized)
 
         normalized = cls._unwrap_formatting_commands(normalized)
 

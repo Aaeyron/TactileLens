@@ -8,7 +8,7 @@ const {
   resetPassword,
   registerWithGoogle,
   loginWithGoogle,
-} = require("../../controllers/auth/authController");
+} = require("../../controllers/auth/auth_controller");
 
 const {
   authenticateToken,

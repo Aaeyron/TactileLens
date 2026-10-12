@@ -10,6 +10,7 @@ class ScanDocumentResult {
     required this.processingTimeMs,
     required this.blocks,
     required this.pages,
+    this.historySavedByServer = false,
   });
 
   final String model;
@@ -18,7 +19,10 @@ class ScanDocumentResult {
   final int pageCount;
   final double processingTimeMs;
   final List<DocumentBlock> blocks;
-  final List<DocumentPage> pages;
+    final List<DocumentPage> pages;
+
+  // True when the backend already saved this scan to History.
+  final bool historySavedByServer;
 
   factory ScanDocumentResult.fromJson(Map<String, dynamic> json) {
     if (json['success'] != true) {
@@ -56,6 +60,7 @@ class ScanDocumentResult {
       processingTimeMs: _readDouble(json['processing_time_ms']),
       blocks: List<DocumentBlock>.unmodifiable(orderedBlocks),
       pages: List<DocumentPage>.unmodifiable(pages),
+      historySavedByServer: json['history_saved'] == true,
     );
   }
 

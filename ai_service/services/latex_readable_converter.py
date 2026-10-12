@@ -507,4 +507,196 @@ def _convert_command(s, start, name, out, text_mode):
 
     if name in _IGNORED:
         if name in ("left", "right", "middle") or _BIG_DELIMITER.search(name):
-            i
+            i = _skip_spaces(s, i)
+            # "\left." and "\right." are invisible delimiters.
+            if i < len(s) and s[i] == ".":
+                i += 1
+        return i
+
+    if name in _TEXT_WRAPPERS:
+        argument, i = _read_argument(s, i)
+        out.append(_unescape_text(argument))
+        return i
+
+    if name == "mathbb":
+        argument, i = _read_argument(s, i)
+        value = argument.strip()
+        out.append(_BLACKBOARD[value] if value in _BLACKBOARD else _convert(value))
+        return i
+
+    if name in _MATH_WRAPPERS:
+        argument, i = _read_argument(s, i)
+        out.append(_convert(argument, text_mode))
+        return i
+
+    if name == "begin":
+        env_argument, i = _read_argument(s, i)
+        env = env_argument.strip()
+
+        if env in ("array", "tabular"):
+            # Skip the column spec, e.g. {cc}.
+            _, i = _read_argument(s, i)
+
+        body, i = _find_environment_end(s, i, env)
+        line_environment = env in _LINE_ENVIRONMENTS
+
+        rows = []
+        for row in _split_rows(body):
+            if line_environment:
+                converted = _convert(row.replace("&", "")).strip()
+            else:
+                converted = (
+                    _convert(row.replace("&", "\u0001"))
+                    .replace("\u0001", ", ")
+                    .strip()
+                )
+            if converted:
+                rows.append(converted)
+
+        if _MATRIX.search(env):
+            out.append("[" + "; ".join(rows) + "]")
+        else:
+            out.append("\n".join(rows))
+
+        return i
+
+    if name == "end":
+        _, i = _read_argument(s, i)
+        return i
+
+    if name in _SPACES:
+        out.append(" ")
+        return i
+
+    if name in ("hspace", "vspace", "label", "tag"):
+        _, i = _read_argument(s, i)
+        return i
+
+    if name in _FUNCTIONS:
+        out.append(name)
+        following_index = _skip_spaces(s, i)
+        following = s[following_index] if following_index < len(s) else ""
+        if following and (_is_letter_or_digit(following) or following == "\\"):
+            out.append(" ")
+        return i
+
+    symbol = _SYMBOLS.get(name)
+    if symbol is not None:
+        out.append(symbol)
+        return i
+
+    # Unknown (possibly hallucinated) command: keep its argument, drop the
+    # command name.
+    next_index = _skip_spaces(s, i)
+    if next_index < len(s) and s[next_index] == "{":
+        group, after = _read_braced(s, next_index)
+        out.append(_convert(group, text_mode))
+        return after
+
+    return i
+
+
+# ==========================
+# Spacing
+# ==========================
+
+def _is_operand_end(out):
+    """True when the text before a + or − ends with an operand.
+
+    That makes the sign a binary operator ("x − 2") instead of a negative
+    sign ("−2").
+    """
+    k = len(out) - 1
+    while k >= 0 and out[k] == " ":
+        k -= 1
+
+    if k < 0:
+        return False
+
+    previous = out[k]
+
+    if previous == "\n":
+        return False
+
+    if _OPERAND_END.search(previous) or previous in _SUP_SUB_CHARS:
+        return True
+
+    if previous == "|":
+        # An even number of bars means this bar closes |x − 3|.
+        line_start = out.rfind("\n", 0, k + 1) + 1
+        bars = out[line_start:k + 1].count("|")
+        return bars % 2 == 0
+
+    return False
+
+
+def _pretty(raw):
+    out = ""
+
+    for i, c in enumerate(raw):
+        if c == " ":
+            if out and not out.endswith(" ") and not out.endswith("\n"):
+                out += " "
+            continue
+
+        if c == "\n":
+            out = _rtrim_spaces(out) + "\n"
+            continue
+
+        if c in _ALWAYS_SPACED:
+            out = _rtrim_spaces(out) + f" {c} "
+            continue
+
+        if c in _SIGNS:
+            if _is_operand_end(out):
+                out = _rtrim_spaces(out) + f" {c} "
+            else:
+                out += c
+            continue
+
+        if c == ",":
+            # Keep thousands separators such as 1,000 together.
+            thousands = (
+                re.search(r"[0-9]$", _rtrim_spaces(out)) is not None
+                and re.match(r"[0-9]{3}(?![0-9])", raw[i + 1:]) is not None
+            )
+            out = _rtrim_spaces(out) + ("," if thousands else ", ")
+            continue
+
+        if c in ")]":
+            out = _rtrim_spaces(out) + c
+            continue
+
+        if out.endswith("( ") or out.endswith("[ "):
+            out = _rtrim_spaces(out)
+
+        out += c
+
+    lines = []
+    for line in out.split("\n"):
+        line = re.sub(r" {2,}", " ", line)
+        line = re.sub(r"([(\[]) ", r"\1", line)
+        line = re.sub(r" ([)\],])", r"\1", line)
+        line = line.strip()
+        if line:
+            lines.append(line)
+
+    return "\n".join(lines)
+
+
+def _strip_delimiters(value):
+    text = re.sub(r"```(?:latex|math|tex)?", "", value).strip()
+
+    pairs = [("$$", "$$"), ("\\[", "\\]"), ("\\(", "\\)"), ("$", "$")]
+
+    for open_delimiter, close_delimiter in pairs:
+        if (
+            text.startswith(open_delimiter)
+            and text.endswith(close_delimiter)
+            and len(text) >= len(open_delimiter) + len(close_delimiter)
+        ):
+            return text[
+                len(open_delimiter):len(text) - len(close_delimiter)
+            ].strip()
+
+    return text
