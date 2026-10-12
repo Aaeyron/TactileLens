@@ -9,6 +9,9 @@ import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/materials/material_preview_screen_styles.dart';
 
+import '../../utils/session_manager.dart';
+import '../../widgets/materials/material_file_image.dart';
+
 class MaterialDetailScreen extends StatefulWidget {
   const MaterialDetailScreen({super.key, required this.material});
 
@@ -60,6 +63,26 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
         path.startsWith('https://') ||
         path.contains('/uploads/') ||
         path.startsWith('uploads/');
+  }
+
+    bool? _isGuestSession;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessionType();
+  }
+
+  Future<void> _loadSessionType() async {
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isGuestSession = isGuest;
+    });
   }
 
   @override
