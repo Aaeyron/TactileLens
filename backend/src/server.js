@@ -13,6 +13,8 @@ const materialFolderRoutes = require("./routes/materials/material_folder_routes"
 
 const historyRoutes = require("./routes/history/history_routes");
 
+const scanRoutes = require("./routes/scan/scan_routes");
+
 const app = express();
 
 // ==========================
@@ -55,6 +57,9 @@ app.use("/api/material-folders", materialFolderRoutes);
 
 // Scan History Routes
 app.use("/api/history", historyRoutes);
+
+// Scan Routes (PaddleOCR-VL through the backend)
+app.use("/api/scan-document", scanRoutes);
 
 // ==========================
 // Default Route
