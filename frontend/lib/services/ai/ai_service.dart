@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import '../../utils/session_manager.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../utils/session_manager.dart';
 import 'offline_ocr_service.dart';
 
 class AIService {
@@ -15,7 +15,8 @@ class AIService {
     OfflineOcrService? offlineOcrService,
     String? baseUrl,
     String? scanMode,
-    this.requestTimeout = const Duration(minutes: 5),
+    this.requestTimeout = const Duration(minutes: 3),
+    this.maxConnectionAttempts = 2,
   }) : _client = client ?? http.Client(),
        _offlineOcrService = offlineOcrService ?? OfflineOcrService(),
        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl),
@@ -37,6 +38,9 @@ class AIService {
   ///
   /// remote:
   /// Require PaddleOCR-VL and report connection failures.
+  ///
+  /// session:
+  /// Guest users use offline. Signed-in users use remote.
   static const String _configuredScanMode = String.fromEnvironment(
     'AI_SCAN_MODE',
     defaultValue: 'session',
@@ -47,11 +51,14 @@ class AIService {
   static const String remoteMode = 'remote';
   static const String sessionMode = 'session';
 
+  static const Duration _retryDelay = Duration(seconds: 2);
+
   final http.Client _client;
   final OfflineOcrService _offlineOcrService;
   final String _baseUrl;
   final String _scanMode;
   final Duration requestTimeout;
+  final int maxConnectionAttempts;
 
   bool _disposed = false;
 
@@ -122,9 +129,7 @@ class AIService {
 
     debugPrint('AI endpoint: $uri');
 
-    final Stopwatch stopwatch = Stopwatch()..start();
-
-        final String? token = await SessionManager.getAccessToken();
+    final String? token = await SessionManager.getAccessToken();
 
     if (token == null || token.isEmpty) {
       throw const AIServiceException(
@@ -132,37 +137,70 @@ class AIService {
       );
     }
 
-    final http.MultipartRequest request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+    int attempt = 1;
+
+    while (true) {
+      try {
+        return await _sendScanRequest(uri, token, imageFile);
+      } on AIServiceConnectionException {
+        if (attempt >= maxConnectionAttempts) {
+          rethrow;
+        }
+
+        attempt++;
+
+        debugPrint('Connection failed. Retrying scan (attempt $attempt).');
+
+        await Future<void>.delayed(_retryDelay);
+      }
+    }
+  }
+
+  Future<ScanDocumentResult> _sendScanRequest(
+    Uri uri,
+    String token,
+    File imageFile,
+  ) async {
+    final Stopwatch stopwatch = Stopwatch()..start();
 
     try {
+      final http.MultipartRequest request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
       final http.StreamedResponse streamedResponse = await _client
           .send(request)
           .timeout(requestTimeout);
 
       final http.Response response = await http.Response.fromStream(
         streamedResponse,
-      ).timeout(requestTimeout);
+      );
 
-      final Map<String, dynamic> payload = _decodePayload(response.body);
+      final Map<String, dynamic>? payload = _tryDecodePayload(response.body);
 
-            // Node returns 502-504 when the AI server behind it is unreachable.
+      if (response.statusCode == 401) {
+        throw const AIServiceException(
+          'Your session has expired. Please sign in again to use online scanning.',
+        );
+      }
+
+      // Node returns 502-504 when the AI server behind it is unreachable.
       // Treat these as connection errors so hybrid mode can fall back.
-      if (response.statusCode == 502 ||
-          response.statusCode == 503 ||
-          response.statusCode == 504) {
+            if (response.statusCode == 504) {
+        throw AIServiceException(
+          _readErrorMessage(payload) ??
+              'The AI service did not respond in time.',
+        );
+      }
+
+      if (response.statusCode == 502 || response.statusCode == 503) {
         throw AIServiceConnectionException(
           _readErrorMessage(payload) ?? 'The AI service is unavailable.',
         );
       }
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw AIServiceException(
-          _readErrorMessage(payload) ??
-              'The AI service returned status '
-                  '${response.statusCode}.',
-        );
+      if (payload == null) {
+        throw const AIServiceException('The AI service returned invalid data.');
       }
 
       debugPrint(
@@ -177,8 +215,9 @@ class AIService {
         '${requestTimeout.inMinutes} minutes.',
       );
 
-      throw const AIServiceConnectionException(
-        'The PaddleOCR-VL service did not respond.',
+      throw AIServiceConnectionException(
+        'The PaddleOCR-VL service did not respond within '
+        '${requestTimeout.inMinutes} minutes.',
       );
     } on SocketException catch (error) {
       debugPrint('AI socket connection failed: $error');
@@ -186,14 +225,14 @@ class AIService {
       throw const AIServiceConnectionException(
         'Unable to reach the PaddleOCR-VL service.',
       );
-    } on FormatException catch (error) {
-      throw AIServiceException(error.message);
     } on http.ClientException catch (error) {
       debugPrint('AI client connection failed: $error');
 
       throw AIServiceConnectionException(
         'AI connection failed: ${error.message}',
       );
+    } on FileSystemException {
+      throw const AIServiceException('The selected image could not be read.');
     } on AIServiceException {
       rethrow;
     } catch (error, stackTrace) {
@@ -202,29 +241,36 @@ class AIService {
       debugPrintStack(stackTrace: stackTrace);
 
       throw const AIServiceException(
-        'An unexpected error occurred while scanning '
-        'the document.',
+        'An unexpected error occurred while scanning the document.',
       );
     } finally {
       stopwatch.stop();
     }
   }
 
-  Map<String, dynamic> _decodePayload(String responseBody) {
+  Map<String, dynamic>? _tryDecodePayload(String responseBody) {
     if (responseBody.trim().isEmpty) {
-      throw const FormatException('The AI service returned an empty response.');
+      return null;
     }
 
-    final dynamic decoded = jsonDecode(responseBody);
+    try {
+      final dynamic decoded = jsonDecode(responseBody);
 
-    if (decoded is! Map) {
-      throw const FormatException('The AI service returned invalid data.');
+      if (decoded is! Map) {
+        return null;
+      }
+
+      return Map<String, dynamic>.from(decoded);
+    } on FormatException {
+      return null;
     }
-
-    return Map<String, dynamic>.from(decoded);
   }
 
-  String? _readErrorMessage(Map<String, dynamic> payload) {
+  String? _readErrorMessage(Map<String, dynamic>? payload) {
+    if (payload == null) {
+      return null;
+    }
+
     final dynamic detail = payload['detail'];
     final dynamic message = payload['message'];
     final dynamic error = payload['error'];

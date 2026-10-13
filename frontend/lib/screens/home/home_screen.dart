@@ -7,6 +7,7 @@ import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/materials/material_file_image.dart';
 
 abstract final class _HomeText {
   static const String notificationTooltip = 'Notifications';
@@ -98,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
   String _role = _HomeText.defaultRole;
 
   bool _isLoading = true;
+  bool _isGuestSession = false;
   String? _errorMessage;
 
   @override
@@ -172,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen>
 
         _role = _normalizeValue(storedRole, _HomeText.defaultRole);
 
+        _isGuestSession = isGuest;
         _materials = materials;
         _isLoading = false;
       });
@@ -274,7 +277,15 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   bool _hasImagePreview(MaterialModel material) {
-    return _isImageMaterial(material) && material.filePath.trim().isNotEmpty;
+    if (!_isImageMaterial(material)) {
+      return false;
+    }
+
+    if (!_isGuestSession) {
+      return material.id != null;
+    }
+
+    return material.filePath.trim().isNotEmpty;
   }
 
   String _greetingDescription() {
@@ -583,7 +594,8 @@ class _HomeScreenState extends State<HomeScreen>
                 category: _getMaterialCategory(material),
                 relativeTime: _formatRelativeTime(material.uploadDate),
                 showImagePreview: _hasImagePreview(material),
-                previewUrl: _materialService.getFileUrl(material.filePath),
+                materialId: material.id,
+                isServerFile: !_isGuestSession,
                 onPressed: widget.onMaterialsPressed,
               ),
               if (index < materials.length - 1)
@@ -715,7 +727,8 @@ class _RecentActivityCard extends StatelessWidget {
     required this.category,
     required this.relativeTime,
     required this.showImagePreview,
-    required this.previewUrl,
+    required this.materialId,
+    required this.isServerFile,
     required this.onPressed,
   });
 
@@ -724,7 +737,8 @@ class _RecentActivityCard extends StatelessWidget {
   final String category;
   final String relativeTime;
   final bool showImagePreview;
-  final String previewUrl;
+  final int? materialId;
+  final bool isServerFile;
   final VoidCallback onPressed;
 
   @override
@@ -745,7 +759,8 @@ class _RecentActivityCard extends StatelessWidget {
                 material: material,
                 fallbackIcon: icon,
                 showImagePreview: showImagePreview,
-                previewUrl: previewUrl,
+                materialId: materialId,
+                isServerFile: isServerFile,
               ),
               const SizedBox(width: HomeStyles.recentContentSpacing),
               Expanded(
@@ -789,35 +804,34 @@ class _MaterialThumbnail extends StatelessWidget {
     required this.material,
     required this.fallbackIcon,
     required this.showImagePreview,
-    required this.previewUrl,
+    required this.materialId,
+    required this.isServerFile,
   });
 
   final MaterialModel material;
   final IconData fallbackIcon;
   final bool showImagePreview;
-  final String previewUrl;
+  final int? materialId;
+  final bool isServerFile;
 
   @override
   Widget build(BuildContext context) {
-    final File localFile = File(material.filePath);
-
     final Widget preview;
 
     if (!showImagePreview) {
       preview = _ThumbnailFallback(icon: fallbackIcon);
-    } else if (localFile.existsSync()) {
-      preview = Image.file(
-        localFile,
+    } else if (isServerFile && materialId != null) {
+      preview = MaterialFileImage(
+        materialId: materialId!,
         fit: BoxFit.cover,
-        filterQuality: FilterQuality.medium,
         errorBuilder:
             (BuildContext context, Object error, StackTrace? stackTrace) {
               return _ThumbnailFallback(icon: fallbackIcon);
             },
       );
     } else {
-      preview = Image.network(
-        previewUrl,
+      preview = Image.file(
+        File(material.filePath),
         fit: BoxFit.cover,
         filterQuality: FilterQuality.medium,
         errorBuilder:

@@ -79,7 +79,7 @@ abstract final class _ScanText {
   static const String brailleDetail =
       'Braille output will be generated when translation succeeds.';
 
-  static const String processingDetail = 'Processing may take a few moments.';
+  static const String processingDetail = 'Processing can take up to 2 minutes.';
 
   static const String adjustCropLabel = 'Adjust Crop';
 
@@ -385,7 +385,7 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-            // The backend saves online scans itself, so only save here when it
+      // The backend saves online scans itself, so only save here when it
       // did not (offline results and fallbacks).
       if (!scanResult.historySavedByServer) {
         unawaited(_saveScanToHistory(scanResult, imageToScan));
@@ -990,7 +990,7 @@ class _ScanScreenState extends State<ScanScreen> {
               ),
             ),
           ),
-          if (_isProcessing) const _ProcessingOverlay(),
+          if (_isProcessing) _ProcessingOverlay(),
         ],
       ),
     );
@@ -1306,26 +1306,100 @@ class _CaptureButtonState extends State<_CaptureButton> {
   }
 }
 
-class _ProcessingOverlay extends StatelessWidget {
+class _ProcessingOverlay extends StatefulWidget {
   const _ProcessingOverlay();
 
   @override
+  State<_ProcessingOverlay> createState() => _ProcessingOverlayState();
+}
+
+class _ProcessingOverlayState extends State<_ProcessingOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulseController.stop();
+    } else if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const ColoredBox(
+    return ColoredBox(
       color: ScanScreenStyles.processingOverlayColor,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             SizedBox.square(
-              dimension: ScanScreenStyles.processingIndicatorSize,
-              child: CircularProgressIndicator(
-                strokeWidth: ScanScreenStyles.processingIndicatorWidth,
-                color: ScanScreenStyles.primarySoftColor,
+              dimension: ScanScreenStyles.captureOuterSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: <Widget>[
+                  ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: Container(
+                      width: ScanScreenStyles.captureMiddleSize,
+                      height: ScanScreenStyles.captureMiddleSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ScanScreenStyles.primaryColor.withValues(
+                          alpha: 0.35,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox.square(
+                    dimension: ScanScreenStyles.captureOuterSize,
+                    child: CircularProgressIndicator(
+                      strokeWidth: ScanScreenStyles.processingIndicatorWidth,
+                      color: ScanScreenStyles.primarySoftColor,
+                    ),
+                  ),
+                  Container(
+                    width: ScanScreenStyles.captureInnerSize,
+                    height: ScanScreenStyles.captureInnerSize,
+                    decoration: const BoxDecoration(
+                      color: ScanScreenStyles.primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      ScanScreenStyles.confirmationHeaderIcon,
+                      size: ScanScreenStyles.confirmationIconSize,
+                      color: ScanScreenStyles.primarySoftColor,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: ScanScreenStyles.processingLabelSpacing),
-            Text(
+            const SizedBox(height: ScanScreenStyles.processingLabelSpacing),
+            const Text(
               _ScanText.processingLabel,
               style: ScanScreenStyles.processingTextStyle,
             ),
