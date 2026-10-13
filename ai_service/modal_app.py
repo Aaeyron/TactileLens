@@ -26,7 +26,8 @@ app = modal.App("tactilelens-ai")
 
 image = (
     modal.Image.from_registry("nvidia/cuda:12.6.3-cudnn-runtime-ubuntu22.04", add_python="3.11")
-    .apt_install("libgl1", "libglib2.0-0")
+    .apt_install("libgl1", "libglib2.0-0", "liblouis-bin", "liblouis-data")
+    .run_commands("ln -s /usr/bin/lou_translate /usr/bin/lou_translate.exe")
     .pip_install(
         "fastapi==0.141.1",
         "uvicorn==0.52.1",
@@ -41,7 +42,7 @@ image = (
     )
     .add_local_file("app.py", "/root/app.py")
     .add_local_dir("services", "/root/services", ignore=["__pycache__"])
-    .env({"PYTHONPATH": "/root"})
+    .env({"PYTHONPATH": "/root", "LIBLOUIS_ROOT": "/usr"})
 )
 
 secret = modal.Secret.from_name("tactilelens-ai")
