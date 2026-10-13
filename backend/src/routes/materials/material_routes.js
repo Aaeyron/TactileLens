@@ -33,6 +33,13 @@ router.get("/", materialController.getAllMaterials);
 
 router.get("/:id", materialController.getMaterialById);
 
+
+// ==========================
+// Get One Owned Material File
+// ==========================
+
+router.get("/:id/file", materialController.getMaterialFile);
+
 // ==========================
 // Move Owned Material to Folder
 // ==========================

@@ -2,8 +2,6 @@ require("dotenv").config();
 require("./config/database");
 
 const express = require("express");
-const cors = require("cors");
-const path = require("path");
 
 const authRoutes = require("./routes/auth/auth_routes");
 
@@ -21,8 +19,6 @@ const app = express();
 // Middleware
 // ==========================
 
-app.use(cors());
-
 app.use(
   express.json({
     limit: "5mb",
@@ -35,12 +31,6 @@ app.use(
     limit: "5mb",
   }),
 );
-
-// ==========================
-// Static Files
-// ==========================
-
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // ==========================
 // Routes
@@ -80,6 +70,34 @@ app.use((req, res) => {
   return res.status(404).json({
     success: false,
     message: "API endpoint not found.",
+  });
+});
+
+// ==========================
+// Global Error Handler
+// ==========================
+
+app.use((err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  const status = err.status || err.statusCode || 500;
+
+  if (status >= 500) {
+    console.error(err);
+  }
+
+  if (status >= 500) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+
+  return res.status(status).json({
+    success: false,
+    message: err.expose ? err.message : "Invalid request.",
   });
 });
 
