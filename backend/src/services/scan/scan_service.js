@@ -136,18 +136,45 @@ const buildBrailleContent = (blocks) =>
     .filter(Boolean)
     .join("\n\n");
 
-const buildTitle = (rawTitle) => {
+const FORMULA_TYPES = new Set([
+  "formula",
+  "display_formula",
+  "inline_formula",
+]);
+
+const getBlockType = (block) =>
+  String(block?.type ?? "").trim().toLowerCase();
+
+const isFormulaBlock = (block) =>
+  block?.is_formula === true || FORMULA_TYPES.has(getBlockType(block));
+
+const buildAutomaticTitle = (blocks) => {
+  const hasFormulas = blocks.some(isFormulaBlock);
+  const hasText = blocks.some((block) => getBlockType(block) === "text");
+
+  if (hasText && hasFormulas) {
+    return "Text and Equation Scan";
+  }
+
+  if (hasFormulas) {
+    return "Equation Scan";
+  }
+
+  if (hasText) {
+    return "Printed Text Scan";
+  }
+
+  return "Document Scan";
+};
+
+const buildTitle = (rawTitle, blocks) => {
   const cleanTitle = typeof rawTitle === "string" ? rawTitle.trim() : "";
 
   if (cleanTitle) {
     return cleanTitle.slice(0, MAX_TITLE_LENGTH);
   }
 
-  const timestamp = new Date().toLocaleString("en-PH", {
-    timeZone: "Asia/Manila",
-  });
-
-  return `Scan ${timestamp}`.slice(0, MAX_TITLE_LENGTH);
+  return buildAutomaticTitle(blocks).slice(0, MAX_TITLE_LENGTH);
 };
 
 // ==========================
@@ -181,7 +208,7 @@ const scanDocument = async ({ userId, file, title }) => {
   try {
     const record = await historyService.createHistory({
       userId,
-      title: buildTitle(title),
+      title: buildTitle(title, blocks),
       recognizedContent,
       brailleContent: buildBrailleContent(blocks),
       documentBlocks: blocks,

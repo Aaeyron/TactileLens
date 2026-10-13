@@ -3,6 +3,7 @@ import os
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import (
@@ -13,7 +14,6 @@ from fastapi import (
     status,
 )
 from fastapi.concurrency import run_in_threadpool
-from fastapi.middleware.cors import CORSMiddleware
 
 from services.paddleocr_vl_service import PaddleOcrVlService
 
@@ -57,6 +57,30 @@ ALLOWED_IMAGE_EXTENSIONS = {
 }
 
 
+def detect_image_extension(image_bytes: bytes) -> Optional[str]:
+    """Identify the real image type from the file's first bytes."""
+    if image_bytes.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+
+    if image_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+
+    if (
+        len(image_bytes) >= 12
+        and image_bytes[:4] == b"RIFF"
+        and image_bytes[8:12] == b"WEBP"
+    ):
+        return ".webp"
+
+    if image_bytes.startswith(b"BM"):
+        return ".bmp"
+
+    if image_bytes.startswith((b"II*\x00", b"MM\x00*")):
+        return ".tiff"
+
+    return None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     UPLOAD_DIR.mkdir(
@@ -91,23 +115,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "*",
-    ).split(",")
-    if origin.strip()
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
 
 @app.get("/health")
 async def health_check() -> dict:
@@ -138,18 +145,18 @@ async def scan_document(
         uploaded_filename
     ).suffix.lower()
 
-    file_extension = ALLOWED_IMAGE_TYPES.get(
+    declared_extension = ALLOWED_IMAGE_TYPES.get(
         content_type
     )
 
-    if file_extension is None:
-        file_extension = (
+    if declared_extension is None:
+        declared_extension = (
             ALLOWED_IMAGE_EXTENSIONS.get(
                 uploaded_suffix
             )
         )
 
-    if file_extension is None:
+    if declared_extension is None:
         raise HTTPException(
             status_code=(
                 status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
@@ -195,16 +202,28 @@ async def scan_document(
             ),
         )
 
-    temporary_path = (
-        UPLOAD_DIR
-        / f"{uuid4().hex}{file_extension}"
+    detected_extension = detect_image_extension(
+        image_bytes
     )
 
-    temporary_path.write_bytes(image_bytes)
+    if detected_extension is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+            ),
+            detail="The uploaded file is not a valid image.",
+        )
+
+    temporary_path = (
+        UPLOAD_DIR
+        / f"{uuid4().hex}{detected_extension}"
+    )
 
     started_at = time.perf_counter()
 
     try:
+        temporary_path.write_bytes(image_bytes)
+
         service: PaddleOcrVlService = (
             app.state.ocr_service
         )
