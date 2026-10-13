@@ -209,15 +209,14 @@ class AIService {
       );
 
       return ScanDocumentResult.fromJson(payload);
-    } on TimeoutException {
+        } on TimeoutException {
       debugPrint(
         'AI scan timed out after '
         '${requestTimeout.inMinutes} minutes.',
       );
 
-      throw AIServiceConnectionException(
-        'The PaddleOCR-VL service did not respond within '
-        '${requestTimeout.inMinutes} minutes.',
+      throw const AIServiceException(
+        'This scan took too long. Try again with a clearer photo.',
       );
     } on SocketException catch (error) {
       debugPrint('AI socket connection failed: $error');
@@ -225,11 +224,11 @@ class AIService {
       throw const AIServiceConnectionException(
         'Unable to reach the PaddleOCR-VL service.',
       );
-    } on http.ClientException catch (error) {
+        } on http.ClientException catch (error) {
       debugPrint('AI client connection failed: $error');
 
-      throw AIServiceConnectionException(
-        'AI connection failed: ${error.message}',
+      throw const AIServiceConnectionException(
+        'Unable to reach the scanning service. Check your connection and try again.',
       );
     } on FileSystemException {
       throw const AIServiceException('The selected image could not be read.');
