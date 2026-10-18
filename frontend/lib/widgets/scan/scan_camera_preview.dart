@@ -107,7 +107,10 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
     try {
       await widget.cameraService.initialize();
 
-      _startPhysicalOrientationDetection();
+      // The screen may have closed while the camera was opening.
+      if (mounted) {
+        _startPhysicalOrientationDetection();
+      }
     } catch (error, stackTrace) {
       debugPrint('Camera initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -127,7 +130,7 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
     _orientationSubscription?.cancel();
     _orientationSubscription = null;
 
-    widget.cameraService.dispose();
+    unawaited(widget.cameraService.dispose());
 
     super.dispose();
   }
