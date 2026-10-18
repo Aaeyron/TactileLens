@@ -114,6 +114,24 @@ Both online and offline flows follow a unified 6-step pipeline:
 
 ---
 
+## Dataset and Evaluation
+
+**Status**: In Development
+
+TactileLens is developing an evaluation and domain-adaptation dataset focused on secondary-school General Algebra learning materials across 8 core topics (fractions, exponents, radicals, linear equations, quadratic equations, inequalities, polynomials, and function notation).
+
+* **Long-Term Target**: 8,000 images (500 digital screenshots and 500 camera-captured photographs per topic).
+* **Initial Pilot Milestone**: 200 images (25 images per topic) to debug data pipelines and establish baseline measurements on pretrained models.
+* **Independent Ground Truth**: Reference text and LaTeX are manually transcribed, and reference Braille must be verified by a qualified reviewer rather than using automated Liblouis output.
+* **Status Distinction**: Targets represent planned milestones, not completed collections. Models are pretrained; no fine-tuning has taken place yet.
+
+Detailed documentation:
+* [docs/evaluation/DATASET_PLAN.md](docs/evaluation/DATASET_PLAN.md): Complete data collection, component-specific annotation formats, and evaluation protocols.
+* [docs/evaluation/RESULTS.md](docs/evaluation/RESULTS.md): Benchmark results template for baseline and post-training metrics.
+* [dataset_card.md](dataset_card.md): Dataset card documenting scope, licensing, distributions, quality control, and limitations.
+
+---
+
 ## Project Structure
 
 ```
