@@ -134,13 +134,9 @@ class MaterialsScreen extends StatefulWidget {
   }
 }
 
-class _MaterialsScreenState extends State<MaterialsScreen>
-    with SingleTickerProviderStateMixin {
+class _MaterialsScreenState extends State<MaterialsScreen> {
   final MaterialService _materialService = MaterialService();
   final MaterialFolderService _folderService = MaterialFolderService();
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -165,43 +161,12 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
     _searchController.addListener(_handleSearchChanged);
     _loadMaterials();
   }
 
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: MaterialScreenStyles.entranceAnimationDuration,
-    );
-
-    final CurvedAnimation curve = CurvedAnimation(
-      parent: _entranceController,
-      curve: MaterialScreenStyles.entranceAnimationCurve,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: MaterialScreenStyles.entranceFadeBegin,
-      end: MaterialScreenStyles.entranceFadeEnd,
-    ).animate(curve);
-
-    _slideAnimation = Tween<Offset>(
-      begin: MaterialScreenStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(curve);
-
-    Future<void>.delayed(MaterialScreenStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
   @override
   void dispose() {
-    _entranceController.dispose();
-
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
@@ -1443,42 +1408,31 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: MaterialScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: RefreshIndicator(
-              color: MaterialScreenStyles.primaryColor,
-              backgroundColor: MaterialScreenStyles.surfaceColor,
-              onRefresh: _refreshMaterials,
-              child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildPageHeader(context)),
-                  SliverPadding(
-                    padding: MaterialScreenStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildFoldersSection(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.sectionSpacing,
-                        ),
-                        _buildRecentHeader(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.sectionContentSpacing,
-                        ),
-                        _buildContent(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.bottomSpacing,
-                        ),
-                      ]),
+        body: RefreshIndicator(
+          color: MaterialScreenStyles.primaryColor,
+          backgroundColor: MaterialScreenStyles.surfaceColor,
+          onRefresh: _refreshMaterials,
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildPageHeader(context)),
+              SliverPadding(
+                padding: MaterialScreenStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildFoldersSection(),
+                    const SizedBox(height: MaterialScreenStyles.sectionSpacing),
+                    _buildRecentHeader(),
+                    const SizedBox(
+                      height: MaterialScreenStyles.sectionContentSpacing,
                     ),
-                  ),
-                ],
+                    _buildContent(),
+                    const SizedBox(height: MaterialScreenStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

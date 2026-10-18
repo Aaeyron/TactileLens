@@ -85,13 +85,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   final MaterialService _materialService = MaterialService();
-
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
 
   List<MaterialModel> _materials = <MaterialModel>[];
 
@@ -106,41 +101,11 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
     _loadHomeData();
-  }
-
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: HomeStyles.entranceAnimationDuration,
-    );
-
-    final CurvedAnimation entranceCurve = CurvedAnimation(
-      parent: _entranceController,
-      curve: HomeStyles.entranceAnimationCurve,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: HomeStyles.entranceFadeBegin,
-      end: HomeStyles.entranceFadeEnd,
-    ).animate(entranceCurve);
-
-    _slideAnimation = Tween<Offset>(
-      begin: HomeStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(entranceCurve);
-
-    Future<void>.delayed(HomeStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
   }
 
   @override
   void dispose() {
-    _entranceController.dispose();
     _materialService.dispose();
     super.dispose();
   }
@@ -302,34 +267,28 @@ class _HomeScreenState extends State<HomeScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: HomeStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: RefreshIndicator(
-              color: HomeStyles.primaryColor,
-              backgroundColor: HomeStyles.surfaceColor,
-              onRefresh: _loadHomeData,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildHeaderSection(context)),
-                  SliverPadding(
-                    padding: HomeStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildSecondaryActions(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        _buildRecentHeader(),
-                        const SizedBox(height: HomeStyles.recentHeaderSpacing),
-                        _buildRecentActivity(),
-                        const SizedBox(height: HomeStyles.bottomSpacing),
-                      ]),
-                    ),
-                  ),
-                ],
+        body: RefreshIndicator(
+          color: HomeStyles.primaryColor,
+          backgroundColor: HomeStyles.surfaceColor,
+          onRefresh: _loadHomeData,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeaderSection(context)),
+              SliverPadding(
+                padding: HomeStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildSecondaryActions(),
+                    const SizedBox(height: HomeStyles.sectionSpacing),
+                    _buildRecentHeader(),
+                    const SizedBox(height: HomeStyles.recentHeaderSpacing),
+                    _buildRecentActivity(),
+                    const SizedBox(height: HomeStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

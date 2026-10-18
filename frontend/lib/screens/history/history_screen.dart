@@ -118,14 +118,9 @@ class HistoryScreen extends StatefulWidget {
   }
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin {
+class _HistoryScreenState extends State<HistoryScreen> {
   final HistoryService _historyService = HistoryService();
   final TextEditingController _searchController = TextEditingController();
-
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
 
   List<HistoryRecord> _records = <HistoryRecord>[];
 
@@ -149,35 +144,9 @@ class _HistoryScreenState extends State<HistoryScreen>
   void initState() {
     super.initState();
 
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: HistoryScreenStyles.entranceAnimationDuration,
-    );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: HistoryScreenStyles.entranceAnimationCurve,
-    );
-
-    _entranceOpacity = Tween<double>(
-      begin: HistoryScreenStyles.entranceFadeBegin,
-      end: HistoryScreenStyles.entranceFadeEnd,
-    ).animate(entranceAnimation);
-
-    _entrancePosition = Tween<Offset>(
-      begin: HistoryScreenStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-
     _searchController.addListener(_handleSearchChanged);
 
     _loadHistory();
-
-    Future<void>.delayed(HistoryScreenStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
   }
 
   @override
@@ -186,7 +155,6 @@ class _HistoryScreenState extends State<HistoryScreen>
       ..removeListener(_handleSearchChanged)
       ..dispose();
 
-    _entranceController.dispose();
     _historyService.dispose();
 
     super.dispose();
@@ -756,38 +724,27 @@ class _HistoryScreenState extends State<HistoryScreen>
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: HistoryScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: RefreshIndicator(
-              color: HistoryScreenStyles.primaryColor,
-              backgroundColor: HistoryScreenStyles.surfaceColor,
-              onRefresh: _refreshHistory,
-              child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildHeader(context)),
-                  SliverPadding(
-                    padding: HistoryScreenStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildHistoryToolbar(),
-                        const SizedBox(
-                          height: HistoryScreenStyles.sectionSpacing,
-                        ),
-                        _buildContent(),
-                        const SizedBox(
-                          height: HistoryScreenStyles.bottomSpacing,
-                        ),
-                      ]),
-                    ),
-                  ),
-                ],
+        body: RefreshIndicator(
+          color: HistoryScreenStyles.primaryColor,
+          backgroundColor: HistoryScreenStyles.surfaceColor,
+          onRefresh: _refreshHistory,
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverPadding(
+                padding: HistoryScreenStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildHistoryToolbar(),
+                    const SizedBox(height: HistoryScreenStyles.sectionSpacing),
+                    _buildContent(),
+                    const SizedBox(height: HistoryScreenStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
