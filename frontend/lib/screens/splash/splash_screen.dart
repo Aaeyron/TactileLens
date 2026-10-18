@@ -16,7 +16,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  Timer? _progressTimer;
+  Timer? _loadingTimer;
 
   late final AnimationController _entranceController;
   late final Animation<double> _logoOpacity;
@@ -24,7 +24,6 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _brandingOpacity;
   late final Animation<Offset> _brandingPosition;
 
-  double _progress = SplashScreenStyles.zero;
   bool _isLoaded = false;
   bool _hasCompletedLoading = false;
 
@@ -101,36 +100,20 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _progressTimer?.cancel();
+    _loadingTimer?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
 
   void _startLoading() {
-    final int totalTicks =
-        SplashScreenStyles.minimumSplashDuration.inMilliseconds ~/
-        SplashScreenStyles.progressInterval.inMilliseconds;
-
-    final double progressPerTick = 1 / totalTicks;
-
-    _progressTimer = Timer.periodic(SplashScreenStyles.progressInterval, (
-      Timer timer,
-    ) {
+    // A single timer: the splash shows no progress bar, so ticking
+    // setState calls would only rebuild the screen without changes.
+    _loadingTimer = Timer(SplashScreenStyles.minimumSplashDuration, () {
       if (!mounted) {
-        timer.cancel();
         return;
       }
 
-      final double nextProgress = _progress + progressPerTick;
-
-      setState(() {
-        _progress = nextProgress.clamp(0, 1);
-      });
-
-      if (_progress >= 1) {
-        timer.cancel();
-        unawaited(_completeLoading());
-      }
+      unawaited(_completeLoading());
     });
   }
 
