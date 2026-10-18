@@ -9,6 +9,7 @@ import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _HomeText {
   static const String notificationTooltip = 'Notifications';
@@ -73,10 +74,14 @@ abstract final class _HomeText {
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
+    required this.cache,
     required this.onScanPressed,
     required this.onMaterialsPressed,
     required this.onHistoryPressed,
   });
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   final VoidCallback onScanPressed;
   final VoidCallback onMaterialsPressed;
@@ -102,7 +107,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    _loadHomeData();
+    final HomeTabData? cached = widget.cache.home;
+
+    if (cached == null) {
+      _loadHomeData();
+      return;
+    }
+
+    // Return visit: show the last data now and refresh it quietly.
+    _displayName = cached.displayName;
+    _role = cached.role;
+    _isGuestSession = cached.isGuest;
+    _materials = cached.materials;
+    _isLoading = false;
+
+    _loadHomeData(showLoading: false);
   }
 
   @override
@@ -111,8 +130,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadHomeData() async {
-    if (mounted) {
+  void _storeInCache() {
+    widget.cache.home = (
+      displayName: _displayName,
+      role: _role,
+      isGuest: _isGuestSession,
+      materials: _materials,
+    );
+  }
+
+  /// With [showLoading] false (a background refresh of cached data), the
+  /// current content stays visible and a failed refresh keeps it.
+  Future<void> _loadHomeData({bool showLoading = true}) async {
+    if (mounted && showLoading) {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
@@ -143,9 +173,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _isGuestSession = isGuest;
         _materials = materials;
         _isLoading = false;
+        _errorMessage = null;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
-      if (!mounted) {
+      if (!mounted || !showLoading) {
         return;
       }
 
@@ -154,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _errorMessage = error.message;
       });
     } catch (_) {
-      if (!mounted) {
+      if (!mounted || !showLoading) {
         return;
       }
 

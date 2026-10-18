@@ -13,6 +13,7 @@ import 'material_preview_screen.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _MaterialText {
   static const String pageTitle = 'Materials';
@@ -125,7 +126,10 @@ class _FolderSelectionResult {
 }
 
 class MaterialsScreen extends StatefulWidget {
-  const MaterialsScreen({super.key, required this.onBack});
+  const MaterialsScreen({super.key, required this.cache, required this.onBack});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   final VoidCallback onBack;
 
@@ -163,11 +167,39 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     super.initState();
 
     _searchController.addListener(_handleSearchChanged);
-    _loadMaterials();
+
+    final MaterialsTabData? cached = widget.cache.materials;
+
+    if (cached == null) {
+      _loadMaterials();
+      return;
+    }
+
+    // Return visit: show the last materials now and refresh them quietly.
+    // A failed refresh shows the existing message and keeps the data.
+    _materials = cached.materials;
+    _folders = cached.folders;
+    _isGuestSession = cached.isGuest;
+    _isLoading = false;
+
+    _refreshMaterials();
+  }
+
+  void _storeInCache() {
+    if (!_isLoading && _errorMessage == null) {
+      widget.cache.materials = (
+        materials: _materials,
+        folders: _folders,
+        isGuest: _isGuestSession,
+      );
+    }
   }
 
   @override
   void dispose() {
+    // Keep moves and deletions made during this visit.
+    _storeInCache();
+
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
@@ -272,6 +304,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         _isGuestSession = isGuest;
         _isLoading = false;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
       if (!mounted) {
         return;
@@ -319,6 +353,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
         _folders = folders;
         _errorMessage = null;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
       if (mounted) {
         _showMessage(error.message);

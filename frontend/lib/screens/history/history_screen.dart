@@ -10,6 +10,7 @@ import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _HistoryText {
   static const String screenTitle = 'History';
@@ -108,7 +109,10 @@ enum _HistoryAction { rename, delete }
 enum _HistorySort { newest, oldest, title }
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.onBack});
+  const HistoryScreen({super.key, required this.cache, required this.onBack});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   // Retained for compatibility with MainScreen.
   final VoidCallback onBack;
@@ -147,11 +151,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     _searchController.addListener(_handleSearchChanged);
 
-    _loadHistory();
+    final List<HistoryRecord>? cached = widget.cache.history;
+
+    if (cached == null) {
+      _loadHistory();
+      return;
+    }
+
+    // Return visit: show the last records now and refresh them quietly.
+    // A failed refresh shows the existing message and keeps the records.
+    _records = cached;
+    _isLoading = false;
+
+    _refreshHistory();
   }
 
   @override
   void dispose() {
+    // Keep renames and deletions made during this visit.
+    _storeInCache();
+
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
@@ -159,6 +178,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _historyService.dispose();
 
     super.dispose();
+  }
+
+  void _storeInCache() {
+    if (!_isLoading && _errorMessage == null) {
+      widget.cache.history = _records;
+    }
   }
 
   void _handleSearchChanged() {
@@ -315,6 +340,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _records = page.records;
         _isLoading = false;
       });
+
+      _storeInCache();
     } on HistoryServiceException catch (error) {
       if (!mounted) {
         return;
@@ -365,6 +392,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _records = page.records;
         _errorMessage = null;
       });
+
+      _storeInCache();
     } on HistoryServiceException catch (error) {
       if (mounted) {
         _showMessage(error.message);

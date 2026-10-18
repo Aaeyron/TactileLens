@@ -6,6 +6,7 @@ import '../../utils/session_manager.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/profile/logout_dialog.dart';
 import '../auth/auth_screen.dart';
+import '../main/tab_data_cache.dart';
 import 'about_tactilelens_screen.dart';
 import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
@@ -43,7 +44,10 @@ abstract final class _ProfileText {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, required this.cache});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -64,7 +68,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
 
+    final ProfileTabData? cached = widget.cache.profile;
+
+    if (cached != null) {
+      // Return visit: show the last profile now; _loadUser refreshes it.
+      _isGuest = cached.isGuest;
+      _firstName = cached.firstName;
+      _lastName = cached.lastName;
+      _email = cached.email;
+      _role = cached.role;
+      _guestNickname = cached.guestNickname;
+      _isLoadingProfile = false;
+    }
+
     _loadUser();
+  }
+
+  void _storeInCache() {
+    widget.cache.profile = (
+      isGuest: _isGuest,
+      firstName: _firstName,
+      lastName: _lastName,
+      email: _email,
+      role: _role,
+      guestNickname: _guestNickname,
+    );
   }
 
   Future<void> _loadUser() async {
@@ -86,6 +114,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _role = role.trim();
         _isLoadingProfile = false;
       });
+
+      _storeInCache();
 
       return;
     }
@@ -110,6 +140,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _role = role.trim();
       _isLoadingProfile = false;
     });
+
+    _storeInCache();
   }
 
   String get _displayName {

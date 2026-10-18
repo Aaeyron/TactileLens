@@ -6,6 +6,7 @@ import '../home/home_screen.dart';
 import '../materials/material_screen.dart';
 import '../profile/profile_screen.dart';
 import '../scan/scan_screen.dart';
+import 'tab_data_cache.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -23,6 +24,10 @@ class _MainScreenState extends State<MainScreen> {
   // 1: the new tab enters from the right (higher index), -1: from the left.
   double _slideDirection = 1;
 
+  // Lives as long as this session's MainScreen, so logging out (which
+  // removes MainScreen) discards it.
+  final TabDataCache _tabDataCache = TabDataCache();
+
   late final List<Widget> pages;
 
   @override
@@ -31,6 +36,7 @@ class _MainScreenState extends State<MainScreen> {
 
     pages = <Widget>[
       HomeScreen(
+        cache: _tabDataCache,
         onScanPressed: () {
           _selectPage(2);
         },
@@ -41,11 +47,17 @@ class _MainScreenState extends State<MainScreen> {
           _selectPage(3);
         },
       ),
-      MaterialsScreen(onBack: _returnToPreviousPage),
+      MaterialsScreen(cache: _tabDataCache, onBack: _returnToPreviousPage),
       ScanScreen(onBack: _returnToPreviousPage),
-      HistoryScreen(onBack: _returnToPreviousPage),
-      const ProfileScreen(),
+      HistoryScreen(cache: _tabDataCache, onBack: _returnToPreviousPage),
+      ProfileScreen(cache: _tabDataCache),
     ];
+  }
+
+  @override
+  void dispose() {
+    _tabDataCache.clear();
+    super.dispose();
   }
 
   void _selectPage(int index) {
