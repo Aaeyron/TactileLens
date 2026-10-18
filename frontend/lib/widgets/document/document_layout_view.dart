@@ -149,6 +149,277 @@ class DocumentLayoutView extends StatelessWidget {
   }
 }
 
+typedef WordBraillePair = ({String word, String braille});
+
+final RegExp _wordSeparator = RegExp(r'\s+');
+
+// Liblouis writes each space between words as one blank Braille cell.
+final RegExp _brailleWordSeparator = RegExp('[⠀\\s]+');
+
+/// Pairs each word of [text] with the Braille group at the same position
+/// in [braille], keeping the lines of [text].
+///
+/// [text] must be the text the Braille was translated from. In UEB text,
+/// Liblouis keeps every space as a blank cell, so word n of the text is
+/// group n of the Braille. Returns null when the counts differ; the block
+/// is then shown as one unit instead.
+@visibleForTesting
+List<List<WordBraillePair>>? pairWordsWithBraille(String text, String braille) {
+  final List<List<String>> lines = text
+      .split('\n')
+      .map((String line) {
+        return line
+            .split(_wordSeparator)
+            .where((String word) => word.isNotEmpty)
+            .toList(growable: false);
+      })
+      .where((List<String> words) => words.isNotEmpty)
+      .toList(growable: false);
+
+  final List<String> brailleWords = braille
+      .split(_brailleWordSeparator)
+      .where((String group) => group.isNotEmpty)
+      .toList(growable: false);
+
+  final int wordCount = lines.fold(
+    0,
+    (int count, List<String> words) => count + words.length,
+  );
+
+  if (wordCount == 0 || wordCount != brailleWords.length) {
+    return null;
+  }
+
+  int nextBrailleWord = 0;
+
+  return <List<WordBraillePair>>[
+    for (final List<String> words in lines)
+      <WordBraillePair>[
+        for (final String word in words)
+          (word: word, braille: brailleWords[nextBrailleWord++]),
+      ],
+  ];
+}
+
+/// Text and its Braille in one preview.
+///
+/// UEB text blocks show each word in its own column with its Braille
+/// directly beneath; when a block's word and Braille counts differ, it is
+/// shown as one unit with its full Braille beneath. Formulas and tables
+/// keep their rendered view with their Braille beneath as a full-width
+/// unit. The Braille is visual only: screen readers read the words, and
+/// the Braille stays available through the screens' Copy Braille action.
+class TextBrailleLayoutView extends StatelessWidget {
+  const TextBrailleLayoutView({
+    super.key,
+    required this.pages,
+    this.semanticLabel,
+  });
+
+  final List<DocumentPage> pages;
+  final String? semanticLabel;
+
+  /// Whether [pages] carry Braille per block. Older scans and materials
+  /// only have one combined Braille string and keep separate sections.
+  static bool canDisplay(List<DocumentPage> pages) {
+    return pages.any(
+      (DocumentPage page) =>
+          page.blocks.any((DocumentBlock block) => block.hasBraille),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<DocumentPage> visiblePages = pages
+        .where((DocumentPage page) {
+          return page.blocks.any((DocumentBlock block) => block.hasContent);
+        })
+        .toList(growable: false);
+
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: ScanResultScreenStyles.contentPreviewPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            for (
+              int index = 0;
+              index < visiblePages.length;
+              index++
+            ) ...<Widget>[
+              if (index > 0)
+                const SizedBox(
+                  height: ScanResultScreenStyles.documentPageSpacing,
+                ),
+              if (visiblePages.length > 1) ...<Widget>[
+                Text(
+                  'Page ${index + 1}',
+                  style: ScanResultScreenStyles.documentPageLabelStyle,
+                ),
+                const SizedBox(
+                  height: ScanResultScreenStyles.documentPageLabelSpacing,
+                ),
+              ],
+              ..._buildBlocks(visiblePages[index]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildBlocks(DocumentPage page) {
+    final List<Widget> widgets = <Widget>[];
+
+    for (final DocumentBlock block in page.blocks) {
+      if (!block.hasContent) {
+        continue;
+      }
+
+      if (widgets.isNotEmpty) {
+        widgets.add(
+          const SizedBox(height: ScanResultScreenStyles.unifiedBlockSpacing),
+        );
+      }
+
+      widgets.add(_TextBrailleBlock(block: block));
+    }
+
+    return widgets;
+  }
+}
+
+class _TextBrailleBlock extends StatelessWidget {
+  const _TextBrailleBlock({required this.block});
+
+  final DocumentBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    final String content = _ReadableDocumentPage.readableBlockContent(block);
+    final String braille = block.hasBraille ? block.brailleContent.trim() : '';
+
+    if (block.hasTableData) {
+      return _BlockWithBraille(
+        braille: braille,
+        child: _ReadableDocumentTable(block: block, fallbackContent: content),
+      );
+    }
+
+    // Word pairs only for plain UEB text. Text with math markup keeps its
+    // rendered math, so it is shown as one unit.
+    final bool isPlainUebText =
+        braille.isNotEmpty &&
+        block.isUebBraille &&
+        !block.isFormula &&
+        !RegExp(r'\\[A-Za-z]+').hasMatch(content) &&
+        !_ReadableMixedMathContent.inlineMathPattern.hasMatch(content);
+
+    if (isPlainUebText) {
+      // The Braille was translated from the normalized content.
+      final List<List<WordBraillePair>>? lines = pairWordsWithBraille(
+        block.normalizedContent,
+        braille,
+      );
+
+      if (lines != null) {
+        return _WordBrailleLines(lines: lines);
+      }
+    }
+
+    return _BlockWithBraille(
+      braille: braille,
+      child: _ReadableDocumentPage.isStandaloneFormula(block)
+          ? _ReadableFormula(content: content)
+          : _ReadableMixedMathContent(content: content),
+    );
+  }
+}
+
+/// Lines of word columns. A column moves to the next row as a whole, so a
+/// word never separates from its Braille.
+class _WordBrailleLines extends StatelessWidget {
+  const _WordBrailleLines({required this.lines});
+
+  final List<List<WordBraillePair>> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (int index = 0; index < lines.length; index++) ...<Widget>[
+          if (index > 0)
+            const SizedBox(height: ScanResultScreenStyles.wordRowSpacing),
+          Wrap(
+            spacing: ScanResultScreenStyles.wordColumnSpacing,
+            runSpacing: ScanResultScreenStyles.wordRowSpacing,
+            children: <Widget>[
+              for (final WordBraillePair pair in lines[index])
+                _WordBrailleColumn(pair: pair),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _WordBrailleColumn extends StatelessWidget {
+  const _WordBrailleColumn({required this.pair});
+
+  final WordBraillePair pair;
+
+  @override
+  Widget build(BuildContext context) {
+    // Each column is its own screen reader stop that reads the word only,
+    // not the Braille dot patterns.
+    return Semantics(
+      container: true,
+      label: pair.word,
+      excludeSemantics: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(pair.word, style: ScanResultScreenStyles.recognizedContentStyle),
+          const SizedBox(height: ScanResultScreenStyles.wordBrailleSpacing),
+          Text(pair.braille, style: ScanResultScreenStyles.brailleContentStyle),
+        ],
+      ),
+    );
+  }
+}
+
+/// A block shown as one unit with its full Braille beneath it.
+class _BlockWithBraille extends StatelessWidget {
+  const _BlockWithBraille({required this.child, required this.braille});
+
+  final Widget child;
+  final String braille;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        child,
+        if (braille.isNotEmpty) ...<Widget>[
+          const SizedBox(height: ScanResultScreenStyles.wordBrailleSpacing),
+          ExcludeSemantics(
+            child: Text(
+              braille,
+              style: ScanResultScreenStyles.brailleContentStyle,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ReadableDocumentPage extends StatelessWidget {
   const _ReadableDocumentPage({
     required this.page,
@@ -271,60 +542,6 @@ class _ReadableDocumentPage extends StatelessWidget {
       return false;
     }
 
-    bool isStandaloneFormula(DocumentBlock block) {
-      // Keep explicitly identified display equations separate.
-      // An inline formula should remain with its surrounding text.
-      return block.type == 'display_formula';
-    }
-
-    String readableBlockContent(DocumentBlock block) {
-      final String normalizedContent = block.normalizedContent.trim();
-      final String rawContent = block.rawContent.trim();
-
-      final String content = normalizedContent.isNotEmpty
-          ? normalizedContent
-          : rawContent;
-
-      final String formulaContent = rawContent.isNotEmpty
-          ? rawContent
-          : content;
-
-      if (formulaContent.isEmpty) {
-        return content;
-      }
-
-      if (_containsMixedMathContent(formulaContent)) {
-        return formulaContent;
-      }
-
-      if (_shouldRenderAsFormula(block, formulaContent)) {
-        final String formula = formulaContent
-            .replaceAll('```latex', '')
-            .replaceAll('```math', '')
-            .replaceAll('```', '')
-            .trim();
-
-        if (formula.isEmpty) {
-          return content;
-        }
-
-        // Do not add another pair of delimiters if OCR already
-        // supplied a complete marked math expression.
-        if (_ReadableMixedMathContent.inlineMathPattern.hasMatch(formula)) {
-          return formula;
-        }
-
-        // Math can't span line breaks; join OCR pieces onto one line.
-        return r'$' + formula.replaceAll(RegExp(r'\s*\n\s*'), ' ') + r'$';
-      }
-
-      // Preserve raw LaTeX commands when normalization removed
-      // information needed for visual math rendering.
-      return RegExp(r'\\[A-Za-z]+').hasMatch(formulaContent)
-          ? formulaContent
-          : content;
-    }
-
     for (final DocumentBlock block in page.blocks) {
       final String content = readableBlockContent(block);
 
@@ -376,7 +593,61 @@ class _ReadableDocumentPage extends StatelessWidget {
     widgets.add(child);
   }
 
-  bool _containsMixedMathContent(String content) {
+  static bool isStandaloneFormula(DocumentBlock block) {
+    // Keep explicitly identified display equations separate.
+    // An inline formula should remain with its surrounding text.
+    return block.type == 'display_formula';
+  }
+
+  /// The content shown for [block]: readable text, or LaTeX marked for
+  /// rendering when the block contains math.
+  static String readableBlockContent(DocumentBlock block) {
+    final String normalizedContent = block.normalizedContent.trim();
+    final String rawContent = block.rawContent.trim();
+
+    final String content = normalizedContent.isNotEmpty
+        ? normalizedContent
+        : rawContent;
+
+    final String formulaContent = rawContent.isNotEmpty ? rawContent : content;
+
+    if (formulaContent.isEmpty) {
+      return content;
+    }
+
+    if (_containsMixedMathContent(formulaContent)) {
+      return formulaContent;
+    }
+
+    if (_shouldRenderAsFormula(block, formulaContent)) {
+      final String formula = formulaContent
+          .replaceAll('```latex', '')
+          .replaceAll('```math', '')
+          .replaceAll('```', '')
+          .trim();
+
+      if (formula.isEmpty) {
+        return content;
+      }
+
+      // Do not add another pair of delimiters if OCR already
+      // supplied a complete marked math expression.
+      if (_ReadableMixedMathContent.inlineMathPattern.hasMatch(formula)) {
+        return formula;
+      }
+
+      // Math can't span line breaks; join OCR pieces onto one line.
+      return r'$' + formula.replaceAll(RegExp(r'\s*\n\s*'), ' ') + r'$';
+    }
+
+    // Preserve raw LaTeX commands when normalization removed
+    // information needed for visual math rendering.
+    return RegExp(r'\\[A-Za-z]+').hasMatch(formulaContent)
+        ? formulaContent
+        : content;
+  }
+
+  static bool _containsMixedMathContent(String content) {
     final Iterable<RegExpMatch> matches = _ReadableMixedMathContent
         .inlineMathPattern
         .allMatches(content);
@@ -394,7 +665,7 @@ class _ReadableDocumentPage extends StatelessWidget {
     return prose.isNotEmpty;
   }
 
-  bool _shouldRenderAsFormula(DocumentBlock block, String content) {
+  static bool _shouldRenderAsFormula(DocumentBlock block, String content) {
     if (content.isEmpty) {
       return false;
     }
