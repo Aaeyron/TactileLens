@@ -2168,11 +2168,11 @@ class _MaterialThumbnail extends StatelessWidget {
         border: MaterialScreenStyles.thumbnailBorder,
       ),
       clipBehavior: Clip.antiAlias,
-      child: isImage ? _buildImage() : _buildFallback(),
+      child: isImage ? _buildImage(context) : _buildFallback(),
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildImage(BuildContext context) {
     if (isServerFile && materialId != null) {
       return MaterialFileImage(
         materialId: materialId!,
@@ -2186,6 +2186,13 @@ class _MaterialThumbnail extends StatelessWidget {
 
     return Image.file(
       File(filePath),
+      // Decode near thumbnail size instead of full resolution. Twice the
+      // long side keeps cover-cropped images sharp for wide photos too.
+      cacheWidth:
+          (MaterialScreenStyles.thumbnailHeight *
+                  MediaQuery.devicePixelRatioOf(context) *
+                  2)
+              .round(),
       fit: MaterialScreenStyles.thumbnailImageFit,
       alignment: Alignment.center,
       filterQuality: MaterialScreenStyles.thumbnailFilterQuality,

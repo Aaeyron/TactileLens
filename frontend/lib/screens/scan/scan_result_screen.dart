@@ -1100,6 +1100,11 @@ class _ScannedImagePreviewState extends State<_ScannedImagePreview> {
                   child: Image.file(
                     widget.scannedImage,
                     key: ValueKey<String>(widget.scannedImage.path),
+                    // The preview is never wider than the screen.
+                    cacheWidth:
+                        (MediaQuery.sizeOf(context).width *
+                                MediaQuery.devicePixelRatioOf(context))
+                            .round(),
                     fit: ScanResultScreenStyles.imagePreviewFit,
                     alignment: Alignment.center,
                     gaplessPlayback: true,

@@ -1289,6 +1289,14 @@ class _HistoryThumbnail extends StatelessWidget {
       child: normalizedPath.isNotEmpty && imageFile.existsSync()
           ? Image.file(
               imageFile,
+              // Decode near thumbnail size instead of full resolution. Twice
+              // the long side keeps cover-cropped images sharp for wide
+              // photos too.
+              cacheWidth:
+                  (HistoryScreenStyles.previewHeight *
+                          MediaQuery.devicePixelRatioOf(context) *
+                          2)
+                      .round(),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
               errorBuilder:

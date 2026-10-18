@@ -832,6 +832,13 @@ class _MaterialThumbnail extends StatelessWidget {
     } else {
       preview = Image.file(
         File(material.filePath),
+        // Decode near thumbnail size instead of full resolution. Twice the
+        // long side keeps cover-cropped images sharp for wide photos too.
+        cacheWidth:
+            (HomeStyles.thumbnailHeight *
+                    MediaQuery.devicePixelRatioOf(context) *
+                    2)
+                .round(),
         fit: BoxFit.cover,
         filterQuality: FilterQuality.medium,
         errorBuilder:
