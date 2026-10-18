@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
 import '../../services/ai/ai_service.dart';
@@ -618,100 +617,10 @@ class _ScanScreenState extends State<ScanScreen> {
       return selectedImage;
     }
 
-    final bytes = await selectedImage.readAsBytes();
-
-    final img.Image? decodedImage = img.decodeImage(bytes);
-
-    if (decodedImage == null) {
-      throw const FormatException('Unable to decode the selected image.');
-    }
-
-    /*
- * This is a no-op for normalized camera PNG files and physically
- * rotates uploaded JPEG files according to their EXIF orientation.
- * The crop preview and crop service must use identical dimensions.
- */
-    final img.Image normalizedImage = img.bakeOrientation(decodedImage);
-
-    final Rect actualRegion = _mapPreviewRegionToImage(
+    return _imageCropService.cropPreviewRegion(
+      imageFile: selectedImage,
       selectedRegion: selectedRegion,
       previewSize: previewSize,
-      imageSize: Size(
-        normalizedImage.width.toDouble(),
-        normalizedImage.height.toDouble(),
-      ),
-    );
-
-    return _imageCropService.cropImage(
-      imageFile: selectedImage,
-      cropRect: actualRegion,
-    );
-  }
-
-  Rect _mapPreviewRegionToImage({
-    required Rect selectedRegion,
-    required Size previewSize,
-    required Size imageSize,
-  }) {
-    if (previewSize.isEmpty || imageSize.isEmpty) {
-      throw const FormatException('Invalid image or preview dimensions.');
-    }
-
-    final double widthScale = previewSize.width / imageSize.width;
-
-    final double heightScale = previewSize.height / imageSize.height;
-
-    final double coverScale = widthScale > heightScale
-        ? widthScale
-        : heightScale;
-
-    final Size displayedImageSize = Size(
-      imageSize.width * coverScale,
-      imageSize.height * coverScale,
-    );
-
-    final Offset displayedImageOffset = Offset(
-      (previewSize.width - displayedImageSize.width) / 2,
-      (previewSize.height - displayedImageSize.height) / 2,
-    );
-
-    final Rect previewBounds = Offset.zero & previewSize;
-
-    final Rect clippedRegion = selectedRegion.intersect(previewBounds);
-
-    if (clippedRegion.isEmpty) {
-      throw const FormatException('The selected crop area is invalid.');
-    }
-
-    final double left =
-        ((clippedRegion.left - displayedImageOffset.dx) / coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double top =
-        ((clippedRegion.top - displayedImageOffset.dy) / coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    final double right =
-        ((clippedRegion.right - displayedImageOffset.dx) / coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double bottom =
-        ((clippedRegion.bottom - displayedImageOffset.dy) / coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    if (right <= left || bottom <= top) {
-      throw const FormatException('The selected crop area is too small.');
-    }
-
-    return Rect.fromLTRB(
-      left.roundToDouble(),
-      top.roundToDouble(),
-      right.roundToDouble(),
-      bottom.roundToDouble(),
     );
   }
 

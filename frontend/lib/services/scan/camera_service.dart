@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
@@ -125,43 +126,6 @@ class CameraService {
     required File imageFile,
     required DeviceOrientation captureOrientation,
   }) async {
-    final Uint8List bytes = await imageFile.readAsBytes();
-
-    final img.Image? decodedImage = img.decodeImage(bytes);
-
-    if (decodedImage == null) {
-      throw CameraException(
-        'capture_decode_failed',
-        'The captured image could not be decoded.',
-      );
-    }
-
-    /*
-   * Apply the camera JPEG's EXIF orientation exactly once.
-   * Android's camera plugin records the physical device direction
-   * in the captured JPEG.
-   */
-    img.Image normalizedImage = img.bakeOrientation(decodedImage);
-
-    final bool capturedInLandscape =
-        captureOrientation == DeviceOrientation.landscapeLeft ||
-        captureOrientation == DeviceOrientation.landscapeRight;
-
-    final bool pixelsArePortrait =
-        normalizedImage.height > normalizedImage.width;
-
-    /*
- * Some Android cameras return portrait pixel dimensions even
- * though the device was held sideways. Rotate those pixels once
- * before saving the metadata-free PNG.
- */
-    if (capturedInLandscape && pixelsArePortrait) {
-      final num rotationAngle =
-          captureOrientation == DeviceOrientation.landscapeLeft ? -90 : 90;
-
-      normalizedImage = img.copyRotate(normalizedImage, angle: rotationAngle);
-    }
-
     /*
    * PNG does not retain the JPEG EXIF orientation that caused the
    * later crop and preview stages to rotate the image again.
@@ -172,12 +136,35 @@ class CameraService {
           '${DateTime.now().microsecondsSinceEpoch}.png',
     ].join(Platform.pathSeparator);
 
-    final File normalizedFile = File(normalizedPath);
+    /*
+ * Some Android cameras return portrait pixel dimensions even
+ * though the device was held sideways. Those pixels are rotated
+ * once by this angle before saving the metadata-free PNG.
+ */
+    final num? landscapeRotation = switch (captureOrientation) {
+      DeviceOrientation.landscapeLeft => -90,
+      DeviceOrientation.landscapeRight => 90,
+      _ => null,
+    };
 
-    await normalizedFile.writeAsBytes(
-      img.encodePng(normalizedImage),
-      flush: true,
+    // Decoding and PNG encoding are slow, so they run off the UI isolate.
+    final ({int width, int height})? dimensions = await compute(
+      _writeNormalizedCapture,
+      (
+        sourcePath: imageFile.path,
+        outputPath: normalizedPath,
+        landscapeRotation: landscapeRotation,
+      ),
     );
+
+    if (dimensions == null) {
+      throw CameraException(
+        'capture_decode_failed',
+        'The captured image could not be decoded.',
+      );
+    }
+
+    final File normalizedFile = File(normalizedPath);
 
     if (!await normalizedFile.exists()) {
       throw CameraException(
@@ -188,8 +175,8 @@ class CameraService {
 
     debugPrint(
       'Normalized PNG dimensions: '
-      '${normalizedImage.width}x'
-      '${normalizedImage.height}',
+      '${dimensions.width}x'
+      '${dimensions.height}',
     );
 
     return normalizedFile;
@@ -274,4 +261,35 @@ class CameraService {
 
     await cameraController.dispose();
   }
+}
+
+/// Runs in a background isolate: apply the camera JPEG's EXIF orientation
+/// exactly once (Android's camera plugin records the physical device
+/// direction there), rotate sideways captures that still have portrait
+/// pixels, and save the result as a metadata-free PNG.
+({int width, int height})? _writeNormalizedCapture(
+  ({String sourcePath, String outputPath, num? landscapeRotation}) job,
+) {
+  final img.Image? decodedImage = img.decodeImage(
+    File(job.sourcePath).readAsBytesSync(),
+  );
+
+  if (decodedImage == null) {
+    return null;
+  }
+
+  img.Image normalizedImage = img.bakeOrientation(decodedImage);
+
+  final num? rotationAngle = job.landscapeRotation;
+
+  if (rotationAngle != null &&
+      normalizedImage.height > normalizedImage.width) {
+    normalizedImage = img.copyRotate(normalizedImage, angle: rotationAngle);
+  }
+
+  File(
+    job.outputPath,
+  ).writeAsBytesSync(img.encodePng(normalizedImage), flush: true);
+
+  return (width: normalizedImage.width, height: normalizedImage.height);
 }
