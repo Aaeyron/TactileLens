@@ -224,7 +224,9 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
-    _isCapturePending = true;
+    setState(() {
+      _isCapturePending = true;
+    });
 
     try {
       final File capturedImage = await _cameraService.captureImage(
@@ -244,7 +246,13 @@ class _ScanScreenState extends State<ScanScreen> {
         _showScanError('Unable to capture the document. Please try again.');
       }
     } finally {
-      _isCapturePending = false;
+      if (mounted) {
+        setState(() {
+          _isCapturePending = false;
+        });
+      } else {
+        _isCapturePending = false;
+      }
     }
   }
 
@@ -925,7 +933,7 @@ class _ScanScreenState extends State<ScanScreen> {
             icon: _hasSelectedImage
                 ? Icons.document_scanner_rounded
                 : Icons.camera_alt_rounded,
-            isProcessing: _isProcessing,
+            isProcessing: _isProcessing || _isCapturePending,
             onPressed: _isProcessing
                 ? null
                 : _hasSelectedImage
