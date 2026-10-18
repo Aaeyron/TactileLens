@@ -40,9 +40,9 @@ image = (
         "paddlepaddle-gpu==3.2.1",
         index_url="https://www.paddlepaddle.org.cn/packages/stable/cu126/",
     )
+    .env({"PYTHONPATH": "/root", "LIBLOUIS_ROOT": "/usr"})
     .add_local_file("app.py", "/root/app.py")
     .add_local_dir("services", "/root/services", ignore=["__pycache__"])
-    .env({"PYTHONPATH": "/root", "LIBLOUIS_ROOT": "/usr"})
 )
 
 secret = modal.Secret.from_name("tactilelens-ai")
