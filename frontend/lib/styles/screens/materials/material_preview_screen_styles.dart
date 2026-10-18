@@ -5,8 +5,8 @@ abstract final class MaterialDetailScreenStyles {
   // COLORS
   // ============================================================
 
-  static const Color primaryColor = Color(0xFF1268F3);
-  static const Color primaryDarkColor = Color(0xFF0758DD);
+  static const Color primaryColor = Color(0xFF003797);
+  static const Color primaryDarkColor = Color(0xFF00205C);
   static const Color backgroundColor = Color(0xFFF4F7FC);
   static const Color surfaceColor = Colors.white;
   static const Color textPrimaryColor = Color(0xFF111827);
@@ -14,7 +14,7 @@ abstract final class MaterialDetailScreenStyles {
   static const Color textMutedColor = Color(0xFF98A2B3);
   static const Color outlineColor = Color(0xFFE2E8F0);
   static const Color softBackgroundColor = Color(0xFFF4F7FC);
-  static const Color scannedBadgeColor = Color(0xFFEAF2FF);
+  static const Color scannedBadgeColor = Color(0xFFEDF3FB);
   static const Color uploadedBadgeColor = Color(0xFFECFDF3);
   static const Color uploadedBadgeTextColor = Color(0xFF067647);
   static const Color imageBackgroundColor = Color(0xFFF1F5F9);
@@ -36,7 +36,7 @@ abstract final class MaterialDetailScreenStyles {
   static const LinearGradient headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: <Color>[Color(0xFF1677FF), Color(0xFF0758DD)],
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
   );
 
   static const double headerIconSize = 25;
@@ -232,7 +232,11 @@ abstract final class MaterialDetailScreenStyles {
   static const String fileInformationTitle = 'File Information';
 
   static const String copyLabel = 'Copy';
+  static const String copyTextLabel = 'Copy text';
   static const String copyBrailleLabel = 'Copy Braille';
+  static const String textAndBrailleSectionTitle = 'Text and Braille';
+  static const String textAndBrailleSemanticLabel =
+      'Saved text with Braille beneath each word';
 
   static const String copyContentTooltip = 'Copy recognized content';
 
@@ -250,8 +254,8 @@ abstract final class MaterialDetailScreenStyles {
   );
 
   static final ButtonStyle sectionActionStyle = TextButton.styleFrom(
-    foregroundColor: const Color(0xFF1677FF),
-    backgroundColor: const Color(0xFF1677FF).withValues(alpha: 0.10),
+    foregroundColor: primaryColor,
+    backgroundColor: primaryColor.withValues(alpha: 0.10),
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     textStyle: const TextStyle(

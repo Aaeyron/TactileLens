@@ -162,6 +162,12 @@ abstract final class ScanResultScreenStyles {
   static const double sectionHeaderSpacing = 14;
   static const double unifiedBlockSpacing = 10;
 
+  // Combined text and Braille preview: each word sits in a column with
+  // its Braille directly beneath it.
+  static const double wordColumnSpacing = 12;
+  static const double wordRowSpacing = 10;
+  static const double wordBrailleSpacing = 2;
+
   // ============================================================
   // SHARED CONTAINERS
   // ============================================================

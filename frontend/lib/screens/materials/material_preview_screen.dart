@@ -196,11 +196,15 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
                         const SizedBox(
                           height: MaterialDetailScreenStyles.sectionSpacing,
                         ),
-                        _buildRecognizedContent(),
-                        const SizedBox(
-                          height: MaterialDetailScreenStyles.sectionSpacing,
-                        ),
-                        _buildBrailleContent(),
+                        if (TextBrailleLayoutView.canDisplay(_documentPages))
+                          _buildTextAndBrailleContent()
+                        else ...<Widget>[
+                          _buildRecognizedContent(),
+                          const SizedBox(
+                            height: MaterialDetailScreenStyles.sectionSpacing,
+                          ),
+                          _buildBrailleContent(),
+                        ],
                       ] else ...<Widget>[
                         const SizedBox(
                           height: MaterialDetailScreenStyles.sectionSpacing,
@@ -377,9 +381,16 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // The preview is never wider than the screen and cannot be zoomed.
+    final int cacheWidth =
+        (MediaQuery.sizeOf(context).width *
+                MediaQuery.devicePixelRatioOf(context))
+            .round();
+
     if (_isGuestSession == false && _material.id != null) {
       return MaterialFileImage(
         materialId: _material.id!,
+        cacheWidth: cacheWidth,
         fit: MaterialDetailScreenStyles.imagePreviewFit,
         errorBuilder: _buildImageError,
       );
@@ -387,6 +398,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
     return Image.file(
       File(_material.filePath),
+      cacheWidth: cacheWidth,
       fit: MaterialDetailScreenStyles.imagePreviewFit,
       errorBuilder: _buildImageError,
     );
@@ -478,6 +490,46 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
     );
   }
 
+  /// Text with its Braille beneath each word, in one section.
+  Widget _buildTextAndBrailleContent() {
+    final String content = _material.recognizedContent.trim();
+    final String braille = _material.brailleContent.trim();
+
+    return _MaterialSection(
+      title: MaterialDetailScreenStyles.textAndBrailleSectionTitle,
+      actions: <Widget>[
+        if (content.isNotEmpty)
+          _MaterialSectionAction(
+            label: MaterialDetailScreenStyles.copyTextLabel,
+            tooltip: MaterialDetailScreenStyles.copyContentTooltip,
+            onPressed: () {
+              _copyToClipboard(
+                content: content,
+                confirmationMessage:
+                    MaterialDetailScreenStyles.contentCopiedMessage,
+              );
+            },
+          ),
+        if (braille.isNotEmpty)
+          _MaterialSectionAction(
+            label: MaterialDetailScreenStyles.copyBrailleLabel,
+            tooltip: MaterialDetailScreenStyles.copyBrailleTooltip,
+            onPressed: () {
+              _copyToClipboard(
+                content: braille,
+                confirmationMessage:
+                    MaterialDetailScreenStyles.brailleCopiedMessage,
+              );
+            },
+          ),
+      ],
+      child: TextBrailleLayoutView(
+        pages: _documentPages,
+        semanticLabel: MaterialDetailScreenStyles.textAndBrailleSemanticLabel,
+      ),
+    );
+  }
+
   Widget _buildBrailleContent() {
     final String content = _material.brailleContent.trim();
     final List<DocumentPage> pages = _documentPages;
@@ -555,11 +607,16 @@ class _MaterialSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.action,
+    this.actions = const <Widget>[],
   });
 
   final String title;
   final Widget child;
   final Widget? action;
+
+  /// Several actions, shown in a wrapping row under the title so they
+  /// still fit at large system font sizes.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -585,6 +642,14 @@ class _MaterialSection extends StatelessWidget {
               if (action case final Widget action) action,
             ],
           ),
+          if (actions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: MaterialDetailScreenStyles.compactSpacing),
+            Wrap(
+              spacing: MaterialDetailScreenStyles.compactSpacing,
+              runSpacing: MaterialDetailScreenStyles.compactSpacing,
+              children: actions,
+            ),
+          ],
           const SizedBox(height: MaterialDetailScreenStyles.itemSpacing),
           Container(
             width: double.infinity,

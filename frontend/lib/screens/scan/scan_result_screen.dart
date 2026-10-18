@@ -114,6 +114,13 @@ abstract final class _ScanResultText {
   static const String resultSemanticLabel = 'Recognized document content';
 
   static const String brailleSemanticLabel = 'Braille translation output';
+
+  static const String textAndBrailleSectionTitle = 'Text and Braille';
+
+  static const String textAndBrailleSemanticLabel =
+      'Recognized text with Braille beneath each word';
+
+  static const String copyTextLabel = 'Copy text';
 }
 
 class ScanResultScreen extends StatelessWidget {
@@ -127,6 +134,65 @@ class ScanResultScreen extends StatelessWidget {
   final File scannedImage;
 
   String get _combinedContent => result.combinedContent;
+
+  /// The result's pages, or one page of its blocks when the response
+  /// carried no page data.
+  List<DocumentPage> get _documentPages {
+    if (result.pages.isNotEmpty) {
+      return result.pages;
+    }
+
+    return <DocumentPage>[
+      DocumentPage(pageIndex: 0, width: 0, height: 0, blocks: result.blocks),
+    ];
+  }
+
+  Widget _buildCopyTextAction(BuildContext context, {required String label}) {
+    return _SectionAction(
+      icon: ScanResultScreenStyles.copyIcon,
+      label: label,
+      tooltip: _ScanResultText.copyTooltip,
+      onPressed: () {
+        _copyToClipboard(
+          context: context,
+          content: _combinedContent,
+          confirmationMessage: _ScanResultText.contentCopiedMessage,
+        );
+      },
+    );
+  }
+
+  Widget _buildCopyBrailleAction(BuildContext context) {
+    return _SectionAction(
+      icon: ScanResultScreenStyles.copyIcon,
+      label: _ScanResultText.copyBrailleLabel,
+      tooltip: _ScanResultText.copyBrailleTooltip,
+      onPressed: () {
+        _copyToClipboard(
+          context: context,
+          content: result.combinedBraille,
+          confirmationMessage: _ScanResultText.brailleCopiedMessage,
+        );
+      },
+    );
+  }
+
+  /// Text with its Braille beneath each word, in one section.
+  Widget _buildTextAndBrailleSection(BuildContext context) {
+    return _ResultSection(
+      number: _ScanResultText.contentSectionNumber,
+      title: _ScanResultText.textAndBrailleSectionTitle,
+      actions: <Widget>[
+        if (result.hasContent)
+          _buildCopyTextAction(context, label: _ScanResultText.copyTextLabel),
+        if (result.hasBraille) _buildCopyBrailleAction(context),
+      ],
+      child: TextBrailleLayoutView(
+        pages: _documentPages,
+        semanticLabel: _ScanResultText.textAndBrailleSemanticLabel,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -174,53 +240,36 @@ class ScanResultScreen extends StatelessWidget {
                     const SizedBox(
                       height: ScanResultScreenStyles.sectionSpacing,
                     ),
-                    _ResultSection(
-                      number: _ScanResultText.contentSectionNumber,
-                      title: _ScanResultText.contentSectionTitle,
-                      action: result.hasContent
-                          ? _SectionAction(
-                              icon: ScanResultScreenStyles.copyIcon,
-                              label: _ScanResultText.copyLabel,
-                              tooltip: _ScanResultText.copyTooltip,
-                              onPressed: () {
-                                _copyToClipboard(
-                                  context: context,
-                                  content: _combinedContent,
-                                  confirmationMessage:
-                                      _ScanResultText.contentCopiedMessage,
-                                );
-                              },
-                            )
-                          : null,
-                      child: result.hasContent
-                          ? _buildRecognizedContent()
-                          : _buildEmptyResult(),
-                    ),
-                    const SizedBox(
-                      height: ScanResultScreenStyles.sectionSpacing,
-                    ),
-                    _ResultSection(
-                      number: _ScanResultText.brailleSectionNumber,
-                      title: _ScanResultText.brailleSectionTitle,
-                      action: result.hasBraille
-                          ? _SectionAction(
-                              icon: ScanResultScreenStyles.copyIcon,
-                              label: _ScanResultText.copyBrailleLabel,
-                              tooltip: _ScanResultText.copyBrailleTooltip,
-                              onPressed: () {
-                                _copyToClipboard(
-                                  context: context,
-                                  content: result.combinedBraille,
-                                  confirmationMessage:
-                                      _ScanResultText.brailleCopiedMessage,
-                                );
-                              },
-                            )
-                          : null,
-                      child: result.hasBraille
-                          ? _buildBrailleOutput()
-                          : _buildBrailleUnavailable(),
-                    ),
+                    if (TextBrailleLayoutView.canDisplay(_documentPages))
+                      _buildTextAndBrailleSection(context)
+                    else ...<Widget>[
+                      _ResultSection(
+                        number: _ScanResultText.contentSectionNumber,
+                        title: _ScanResultText.contentSectionTitle,
+                        action: result.hasContent
+                            ? _buildCopyTextAction(
+                                context,
+                                label: _ScanResultText.copyLabel,
+                              )
+                            : null,
+                        child: result.hasContent
+                            ? _buildRecognizedContent()
+                            : _buildEmptyResult(),
+                      ),
+                      const SizedBox(
+                        height: ScanResultScreenStyles.sectionSpacing,
+                      ),
+                      _ResultSection(
+                        number: _ScanResultText.brailleSectionNumber,
+                        title: _ScanResultText.brailleSectionTitle,
+                        action: result.hasBraille
+                            ? _buildCopyBrailleAction(context)
+                            : null,
+                        child: result.hasBraille
+                            ? _buildBrailleOutput()
+                            : _buildBrailleUnavailable(),
+                      ),
+                    ],
                     if (result.hasContent) ...<Widget>[
                       const SizedBox(
                         height: ScanResultScreenStyles.sectionSpacing,
@@ -907,12 +956,17 @@ class _ResultSection extends StatelessWidget {
     required this.title,
     required this.child,
     this.action,
+    this.actions = const <Widget>[],
   });
 
   final String number;
   final String title;
   final Widget child;
   final Widget? action;
+
+  /// Several actions, shown in a wrapping row under the title so they
+  /// still fit at large system font sizes.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -954,6 +1008,14 @@ class _ResultSection extends StatelessWidget {
               ?action,
             ],
           ),
+          if (actions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+            Wrap(
+              spacing: ScanResultScreenStyles.compactSpacing,
+              runSpacing: ScanResultScreenStyles.compactSpacing,
+              children: actions,
+            ),
+          ],
           const SizedBox(height: ScanResultScreenStyles.sectionHeaderSpacing),
           child,
         ],

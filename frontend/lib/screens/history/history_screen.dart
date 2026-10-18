@@ -765,13 +765,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverPadding(
                 padding: HistoryScreenStyles.contentPadding,
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate.fixed(<Widget>[
-                    _buildHistoryToolbar(),
-                    const SizedBox(height: HistoryScreenStyles.sectionSpacing),
+                sliver: SliverMainAxisGroup(
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(child: _buildHistoryToolbar()),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: HistoryScreenStyles.sectionSpacing,
+                      ),
+                    ),
                     _buildContent(),
-                    const SizedBox(height: HistoryScreenStyles.bottomSpacing),
-                  ]),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: HistoryScreenStyles.bottomSpacing,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -951,18 +959,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  /// The list area as a sliver. Records are built lazily, so only cards
+  /// on screen (and their formula previews) are built and laid out.
   Widget _buildContent() {
     if (_isLoading) {
-      return const _HistoryListSkeleton();
+      return const SliverToBoxAdapter(child: _HistoryListSkeleton());
     }
 
     if (_errorMessage != null) {
-      return _HistoryStateView(
-        icon: HistoryScreenStyles.errorIcon,
-        title: _HistoryText.errorTitle,
-        description: _errorMessage,
-        actionLabel: _HistoryText.retryLabel,
-        onActionPressed: _loadHistory,
+      return SliverToBoxAdapter(
+        child: _HistoryStateView(
+          icon: HistoryScreenStyles.errorIcon,
+          title: _HistoryText.errorTitle,
+          description: _errorMessage,
+          actionLabel: _HistoryText.retryLabel,
+          onActionPressed: _loadHistory,
+        ),
       );
     }
 
@@ -973,72 +985,74 @@ class _HistoryScreenState extends State<HistoryScreen> {
           _searchController.text.trim().isNotEmpty ||
           _selectedFilter != _HistoryFilter.all;
 
-      return _HistoryStateView(
-        icon: hasSearchOrFilter
-            ? HistoryScreenStyles.emptySearchIcon
-            : HistoryScreenStyles.emptyIcon,
-        title: hasSearchOrFilter
-            ? _HistoryText.emptySearchTitle
-            : _HistoryText.emptyTitle,
-        description: hasSearchOrFilter
-            ? _HistoryText.emptySearchDescription
-            : _HistoryText.emptyDescription,
+      return SliverToBoxAdapter(
+        child: _HistoryStateView(
+          icon: hasSearchOrFilter
+              ? HistoryScreenStyles.emptySearchIcon
+              : HistoryScreenStyles.emptyIcon,
+          title: hasSearchOrFilter
+              ? _HistoryText.emptySearchTitle
+              : _HistoryText.emptyTitle,
+          description: hasSearchOrFilter
+              ? _HistoryText.emptySearchDescription
+              : _HistoryText.emptyDescription,
+        ),
       );
     }
 
-    final Map<String, List<HistoryRecord>> groups = _groupRecords(
-      visibleRecords,
-    );
+    // One flat list of date titles (String) and records, in display order.
+    final List<Object> entries = <Object>[
+      for (final MapEntry<String, List<HistoryRecord>> group in _groupRecords(
+        visibleRecords,
+      ).entries) ...<Object>[group.key, ...group.value],
+    ];
 
-    return Semantics(
+    return SliverSemantics(
       label: _HistoryText.historyListSemanticLabel,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: groups.entries
-            .map((MapEntry<String, List<HistoryRecord>> group) {
-              return Padding(
-                padding: const EdgeInsets.only(
-                  bottom: HistoryScreenStyles.groupSpacing,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(group.key, style: HistoryScreenStyles.groupTitleStyle),
-                    const SizedBox(
-                      height: HistoryScreenStyles.groupTitleSpacing,
-                    ),
-                    ...List<Widget>.generate(group.value.length, (int index) {
-                      final HistoryRecord record = group.value[index];
+      sliver: SliverList.builder(
+        itemCount: entries.length,
+        itemBuilder: (BuildContext context, int index) {
+          final Object entry = entries[index];
 
-                      return Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == group.value.length - 1
-                              ? 0
-                              : HistoryScreenStyles.cardSpacing,
-                        ),
-                        child: _HistoryCard(
-                          record: record,
-                          hasImage: _hasImageFile(record.sourceImagePath),
-                          badge: _recordBadge(record),
-                          brailleCode: _brailleCode(record),
-                          formattedDate: _formatRecordDate(record.createdAt),
-                          onView: () {
-                            _showRecordDetails(record);
-                          },
-                          onRename: () {
-                            _renameRecord(record);
-                          },
-                          onDelete: () {
-                            _deleteRecord(record);
-                          },
-                        ),
-                      );
-                    }, growable: false),
-                  ],
-                ),
-              );
-            })
-            .toList(growable: false),
+          if (entry is String) {
+            return Padding(
+              padding: const EdgeInsets.only(
+                bottom: HistoryScreenStyles.groupTitleSpacing,
+              ),
+              child: Text(entry, style: HistoryScreenStyles.groupTitleStyle),
+            );
+          }
+
+          final HistoryRecord record = entry as HistoryRecord;
+
+          // The last card of a date group carries the group spacing.
+          final bool isLastInGroup =
+              index == entries.length - 1 || entries[index + 1] is String;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: isLastInGroup
+                  ? HistoryScreenStyles.groupSpacing
+                  : HistoryScreenStyles.cardSpacing,
+            ),
+            child: _HistoryCard(
+              record: record,
+              hasImage: _hasImageFile(record.sourceImagePath),
+              badge: _recordBadge(record),
+              brailleCode: _brailleCode(record),
+              formattedDate: _formatRecordDate(record.createdAt),
+              onView: () {
+                _showRecordDetails(record);
+              },
+              onRename: () {
+                _renameRecord(record);
+              },
+              onDelete: () {
+                _deleteRecord(record);
+              },
+            ),
+          );
+        },
       ),
     );
   }

@@ -2172,9 +2172,18 @@ class _MaterialThumbnail extends StatelessWidget {
   }
 
   Widget _buildImage(BuildContext context) {
+    // Decode near thumbnail size instead of full resolution. Twice the
+    // long side keeps cover-cropped images sharp for wide photos too.
+    final int cacheWidth =
+        (MaterialScreenStyles.thumbnailHeight *
+                MediaQuery.devicePixelRatioOf(context) *
+                2)
+            .round();
+
     if (isServerFile && materialId != null) {
       return MaterialFileImage(
         materialId: materialId!,
+        cacheWidth: cacheWidth,
         fit: MaterialScreenStyles.thumbnailImageFit,
         errorBuilder:
             (BuildContext context, Object error, StackTrace? stackTrace) {
@@ -2185,13 +2194,7 @@ class _MaterialThumbnail extends StatelessWidget {
 
     return Image.file(
       File(filePath),
-      // Decode near thumbnail size instead of full resolution. Twice the
-      // long side keeps cover-cropped images sharp for wide photos too.
-      cacheWidth:
-          (MaterialScreenStyles.thumbnailHeight *
-                  MediaQuery.devicePixelRatioOf(context) *
-                  2)
-              .round(),
+      cacheWidth: cacheWidth,
       fit: MaterialScreenStyles.thumbnailImageFit,
       alignment: Alignment.center,
       filterQuality: MaterialScreenStyles.thumbnailFilterQuality,

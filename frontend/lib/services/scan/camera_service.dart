@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -7,9 +8,48 @@ import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 
 class CameraService {
+  CameraService({
+    @visibleForTesting Future<List<CameraDescription>> Function()? loadCameras,
+    @visibleForTesting
+    CameraController Function(CameraDescription camera)? createController,
+  }) : _loadCameras = loadCameras ?? availableCameras,
+       _createController = createController ?? _createDefaultController;
+
+  /// Completes when the camera opened most recently (by any CameraService)
+  /// has been closed. A new Scan screen opens the camera only after the
+  /// previous one released it, even while that screen is still sliding out.
+  static Future<void> _cameraReleased = Future<void>.value();
+
+  final Future<List<CameraDescription>> Function() _loadCameras;
+  final CameraController Function(CameraDescription camera) _createController;
+
   CameraController? _controller;
 
+  /// Increases on every dispose, so an opening that finishes after its
+  /// screen closed knows to close the camera again.
+  int _generation = 0;
+
+  Future<void>? _opening;
+  int _openingGeneration = -1;
+
+  /// Completed when the camera this service opened is closed.
+  Completer<void>? _release;
+
   bool _isCapturing = false;
+
+  static CameraController _createDefaultController(CameraDescription camera) {
+    return CameraController(
+      camera,
+      ResolutionPreset.veryHigh,
+      enableAudio: false,
+      imageFormatGroup: ImageFormatGroup.jpeg,
+    );
+  }
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _cameraReleased = Future<void>.value();
+  }
 
   CameraController? get controller => _controller;
 
@@ -27,41 +67,81 @@ class CameraService {
   // Initialize Camera
   // ============================================================
 
-  Future<void> initialize() async {
+  Future<void> initialize() {
     if (isInitialized) {
-      return;
+      return Future<void>.value();
     }
 
-    final List<CameraDescription> cameras = await availableCameras();
+    final Future<void>? opening = _opening;
 
-    if (cameras.isEmpty) {
-      throw CameraException(
-        'camera_unavailable',
-        'No camera is available on this device.',
-      );
+    if (opening != null && _openingGeneration == _generation) {
+      return opening;
     }
 
-    final CameraDescription rearCamera = cameras.firstWhere((
-      CameraDescription camera,
-    ) {
-      return camera.lensDirection == CameraLensDirection.back;
-    }, orElse: () => cameras.first);
+    _openingGeneration = _generation;
 
-    final CameraController cameraController = CameraController(
-      rearCamera,
-      ResolutionPreset.veryHigh,
-      enableAudio: false,
-      imageFormatGroup: ImageFormatGroup.jpeg,
-    );
+    return _opening = _open(_generation);
+  }
+
+  Future<void> _open(int generation) async {
+    final Completer<void> release = Completer<void>();
+    final Future<void> previousRelease = _cameraReleased;
+
+    _release = release;
+    _cameraReleased = release.future;
+
+    CameraController? cameraController;
+    bool opened = false;
 
     try {
+      // Wait until a previous Scan screen has closed the camera.
+      await previousRelease;
+
+      if (generation != _generation) {
+        return;
+      }
+
+      final List<CameraDescription> cameras = await _loadCameras();
+
+      if (cameras.isEmpty) {
+        throw CameraException(
+          'camera_unavailable',
+          'No camera is available on this device.',
+        );
+      }
+
+      final CameraDescription rearCamera = cameras.firstWhere((
+        CameraDescription camera,
+      ) {
+        return camera.lensDirection == CameraLensDirection.back;
+      }, orElse: () => cameras.first);
+
+      cameraController = _createController(rearCamera);
+
       await cameraController.initialize();
       await cameraController.setFlashMode(FlashMode.off);
 
+      // The screen closed while the camera was opening: close it again.
+      if (generation != _generation) {
+        return;
+      }
+
       _controller = cameraController;
-    } catch (_) {
-      await cameraController.dispose();
-      rethrow;
+      opened = true;
+    } finally {
+      if (!opened) {
+        try {
+          await cameraController?.dispose();
+        } catch (error) {
+          debugPrint('Unable to close the unused camera: $error');
+        }
+
+        if (identical(_release, release)) {
+          _release = null;
+        }
+
+        release.complete();
+      }
     }
   }
 
@@ -148,14 +228,12 @@ class CameraService {
     };
 
     // Decoding and PNG encoding are slow, so they run off the UI isolate.
-    final ({int width, int height})? dimensions = await compute(
-      _writeNormalizedCapture,
-      (
-        sourcePath: imageFile.path,
-        outputPath: normalizedPath,
-        landscapeRotation: landscapeRotation,
-      ),
-    );
+    final ({int width, int height})? dimensions =
+        await compute(_writeNormalizedCapture, (
+          sourcePath: imageFile.path,
+          outputPath: normalizedPath,
+          landscapeRotation: landscapeRotation,
+        ));
 
     if (dimensions == null) {
       throw CameraException(
@@ -243,23 +321,33 @@ class CameraService {
   Future<void> dispose() async {
     final CameraController? cameraController = _controller;
 
+    _generation++;
     _controller = null;
     _isCapturing = false;
 
     if (cameraController == null) {
+      // Nothing is open. If the camera is still opening, that opening
+      // closes and releases it once it sees the new generation.
       return;
     }
 
-    if (cameraController.value.isInitialized &&
-        cameraController.value.flashMode == FlashMode.torch) {
-      try {
-        await cameraController.setFlashMode(FlashMode.off);
-      } catch (error) {
-        debugPrint('Unable to disable the camera flash: $error');
-      }
-    }
+    final Completer<void>? release = _release;
+    _release = null;
 
-    await cameraController.dispose();
+    try {
+      if (cameraController.value.isInitialized &&
+          cameraController.value.flashMode == FlashMode.torch) {
+        try {
+          await cameraController.setFlashMode(FlashMode.off);
+        } catch (error) {
+          debugPrint('Unable to disable the camera flash: $error');
+        }
+      }
+
+      await cameraController.dispose();
+    } finally {
+      release?.complete();
+    }
   }
 }
 
@@ -282,8 +370,7 @@ class CameraService {
 
   final num? rotationAngle = job.landscapeRotation;
 
-  if (rotationAngle != null &&
-      normalizedImage.height > normalizedImage.width) {
+  if (rotationAngle != null && normalizedImage.height > normalizedImage.width) {
     normalizedImage = img.copyRotate(normalizedImage, angle: rotationAngle);
   }
 
