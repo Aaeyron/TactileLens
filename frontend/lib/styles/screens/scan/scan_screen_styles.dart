@@ -158,6 +158,9 @@ abstract final class ScanScreenStyles {
 
   static const double processingLabelSpacing = 18;
 
+  // The shutter is dimmed while a scan runs; the overlay shows progress.
+  static const double disabledCaptureOpacity = 0.5;
+
   static const TextStyle processingTextStyle = TextStyle(
     color: primaryTextColor,
     fontSize: 16,
