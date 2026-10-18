@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/profile/logout_dialog.dart';
 import '../auth/auth_screen.dart';
+import '../main/tab_data_cache.dart';
 import 'about_tactilelens_screen.dart';
 import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
@@ -12,6 +14,7 @@ import 'settings_screen.dart';
 import 'terms_policy_screen.dart';
 
 abstract final class _ProfileText {
+  static const String loadingLabel = 'Loading your profile...';
   static const String exitGuestModeTitle = 'Exit Guest Mode';
   static const String exitGuestModeDescription = 'Return to the sign-in screen';
 
@@ -41,18 +44,16 @@ abstract final class _ProfileText {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, required this.cache});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
+class _ProfileScreenState extends State<ProfileScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
@@ -67,42 +68,31 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
+    final ProfileTabData? cached = widget.cache.profile;
+
+    if (cached != null) {
+      // Return visit: show the last profile now; _loadUser refreshes it.
+      _isGuest = cached.isGuest;
+      _firstName = cached.firstName;
+      _lastName = cached.lastName;
+      _email = cached.email;
+      _role = cached.role;
+      _guestNickname = cached.guestNickname;
+      _isLoadingProfile = false;
+    }
+
     _loadUser();
   }
 
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: ProfileStyles.entranceAnimationDuration,
+  void _storeInCache() {
+    widget.cache.profile = (
+      isGuest: _isGuest,
+      firstName: _firstName,
+      lastName: _lastName,
+      email: _email,
+      role: _role,
+      guestNickname: _guestNickname,
     );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: ProfileStyles.entranceAnimationCurve,
-    );
-
-    _entranceOpacity = Tween<double>(
-      begin: ProfileStyles.entranceFadeBegin,
-      end: ProfileStyles.entranceFadeEnd,
-    ).animate(entranceAnimation);
-
-    _entrancePosition = Tween<Offset>(
-      begin: ProfileStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-
-    Future<void>.delayed(ProfileStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -124,6 +114,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         _role = role.trim();
         _isLoadingProfile = false;
       });
+
+      _storeInCache();
 
       return;
     }
@@ -148,6 +140,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       _role = role.trim();
       _isLoadingProfile = false;
     });
+
+    _storeInCache();
   }
 
   String get _displayName {
@@ -346,84 +340,74 @@ class _ProfileScreenState extends State<ProfileScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: ProfileStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: RefreshIndicator(
-              color: ProfileStyles.primaryColor,
-              backgroundColor: ProfileStyles.surfaceColor,
-              onRefresh: _loadUser,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildProfileHeader(context)),
-                  SliverPadding(
-                    padding: ProfileStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.accountInformationIcon,
-                          title: ProfileStyles.accountInformationTitle,
-                          description:
-                              _ProfileText.accountInformationDescription,
-                          onPressed: _openAccountInformation,
-                        ),
-                        const SizedBox(height: ProfileStyles.menuItemSpacing),
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.aboutTactileLensIcon,
-                          title: ProfileStyles.aboutTactileLensTitle,
-                          description: _ProfileText.aboutDescription,
-                          onPressed: _openAboutTactileLens,
-                        ),
-                        const SizedBox(height: ProfileStyles.menuItemSpacing),
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.termsIcon,
-                          title: ProfileStyles.termsTitle,
-                          description: _ProfileText.termsDescription,
-                          onPressed: _openTermsPolicy,
-                        ),
-                        const SizedBox(
-                          height: ProfileStyles.menuSectionSpacing,
-                        ),
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.settingsIcon,
-                          title: ProfileStyles.settingsTitle,
-                          description: _ProfileText.settingsDescription,
-                          onPressed: _openSettings,
-                        ),
-                        const SizedBox(height: ProfileStyles.menuItemSpacing),
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.privacyIcon,
-                          title: ProfileStyles.privacyTitle,
-                          description: _ProfileText.privacyDescription,
-                          onPressed: _openPrivacySecurity,
-                        ),
-                        const SizedBox(height: ProfileStyles.logoutTopSpacing),
-                        _ProfileMenuItem(
-                          icon: ProfileStyles.logoutIcon,
-                          title: _isGuest
-                              ? _ProfileText.exitGuestModeTitle
-                              : ProfileStyles.logoutTitle,
-                          description: _isGuest
-                              ? _ProfileText.exitGuestModeDescription
-                              : _ProfileText.logoutDescription,
-                          iconColor: ProfileStyles.logoutColor,
-                          titleStyle: ProfileStyles.logoutTitleStyle,
-                          descriptionStyle:
-                              ProfileStyles.logoutDescriptionStyle,
-                          arrowColor: ProfileStyles.logoutColor,
-                          iconBackgroundColor:
-                              ProfileStyles.logoutIconBackgroundColor,
-                          onPressed: _requestSessionExit,
-                        ),
-                        const SizedBox(height: ProfileStyles.bottomSpacing),
-                      ]),
+        body: RefreshIndicator(
+          color: ProfileStyles.primaryColor,
+          backgroundColor: ProfileStyles.surfaceColor,
+          onRefresh: _loadUser,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildProfileHeader(context)),
+              SliverPadding(
+                padding: ProfileStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.accountInformationIcon,
+                      title: ProfileStyles.accountInformationTitle,
+                      description: _ProfileText.accountInformationDescription,
+                      onPressed: _openAccountInformation,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.aboutTactileLensIcon,
+                      title: ProfileStyles.aboutTactileLensTitle,
+                      description: _ProfileText.aboutDescription,
+                      onPressed: _openAboutTactileLens,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.termsIcon,
+                      title: ProfileStyles.termsTitle,
+                      description: _ProfileText.termsDescription,
+                      onPressed: _openTermsPolicy,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuSectionSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.settingsIcon,
+                      title: ProfileStyles.settingsTitle,
+                      description: _ProfileText.settingsDescription,
+                      onPressed: _openSettings,
+                    ),
+                    const SizedBox(height: ProfileStyles.menuItemSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.privacyIcon,
+                      title: ProfileStyles.privacyTitle,
+                      description: _ProfileText.privacyDescription,
+                      onPressed: _openPrivacySecurity,
+                    ),
+                    const SizedBox(height: ProfileStyles.logoutTopSpacing),
+                    _ProfileMenuItem(
+                      icon: ProfileStyles.logoutIcon,
+                      title: _isGuest
+                          ? _ProfileText.exitGuestModeTitle
+                          : ProfileStyles.logoutTitle,
+                      description: _isGuest
+                          ? _ProfileText.exitGuestModeDescription
+                          : _ProfileText.logoutDescription,
+                      iconColor: ProfileStyles.logoutColor,
+                      titleStyle: ProfileStyles.logoutTitleStyle,
+                      descriptionStyle: ProfileStyles.logoutDescriptionStyle,
+                      arrowColor: ProfileStyles.logoutColor,
+                      iconBackgroundColor:
+                          ProfileStyles.logoutIconBackgroundColor,
+                      onPressed: _requestSessionExit,
+                    ),
+                    const SizedBox(height: ProfileStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -446,14 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         borderRadius: ProfileStyles.headerRadius,
       ),
       child: _isLoadingProfile
-          ? const SizedBox(
-              height: ProfileStyles.headerContentHeight,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: ProfileStyles.surfaceColor,
-                ),
-              ),
-            )
+          ? const _ProfileHeaderSkeleton()
           : SizedBox(
               height: ProfileStyles.headerContentHeight,
               child: Stack(
@@ -521,6 +498,66 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Placeholder for the name, role and avatar, placed exactly where the
+/// loaded header content appears.
+class _ProfileHeaderSkeleton extends StatelessWidget {
+  const _ProfileHeaderSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _ProfileText.loadingLabel,
+      child: const SizedBox(
+        height: ProfileStyles.headerContentHeight,
+        child: SkeletonScope(
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                left: 0,
+                right:
+                    ProfileStyles.headerAvatarSize +
+                    ProfileStyles.headerAvatarSpacing,
+                bottom: ProfileStyles.headerIdentityBottom,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SkeletonLine(
+                      style: ProfileStyles.profileNameStyle,
+                      widthFactor: 0.7,
+                      baseColor: ProfileStyles.headerSkeletonBaseColor,
+                      highlightColor:
+                          ProfileStyles.headerSkeletonHighlightColor,
+                    ),
+                    SizedBox(height: ProfileStyles.profileRoleSpacing),
+                    SkeletonLine(
+                      style: ProfileStyles.profileRoleStyle,
+                      widthFactor: 0.4,
+                      baseColor: ProfileStyles.headerSkeletonBaseColor,
+                      highlightColor:
+                          ProfileStyles.headerSkeletonHighlightColor,
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: ProfileStyles.headerAvatarBottom,
+                child: SkeletonBox(
+                  width: ProfileStyles.headerAvatarSize,
+                  height: ProfileStyles.headerAvatarSize,
+                  isCircle: true,
+                  baseColor: ProfileStyles.headerSkeletonBaseColor,
+                  highlightColor: ProfileStyles.headerSkeletonHighlightColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

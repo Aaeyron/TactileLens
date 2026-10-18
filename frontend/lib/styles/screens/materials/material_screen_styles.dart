@@ -23,6 +23,14 @@ abstract final class MaterialScreenStyles {
   static const Color recentCardBackgroundColor = Colors.white;
   static const Color thumbnailBackgroundColor = Color(0xFFF2F6FC);
 
+  // Loading skeleton bars.
+  static const Color skeletonBaseColor = outlineColor;
+  static const Color skeletonHighlightColor = backgroundColor;
+
+  /// Placeholder folder cards and material cards shown while loading.
+  static const int skeletonFolderCount = 2;
+  static const int skeletonMaterialCount = 3;
+
   static const Color blueFolderBackgroundColor = Colors.white;
   static const Color blueFolderOutlineColor = outlineColor;
 
@@ -77,21 +85,6 @@ abstract final class MaterialScreenStyles {
   static const double sectionSpacing = 24;
   static const double sectionContentSpacing = 9;
   static const double bottomSpacing = 26;
-
-  // ============================================================
-  // ANIMATION
-  // ============================================================
-
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
-
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
-
-  static const Curve entranceAnimationCurve = Curves.easeOutCubic;
-
-  static const double entranceFadeBegin = 0;
-  static const double entranceFadeEnd = 1;
-
-  static const Offset entranceSlideBegin = Offset(0, 0.025);
 
   // ============================================================
   // FULL-WIDTH HEADER

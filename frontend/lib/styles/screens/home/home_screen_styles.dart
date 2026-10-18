@@ -25,6 +25,13 @@
     static const Color quickScanIconBackgroundColor = Color(0xFFEAF3FF);
     static const Color secondaryActionIconBackgroundColor = Color(0xFFEDF4FF);
 
+    // Loading skeleton: light bars on cards, translucent white on the
+    // blue header.
+    static const Color skeletonBaseColor = outlineColor;
+    static const Color skeletonHighlightColor = backgroundColor;
+    static const Color headerSkeletonBaseColor = Color(0x33FFFFFF);
+    static const Color headerSkeletonHighlightColor = Color(0x66FFFFFF);
+
     // ============================================================
     // ICONS
     // ============================================================
@@ -56,21 +63,6 @@
     static const double sectionSpacing = 22;
     static const double recentHeaderSpacing = 6;
     static const double bottomSpacing = 28;
-
-    // ============================================================
-    // ENTRANCE ANIMATION
-    // ============================================================
-
-    static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
-
-    static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
-
-    static const Curve entranceAnimationCurve = Curves.easeOutCubic;
-
-    static const double entranceFadeBegin = 0;
-    static const double entranceFadeEnd = 1;
-
-    static const Offset entranceSlideBegin = Offset(0, 0.025);
 
     // ============================================================
     // FULL-WIDTH HOME HEADER
@@ -258,9 +250,6 @@
 
     static const double stateIconContainerSize = 52;
     static const double stateIconSize = 27;
-
-    static const double stateProgressSize = 32;
-    static const double stateProgressStrokeWidth = 3;
 
     static const double stateContentSpacing = 13;
     static const double stateDescriptionSpacing = 6;

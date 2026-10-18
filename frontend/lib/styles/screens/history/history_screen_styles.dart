@@ -20,6 +20,13 @@ abstract final class HistoryScreenStyles {
   static const Color cardBackgroundColor = surfaceColor;
   static const Color previewBackgroundColor = Color(0xFFF2F6FC);
 
+  // Loading skeleton bars.
+  static const Color skeletonBaseColor = outlineColor;
+  static const Color skeletonHighlightColor = backgroundColor;
+
+  /// Number of placeholder cards shown while history loads.
+  static const int skeletonCardCount = 3;
+
   // ============================================================
   // ICONS
   // ============================================================
@@ -61,21 +68,6 @@ abstract final class HistoryScreenStyles {
 
   // Kept for compatibility with existing code.
   static const EdgeInsets screenPadding = contentPadding;
-
-  // ============================================================
-  // ENTRANCE ANIMATION
-  // ============================================================
-
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
-
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
-
-  static const Curve entranceAnimationCurve = Curves.easeOutCubic;
-
-  static const double entranceFadeBegin = 0;
-  static const double entranceFadeEnd = 1;
-
-  static const Offset entranceSlideBegin = Offset(0, 0.025);
 
   // ============================================================
   // FULL-WIDTH HEADER

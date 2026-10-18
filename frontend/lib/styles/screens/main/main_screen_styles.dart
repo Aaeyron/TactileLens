@@ -47,4 +47,9 @@ abstract final class MainStyles {
   static const NotchedShape bottomBarShape = CircularNotchedRectangle();
 
   static const double centerGapWidth = 64;
+
+  // Tab change: horizontal slide only. Disabled when the phone asks to
+  // reduce motion.
+  static const Duration tabSlideDuration = Duration(milliseconds: 280);
+  static const Curve tabSlideCurve = Curves.easeOutCubic;
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/document/document_layout_view.dart';
 import 'package:flutter/services.dart';
@@ -988,6 +989,21 @@ class _SectionAction extends StatelessWidget {
   }
 }
 
+/// Runs in a background isolate: returns the EXIF-corrected image size.
+Size? _readOrientedImageSizeInBackground(String path) {
+  final img.Image? decodedImage = img.decodeImage(
+    File(path).readAsBytesSync(),
+  );
+
+  if (decodedImage == null) {
+    return null;
+  }
+
+  final img.Image orientedImage = img.bakeOrientation(decodedImage);
+
+  return Size(orientedImage.width.toDouble(), orientedImage.height.toDouble());
+}
+
 class _ScannedImagePreview extends StatefulWidget {
   const _ScannedImagePreview({required this.scannedImage});
 
@@ -1023,20 +1039,17 @@ class _ScannedImagePreviewState extends State<_ScannedImagePreview> {
       throw const FormatException('The scanned image could not be found.');
     }
 
-    final Uint8List bytes = await widget.scannedImage.readAsBytes();
+    // The full decode only provides the size, so keep it off the UI isolate.
+    final Size? imageSize = await compute(
+      _readOrientedImageSizeInBackground,
+      widget.scannedImage.path,
+    );
 
-    final img.Image? decodedImage = img.decodeImage(bytes);
-
-    if (decodedImage == null) {
+    if (imageSize == null) {
       throw const FormatException('The scanned image could not be decoded.');
     }
 
-    final img.Image orientedImage = img.bakeOrientation(decodedImage);
-
-    return Size(
-      orientedImage.width.toDouble(),
-      orientedImage.height.toDouble(),
-    );
+    return imageSize;
   }
 
   @override
@@ -1087,6 +1100,11 @@ class _ScannedImagePreviewState extends State<_ScannedImagePreview> {
                   child: Image.file(
                     widget.scannedImage,
                     key: ValueKey<String>(widget.scannedImage.path),
+                    // The preview is never wider than the screen.
+                    cacheWidth:
+                        (MediaQuery.sizeOf(context).width *
+                                MediaQuery.devicePixelRatioOf(context))
+                            .round(),
                     fit: ScanResultScreenStyles.imagePreviewFit,
                     alignment: Alignment.center,
                     gaplessPlayback: true,

@@ -11,7 +11,9 @@ import '../../widgets/materials/materials_empty_state.dart';
 import 'material_preview_screen.dart';
 
 import '../../utils/session_manager.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _MaterialText {
   static const String pageTitle = 'Materials';
@@ -124,7 +126,10 @@ class _FolderSelectionResult {
 }
 
 class MaterialsScreen extends StatefulWidget {
-  const MaterialsScreen({super.key, required this.onBack});
+  const MaterialsScreen({super.key, required this.cache, required this.onBack});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   final VoidCallback onBack;
 
@@ -134,13 +139,9 @@ class MaterialsScreen extends StatefulWidget {
   }
 }
 
-class _MaterialsScreenState extends State<MaterialsScreen>
-    with SingleTickerProviderStateMixin {
+class _MaterialsScreenState extends State<MaterialsScreen> {
   final MaterialService _materialService = MaterialService();
   final MaterialFolderService _folderService = MaterialFolderService();
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -165,42 +166,39 @@ class _MaterialsScreenState extends State<MaterialsScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
     _searchController.addListener(_handleSearchChanged);
-    _loadMaterials();
+
+    final MaterialsTabData? cached = widget.cache.materials;
+
+    if (cached == null) {
+      _loadMaterials();
+      return;
+    }
+
+    // Return visit: show the last materials now and refresh them quietly.
+    // A failed refresh shows the existing message and keeps the data.
+    _materials = cached.materials;
+    _folders = cached.folders;
+    _isGuestSession = cached.isGuest;
+    _isLoading = false;
+
+    _refreshMaterials();
   }
 
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: MaterialScreenStyles.entranceAnimationDuration,
-    );
-
-    final CurvedAnimation curve = CurvedAnimation(
-      parent: _entranceController,
-      curve: MaterialScreenStyles.entranceAnimationCurve,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: MaterialScreenStyles.entranceFadeBegin,
-      end: MaterialScreenStyles.entranceFadeEnd,
-    ).animate(curve);
-
-    _slideAnimation = Tween<Offset>(
-      begin: MaterialScreenStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(curve);
-
-    Future<void>.delayed(MaterialScreenStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
+  void _storeInCache() {
+    if (!_isLoading && _errorMessage == null) {
+      widget.cache.materials = (
+        materials: _materials,
+        folders: _folders,
+        isGuest: _isGuestSession,
+      );
+    }
   }
 
   @override
   void dispose() {
-    _entranceController.dispose();
+    // Keep moves and deletions made during this visit.
+    _storeInCache();
 
     _searchController
       ..removeListener(_handleSearchChanged)
@@ -306,6 +304,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
         _isGuestSession = isGuest;
         _isLoading = false;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
       if (!mounted) {
         return;
@@ -353,6 +353,8 @@ class _MaterialsScreenState extends State<MaterialsScreen>
         _folders = folders;
         _errorMessage = null;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
       if (mounted) {
         _showMessage(error.message);
@@ -1443,42 +1445,31 @@ class _MaterialsScreenState extends State<MaterialsScreen>
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: MaterialScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: RefreshIndicator(
-              color: MaterialScreenStyles.primaryColor,
-              backgroundColor: MaterialScreenStyles.surfaceColor,
-              onRefresh: _refreshMaterials,
-              child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildPageHeader(context)),
-                  SliverPadding(
-                    padding: MaterialScreenStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildFoldersSection(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.sectionSpacing,
-                        ),
-                        _buildRecentHeader(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.sectionContentSpacing,
-                        ),
-                        _buildContent(),
-                        const SizedBox(
-                          height: MaterialScreenStyles.bottomSpacing,
-                        ),
-                      ]),
+        body: RefreshIndicator(
+          color: MaterialScreenStyles.primaryColor,
+          backgroundColor: MaterialScreenStyles.surfaceColor,
+          onRefresh: _refreshMaterials,
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildPageHeader(context)),
+              SliverPadding(
+                padding: MaterialScreenStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildFoldersSection(),
+                    const SizedBox(height: MaterialScreenStyles.sectionSpacing),
+                    _buildRecentHeader(),
+                    const SizedBox(
+                      height: MaterialScreenStyles.sectionContentSpacing,
                     ),
-                  ),
-                ],
+                    _buildContent(),
+                    const SizedBox(height: MaterialScreenStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -1630,12 +1621,24 @@ class _MaterialsScreenState extends State<MaterialsScreen>
             ),
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
-            itemCount: _folders.length + 1,
+            itemCount: _isLoading
+                ? MaterialScreenStyles.skeletonFolderCount + 1
+                : _folders.length + 1,
             separatorBuilder: (BuildContext context, int index) {
               return const SizedBox(width: MaterialScreenStyles.folderSpacing);
             },
             itemBuilder: (BuildContext context, int index) {
-              if (index == _folders.length) {
+              // While loading, placeholder folders sit before the real
+              // "Add folder" card, which stays usable.
+              if (_isLoading &&
+                  index < MaterialScreenStyles.skeletonFolderCount) {
+                return const _FolderCardSkeleton();
+              }
+
+              if (index ==
+                  (_isLoading
+                      ? MaterialScreenStyles.skeletonFolderCount
+                      : _folders.length)) {
                 return _AddFolderCard(
                   isCreating: _isCreatingFolder,
                   onPressed: _showCreateFolderDialog,
@@ -1687,11 +1690,7 @@ class _MaterialsScreenState extends State<MaterialsScreen>
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const _MaterialStateView(
-        icon: MaterialScreenStyles.folderIcon,
-        title: _MaterialText.loadingLabel,
-        showProgressIndicator: true,
-      );
+      return const _MaterialListSkeleton();
     }
 
     if (_errorMessage != null) {
@@ -2168,11 +2167,11 @@ class _MaterialThumbnail extends StatelessWidget {
         border: MaterialScreenStyles.thumbnailBorder,
       ),
       clipBehavior: Clip.antiAlias,
-      child: isImage ? _buildImage() : _buildFallback(),
+      child: isImage ? _buildImage(context) : _buildFallback(),
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildImage(BuildContext context) {
     if (isServerFile && materialId != null) {
       return MaterialFileImage(
         materialId: materialId!,
@@ -2186,6 +2185,13 @@ class _MaterialThumbnail extends StatelessWidget {
 
     return Image.file(
       File(filePath),
+      // Decode near thumbnail size instead of full resolution. Twice the
+      // long side keeps cover-cropped images sharp for wide photos too.
+      cacheWidth:
+          (MaterialScreenStyles.thumbnailHeight *
+                  MediaQuery.devicePixelRatioOf(context) *
+                  2)
+              .round(),
       fit: MaterialScreenStyles.thumbnailImageFit,
       alignment: Alignment.center,
       filterQuality: MaterialScreenStyles.thumbnailFilterQuality,
@@ -2208,6 +2214,159 @@ class _MaterialThumbnail extends StatelessWidget {
   }
 }
 
+/// Placeholder with the same size, padding and border as a folder card.
+class _FolderCardSkeleton extends StatelessWidget {
+  const _FolderCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _MaterialText.loadingLabel,
+      child: Container(
+        width: MaterialScreenStyles.folderCardWidth,
+        padding: MaterialScreenStyles.folderPadding,
+        decoration: BoxDecoration(
+          color: MaterialScreenStyles.surfaceColor,
+          borderRadius: MaterialScreenStyles.folderRadius,
+          border: Border.all(color: MaterialScreenStyles.outlineColor),
+          boxShadow: MaterialScreenStyles.folderCardShadow,
+        ),
+        child: const SkeletonScope(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              SkeletonBox(
+                width: MaterialScreenStyles.folderIconContainerSize,
+                height: MaterialScreenStyles.folderIconContainerSize,
+                borderRadius: MaterialScreenStyles.folderIconContainerRadius,
+                baseColor: MaterialScreenStyles.skeletonBaseColor,
+                highlightColor: MaterialScreenStyles.skeletonHighlightColor,
+              ),
+              SizedBox(height: MaterialScreenStyles.folderIconSpacing),
+              SkeletonLine(
+                style: MaterialScreenStyles.folderTitleStyle,
+                widthFactor: 0.75,
+                baseColor: MaterialScreenStyles.skeletonBaseColor,
+                highlightColor: MaterialScreenStyles.skeletonHighlightColor,
+              ),
+              SizedBox(height: MaterialScreenStyles.folderCountSpacing),
+              SkeletonLine(
+                style: MaterialScreenStyles.folderCountStyle,
+                widthFactor: 0.5,
+                baseColor: MaterialScreenStyles.skeletonBaseColor,
+                highlightColor: MaterialScreenStyles.skeletonHighlightColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder with the same card height, spacing and shape as the
+/// recent materials list.
+class _MaterialListSkeleton extends StatelessWidget {
+  const _MaterialListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _MaterialText.loadingLabel,
+      child: SkeletonScope(
+        child: Column(
+          children: List<Widget>.generate(
+            MaterialScreenStyles.skeletonMaterialCount,
+            (int index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom:
+                      index == MaterialScreenStyles.skeletonMaterialCount - 1
+                      ? 0
+                      : MaterialScreenStyles.materialCardSpacing,
+                ),
+                child: const _MaterialCardSkeleton(),
+              );
+            },
+            growable: false,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialCardSkeleton extends StatelessWidget {
+  const _MaterialCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: MaterialScreenStyles.materialCardHeight,
+      child: Material(
+        color: MaterialScreenStyles.recentCardBackgroundColor,
+        borderRadius: MaterialScreenStyles.materialCardRadius,
+        elevation: 3,
+        shadowColor: const Color(0x260F2748),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: MaterialScreenStyles.materialCardPadding,
+          decoration: const BoxDecoration(
+            borderRadius: MaterialScreenStyles.materialCardRadius,
+            border: MaterialScreenStyles.cardBorder,
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              SkeletonBox(
+                width: MaterialScreenStyles.thumbnailWidth,
+                height: MaterialScreenStyles.thumbnailHeight,
+                borderRadius: MaterialScreenStyles.thumbnailRadius,
+                baseColor: MaterialScreenStyles.skeletonBaseColor,
+                highlightColor: MaterialScreenStyles.skeletonHighlightColor,
+              ),
+              SizedBox(width: MaterialScreenStyles.materialContentSpacing),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SkeletonLine(
+                      style: MaterialScreenStyles.materialTitleStyle,
+                      widthFactor: 0.7,
+                      baseColor: MaterialScreenStyles.skeletonBaseColor,
+                      highlightColor:
+                          MaterialScreenStyles.skeletonHighlightColor,
+                    ),
+                    SizedBox(height: MaterialScreenStyles.categorySpacing),
+                    SkeletonLine(
+                      style: MaterialScreenStyles.materialCategoryStyle,
+                      widthFactor: 0.4,
+                      baseColor: MaterialScreenStyles.skeletonBaseColor,
+                      highlightColor:
+                          MaterialScreenStyles.skeletonHighlightColor,
+                    ),
+                    SizedBox(height: MaterialScreenStyles.metadataSpacing),
+                    SkeletonLine(
+                      style: MaterialScreenStyles.metadataStyle,
+                      widthFactor: 0.55,
+                      baseColor: MaterialScreenStyles.skeletonBaseColor,
+                      highlightColor:
+                          MaterialScreenStyles.skeletonHighlightColor,
+                    ),
+                  ],
+                ),
+              ),
+              // Keeps the space of the card's menu button.
+              SizedBox(width: kMinInteractiveDimension),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MaterialStateView extends StatelessWidget {
   const _MaterialStateView({
     required this.icon,
@@ -2215,7 +2374,6 @@ class _MaterialStateView extends StatelessWidget {
     this.description,
     this.actionLabel,
     this.onActionPressed,
-    this.showProgressIndicator = false,
   });
 
   final IconData icon;
@@ -2223,7 +2381,6 @@ class _MaterialStateView extends StatelessWidget {
   final String? description;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
-  final bool showProgressIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -2237,16 +2394,11 @@ class _MaterialStateView extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          if (showProgressIndicator)
-            const CircularProgressIndicator(
-              color: MaterialScreenStyles.primaryColor,
-            )
-          else
-            Icon(
-              icon,
-              size: MaterialScreenStyles.stateIconSize,
-              color: MaterialScreenStyles.primaryColor,
-            ),
+          Icon(
+            icon,
+            size: MaterialScreenStyles.stateIconSize,
+            color: MaterialScreenStyles.primaryColor,
+          ),
           const SizedBox(height: 14),
           Text(
             title,

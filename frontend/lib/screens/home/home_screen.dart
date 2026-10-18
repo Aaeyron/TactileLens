@@ -7,7 +7,9 @@ import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _HomeText {
   static const String notificationTooltip = 'Notifications';
@@ -72,10 +74,14 @@ abstract final class _HomeText {
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
+    required this.cache,
     required this.onScanPressed,
     required this.onMaterialsPressed,
     required this.onHistoryPressed,
   });
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   final VoidCallback onScanPressed;
   final VoidCallback onMaterialsPressed;
@@ -85,13 +91,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   final MaterialService _materialService = MaterialService();
-
-  late final AnimationController _entranceController;
-  late final Animation<double> _fadeAnimation;
-  late final Animation<Offset> _slideAnimation;
 
   List<MaterialModel> _materials = <MaterialModel>[];
 
@@ -106,47 +107,42 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
-    _loadHomeData();
-  }
+    final HomeTabData? cached = widget.cache.home;
 
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: HomeStyles.entranceAnimationDuration,
-    );
+    if (cached == null) {
+      _loadHomeData();
+      return;
+    }
 
-    final CurvedAnimation entranceCurve = CurvedAnimation(
-      parent: _entranceController,
-      curve: HomeStyles.entranceAnimationCurve,
-    );
+    // Return visit: show the last data now and refresh it quietly.
+    _displayName = cached.displayName;
+    _role = cached.role;
+    _isGuestSession = cached.isGuest;
+    _materials = cached.materials;
+    _isLoading = false;
 
-    _fadeAnimation = Tween<double>(
-      begin: HomeStyles.entranceFadeBegin,
-      end: HomeStyles.entranceFadeEnd,
-    ).animate(entranceCurve);
-
-    _slideAnimation = Tween<Offset>(
-      begin: HomeStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(entranceCurve);
-
-    Future<void>.delayed(HomeStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
+    _loadHomeData(showLoading: false);
   }
 
   @override
   void dispose() {
-    _entranceController.dispose();
     _materialService.dispose();
     super.dispose();
   }
 
-  Future<void> _loadHomeData() async {
-    if (mounted) {
+  void _storeInCache() {
+    widget.cache.home = (
+      displayName: _displayName,
+      role: _role,
+      isGuest: _isGuestSession,
+      materials: _materials,
+    );
+  }
+
+  /// With [showLoading] false (a background refresh of cached data), the
+  /// current content stays visible and a failed refresh keeps it.
+  Future<void> _loadHomeData({bool showLoading = true}) async {
+    if (mounted && showLoading) {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
@@ -177,9 +173,12 @@ class _HomeScreenState extends State<HomeScreen>
         _isGuestSession = isGuest;
         _materials = materials;
         _isLoading = false;
+        _errorMessage = null;
       });
+
+      _storeInCache();
     } on MaterialServiceException catch (error) {
-      if (!mounted) {
+      if (!mounted || !showLoading) {
         return;
       }
 
@@ -188,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
         _errorMessage = error.message;
       });
     } catch (_) {
-      if (!mounted) {
+      if (!mounted || !showLoading) {
         return;
       }
 
@@ -302,34 +301,28 @@ class _HomeScreenState extends State<HomeScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: HomeStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: RefreshIndicator(
-              color: HomeStyles.primaryColor,
-              backgroundColor: HomeStyles.surfaceColor,
-              onRefresh: _loadHomeData,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildHeaderSection(context)),
-                  SliverPadding(
-                    padding: HomeStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildSecondaryActions(),
-                        const SizedBox(height: HomeStyles.sectionSpacing),
-                        _buildRecentHeader(),
-                        const SizedBox(height: HomeStyles.recentHeaderSpacing),
-                        _buildRecentActivity(),
-                        const SizedBox(height: HomeStyles.bottomSpacing),
-                      ]),
-                    ),
-                  ),
-                ],
+        body: RefreshIndicator(
+          color: HomeStyles.primaryColor,
+          backgroundColor: HomeStyles.surfaceColor,
+          onRefresh: _loadHomeData,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeaderSection(context)),
+              SliverPadding(
+                padding: HomeStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildSecondaryActions(),
+                    const SizedBox(height: HomeStyles.sectionSpacing),
+                    _buildRecentHeader(),
+                    const SizedBox(height: HomeStyles.recentHeaderSpacing),
+                    _buildRecentActivity(),
+                    const SizedBox(height: HomeStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -398,17 +391,23 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                     const Spacer(),
-                    Text(
-                      '${_HomeText.greetingPrefix}, $_displayName!',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: HomeStyles.greetingStyle,
-                    ),
-                    const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
-                    Text(
-                      _greetingDescription(),
-                      style: HomeStyles.greetingDescriptionStyle,
-                    ),
+                    if (_isLoading)
+                      const _GreetingSkeleton()
+                    else ...<Widget>[
+                      Text(
+                        '${_HomeText.greetingPrefix}, $_displayName!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeStyles.greetingStyle,
+                      ),
+                      const SizedBox(
+                        height: HomeStyles.greetingSubtitleSpacing,
+                      ),
+                      Text(
+                        _greetingDescription(),
+                        style: HomeStyles.greetingDescriptionStyle,
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -544,12 +543,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildRecentActivity() {
     if (_isLoading) {
-      return const _StateCard(
-        showProgress: true,
-        icon: HomeStyles.historyIcon,
-        title: _HomeText.loadingTitle,
-        description: _HomeText.loadingDescription,
-      );
+      return const _RecentActivitySkeleton();
     }
 
     if (_errorMessage != null) {
@@ -832,6 +826,13 @@ class _MaterialThumbnail extends StatelessWidget {
     } else {
       preview = Image.file(
         File(material.filePath),
+        // Decode near thumbnail size instead of full resolution. Twice the
+        // long side keeps cover-cropped images sharp for wide photos too.
+        cacheWidth:
+            (HomeStyles.thumbnailHeight *
+                    MediaQuery.devicePixelRatioOf(context) *
+                    2)
+                .round(),
         fit: BoxFit.cover,
         filterQuality: FilterQuality.medium,
         errorBuilder:
@@ -872,6 +873,132 @@ class _ThumbnailFallback extends StatelessWidget {
   }
 }
 
+/// Placeholder for the greeting and its description on the blue header.
+class _GreetingSkeleton extends StatelessWidget {
+  const _GreetingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SkeletonLine(
+            style: HomeStyles.greetingStyle,
+            widthFactor: 0.55,
+            baseColor: HomeStyles.headerSkeletonBaseColor,
+            highlightColor: HomeStyles.headerSkeletonHighlightColor,
+          ),
+          SizedBox(height: HomeStyles.greetingSubtitleSpacing),
+          SkeletonLine(
+            style: HomeStyles.greetingDescriptionStyle,
+            widthFactor: 0.75,
+            baseColor: HomeStyles.headerSkeletonBaseColor,
+            highlightColor: HomeStyles.headerSkeletonHighlightColor,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Placeholder with the same list card, rows and dividers as the recent
+/// activity list.
+class _RecentActivitySkeleton extends StatelessWidget {
+  const _RecentActivitySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '${_HomeText.loadingTitle}. ${_HomeText.loadingDescription}',
+      child: SkeletonScope(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: HomeStyles.surfaceColor,
+            borderRadius: HomeStyles.recentListRadius,
+            border: HomeStyles.cardBorder,
+            boxShadow: HomeStyles.subtleCardShadow,
+          ),
+          child: Column(
+            children: List<Widget>.generate(HomeStyles.maximumRecentMaterials, (
+              int index,
+            ) {
+              return Column(
+                children: <Widget>[
+                  const _RecentActivityRowSkeleton(),
+                  if (index < HomeStyles.maximumRecentMaterials - 1)
+                    const Divider(
+                      height: HomeStyles.recentDividerHeight,
+                      thickness: HomeStyles.recentDividerThickness,
+                      indent: HomeStyles.recentDividerIndent,
+                      color: HomeStyles.dividerColor,
+                    ),
+                ],
+              );
+            }, growable: false),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentActivityRowSkeleton extends StatelessWidget {
+  const _RecentActivityRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: HomeStyles.recentCardPadding,
+      child: Row(
+        children: <Widget>[
+          SkeletonBox(
+            width: HomeStyles.thumbnailWidth,
+            height: HomeStyles.thumbnailHeight,
+            borderRadius: HomeStyles.thumbnailRadius,
+            baseColor: HomeStyles.skeletonBaseColor,
+            highlightColor: HomeStyles.skeletonHighlightColor,
+          ),
+          SizedBox(width: HomeStyles.recentContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SkeletonLine(
+                  style: HomeStyles.recentTitleStyle,
+                  widthFactor: 0.7,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HomeStyles.recentMetadataSpacing),
+                SkeletonLine(
+                  style: HomeStyles.recentMetadataStyle,
+                  widthFactor: 0.45,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HomeStyles.recentDateSpacing),
+                SkeletonLine(
+                  style: HomeStyles.relativeTimeStyle,
+                  widthFactor: 0.3,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: HomeStyles.recentTrailingSpacing),
+          Icon(
+            HomeStyles.forwardIcon,
+            color: HomeStyles.recentArrowColor,
+            size: HomeStyles.recentArrowSize,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StateCard extends StatelessWidget {
   const _StateCard({
     required this.icon,
@@ -879,7 +1006,6 @@ class _StateCard extends StatelessWidget {
     required this.description,
     this.actionLabel,
     this.onActionPressed,
-    this.showProgress = false,
   });
 
   final IconData icon;
@@ -887,7 +1013,6 @@ class _StateCard extends StatelessWidget {
   final String description;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
-  final bool showProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -902,30 +1027,20 @@ class _StateCard extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          if (showProgress)
-            const SizedBox(
-              width: HomeStyles.stateProgressSize,
-              height: HomeStyles.stateProgressSize,
-              child: CircularProgressIndicator(
-                color: HomeStyles.primaryColor,
-                strokeWidth: HomeStyles.stateProgressStrokeWidth,
-              ),
-            )
-          else
-            Container(
-              width: HomeStyles.stateIconContainerSize,
-              height: HomeStyles.stateIconContainerSize,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: HomeStyles.secondaryActionIconBackgroundColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: HomeStyles.stateIconSize,
-                color: HomeStyles.primaryColor,
-              ),
+          Container(
+            width: HomeStyles.stateIconContainerSize,
+            height: HomeStyles.stateIconContainerSize,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: HomeStyles.secondaryActionIconBackgroundColor,
+              shape: BoxShape.circle,
             ),
+            child: Icon(
+              icon,
+              size: HomeStyles.stateIconSize,
+              color: HomeStyles.primaryColor,
+            ),
+          ),
           const SizedBox(height: HomeStyles.stateContentSpacing),
           Text(
             title,

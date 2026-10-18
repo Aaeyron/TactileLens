@@ -8,7 +8,9 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/history/history_model.dart';
 import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
+import '../main/tab_data_cache.dart';
 
 abstract final class _HistoryText {
   static const String screenTitle = 'History';
@@ -107,7 +109,10 @@ enum _HistoryAction { rename, delete }
 enum _HistorySort { newest, oldest, title }
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.onBack});
+  const HistoryScreen({super.key, required this.cache, required this.onBack});
+
+  /// Shown at once on return visits while fresh data loads.
+  final TabDataCache cache;
 
   // Retained for compatibility with MainScreen.
   final VoidCallback onBack;
@@ -118,16 +123,19 @@ class HistoryScreen extends StatefulWidget {
   }
 }
 
-class _HistoryScreenState extends State<HistoryScreen>
-    with SingleTickerProviderStateMixin {
+class _HistoryScreenState extends State<HistoryScreen> {
   final HistoryService _historyService = HistoryService();
   final TextEditingController _searchController = TextEditingController();
 
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
   List<HistoryRecord> _records = <HistoryRecord>[];
+
+  // The whole list rebuilds on every search keystroke, so per-record
+  // checks are remembered. Renamed records are new objects, which keeps
+  // the math cache correct; image checks reset whenever history reloads.
+  final Expando<bool> _containsMathCache = Expando<bool>();
+  final Map<String, bool> _imageExistsCache = <String, bool>{};
+
+  static final RegExp _arithmeticPattern = RegExp(r'\d+\s*[+\-*/]\s*\d+');
 
   _HistoryFilter _selectedFilter = _HistoryFilter.all;
   _HistorySort _selectedSort = _HistorySort.newest;
@@ -141,47 +149,41 @@ class _HistoryScreenState extends State<HistoryScreen>
   void initState() {
     super.initState();
 
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: HistoryScreenStyles.entranceAnimationDuration,
-    );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: HistoryScreenStyles.entranceAnimationCurve,
-    );
-
-    _entranceOpacity = Tween<double>(
-      begin: HistoryScreenStyles.entranceFadeBegin,
-      end: HistoryScreenStyles.entranceFadeEnd,
-    ).animate(entranceAnimation);
-
-    _entrancePosition = Tween<Offset>(
-      begin: HistoryScreenStyles.entranceSlideBegin,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-
     _searchController.addListener(_handleSearchChanged);
 
-    _loadHistory();
+    final List<HistoryRecord>? cached = widget.cache.history;
 
-    Future<void>.delayed(HistoryScreenStyles.entranceAnimationDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
+    if (cached == null) {
+      _loadHistory();
+      return;
+    }
+
+    // Return visit: show the last records now and refresh them quietly.
+    // A failed refresh shows the existing message and keeps the records.
+    _records = cached;
+    _isLoading = false;
+
+    _refreshHistory();
   }
 
   @override
   void dispose() {
+    // Keep renames and deletions made during this visit.
+    _storeInCache();
+
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
 
-    _entranceController.dispose();
     _historyService.dispose();
 
     super.dispose();
+  }
+
+  void _storeInCache() {
+    if (!_isLoading && _errorMessage == null) {
+      widget.cache.history = _records;
+    }
   }
 
   void _handleSearchChanged() {
@@ -189,6 +191,10 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   bool _containsMath(HistoryRecord record) {
+    return _containsMathCache[record] ??= _detectMath(record);
+  }
+
+  bool _detectMath(HistoryRecord record) {
     final String content = record.recognizedContent.toLowerCase();
 
     return content.contains(r'\frac') ||
@@ -197,7 +203,20 @@ class _HistoryScreenState extends State<HistoryScreen>
         content.contains(r'\int') ||
         content.contains('=') ||
         content.contains('^') ||
-        RegExp(r'\d+\s*[+\-*/]\s*\d+').hasMatch(content);
+        _arithmeticPattern.hasMatch(content);
+  }
+
+  bool _hasImageFile(String? imagePath) {
+    final String normalizedPath = imagePath?.trim() ?? '';
+
+    if (normalizedPath.isEmpty) {
+      return false;
+    }
+
+    return _imageExistsCache.putIfAbsent(
+      normalizedPath,
+      () => File(normalizedPath).existsSync(),
+    );
   }
 
   bool _matchesSelectedFilter(HistoryRecord record) {
@@ -251,11 +270,11 @@ class _HistoryScreenState extends State<HistoryScreen>
     return records;
   }
 
-  Map<String, List<HistoryRecord>> get _groupedRecords {
+  Map<String, List<HistoryRecord>> _groupRecords(List<HistoryRecord> records) {
     final Map<String, List<HistoryRecord>> groups =
         <String, List<HistoryRecord>>{};
 
-    for (final HistoryRecord record in _visibleRecords) {
+    for (final HistoryRecord record in records) {
       final String group = _dateGroupLabel(record.createdAt);
 
       groups.putIfAbsent(group, () => <HistoryRecord>[]);
@@ -317,9 +336,12 @@ class _HistoryScreenState extends State<HistoryScreen>
       }
 
       setState(() {
+        _imageExistsCache.clear();
         _records = page.records;
         _isLoading = false;
       });
+
+      _storeInCache();
     } on HistoryServiceException catch (error) {
       if (!mounted) {
         return;
@@ -366,9 +388,12 @@ class _HistoryScreenState extends State<HistoryScreen>
       }
 
       setState(() {
+        _imageExistsCache.clear();
         _records = page.records;
         _errorMessage = null;
       });
+
+      _storeInCache();
     } on HistoryServiceException catch (error) {
       if (mounted) {
         _showMessage(error.message);
@@ -729,38 +754,27 @@ class _HistoryScreenState extends State<HistoryScreen>
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         backgroundColor: HistoryScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: RefreshIndicator(
-              color: HistoryScreenStyles.primaryColor,
-              backgroundColor: HistoryScreenStyles.surfaceColor,
-              onRefresh: _refreshHistory,
-              child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildHeader(context)),
-                  SliverPadding(
-                    padding: HistoryScreenStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        _buildHistoryToolbar(),
-                        const SizedBox(
-                          height: HistoryScreenStyles.sectionSpacing,
-                        ),
-                        _buildContent(),
-                        const SizedBox(
-                          height: HistoryScreenStyles.bottomSpacing,
-                        ),
-                      ]),
-                    ),
-                  ),
-                ],
+        body: RefreshIndicator(
+          color: HistoryScreenStyles.primaryColor,
+          backgroundColor: HistoryScreenStyles.surfaceColor,
+          onRefresh: _refreshHistory,
+          child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverPadding(
+                padding: HistoryScreenStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    _buildHistoryToolbar(),
+                    const SizedBox(height: HistoryScreenStyles.sectionSpacing),
+                    _buildContent(),
+                    const SizedBox(height: HistoryScreenStyles.bottomSpacing),
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -939,11 +953,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const _HistoryStateView(
-        icon: HistoryScreenStyles.historyIcon,
-        title: _HistoryText.loadingLabel,
-        showProgressIndicator: true,
-      );
+      return const _HistoryListSkeleton();
     }
 
     if (_errorMessage != null) {
@@ -976,7 +986,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       );
     }
 
-    final Map<String, List<HistoryRecord>> groups = _groupedRecords;
+    final Map<String, List<HistoryRecord>> groups = _groupRecords(
+      visibleRecords,
+    );
 
     return Semantics(
       label: _HistoryText.historyListSemanticLabel,
@@ -1006,6 +1018,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                         ),
                         child: _HistoryCard(
                           record: record,
+                          hasImage: _hasImageFile(record.sourceImagePath),
                           badge: _recordBadge(record),
                           brailleCode: _brailleCode(record),
                           formattedDate: _formatRecordDate(record.createdAt),
@@ -1101,6 +1114,7 @@ class _HistoryFilterButton extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.record,
+    required this.hasImage,
     required this.badge,
     required this.brailleCode,
     required this.formattedDate,
@@ -1110,6 +1124,7 @@ class _HistoryCard extends StatelessWidget {
   });
 
   final HistoryRecord record;
+  final bool hasImage;
   final String badge;
   final String brailleCode;
   final String formattedDate;
@@ -1143,6 +1158,7 @@ class _HistoryCard extends StatelessWidget {
             children: <Widget>[
               _HistoryThumbnail(
                 imagePath: record.sourceImagePath,
+                hasImage: hasImage,
                 recognizedContent: record.recognizedContent,
               ),
               const SizedBox(width: HistoryScreenStyles.cardContentSpacing),
@@ -1266,10 +1282,14 @@ class _HistoryCard extends StatelessWidget {
 class _HistoryThumbnail extends StatelessWidget {
   const _HistoryThumbnail({
     required this.imagePath,
+    required this.hasImage,
     required this.recognizedContent,
   });
 
   final String? imagePath;
+
+  /// Whether [imagePath] pointed to an existing file when history loaded.
+  final bool hasImage;
   final String recognizedContent;
 
   @override
@@ -1286,9 +1306,17 @@ class _HistoryThumbnail extends StatelessWidget {
         borderRadius: HistoryScreenStyles.previewRadius,
         border: HistoryScreenStyles.previewBorder,
       ),
-      child: normalizedPath.isNotEmpty && imageFile.existsSync()
+      child: hasImage
           ? Image.file(
               imageFile,
+              // Decode near thumbnail size instead of full resolution. Twice
+              // the long side keeps cover-cropped images sharp for wide
+              // photos too.
+              cacheWidth:
+                  (HistoryScreenStyles.previewHeight *
+                          MediaQuery.devicePixelRatioOf(context) *
+                          2)
+                      .round(),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
               errorBuilder:
@@ -1489,6 +1517,114 @@ class _HistoryMathPreview extends StatelessWidget {
   }
 }
 
+/// Placeholder with the same date title, card size and spacing as the
+/// history list.
+class _HistoryListSkeleton extends StatelessWidget {
+  const _HistoryListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _HistoryText.loadingLabel,
+      child: SkeletonScope(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(
+              width: double.infinity,
+              child: SkeletonLine(
+                style: HistoryScreenStyles.groupTitleStyle,
+                widthFactor: 0.25,
+                baseColor: HistoryScreenStyles.skeletonBaseColor,
+                highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+              ),
+            ),
+            const SizedBox(height: HistoryScreenStyles.groupTitleSpacing),
+            ...List<Widget>.generate(HistoryScreenStyles.skeletonCardCount, (
+              int index,
+            ) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index == HistoryScreenStyles.skeletonCardCount - 1
+                      ? 0
+                      : HistoryScreenStyles.cardSpacing,
+                ),
+                child: const _HistoryCardSkeleton(),
+              );
+            }, growable: false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryCardSkeleton extends StatelessWidget {
+  const _HistoryCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: HistoryScreenStyles.cardPadding,
+      decoration: const BoxDecoration(
+        color: HistoryScreenStyles.cardBackgroundColor,
+        borderRadius: HistoryScreenStyles.cardRadius,
+        border: HistoryScreenStyles.cardBorder,
+        boxShadow: HistoryScreenStyles.cardShadow,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SkeletonBox(
+            width: HistoryScreenStyles.previewWidth,
+            height: HistoryScreenStyles.previewHeight,
+            borderRadius: HistoryScreenStyles.previewRadius,
+            baseColor: HistoryScreenStyles.skeletonBaseColor,
+            highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+          ),
+          SizedBox(width: HistoryScreenStyles.cardContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardTitleStyle,
+                  widthFactor: 0.7,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.cardMetadataSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardMetadataStyle,
+                  widthFactor: 0.45,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.cardDateSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardDateStyle,
+                  widthFactor: 0.55,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.braillePreviewSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.brailleStyle,
+                  widthFactor: 0.85,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+              ],
+            ),
+          ),
+          // Keeps the space of the card's action menu button.
+          SizedBox(width: kMinInteractiveDimension),
+        ],
+      ),
+    );
+  }
+}
+
 class _HistoryStateView extends StatelessWidget {
   const _HistoryStateView({
     required this.icon,
@@ -1496,7 +1632,6 @@ class _HistoryStateView extends StatelessWidget {
     this.description,
     this.actionLabel,
     this.onActionPressed,
-    this.showProgressIndicator = false,
   });
 
   final IconData icon;
@@ -1504,7 +1639,6 @@ class _HistoryStateView extends StatelessWidget {
   final String? description;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
-  final bool showProgressIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -1512,16 +1646,11 @@ class _HistoryStateView extends StatelessWidget {
       padding: HistoryScreenStyles.statePadding,
       child: Column(
         children: <Widget>[
-          if (showProgressIndicator)
-            const CircularProgressIndicator(
-              color: HistoryScreenStyles.primaryColor,
-            )
-          else
-            Icon(
-              icon,
-              size: HistoryScreenStyles.stateIconSize,
-              color: HistoryScreenStyles.primaryColor,
-            ),
+          Icon(
+            icon,
+            size: HistoryScreenStyles.stateIconSize,
+            color: HistoryScreenStyles.primaryColor,
+          ),
           const SizedBox(height: 14),
           Text(
             title,

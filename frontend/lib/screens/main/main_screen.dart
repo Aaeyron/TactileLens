@@ -6,6 +6,7 @@ import '../home/home_screen.dart';
 import '../materials/material_screen.dart';
 import '../profile/profile_screen.dart';
 import '../scan/scan_screen.dart';
+import 'tab_data_cache.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,6 +21,13 @@ class _MainScreenState extends State<MainScreen> {
   int currentIndex = 0;
   int previousIndex = 0;
 
+  // 1: the new tab enters from the right (higher index), -1: from the left.
+  double _slideDirection = 1;
+
+  // Lives as long as this session's MainScreen, so logging out (which
+  // removes MainScreen) discards it.
+  final TabDataCache _tabDataCache = TabDataCache();
+
   late final List<Widget> pages;
 
   @override
@@ -28,6 +36,7 @@ class _MainScreenState extends State<MainScreen> {
 
     pages = <Widget>[
       HomeScreen(
+        cache: _tabDataCache,
         onScanPressed: () {
           _selectPage(2);
         },
@@ -38,11 +47,17 @@ class _MainScreenState extends State<MainScreen> {
           _selectPage(3);
         },
       ),
-      MaterialsScreen(onBack: _returnToPreviousPage),
+      MaterialsScreen(cache: _tabDataCache, onBack: _returnToPreviousPage),
       ScanScreen(onBack: _returnToPreviousPage),
-      HistoryScreen(onBack: _returnToPreviousPage),
-      const ProfileScreen(),
+      HistoryScreen(cache: _tabDataCache, onBack: _returnToPreviousPage),
+      ProfileScreen(cache: _tabDataCache),
     ];
+  }
+
+  @override
+  void dispose() {
+    _tabDataCache.clear();
+    super.dispose();
   }
 
   void _selectPage(int index) {
@@ -51,6 +66,7 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     setState(() {
+      _slideDirection = index > currentIndex ? 1 : -1;
       previousIndex = currentIndex;
       currentIndex = index;
     });
@@ -58,8 +74,44 @@ class _MainScreenState extends State<MainScreen> {
 
   void _returnToPreviousPage() {
     setState(() {
+      _slideDirection = previousIndex > currentIndex ? 1 : -1;
       currentIndex = previousIndex;
     });
+  }
+
+  /// Slides the selected tab in horizontally while the previous one slides
+  /// out the other way. The previous tab is disposed when its slide ends,
+  /// so tabs still reload on return and the Scan tab still releases the
+  /// camera when left. Reduced motion switches instantly.
+  Widget _buildTabBody(BuildContext context) {
+    final bool reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final Key currentKey = ValueKey<int>(currentIndex);
+
+    return AnimatedSwitcher(
+      duration: reduceMotion ? Duration.zero : MainStyles.tabSlideDuration,
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(children: <Widget>[...previousChildren, ?currentChild]);
+      },
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        // The outgoing tab runs this animation in reverse, so it leaves
+        // toward the side opposite to where the new tab comes from.
+        final double startX = child.key == currentKey
+            ? _slideDirection
+            : -_slideDirection;
+
+        return SlideTransition(
+          position: Tween<Offset>(begin: Offset(startX, 0), end: Offset.zero)
+              .animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: MainStyles.tabSlideCurve,
+                ),
+              ),
+          child: child,
+        );
+      },
+      child: KeyedSubtree(key: currentKey, child: pages[currentIndex]),
+    );
   }
 
   @override
@@ -69,7 +121,7 @@ class _MainScreenState extends State<MainScreen> {
     final bool shouldHideNavigation = currentIndex == 2 || isKeyboardVisible;
 
     return Scaffold(
-      body: pages[currentIndex],
+      body: _buildTabBody(context),
       floatingActionButton: shouldHideNavigation
           ? null
           : Transform.translate(

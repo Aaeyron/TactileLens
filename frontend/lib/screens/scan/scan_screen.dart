@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
 import '../../services/ai/ai_service.dart';
@@ -225,7 +224,9 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
-    _isCapturePending = true;
+    setState(() {
+      _isCapturePending = true;
+    });
 
     try {
       final File capturedImage = await _cameraService.captureImage(
@@ -245,7 +246,13 @@ class _ScanScreenState extends State<ScanScreen> {
         _showScanError('Unable to capture the document. Please try again.');
       }
     } finally {
-      _isCapturePending = false;
+      if (mounted) {
+        setState(() {
+          _isCapturePending = false;
+        });
+      } else {
+        _isCapturePending = false;
+      }
     }
   }
 
@@ -618,100 +625,10 @@ class _ScanScreenState extends State<ScanScreen> {
       return selectedImage;
     }
 
-    final bytes = await selectedImage.readAsBytes();
-
-    final img.Image? decodedImage = img.decodeImage(bytes);
-
-    if (decodedImage == null) {
-      throw const FormatException('Unable to decode the selected image.');
-    }
-
-    /*
- * This is a no-op for normalized camera PNG files and physically
- * rotates uploaded JPEG files according to their EXIF orientation.
- * The crop preview and crop service must use identical dimensions.
- */
-    final img.Image normalizedImage = img.bakeOrientation(decodedImage);
-
-    final Rect actualRegion = _mapPreviewRegionToImage(
+    return _imageCropService.cropPreviewRegion(
+      imageFile: selectedImage,
       selectedRegion: selectedRegion,
       previewSize: previewSize,
-      imageSize: Size(
-        normalizedImage.width.toDouble(),
-        normalizedImage.height.toDouble(),
-      ),
-    );
-
-    return _imageCropService.cropImage(
-      imageFile: selectedImage,
-      cropRect: actualRegion,
-    );
-  }
-
-  Rect _mapPreviewRegionToImage({
-    required Rect selectedRegion,
-    required Size previewSize,
-    required Size imageSize,
-  }) {
-    if (previewSize.isEmpty || imageSize.isEmpty) {
-      throw const FormatException('Invalid image or preview dimensions.');
-    }
-
-    final double widthScale = previewSize.width / imageSize.width;
-
-    final double heightScale = previewSize.height / imageSize.height;
-
-    final double coverScale = widthScale > heightScale
-        ? widthScale
-        : heightScale;
-
-    final Size displayedImageSize = Size(
-      imageSize.width * coverScale,
-      imageSize.height * coverScale,
-    );
-
-    final Offset displayedImageOffset = Offset(
-      (previewSize.width - displayedImageSize.width) / 2,
-      (previewSize.height - displayedImageSize.height) / 2,
-    );
-
-    final Rect previewBounds = Offset.zero & previewSize;
-
-    final Rect clippedRegion = selectedRegion.intersect(previewBounds);
-
-    if (clippedRegion.isEmpty) {
-      throw const FormatException('The selected crop area is invalid.');
-    }
-
-    final double left =
-        ((clippedRegion.left - displayedImageOffset.dx) / coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double top =
-        ((clippedRegion.top - displayedImageOffset.dy) / coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    final double right =
-        ((clippedRegion.right - displayedImageOffset.dx) / coverScale)
-            .clamp(0.0, imageSize.width)
-            .toDouble();
-
-    final double bottom =
-        ((clippedRegion.bottom - displayedImageOffset.dy) / coverScale)
-            .clamp(0.0, imageSize.height)
-            .toDouble();
-
-    if (right <= left || bottom <= top) {
-      throw const FormatException('The selected crop area is too small.');
-    }
-
-    return Rect.fromLTRB(
-      left.roundToDouble(),
-      top.roundToDouble(),
-      right.roundToDouble(),
-      bottom.roundToDouble(),
     );
   }
 
@@ -846,15 +763,20 @@ class _ScanScreenState extends State<ScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ScanScreenStyles.backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            _buildHeader(),
-            Expanded(child: _buildCameraArea()),
-            _buildBottomControls(),
-          ],
+    // Block the system back gesture only while a scan runs, so leaving
+    // cannot interrupt it. The header back button is disabled likewise.
+    return PopScope(
+      canPop: !_isProcessing,
+      child: Scaffold(
+        backgroundColor: ScanScreenStyles.backgroundColor,
+        body: SafeArea(
+          child: Column(
+            children: <Widget>[
+              _buildHeader(),
+              Expanded(child: _buildCameraArea()),
+              _buildBottomControls(),
+            ],
+          ),
         ),
       ),
     );
@@ -1016,7 +938,7 @@ class _ScanScreenState extends State<ScanScreen> {
             icon: _hasSelectedImage
                 ? Icons.document_scanner_rounded
                 : Icons.camera_alt_rounded,
-            isProcessing: _isProcessing,
+            showProgress: _isCapturePending,
             onPressed: _isProcessing
                 ? null
                 : _hasSelectedImage
@@ -1196,13 +1118,16 @@ class _CaptureButton extends StatefulWidget {
   const _CaptureButton({
     required this.semanticLabel,
     required this.icon,
-    required this.isProcessing,
+    required this.showProgress,
     required this.onPressed,
   });
 
   final String semanticLabel;
   final IconData icon;
-  final bool isProcessing;
+
+  /// Shows a spinner instead of the icon (used while a photo is captured).
+  /// During a scan the processing overlay is the only loading indicator.
+  final bool showProgress;
   final VoidCallback? onPressed;
 
   @override
@@ -1239,63 +1164,71 @@ class _CaptureButtonState extends State<_CaptureButton> {
         onTapUp: widget.onPressed == null ? null : (_) => _setPressed(false),
         onTapCancel: widget.onPressed == null ? null : () => _setPressed(false),
         customBorder: const CircleBorder(),
-        child: AnimatedScale(
-          scale: reduceMotion || !_isPressed ? 1.0 : 0.95,
+        child: AnimatedOpacity(
+          // Dimmed while disabled (during a scan), like the side controls.
+          opacity: widget.onPressed == null
+              ? ScanScreenStyles.disabledCaptureOpacity
+              : 1.0,
           duration: animationDuration,
           curve: Curves.easeOutCubic,
-          child: Container(
-            width: ScanScreenStyles.captureOuterSize,
-            height: ScanScreenStyles.captureOuterSize,
-            decoration: BoxDecoration(
-              color: ScanScreenStyles.surfaceColor,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: ScanScreenStyles.primaryColor,
-                width: ScanScreenStyles.captureOuterBorderWidth,
-              ),
-              boxShadow: ScanScreenStyles.captureShadow,
-            ),
-            alignment: Alignment.center,
+          child: AnimatedScale(
+            scale: reduceMotion || !_isPressed ? 1.0 : 0.95,
+            duration: animationDuration,
+            curve: Curves.easeOutCubic,
             child: Container(
-              width: ScanScreenStyles.captureMiddleSize,
-              height: ScanScreenStyles.captureMiddleSize,
+              width: ScanScreenStyles.captureOuterSize,
+              height: ScanScreenStyles.captureOuterSize,
               decoration: BoxDecoration(
                 color: ScanScreenStyles.surfaceColor,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: ScanScreenStyles.primarySoftColor,
-                  width: ScanScreenStyles.captureInnerBorderWidth,
+                  color: ScanScreenStyles.primaryColor,
+                  width: ScanScreenStyles.captureOuterBorderWidth,
                 ),
+                boxShadow: ScanScreenStyles.captureShadow,
               ),
               alignment: Alignment.center,
-              child: SizedBox(
-                width: ScanScreenStyles.captureInnerSize,
-                height: ScanScreenStyles.captureInnerSize,
-                child: Center(
-                  child: widget.isProcessing
-                      ? const CircularProgressIndicator(
-                          strokeWidth:
-                              ScanScreenStyles.processingIndicatorWidth,
-                          color: ScanScreenStyles.primaryColor,
-                        )
-                      : AnimatedSwitcher(
-                          duration: animationDuration,
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeOutCubic,
-                          transitionBuilder:
-                              (Widget child, Animation<double> animation) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                );
-                              },
-                          child: Icon(
-                            widget.icon,
-                            key: ValueKey<IconData>(widget.icon),
-                            size: ScanScreenStyles.captureIconSize,
+              child: Container(
+                width: ScanScreenStyles.captureMiddleSize,
+                height: ScanScreenStyles.captureMiddleSize,
+                decoration: BoxDecoration(
+                  color: ScanScreenStyles.surfaceColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: ScanScreenStyles.primarySoftColor,
+                    width: ScanScreenStyles.captureInnerBorderWidth,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: ScanScreenStyles.captureInnerSize,
+                  height: ScanScreenStyles.captureInnerSize,
+                  child: Center(
+                    child: widget.showProgress
+                        ? const CircularProgressIndicator(
+                            strokeWidth:
+                                ScanScreenStyles.processingIndicatorWidth,
                             color: ScanScreenStyles.primaryColor,
+                          )
+                        : AnimatedSwitcher(
+                            duration: animationDuration,
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeOutCubic,
+                            transitionBuilder:
+                                (Widget child, Animation<double> animation) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  );
+                                },
+                            child: Icon(
+                              widget.icon,
+                              key: ValueKey<IconData>(widget.icon),
+                              size: ScanScreenStyles.captureIconSize,
+                              color: ScanScreenStyles.primaryColor,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),

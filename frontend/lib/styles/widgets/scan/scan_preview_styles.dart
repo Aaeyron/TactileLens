@@ -15,7 +15,7 @@ abstract final class ScanPreviewStyles {
 
   /*
    * Keep this synchronized with the cover-scaling calculation in
-   * ScanScreen._mapPreviewRegionToImage().
+   * ImageCropService.mapPreviewRegionToImage().
    */
   static const BoxFit imageFit = BoxFit.cover;
 
