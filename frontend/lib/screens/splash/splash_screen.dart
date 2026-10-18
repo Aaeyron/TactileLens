@@ -186,55 +186,71 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: SplashScreenStyles.backgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: SplashScreenStyles.screenPadding,
-          child: Column(
-            children: <Widget>[
-              const Spacer(flex: 3),
-              FadeTransition(
-                opacity: _logoOpacity,
-                child: ScaleTransition(
-                  scale: _logoScale,
-                  child: const _LogoCard(),
-                ),
-              ),
-              const SizedBox(height: SplashScreenStyles.titleTopSpacing),
-              FadeTransition(
-                opacity: _brandingOpacity,
-                child: SlideTransition(
-                  position: _brandingPosition,
-                  child: const _BrandingContent(),
-                ),
-              ),
-              const Spacer(flex: 4),
-              AnimatedSwitcher(
-                duration: SplashScreenStyles.transitionDuration,
-                switchInCurve: SplashScreenStyles.switchCurve,
-                switchOutCurve: SplashScreenStyles.switchCurve,
-                transitionBuilder:
-                    (Widget child, Animation<double> animation) {
-                  final Animation<Offset> position = Tween<Offset>(
-                    begin: SplashScreenStyles.switchBeginOffset,
-                    end: Offset.zero,
-                  ).animate(animation);
-
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: position,
-                      child: child,
+      body: Stack(
+        children: <Widget>[
+          Center(
+            child: Padding(
+              padding: SplashScreenStyles.screenPadding,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  FadeTransition(
+                    opacity: _logoOpacity,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: const _LogoCard(),
                     ),
-                  );
-                },
-                child: _isLoaded
-                    ? _GetStartedButton(onPressed: _openAuthentication)
-                    : const SizedBox(height: SplashScreenStyles.buttonHeight),
+                  ),
+                  const SizedBox(height: SplashScreenStyles.titleTopSpacing),
+                  FadeTransition(
+                    opacity: _brandingOpacity,
+                    child: SlideTransition(
+                      position: _brandingPosition,
+                      child: const _BrandingContent(),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: SplashScreenStyles.bottomPadding),
-            ],
+            ),
           ),
-        ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: SplashScreenStyles.screenHorizontalPadding,
+                  right: SplashScreenStyles.screenHorizontalPadding,
+                  bottom: SplashScreenStyles.bottomPadding,
+                ),
+                child: AnimatedSwitcher(
+                  duration: SplashScreenStyles.transitionDuration,
+                  switchInCurve: SplashScreenStyles.switchCurve,
+                  switchOutCurve: SplashScreenStyles.switchCurve,
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    final Animation<Offset> position = Tween<Offset>(
+                      begin: SplashScreenStyles.switchBeginOffset,
+                      end: Offset.zero,
+                    ).animate(animation);
+
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: position,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _isLoaded
+                      ? _GetStartedButton(onPressed: _openAuthentication)
+                      : const SizedBox(height: SplashScreenStyles.buttonHeight),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
