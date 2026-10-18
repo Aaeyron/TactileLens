@@ -377,9 +377,16 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // The preview is never wider than the screen and cannot be zoomed.
+    final int cacheWidth =
+        (MediaQuery.sizeOf(context).width *
+                MediaQuery.devicePixelRatioOf(context))
+            .round();
+
     if (_isGuestSession == false && _material.id != null) {
       return MaterialFileImage(
         materialId: _material.id!,
+        cacheWidth: cacheWidth,
         fit: MaterialDetailScreenStyles.imagePreviewFit,
         errorBuilder: _buildImageError,
       );
@@ -387,6 +394,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
     return Image.file(
       File(_material.filePath),
+      cacheWidth: cacheWidth,
       fit: MaterialDetailScreenStyles.imagePreviewFit,
       errorBuilder: _buildImageError,
     );
