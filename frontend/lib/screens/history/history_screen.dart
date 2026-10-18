@@ -129,6 +129,14 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   List<HistoryRecord> _records = <HistoryRecord>[];
 
+  // The whole list rebuilds on every search keystroke, so per-record
+  // checks are remembered. Renamed records are new objects, which keeps
+  // the math cache correct; image checks reset whenever history reloads.
+  final Expando<bool> _containsMathCache = Expando<bool>();
+  final Map<String, bool> _imageExistsCache = <String, bool>{};
+
+  static final RegExp _arithmeticPattern = RegExp(r'\d+\s*[+\-*/]\s*\d+');
+
   _HistoryFilter _selectedFilter = _HistoryFilter.all;
   _HistorySort _selectedSort = _HistorySort.newest;
 
@@ -189,6 +197,10 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   bool _containsMath(HistoryRecord record) {
+    return _containsMathCache[record] ??= _detectMath(record);
+  }
+
+  bool _detectMath(HistoryRecord record) {
     final String content = record.recognizedContent.toLowerCase();
 
     return content.contains(r'\frac') ||
@@ -197,7 +209,20 @@ class _HistoryScreenState extends State<HistoryScreen>
         content.contains(r'\int') ||
         content.contains('=') ||
         content.contains('^') ||
-        RegExp(r'\d+\s*[+\-*/]\s*\d+').hasMatch(content);
+        _arithmeticPattern.hasMatch(content);
+  }
+
+  bool _hasImageFile(String? imagePath) {
+    final String normalizedPath = imagePath?.trim() ?? '';
+
+    if (normalizedPath.isEmpty) {
+      return false;
+    }
+
+    return _imageExistsCache.putIfAbsent(
+      normalizedPath,
+      () => File(normalizedPath).existsSync(),
+    );
   }
 
   bool _matchesSelectedFilter(HistoryRecord record) {
@@ -251,11 +276,11 @@ class _HistoryScreenState extends State<HistoryScreen>
     return records;
   }
 
-  Map<String, List<HistoryRecord>> get _groupedRecords {
+  Map<String, List<HistoryRecord>> _groupRecords(List<HistoryRecord> records) {
     final Map<String, List<HistoryRecord>> groups =
         <String, List<HistoryRecord>>{};
 
-    for (final HistoryRecord record in _visibleRecords) {
+    for (final HistoryRecord record in records) {
       final String group = _dateGroupLabel(record.createdAt);
 
       groups.putIfAbsent(group, () => <HistoryRecord>[]);
@@ -317,6 +342,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       }
 
       setState(() {
+        _imageExistsCache.clear();
         _records = page.records;
         _isLoading = false;
       });
@@ -366,6 +392,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       }
 
       setState(() {
+        _imageExistsCache.clear();
         _records = page.records;
         _errorMessage = null;
       });
@@ -976,7 +1003,9 @@ class _HistoryScreenState extends State<HistoryScreen>
       );
     }
 
-    final Map<String, List<HistoryRecord>> groups = _groupedRecords;
+    final Map<String, List<HistoryRecord>> groups = _groupRecords(
+      visibleRecords,
+    );
 
     return Semantics(
       label: _HistoryText.historyListSemanticLabel,
@@ -1006,6 +1035,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                         ),
                         child: _HistoryCard(
                           record: record,
+                          hasImage: _hasImageFile(record.sourceImagePath),
                           badge: _recordBadge(record),
                           brailleCode: _brailleCode(record),
                           formattedDate: _formatRecordDate(record.createdAt),
@@ -1101,6 +1131,7 @@ class _HistoryFilterButton extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.record,
+    required this.hasImage,
     required this.badge,
     required this.brailleCode,
     required this.formattedDate,
@@ -1110,6 +1141,7 @@ class _HistoryCard extends StatelessWidget {
   });
 
   final HistoryRecord record;
+  final bool hasImage;
   final String badge;
   final String brailleCode;
   final String formattedDate;
@@ -1143,6 +1175,7 @@ class _HistoryCard extends StatelessWidget {
             children: <Widget>[
               _HistoryThumbnail(
                 imagePath: record.sourceImagePath,
+                hasImage: hasImage,
                 recognizedContent: record.recognizedContent,
               ),
               const SizedBox(width: HistoryScreenStyles.cardContentSpacing),
@@ -1266,10 +1299,14 @@ class _HistoryCard extends StatelessWidget {
 class _HistoryThumbnail extends StatelessWidget {
   const _HistoryThumbnail({
     required this.imagePath,
+    required this.hasImage,
     required this.recognizedContent,
   });
 
   final String? imagePath;
+
+  /// Whether [imagePath] pointed to an existing file when history loaded.
+  final bool hasImage;
   final String recognizedContent;
 
   @override
@@ -1286,7 +1323,7 @@ class _HistoryThumbnail extends StatelessWidget {
         borderRadius: HistoryScreenStyles.previewRadius,
         border: HistoryScreenStyles.previewBorder,
       ),
-      child: normalizedPath.isNotEmpty && imageFile.existsSync()
+      child: hasImage
           ? Image.file(
               imageFile,
               // Decode near thumbnail size instead of full resolution. Twice
