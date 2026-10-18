@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/profile_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/profile/logout_dialog.dart';
 import '../auth/auth_screen.dart';
 import 'about_tactilelens_screen.dart';
@@ -12,6 +13,7 @@ import 'settings_screen.dart';
 import 'terms_policy_screen.dart';
 
 abstract final class _ProfileText {
+  static const String loadingLabel = 'Loading your profile...';
   static const String exitGuestModeTitle = 'Exit Guest Mode';
   static const String exitGuestModeDescription = 'Return to the sign-in screen';
 
@@ -396,14 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: ProfileStyles.headerRadius,
       ),
       child: _isLoadingProfile
-          ? const SizedBox(
-              height: ProfileStyles.headerContentHeight,
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: ProfileStyles.surfaceColor,
-                ),
-              ),
-            )
+          ? const _ProfileHeaderSkeleton()
           : SizedBox(
               height: ProfileStyles.headerContentHeight,
               child: Stack(
@@ -471,6 +466,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Placeholder for the name, role and avatar, placed exactly where the
+/// loaded header content appears.
+class _ProfileHeaderSkeleton extends StatelessWidget {
+  const _ProfileHeaderSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _ProfileText.loadingLabel,
+      child: const SizedBox(
+        height: ProfileStyles.headerContentHeight,
+        child: SkeletonScope(
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                left: 0,
+                right:
+                    ProfileStyles.headerAvatarSize +
+                    ProfileStyles.headerAvatarSpacing,
+                bottom: ProfileStyles.headerIdentityBottom,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SkeletonLine(
+                      style: ProfileStyles.profileNameStyle,
+                      widthFactor: 0.7,
+                      baseColor: ProfileStyles.headerSkeletonBaseColor,
+                      highlightColor:
+                          ProfileStyles.headerSkeletonHighlightColor,
+                    ),
+                    SizedBox(height: ProfileStyles.profileRoleSpacing),
+                    SkeletonLine(
+                      style: ProfileStyles.profileRoleStyle,
+                      widthFactor: 0.4,
+                      baseColor: ProfileStyles.headerSkeletonBaseColor,
+                      highlightColor:
+                          ProfileStyles.headerSkeletonHighlightColor,
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: ProfileStyles.headerAvatarBottom,
+                child: SkeletonBox(
+                  width: ProfileStyles.headerAvatarSize,
+                  height: ProfileStyles.headerAvatarSize,
+                  isCircle: true,
+                  baseColor: ProfileStyles.headerSkeletonBaseColor,
+                  highlightColor: ProfileStyles.headerSkeletonHighlightColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

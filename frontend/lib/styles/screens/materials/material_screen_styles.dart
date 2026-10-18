@@ -23,6 +23,14 @@ abstract final class MaterialScreenStyles {
   static const Color recentCardBackgroundColor = Colors.white;
   static const Color thumbnailBackgroundColor = Color(0xFFF2F6FC);
 
+  // Loading skeleton bars.
+  static const Color skeletonBaseColor = outlineColor;
+  static const Color skeletonHighlightColor = backgroundColor;
+
+  /// Placeholder folder cards and material cards shown while loading.
+  static const int skeletonFolderCount = 2;
+  static const int skeletonMaterialCount = 3;
+
   static const Color blueFolderBackgroundColor = Colors.white;
   static const Color blueFolderOutlineColor = outlineColor;
 

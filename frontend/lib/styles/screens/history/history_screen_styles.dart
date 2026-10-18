@@ -20,6 +20,13 @@ abstract final class HistoryScreenStyles {
   static const Color cardBackgroundColor = surfaceColor;
   static const Color previewBackgroundColor = Color(0xFFF2F6FC);
 
+  // Loading skeleton bars.
+  static const Color skeletonBaseColor = outlineColor;
+  static const Color skeletonHighlightColor = backgroundColor;
+
+  /// Number of placeholder cards shown while history loads.
+  static const int skeletonCardCount = 3;
+
   // ============================================================
   // ICONS
   // ============================================================

@@ -7,6 +7,7 @@ import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
 import '../../styles/screens/home/home_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
 
 abstract final class _HomeText {
@@ -357,17 +358,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const Spacer(),
-                    Text(
-                      '${_HomeText.greetingPrefix}, $_displayName!',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: HomeStyles.greetingStyle,
-                    ),
-                    const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
-                    Text(
-                      _greetingDescription(),
-                      style: HomeStyles.greetingDescriptionStyle,
-                    ),
+                    if (_isLoading)
+                      const _GreetingSkeleton()
+                    else ...<Widget>[
+                      Text(
+                        '${_HomeText.greetingPrefix}, $_displayName!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: HomeStyles.greetingStyle,
+                      ),
+                      const SizedBox(
+                        height: HomeStyles.greetingSubtitleSpacing,
+                      ),
+                      Text(
+                        _greetingDescription(),
+                        style: HomeStyles.greetingDescriptionStyle,
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -503,12 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentActivity() {
     if (_isLoading) {
-      return const _StateCard(
-        showProgress: true,
-        icon: HomeStyles.historyIcon,
-        title: _HomeText.loadingTitle,
-        description: _HomeText.loadingDescription,
-      );
+      return const _RecentActivitySkeleton();
     }
 
     if (_errorMessage != null) {
@@ -838,6 +840,132 @@ class _ThumbnailFallback extends StatelessWidget {
   }
 }
 
+/// Placeholder for the greeting and its description on the blue header.
+class _GreetingSkeleton extends StatelessWidget {
+  const _GreetingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SkeletonLine(
+            style: HomeStyles.greetingStyle,
+            widthFactor: 0.55,
+            baseColor: HomeStyles.headerSkeletonBaseColor,
+            highlightColor: HomeStyles.headerSkeletonHighlightColor,
+          ),
+          SizedBox(height: HomeStyles.greetingSubtitleSpacing),
+          SkeletonLine(
+            style: HomeStyles.greetingDescriptionStyle,
+            widthFactor: 0.75,
+            baseColor: HomeStyles.headerSkeletonBaseColor,
+            highlightColor: HomeStyles.headerSkeletonHighlightColor,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Placeholder with the same list card, rows and dividers as the recent
+/// activity list.
+class _RecentActivitySkeleton extends StatelessWidget {
+  const _RecentActivitySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '${_HomeText.loadingTitle}. ${_HomeText.loadingDescription}',
+      child: SkeletonScope(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: HomeStyles.surfaceColor,
+            borderRadius: HomeStyles.recentListRadius,
+            border: HomeStyles.cardBorder,
+            boxShadow: HomeStyles.subtleCardShadow,
+          ),
+          child: Column(
+            children: List<Widget>.generate(HomeStyles.maximumRecentMaterials, (
+              int index,
+            ) {
+              return Column(
+                children: <Widget>[
+                  const _RecentActivityRowSkeleton(),
+                  if (index < HomeStyles.maximumRecentMaterials - 1)
+                    const Divider(
+                      height: HomeStyles.recentDividerHeight,
+                      thickness: HomeStyles.recentDividerThickness,
+                      indent: HomeStyles.recentDividerIndent,
+                      color: HomeStyles.dividerColor,
+                    ),
+                ],
+              );
+            }, growable: false),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentActivityRowSkeleton extends StatelessWidget {
+  const _RecentActivityRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: HomeStyles.recentCardPadding,
+      child: Row(
+        children: <Widget>[
+          SkeletonBox(
+            width: HomeStyles.thumbnailWidth,
+            height: HomeStyles.thumbnailHeight,
+            borderRadius: HomeStyles.thumbnailRadius,
+            baseColor: HomeStyles.skeletonBaseColor,
+            highlightColor: HomeStyles.skeletonHighlightColor,
+          ),
+          SizedBox(width: HomeStyles.recentContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SkeletonLine(
+                  style: HomeStyles.recentTitleStyle,
+                  widthFactor: 0.7,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HomeStyles.recentMetadataSpacing),
+                SkeletonLine(
+                  style: HomeStyles.recentMetadataStyle,
+                  widthFactor: 0.45,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HomeStyles.recentDateSpacing),
+                SkeletonLine(
+                  style: HomeStyles.relativeTimeStyle,
+                  widthFactor: 0.3,
+                  baseColor: HomeStyles.skeletonBaseColor,
+                  highlightColor: HomeStyles.skeletonHighlightColor,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: HomeStyles.recentTrailingSpacing),
+          Icon(
+            HomeStyles.forwardIcon,
+            color: HomeStyles.recentArrowColor,
+            size: HomeStyles.recentArrowSize,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StateCard extends StatelessWidget {
   const _StateCard({
     required this.icon,
@@ -845,7 +973,6 @@ class _StateCard extends StatelessWidget {
     required this.description,
     this.actionLabel,
     this.onActionPressed,
-    this.showProgress = false,
   });
 
   final IconData icon;
@@ -853,7 +980,6 @@ class _StateCard extends StatelessWidget {
   final String description;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
-  final bool showProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -868,30 +994,20 @@ class _StateCard extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          if (showProgress)
-            const SizedBox(
-              width: HomeStyles.stateProgressSize,
-              height: HomeStyles.stateProgressSize,
-              child: CircularProgressIndicator(
-                color: HomeStyles.primaryColor,
-                strokeWidth: HomeStyles.stateProgressStrokeWidth,
-              ),
-            )
-          else
-            Container(
-              width: HomeStyles.stateIconContainerSize,
-              height: HomeStyles.stateIconContainerSize,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: HomeStyles.secondaryActionIconBackgroundColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: HomeStyles.stateIconSize,
-                color: HomeStyles.primaryColor,
-              ),
+          Container(
+            width: HomeStyles.stateIconContainerSize,
+            height: HomeStyles.stateIconContainerSize,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: HomeStyles.secondaryActionIconBackgroundColor,
+              shape: BoxShape.circle,
             ),
+            child: Icon(
+              icon,
+              size: HomeStyles.stateIconSize,
+              color: HomeStyles.primaryColor,
+            ),
+          ),
           const SizedBox(height: HomeStyles.stateContentSpacing),
           Text(
             title,

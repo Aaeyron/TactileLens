@@ -8,6 +8,7 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/history/history_model.dart';
 import '../../services/history/history_service.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
+import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
 
 abstract final class _HistoryText {
@@ -923,11 +924,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const _HistoryStateView(
-        icon: HistoryScreenStyles.historyIcon,
-        title: _HistoryText.loadingLabel,
-        showProgressIndicator: true,
-      );
+      return const _HistoryListSkeleton();
     }
 
     if (_errorMessage != null) {
@@ -1491,6 +1488,114 @@ class _HistoryMathPreview extends StatelessWidget {
   }
 }
 
+/// Placeholder with the same date title, card size and spacing as the
+/// history list.
+class _HistoryListSkeleton extends StatelessWidget {
+  const _HistoryListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: _HistoryText.loadingLabel,
+      child: SkeletonScope(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const SizedBox(
+              width: double.infinity,
+              child: SkeletonLine(
+                style: HistoryScreenStyles.groupTitleStyle,
+                widthFactor: 0.25,
+                baseColor: HistoryScreenStyles.skeletonBaseColor,
+                highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+              ),
+            ),
+            const SizedBox(height: HistoryScreenStyles.groupTitleSpacing),
+            ...List<Widget>.generate(HistoryScreenStyles.skeletonCardCount, (
+              int index,
+            ) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index == HistoryScreenStyles.skeletonCardCount - 1
+                      ? 0
+                      : HistoryScreenStyles.cardSpacing,
+                ),
+                child: const _HistoryCardSkeleton(),
+              );
+            }, growable: false),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryCardSkeleton extends StatelessWidget {
+  const _HistoryCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: HistoryScreenStyles.cardPadding,
+      decoration: const BoxDecoration(
+        color: HistoryScreenStyles.cardBackgroundColor,
+        borderRadius: HistoryScreenStyles.cardRadius,
+        border: HistoryScreenStyles.cardBorder,
+        boxShadow: HistoryScreenStyles.cardShadow,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          SkeletonBox(
+            width: HistoryScreenStyles.previewWidth,
+            height: HistoryScreenStyles.previewHeight,
+            borderRadius: HistoryScreenStyles.previewRadius,
+            baseColor: HistoryScreenStyles.skeletonBaseColor,
+            highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+          ),
+          SizedBox(width: HistoryScreenStyles.cardContentSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardTitleStyle,
+                  widthFactor: 0.7,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.cardMetadataSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardMetadataStyle,
+                  widthFactor: 0.45,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.cardDateSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.cardDateStyle,
+                  widthFactor: 0.55,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+                SizedBox(height: HistoryScreenStyles.braillePreviewSpacing),
+                SkeletonLine(
+                  style: HistoryScreenStyles.brailleStyle,
+                  widthFactor: 0.85,
+                  baseColor: HistoryScreenStyles.skeletonBaseColor,
+                  highlightColor: HistoryScreenStyles.skeletonHighlightColor,
+                ),
+              ],
+            ),
+          ),
+          // Keeps the space of the card's action menu button.
+          SizedBox(width: kMinInteractiveDimension),
+        ],
+      ),
+    );
+  }
+}
+
 class _HistoryStateView extends StatelessWidget {
   const _HistoryStateView({
     required this.icon,
@@ -1498,7 +1603,6 @@ class _HistoryStateView extends StatelessWidget {
     this.description,
     this.actionLabel,
     this.onActionPressed,
-    this.showProgressIndicator = false,
   });
 
   final IconData icon;
@@ -1506,7 +1610,6 @@ class _HistoryStateView extends StatelessWidget {
   final String? description;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
-  final bool showProgressIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -1514,16 +1617,11 @@ class _HistoryStateView extends StatelessWidget {
       padding: HistoryScreenStyles.statePadding,
       child: Column(
         children: <Widget>[
-          if (showProgressIndicator)
-            const CircularProgressIndicator(
-              color: HistoryScreenStyles.primaryColor,
-            )
-          else
-            Icon(
-              icon,
-              size: HistoryScreenStyles.stateIconSize,
-              color: HistoryScreenStyles.primaryColor,
-            ),
+          Icon(
+            icon,
+            size: HistoryScreenStyles.stateIconSize,
+            color: HistoryScreenStyles.primaryColor,
+          ),
           const SizedBox(height: 14),
           Text(
             title,

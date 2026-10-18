@@ -58,6 +58,10 @@ abstract final class ProfileStyles {
 
   static const Color logoutIconBackgroundColor = Color(0xFFFFEEEE);
 
+  // Loading skeleton on the blue header: translucent white.
+  static const Color headerSkeletonBaseColor = Color(0x33FFFFFF);
+  static const Color headerSkeletonHighlightColor = Color(0x66FFFFFF);
+
   // ============================================================
   // ICONS
   // ============================================================
