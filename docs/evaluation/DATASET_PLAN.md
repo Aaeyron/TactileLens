@@ -92,9 +92,9 @@ To prevent ambiguity between planned goals and verified assets, all dataset repo
 3. **Successfully Annotated Images**: Images paired with complete annotations matching the respective sub-model format.
 4. **Usable Images**: Annotated images that have passed automated syntax checks (valid LaTeX, well-formed polygons, no NaN values).
 5. **Split Images**: Partitioned into fixed sets:
-   * **Train Set (70%)**: Used exclusively for training/fine-tuning.
-   * **Validation Set (15%)**: Used for hyperparameter tuning and early stopping.
-   * **Test Set (15%)**: Held out strictly for benchmark evaluation.
+   * **Train Set (80%)**: Used exclusively for training/fine-tuning.
+   * **Validation Set (10%)**: Used for hyperparameter tuning and early stopping.
+   * **Test Set (10%)**: Held out strictly for benchmark evaluation.
 
 ---
 
