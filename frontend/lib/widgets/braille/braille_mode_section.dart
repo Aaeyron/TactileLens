@@ -32,7 +32,11 @@ class BrailleModeSection extends StatefulWidget {
     this.initialView,
     this.onViewChanged,
     this.translator,
+    this.selectorLayout = BrailleModeSelectorLayout.chips,
   });
+
+  /// How the selector handed to [builder] is drawn.
+  final BrailleModeSelectorLayout selectorLayout;
 
   final List<DocumentPage> pages;
   final BrailleMode initialMode;
@@ -132,6 +136,7 @@ class _BrailleModeSectionState extends State<BrailleModeSection> {
     final BrailleModeView? view = _view;
 
     final Widget selector = BrailleModeSelector(
+      layout: widget.selectorLayout,
       selected: view?.mode ?? _requested,
       availability: _availability,
       showFallbackNote:

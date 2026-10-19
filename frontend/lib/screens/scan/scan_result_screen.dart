@@ -15,6 +15,8 @@ import '../../services/braille/braille_save_payload.dart';
 import '../../services/materials/material_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../widgets/braille/braille_mode_section.dart';
+import '../../widgets/braille/braille_mode_selector.dart';
+import '../../widgets/braille/text_braille_copy_menu.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 
 abstract final class _ScanResultText {
@@ -124,8 +126,6 @@ abstract final class _ScanResultText {
 
   static const String textAndBrailleSemanticLabel =
       'Recognized text with Braille beneath each word';
-
-  static const String copyTextLabel = 'Copy text';
 }
 
 class ScanResultScreen extends StatefulWidget {
@@ -206,36 +206,42 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
         // Read when saving; the section rebuilds itself.
         _shownBraille = view;
       },
+      selectorLayout: BrailleModeSelectorLayout.buttons,
       builder: (BuildContext context, BrailleModeView? view, Widget selector) {
+        final String braille = view?.combinedBraille ?? '';
+
         return _ResultSection(
           number: _ScanResultText.contentSectionNumber,
           title: _ScanResultText.textAndBrailleSectionTitle,
-          actions: <Widget>[
-            if (result.hasContent)
-              _buildCopyTextAction(
-                context,
-                label: _ScanResultText.copyTextLabel,
-              ),
-            if (result.hasBraille && view != null)
-              _buildCopyBrailleAction(
-                context,
-                content: view.combinedBraille,
-              ),
-          ],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              selector,
-              const SizedBox(height: ScanResultScreenStyles.compactSpacing),
-              if (view == null)
-                const BrailleModeLoadingPlaceholder()
-              else
-                TextBrailleLayoutView(
+          // Copying moved to a compact menu so the mode buttons can take
+          // the place of the copy buttons.
+          action: TextBrailleCopyMenu(
+            onCopyText: result.hasContent
+                ? () {
+                    _copyToClipboard(
+                      context: context,
+                      content: _combinedContent,
+                      confirmationMessage: _ScanResultText.contentCopiedMessage,
+                    );
+                  }
+                : null,
+            onCopyBraille: result.hasBraille && braille.isNotEmpty
+                ? () {
+                    _copyToClipboard(
+                      context: context,
+                      content: braille,
+                      confirmationMessage: _ScanResultText.brailleCopiedMessage,
+                    );
+                  }
+                : null,
+          ),
+          actions: <Widget>[selector],
+          child: view == null
+              ? const BrailleModeLoadingPlaceholder()
+              : TextBrailleLayoutView(
                   pages: view.pages,
                   semanticLabel: _ScanResultText.textAndBrailleSemanticLabel,
                 ),
-            ],
-          ),
         );
       },
     );

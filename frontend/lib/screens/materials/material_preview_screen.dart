@@ -8,6 +8,8 @@ import '../../models/braille/braille_mode.dart';
 import '../../services/braille/braille_mode_translator.dart';
 import '../../styles/widgets/braille/braille_mode_selector_styles.dart';
 import '../../widgets/braille/braille_mode_section.dart';
+import '../../widgets/braille/braille_mode_selector.dart';
+import '../../widgets/braille/text_braille_copy_menu.dart';
 import '../../widgets/document/document_layout_view.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
@@ -516,6 +518,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
     return BrailleModeSection(
       pages: _modePages,
       initialMode: _savedBrailleMode,
+      selectorLayout: BrailleModeSelectorLayout.buttons,
       builder: (BuildContext context, BrailleModeView? view, Widget selector) {
         // In the saved mode, copy exactly what was saved.
         final String braille = view == null
@@ -526,47 +529,36 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
 
         return _MaterialSection(
           title: MaterialDetailScreenStyles.textAndBrailleSectionTitle,
-          actions: <Widget>[
-            if (content.isNotEmpty)
-              _MaterialSectionAction(
-                label: MaterialDetailScreenStyles.copyTextLabel,
-                tooltip: MaterialDetailScreenStyles.copyContentTooltip,
-                onPressed: () {
-                  _copyToClipboard(
-                    content: content,
-                    confirmationMessage:
-                        MaterialDetailScreenStyles.contentCopiedMessage,
-                  );
-                },
-              ),
-            if (braille.isNotEmpty)
-              _MaterialSectionAction(
-                label: MaterialDetailScreenStyles.copyBrailleLabel,
-                tooltip: MaterialDetailScreenStyles.copyBrailleTooltip,
-                onPressed: () {
-                  _copyToClipboard(
-                    content: braille,
-                    confirmationMessage:
-                        MaterialDetailScreenStyles.brailleCopiedMessage,
-                  );
-                },
-              ),
-          ],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              selector,
-              const SizedBox(height: MaterialDetailScreenStyles.compactSpacing),
-              if (view == null)
-                const BrailleModeLoadingPlaceholder()
-              else
-                TextBrailleLayoutView(
+          // Copying moved to a compact menu so the mode buttons can take
+          // the place of the copy buttons.
+          action: TextBrailleCopyMenu(
+            onCopyText: content.isNotEmpty
+                ? () {
+                    _copyToClipboard(
+                      content: content,
+                      confirmationMessage:
+                          MaterialDetailScreenStyles.contentCopiedMessage,
+                    );
+                  }
+                : null,
+            onCopyBraille: braille.isNotEmpty
+                ? () {
+                    _copyToClipboard(
+                      content: braille,
+                      confirmationMessage:
+                          MaterialDetailScreenStyles.brailleCopiedMessage,
+                    );
+                  }
+                : null,
+          ),
+          actions: <Widget>[selector],
+          child: view == null
+              ? const BrailleModeLoadingPlaceholder()
+              : TextBrailleLayoutView(
                   pages: view.pages,
                   semanticLabel:
                       MaterialDetailScreenStyles.textAndBrailleSemanticLabel,
                 ),
-            ],
-          ),
         );
       },
     );
