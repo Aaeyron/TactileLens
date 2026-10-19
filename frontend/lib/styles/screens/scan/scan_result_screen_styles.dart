@@ -253,21 +253,7 @@ abstract final class ScanResultScreenStyles {
   // SECTION ACTIONS
   // ============================================================
 
-  static const IconData copyIcon = Icons.copy_rounded;
-
   static const double actionIconSize = 21;
-
-  static final ButtonStyle sectionActionStyle = TextButton.styleFrom(
-    foregroundColor: primaryColor,
-    backgroundColor: primaryColor.withValues(alpha: 0.10),
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    textStyle: const TextStyle(
-      fontFamily: 'Poppins',
-      fontSize: 13,
-      fontWeight: FontWeight.w700,
-    ),
-  );
 
   // ============================================================
   // SCANNED IMAGE

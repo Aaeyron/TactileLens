@@ -16,7 +16,6 @@ import '../../services/materials/material_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/braille/braille_mode_selector.dart';
-import '../../widgets/braille/text_braille_copy_menu.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 
 abstract final class _ScanResultText {
@@ -44,14 +43,6 @@ abstract final class _ScanResultText {
   static const String brailleSectionNumber = '3';
 
   static const String brailleSectionTitle = 'Braille Output (Translation)';
-
-  static const String copyLabel = 'Copy';
-
-  static const String copyBrailleLabel = 'Copy Braille';
-
-  static const String copyTooltip = 'Copy recognized content';
-
-  static const String copyBrailleTooltip = 'Copy Braille translation';
 
   static const String imageErrorText = 'Unable to display the scanned image.';
 
@@ -112,10 +103,6 @@ abstract final class _ScanResultText {
   static const String materialSaveFailedMessage =
       'Unable to save this scan to materials.';
 
-  static const String contentCopiedMessage = 'Recognized content copied.';
-
-  static const String brailleCopiedMessage = 'Braille translation copied.';
-
   static const String imageSemanticLabel = 'Image processed by PaddleOCR-VL';
 
   static const String resultSemanticLabel = 'Recognized document content';
@@ -150,8 +137,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   ScanDocumentResult get result => widget.result;
   File get scannedImage => widget.scannedImage;
 
-  String get _combinedContent => result.combinedContent;
-
   late final List<DocumentPage> _documentPages = result.displayPages;
 
   /// The Braille mode on screen; Save to Materials follows it. Older
@@ -159,39 +144,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
   late BrailleModeView _shownBraille =
       widget.initialBrailleView ??
       BrailleModeView(pages: _documentPages, mode: BrailleMode.contracted);
-
-  Widget _buildCopyTextAction(BuildContext context, {required String label}) {
-    return _SectionAction(
-      icon: ScanResultScreenStyles.copyIcon,
-      label: label,
-      tooltip: _ScanResultText.copyTooltip,
-      onPressed: () {
-        _copyToClipboard(
-          context: context,
-          content: _combinedContent,
-          confirmationMessage: _ScanResultText.contentCopiedMessage,
-        );
-      },
-    );
-  }
-
-  Widget _buildCopyBrailleAction(
-    BuildContext context, {
-    required String content,
-  }) {
-    return _SectionAction(
-      icon: ScanResultScreenStyles.copyIcon,
-      label: _ScanResultText.copyBrailleLabel,
-      tooltip: _ScanResultText.copyBrailleTooltip,
-      onPressed: () {
-        _copyToClipboard(
-          context: context,
-          content: content,
-          confirmationMessage: _ScanResultText.brailleCopiedMessage,
-        );
-      },
-    );
-  }
 
   /// Text with its Braille beneath each word, in one section, with the
   /// Braille mode selector.
@@ -208,33 +160,9 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       },
       selectorLayout: BrailleModeSelectorLayout.buttons,
       builder: (BuildContext context, BrailleModeView? view, Widget selector) {
-        final String braille = view?.combinedBraille ?? '';
-
         return _ResultSection(
           number: _ScanResultText.contentSectionNumber,
           title: _ScanResultText.textAndBrailleSectionTitle,
-          // Copying moved to a compact menu so the mode buttons can take
-          // the place of the copy buttons.
-          action: TextBrailleCopyMenu(
-            onCopyText: result.hasContent
-                ? () {
-                    _copyToClipboard(
-                      context: context,
-                      content: _combinedContent,
-                      confirmationMessage: _ScanResultText.contentCopiedMessage,
-                    );
-                  }
-                : null,
-            onCopyBraille: result.hasBraille && braille.isNotEmpty
-                ? () {
-                    _copyToClipboard(
-                      context: context,
-                      content: braille,
-                      confirmationMessage: _ScanResultText.brailleCopiedMessage,
-                    );
-                  }
-                : null,
-          ),
           actions: <Widget>[selector],
           child: view == null
               ? const BrailleModeLoadingPlaceholder()
@@ -299,12 +227,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       _ResultSection(
                         number: _ScanResultText.contentSectionNumber,
                         title: _ScanResultText.contentSectionTitle,
-                        action: result.hasContent
-                            ? _buildCopyTextAction(
-                                context,
-                                label: _ScanResultText.copyLabel,
-                              )
-                            : null,
                         child: result.hasContent
                             ? _buildRecognizedContent()
                             : _buildEmptyResult(),
@@ -315,12 +237,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       _ResultSection(
                         number: _ScanResultText.brailleSectionNumber,
                         title: _ScanResultText.brailleSectionTitle,
-                        action: result.hasBraille
-                            ? _buildCopyBrailleAction(
-                                context,
-                                content: result.combinedBraille,
-                              )
-                            : null,
                         child: result.hasBraille
                             ? _buildBrailleOutput()
                             : _buildBrailleUnavailable(),
@@ -564,35 +480,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
     );
   }
 
-  Future<void> _copyToClipboard({
-    required BuildContext context,
-    required String content,
-    required String confirmationMessage,
-  }) async {
-    if (content.trim().isEmpty) return;
-
-    await Clipboard.setData(ClipboardData(text: content));
-
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: ScanResultScreenStyles.snackBarDuration,
-          behavior: ScanResultScreenStyles.snackBarBehavior,
-          backgroundColor: ScanResultScreenStyles.snackBarBackgroundColor,
-          margin: ScanResultScreenStyles.snackBarMargin,
-          shape: const RoundedRectangleBorder(
-            borderRadius: ScanResultScreenStyles.snackBarRadius,
-          ),
-          content: Text(
-            confirmationMessage,
-            style: ScanResultScreenStyles.snackBarTextStyle,
-          ),
-        ),
-      );
-  }
 }
 
 class _ScanResultHeaderDecoration extends StatelessWidget {
@@ -1022,14 +909,12 @@ class _ResultSection extends StatelessWidget {
     required this.number,
     required this.title,
     required this.child,
-    this.action,
     this.actions = const <Widget>[],
   });
 
   final String number;
   final String title;
   final Widget child;
-  final Widget? action;
 
   /// Several actions, shown in a wrapping row under the title so they
   /// still fit at large system font sizes.
@@ -1072,7 +957,6 @@ class _ResultSection extends StatelessWidget {
                   style: ScanResultScreenStyles.sectionTitleStyle,
                 ),
               ),
-              ?action,
             ],
           ),
           if (actions.isNotEmpty) ...<Widget>[
@@ -1086,33 +970,6 @@ class _ResultSection extends StatelessWidget {
           const SizedBox(height: ScanResultScreenStyles.sectionHeaderSpacing),
           child,
         ],
-      ),
-    );
-  }
-}
-
-class _SectionAction extends StatelessWidget {
-  const _SectionAction({
-    required this.icon,
-    required this.label,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: TextButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: ScanResultScreenStyles.actionIconSize),
-        label: Text(label),
-        style: ScanResultScreenStyles.sectionActionStyle,
       ),
     );
   }
