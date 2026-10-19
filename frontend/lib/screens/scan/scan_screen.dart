@@ -6,10 +6,13 @@ import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../services/ai/ai_service.dart';
+import '../../services/braille/braille_mode_translator.dart';
+import '../../services/braille/braille_save_payload.dart';
 import '../../services/history/history_service.dart';
 import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
 import '../../services/scan/scan_service.dart';
+import '../../services/settings/braille_mode_settings.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_preview.dart';
@@ -303,19 +306,16 @@ class _ScanScreenState extends State<ScanScreen> {
         .where((String content) => content.isNotEmpty)
         .join('\n\n');
 
-    final List<Map<String, dynamic>> documentBlocks = result.blocks
-        .map((DocumentBlock block) => block.toJson())
-        .toList(growable: false);
+    // History always keeps Braille 2, whatever the default mode is.
+    final BrailleSavePayload braille = BrailleSavePayload.forHistory(result);
 
     try {
       await _historyService.createHistory(
         title: _createAutomaticHistoryTitle(result),
         recognizedContent: recognizedContent,
-        brailleContent: result.combinedBraille,
-        documentBlocks: documentBlocks,
-        documentPages: result.pages
-            .map((DocumentPage page) => page.toJson())
-            .toList(growable: false),
+        brailleContent: braille.brailleContent,
+        documentBlocks: braille.documentBlocks,
+        documentPages: braille.documentPages,
         sourceImagePath: scannedImage.path,
         modelName: result.model,
         pipelineVersion: result.pipelineVersion,
@@ -414,6 +414,16 @@ class _ScanScreenState extends State<ScanScreen> {
         debugPrint('[${block.type}] ${block.content}');
       }
 
+      // Prepare the default Braille mode while the processing overlay is
+      // still up, so the result never shows Braille 2 and then switches.
+      // Braille 2 returns at once; Braille 1 falls back to Braille 2 on
+      // failure instead of throwing.
+      final BrailleModeView brailleView = await BrailleModeTranslator.instance
+          .viewFor(
+            scanResult.displayPages,
+            BrailleModeSettings.defaultMode.value,
+          );
+
       if (!mounted) {
         return;
       }
@@ -428,6 +438,7 @@ class _ScanScreenState extends State<ScanScreen> {
             return ScanResultScreen(
               result: scanResult,
               scannedImage: imageToScan,
+              initialBrailleView: brailleView,
             );
           },
         ),

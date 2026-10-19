@@ -1,5 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/braille/braille_mode.dart';
+import 'braille_mode_settings.dart';
+
 enum AppTextSize { defaultSize, large, extraLarge }
 
 enum RecognitionPreference { faster, moreAccurate }
@@ -13,7 +16,11 @@ class SettingsService {
   static const String _hapticFeedbackKey = 'settings_haptic_feedback';
   static const String _preserveLayoutKey = 'settings_preserve_layout';
   static const String _autoSaveScansKey = 'settings_auto_save_scans';
-  static const String _contractedUebKey = 'settings_contracted_ueb';
+  static const String _brailleModeKey = 'settings_braille_mode';
+
+  // Stored by the earlier "Contracted UEB" switch, which had no effect.
+  // Only removed on reset.
+  static const String _legacyContractedUebKey = 'settings_contracted_ueb';
   static const String _recognitionPreferenceKey =
       'settings_recognition_preference';
 
@@ -121,14 +128,19 @@ class SettingsService {
   // Braille
   // ==========================
 
-  static Future<bool> getContractedUebEnabled() async {
+  /// The remembered default Braille mode. Missing or unknown values mean
+  /// Braille 2 (contracted). The old "Contracted UEB" switch never affected
+  /// translation, so its stored value is ignored.
+  static Future<BrailleMode> getBrailleMode() async {
     final SharedPreferences preferences = await _preferences;
-    return preferences.getBool(_contractedUebKey) ?? false;
+    return BrailleMode.fromWireName(preferences.getString(_brailleModeKey));
   }
 
-  static Future<void> setContractedUebEnabled(bool value) async {
+  /// Saves [mode] and makes it the default for screens opened from now on.
+  static Future<void> setBrailleMode(BrailleMode mode) async {
     final SharedPreferences preferences = await _preferences;
-    await preferences.setBool(_contractedUebKey, value);
+    await preferences.setString(_brailleModeKey, mode.wireName);
+    BrailleModeSettings.defaultMode.value = mode;
   }
 
   // ==========================
@@ -145,8 +157,11 @@ class SettingsService {
       preferences.remove(_hapticFeedbackKey),
       preferences.remove(_preserveLayoutKey),
       preferences.remove(_autoSaveScansKey),
-      preferences.remove(_contractedUebKey),
+      preferences.remove(_brailleModeKey),
+      preferences.remove(_legacyContractedUebKey),
       preferences.remove(_recognitionPreferenceKey),
     ]);
+
+    BrailleModeSettings.defaultMode.value = BrailleMode.defaultMode;
   }
 }

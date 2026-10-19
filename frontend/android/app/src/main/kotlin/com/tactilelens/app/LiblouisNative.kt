@@ -18,6 +18,11 @@ object LiblouisNative {
     private const val UEB_TABLE =
         "en-ueb-g2.ctb"
 
+    // Braille 1 (uncontracted UEB). Used only when explicitly requested;
+    // en-ueb-g2.ctb includes it, so it ships with the same table folder.
+    private const val UEB_UNCONTRACTED_TABLE =
+        "en-ueb-g1.ctb"
+
     private const val NEMETH_TABLE =
         "en-us-mathtext.ctb"
 
@@ -136,12 +141,59 @@ object LiblouisNative {
     fun translateText(
         context: Context,
         content: String,
+        uncontracted: Boolean = false,
     ): String {
         return translate(
             context = context,
             content = content,
-            translationTable = UEB_TABLE,
+            translationTable = if (uncontracted) {
+                UEB_UNCONTRACTED_TABLE
+            } else {
+                UEB_TABLE
+            },
         )
+    }
+
+    /**
+     * Translates many UEB text lines in one call, so the app needs a single
+     * channel round trip. Each line gets its own result; a failed line does
+     * not stop the others.
+     */
+    fun translateTexts(
+        context: Context,
+        contents: List<String>,
+        uncontracted: Boolean,
+    ): List<Map<String, Any?>> {
+        return contents.map { content ->
+            try {
+                val translatedContent = translateText(
+                    context = context,
+                    content = content,
+                    uncontracted = uncontracted,
+                )
+
+                val hasTranslation =
+                    content.isBlank() || translatedContent.isNotBlank()
+
+                mapOf(
+                    "success" to hasTranslation,
+                    "content" to translatedContent,
+                    "error" to if (hasTranslation) {
+                        null
+                    } else {
+                        "Liblouis returned an empty translation."
+                    },
+                )
+            } catch (error: Exception) {
+                mapOf(
+                    "success" to false,
+                    "content" to "",
+                    "error" to (
+                        error.message ?: "Braille translation failed."
+                    ),
+                )
+            }
+        }
     }
 
         fun translateFormula(
@@ -162,6 +214,7 @@ object LiblouisNative {
         content: String,
         isFormula: Boolean,
         isTable: Boolean,
+        uncontracted: Boolean = false,
     ): LiblouisTranslationResult {
         val normalizedContent = content.trim()
         val usesNemeth = isFormula || isTable
@@ -201,9 +254,11 @@ object LiblouisNative {
                         nemethSource,
                     )
                 } else {
+                    // The mode affects UEB text only, never Nemeth.
                     translateText(
                         context,
                         normalizedContent,
+                        uncontracted,
                     )
                 }
 

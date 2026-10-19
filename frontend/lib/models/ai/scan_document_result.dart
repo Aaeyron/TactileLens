@@ -1,4 +1,5 @@
 import '../../utils/document_reading_order.dart';
+import '../braille/braille_mode.dart';
 import '../../utils/math_text_formatter.dart';
 
 class ScanDocumentResult {
@@ -146,7 +147,38 @@ class ScanDocumentResult {
     );
   }
 
+  /// Pages for display: [pages], or one page of all [blocks] when the
+  /// result carried no page data.
+  List<DocumentPage> get displayPages {
+    if (pages.isNotEmpty) {
+      return pages;
+    }
+
+    return <DocumentPage>[
+      DocumentPage(pageIndex: 0, width: 0, height: 0, blocks: blocks),
+    ];
+  }
+
+  /// The combined Braille of [pages], joined exactly like [combinedBraille].
+  static String combineBrailleOf(List<DocumentPage> pages) {
+    return _combine(
+      pages: pages,
+      blocks: const <DocumentBlock>[],
+      contentOf: (DocumentBlock block) {
+        return block.hasBraille ? block.brailleContent : '';
+      },
+    );
+  }
+
   String _combinePageContent({
+    required String Function(DocumentBlock block) contentOf,
+  }) {
+    return _combine(pages: pages, blocks: blocks, contentOf: contentOf);
+  }
+
+  static String _combine({
+    required List<DocumentPage> pages,
+    required List<DocumentBlock> blocks,
     required String Function(DocumentBlock block) contentOf,
   }) {
     if (pages.isNotEmpty) {
@@ -311,6 +343,7 @@ class DocumentBlock {
     required this.brailleSuccess,
     required this.brailleError,
     this.needsReview = false,
+    this.savedBrailleMode = BrailleMode.defaultMode,
   });
 
   final int id;
@@ -354,7 +387,44 @@ class DocumentBlock {
   /// default to false.
   final bool needsReview;
 
+  /// The Braille mode of the record's combined Braille string when it was
+  /// saved, stored as `saved_braille_mode` in each block. [brailleContent]
+  /// itself always stays Braille 2. Missing means Braille 2.
+  final BrailleMode savedBrailleMode;
+
   String get content => MathTextFormatter.ensureReadable(normalizedContent);
+
+  /// A copy showing [braille] instead of this block's Braille. Used only to
+  /// display another mode; the stored Braille 2 is never replaced.
+  DocumentBlock withBrailleContent(String braille) {
+    return _copy(brailleContent: braille);
+  }
+
+  DocumentBlock withSavedBrailleMode(BrailleMode mode) {
+    return _copy(savedBrailleMode: mode);
+  }
+
+  DocumentBlock _copy({String? brailleContent, BrailleMode? savedBrailleMode}) {
+    return DocumentBlock(
+      id: id,
+      order: order,
+      type: type,
+      rawContent: rawContent,
+      normalizedContent: normalizedContent,
+      boundingBox: boundingBox,
+      polygonPoints: polygonPoints,
+      isText: isText,
+      isFormula: isFormula,
+      isTable: isTable,
+      tableRows: tableRows,
+      brailleContent: brailleContent ?? this.brailleContent,
+      brailleCode: brailleCode,
+      brailleSuccess: brailleSuccess,
+      brailleError: brailleError,
+      needsReview: needsReview,
+      savedBrailleMode: savedBrailleMode ?? this.savedBrailleMode,
+    );
+  }
 
   bool get hasContent {
     return normalizedContent.trim().isNotEmpty ||
@@ -448,6 +518,7 @@ class DocumentBlock {
       brailleSuccess: brailleSuccess,
       brailleError: brailleError,
       needsReview: json['needs_review'] == true,
+      savedBrailleMode: BrailleMode.fromWireName(json['saved_braille_mode']),
     );
   }
 
@@ -469,6 +540,10 @@ class DocumentBlock {
       'braille_success': brailleSuccess,
       'braille_error': brailleError,
       'needs_review': needsReview,
+      // Written only for Braille 1, so Braille 2 records keep their
+      // existing shape. A missing key means Braille 2.
+      if (savedBrailleMode != BrailleMode.defaultMode)
+        'saved_braille_mode': savedBrailleMode.wireName,
     };
   }
 

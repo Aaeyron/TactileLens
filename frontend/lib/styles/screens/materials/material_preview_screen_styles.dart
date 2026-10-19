@@ -232,7 +232,6 @@ abstract final class MaterialDetailScreenStyles {
   static const String fileInformationTitle = 'File Information';
 
   static const String copyLabel = 'Copy';
-  static const String copyTextLabel = 'Copy text';
   static const String copyBrailleLabel = 'Copy Braille';
   static const String textAndBrailleSectionTitle = 'Text and Braille';
   static const String textAndBrailleSemanticLabel =

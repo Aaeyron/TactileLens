@@ -89,6 +89,11 @@ class MainActivity : FlutterActivity() {
                         call.argument<Boolean>("isTable")
                             ?: false
 
+                    // A missing mode means Braille 2 (contracted UEB).
+                    val uncontracted =
+                        call.argument<String>("brailleMode") ==
+                            "uncontracted"
+
                     runLiblouisTask(result) {
                         val translation =
                             LiblouisNative.translateBlock(
@@ -96,6 +101,7 @@ class MainActivity : FlutterActivity() {
                                 content = content,
                                 isFormula = isFormula,
                                 isTable = isTable,
+                                uncontracted = uncontracted,
                             )
 
                         mapOf(
@@ -103,6 +109,28 @@ class MainActivity : FlutterActivity() {
                             "code" to translation.code,
                             "content" to translation.content,
                             "error" to translation.error,
+                        )
+                    }
+                }
+
+                "translateTexts" -> {
+                    val contents =
+                        call.argument<List<String>>("contents")
+                            .orEmpty()
+
+                    // A missing mode means Braille 2 (contracted UEB).
+                    val uncontracted =
+                        call.argument<String>("brailleMode") ==
+                            "uncontracted"
+
+                    runLiblouisTask(result) {
+                        mapOf(
+                            "results" to
+                                LiblouisNative.translateTexts(
+                                    context = applicationContext,
+                                    contents = contents,
+                                    uncontracted = uncontracted,
+                                ),
                         )
                     }
                 }

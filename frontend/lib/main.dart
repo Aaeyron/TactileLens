@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
+import 'models/braille/braille_mode.dart';
+import 'services/settings/braille_mode_settings.dart';
+import 'services/settings/settings_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The app is portrait only, whatever the phone's rotation setting.
+  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+    DeviceOrientation.portraitUp,
+  ]);
 
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
@@ -19,6 +27,15 @@ Future<void> main() async {
       systemNavigationBarContrastEnforced: false,
     ),
   );
+
+  // Known before the first screen, so a scan opens directly in the
+  // remembered Braille mode. Missing or unreadable means Braille 2.
+  try {
+    BrailleModeSettings.defaultMode.value =
+        await SettingsService.getBrailleMode();
+  } catch (_) {
+    BrailleModeSettings.defaultMode.value = BrailleMode.defaultMode;
+  }
 
   runApp(const TactileLensApp());
 }

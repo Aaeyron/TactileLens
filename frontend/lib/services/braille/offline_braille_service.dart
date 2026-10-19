@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../../models/braille/braille_mode.dart';
+
 class OfflineBrailleService {
   const OfflineBrailleService();
 
@@ -45,10 +47,78 @@ class OfflineBrailleService {
     return translateBlock(content, isFormula: true, isTable: false);
   }
 
+  /// Translates many UEB text lines in one platform call.
+  ///
+  /// Returns one result per line, in order. Throws [OfflineBrailleException]
+  /// when translation is unavailable (not Android, or the native call
+  /// failed) so the caller can keep the existing Braille.
+  Future<List<OfflineBrailleResult>> translateUebLines(
+    List<String> lines, {
+    required BrailleMode mode,
+  }) async {
+    if (lines.isEmpty) {
+      return const <OfflineBrailleResult>[];
+    }
+
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      throw const OfflineBrailleException(
+        'Braille translation on this device is available only on Android.',
+      );
+    }
+
+    final Map<Object?, Object?>? response;
+
+    try {
+      response = await _channel
+          .invokeMapMethod<Object?, Object?>('translateTexts', <String, Object>{
+            'contents': lines,
+            if (mode != BrailleMode.defaultMode) 'brailleMode': mode.wireName,
+          });
+    } on PlatformException catch (error) {
+      throw OfflineBrailleException(
+        error.message ?? 'Braille translation failed.',
+      );
+    } on MissingPluginException {
+      throw const OfflineBrailleException(
+        'The offline Braille translator is unavailable.',
+      );
+    }
+
+    final Object? rawResults = response?['results'];
+
+    if (rawResults is! List || rawResults.length != lines.length) {
+      throw const OfflineBrailleException(
+        'Liblouis returned an incomplete translation.',
+      );
+    }
+
+    return rawResults
+        .map((Object? item) {
+          final Map<Object?, Object?> result = item is Map
+              ? item
+              : const <Object?, Object?>{};
+
+          final Object? error = result['error'];
+
+          return OfflineBrailleResult(
+            success: result['success'] == true,
+            code: 'ueb',
+            content: result['content'] is String
+                ? result['content'] as String
+                : '',
+            error: error is String && error.trim().isNotEmpty
+                ? error.trim()
+                : null,
+          );
+        })
+        .toList(growable: false);
+  }
+
   Future<OfflineBrailleResult> translateBlock(
     String content, {
     required bool isFormula,
     bool isTable = false,
+    BrailleMode mode = BrailleMode.defaultMode,
   }) async {
     final String normalizedContent = content.trim();
 
@@ -80,6 +150,8 @@ class OfflineBrailleService {
             'content': normalizedContent,
             'isFormula': isFormula,
             'isTable': isTable,
+            // Sent only for Braille 1; a missing mode means Braille 2.
+            if (mode != BrailleMode.defaultMode) 'brailleMode': mode.wireName,
           });
 
       if (result == null) {
