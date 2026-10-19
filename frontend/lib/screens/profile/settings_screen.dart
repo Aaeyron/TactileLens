@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../models/braille/braille_mode.dart';
+import '../../services/braille/braille_mode_translator.dart';
 import '../../services/settings/settings_service.dart';
 import '../../styles/screens/profile/settings_screen_styles.dart';
+import '../../widgets/braille/braille_mode_selector.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   bool _hapticFeedbackEnabled = true;
   bool _preserveLayoutEnabled = true;
   bool _autoSaveScansEnabled = true;
-  bool _contractedUebEnabled = false;
+  BrailleMode _brailleMode = BrailleMode.defaultMode;
 
   bool _isLoading = true;
   bool _isResetting = false;
@@ -94,8 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen>
       final bool autoSaveScansEnabled =
           await SettingsService.getAutoSaveScansEnabled();
 
-      final bool contractedUebEnabled =
-          await SettingsService.getContractedUebEnabled();
+      final BrailleMode brailleMode = await SettingsService.getBrailleMode();
 
       if (!mounted) {
         return;
@@ -109,7 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         _hapticFeedbackEnabled = hapticFeedbackEnabled;
         _preserveLayoutEnabled = preserveLayoutEnabled;
         _autoSaveScansEnabled = autoSaveScansEnabled;
-        _contractedUebEnabled = contractedUebEnabled;
+        _brailleMode = brailleMode;
         _isLoading = false;
       });
     } catch (_) {
@@ -293,22 +296,22 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
-  Future<void> _changeContractedUeb(bool value) async {
-    final bool previousValue = _contractedUebEnabled;
+  Future<void> _changeBrailleMode(BrailleMode value) async {
+    final BrailleMode previousValue = _brailleMode;
 
     setState(() {
-      _contractedUebEnabled = value;
+      _brailleMode = value;
     });
 
     try {
-      await SettingsService.setContractedUebEnabled(value);
+      await SettingsService.setBrailleMode(value);
     } catch (_) {
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _contractedUebEnabled = previousValue;
+        _brailleMode = previousValue;
       });
 
       _showMessage(SettingsScreenStyles.saveErrorMessage);
@@ -379,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         _hapticFeedbackEnabled = true;
         _preserveLayoutEnabled = true;
         _autoSaveScansEnabled = true;
-        _contractedUebEnabled = false;
+        _brailleMode = BrailleMode.defaultMode;
         _isResetting = false;
       });
 
@@ -554,16 +557,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _SettingsSection(
                                 title: SettingsScreenStyles.brailleTitle,
                                 children: <Widget>[
-                                  _SettingsSwitchItem(
-                                    icon:
-                                        SettingsScreenStyles.contractedUebIcon,
-                                    title:
-                                        SettingsScreenStyles.contractedUebTitle,
-                                    description: SettingsScreenStyles
-                                        .contractedUebDescription,
-                                    value: _contractedUebEnabled,
-                                    onChanged: _changeContractedUeb,
-                                    showDivider: true,
+                                  _SettingsBrailleModeItem(
+                                    value: _brailleMode,
+                                    onChanged: _changeBrailleMode,
                                   ),
                                   const _SettingsInformationItem(
                                     icon: SettingsScreenStyles.nemethIcon,
@@ -742,6 +738,66 @@ class _SettingsSwitchItem extends StatelessWidget {
         inactiveThumbColor: SettingsScreenStyles.switchInactiveThumbColor,
         inactiveTrackColor: SettingsScreenStyles.switchInactiveTrackColor,
         onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+/// The remembered default Braille mode, using the same selector as the
+/// result, material and History screens.
+class _SettingsBrailleModeItem extends StatelessWidget {
+  const _SettingsBrailleModeItem({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final BrailleMode value;
+  final ValueChanged<BrailleMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: SettingsScreenStyles.itemDividerBorder,
+      ),
+      padding: SettingsScreenStyles.settingItemPadding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const _SettingsIcon(icon: SettingsScreenStyles.brailleModeIcon),
+          const SizedBox(width: SettingsScreenStyles.brailleModeIconSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  SettingsScreenStyles.brailleModeTitle,
+                  style: SettingsScreenStyles.settingTitleStyle,
+                ),
+                const SizedBox(
+                  height: SettingsScreenStyles.settingDescriptionSpacing,
+                ),
+                const Text(
+                  SettingsScreenStyles.brailleModeDescription,
+                  style: SettingsScreenStyles.settingDescriptionStyle,
+                ),
+                const SizedBox(
+                  height: SettingsScreenStyles.brailleModeSelectorSpacing,
+                ),
+                BrailleModeSelector(
+                  selected: isAndroid ? value : BrailleMode.contracted,
+                  availability: isAndroid
+                      ? BrailleModeAvailability.available
+                      : BrailleModeAvailability.unsupportedPlatform,
+                  onChanged: onChanged,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -47,9 +47,10 @@ abstract final class SettingsScreenStyles {
   static const String autoSaveDescription =
       'Add successful scans to the application history automatically.';
 
-  static const String contractedUebTitle = 'Contracted UEB';
-  static const String contractedUebDescription =
-      'Use contracted Unified English Braille for recognized text.';
+  static const String brailleModeTitle = 'Default Braille Mode';
+  static const String brailleModeDescription =
+      'Used for recognized text when a scan opens. You can switch modes on '
+      'each result. Math always uses Nemeth.';
 
   static const String nemethTitle = 'Nemeth Mathematics';
   static const String nemethDescription =
@@ -209,6 +210,9 @@ abstract final class SettingsScreenStyles {
 
   static const double settingContentSpacing = 13;
   static const double settingDescriptionSpacing = 5;
+
+  static const double brailleModeIconSpacing = 16;
+  static const double brailleModeSelectorSpacing = 10;
   static const double settingControlSpacing = 10;
 
   static const double iconContainerSize = 42;
@@ -264,7 +268,7 @@ abstract final class SettingsScreenStyles {
   static const IconData preserveLayoutIcon = Icons.dashboard_customize_rounded;
 
   static const IconData autoSaveIcon = Icons.history_rounded;
-  static const IconData contractedUebIcon = Icons.translate_rounded;
+  static const IconData brailleModeIcon = Icons.translate_rounded;
   static const IconData nemethIcon = Icons.functions_rounded;
   static const IconData resetIcon = Icons.restart_alt_rounded;
 

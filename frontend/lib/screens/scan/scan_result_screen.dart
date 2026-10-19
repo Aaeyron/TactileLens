@@ -8,8 +8,10 @@ import '../../widgets/document/document_layout_view.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/braille/braille_mode.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/braille/braille_mode_translator.dart';
+import '../../services/braille/braille_save_payload.dart';
 import '../../services/materials/material_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../widgets/braille/braille_mode_section.dart';
@@ -152,6 +154,12 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
 
   late final List<DocumentPage> _documentPages = result.displayPages;
 
+  /// The Braille mode on screen; Save to Materials follows it. Older
+  /// results without per-block Braille stay Braille 2.
+  late BrailleModeView _shownBraille =
+      widget.initialBrailleView ??
+      BrailleModeView(pages: _documentPages, mode: BrailleMode.contracted);
+
   Widget _buildCopyTextAction(BuildContext context, {required String label}) {
     return _SectionAction(
       icon: ScanResultScreenStyles.copyIcon,
@@ -194,6 +202,10 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           widget.initialBrailleView?.mode ??
           BrailleModeSettings.defaultMode.value,
       initialView: widget.initialBrailleView,
+      onViewChanged: (BrailleModeView view) {
+        // Read when saving; the section rebuilds itself.
+        _shownBraille = view;
+      },
       builder: (BuildContext context, BrailleModeView? view, Widget selector) {
         return _ResultSection(
           number: _ScanResultText.contentSectionNumber,
@@ -315,6 +327,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       _SaveMaterialButton(
                         result: result,
                         scannedImage: scannedImage,
+                        shownBraille: () => _shownBraille,
                       ),
                     ],
                     const SizedBox(
@@ -608,10 +621,17 @@ class _ScanResultHeaderDecoration extends StatelessWidget {
 }
 
 class _SaveMaterialButton extends StatefulWidget {
-  const _SaveMaterialButton({required this.result, required this.scannedImage});
+  const _SaveMaterialButton({
+    required this.result,
+    required this.scannedImage,
+    required this.shownBraille,
+  });
 
   final ScanDocumentResult result;
   final File scannedImage;
+
+  /// The Braille mode on screen when the user saves.
+  final BrailleModeView Function() shownBraille;
 
   @override
   State<_SaveMaterialButton> createState() => _SaveMaterialButtonState();
@@ -649,6 +669,13 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
         .where((String content) => content.isNotEmpty)
         .join(_ScanResultText.contentBlockSeparator);
 
+    // The combined Braille follows the mode on screen; every block keeps
+    // its Braille 2 and records the saved mode.
+    final BrailleSavePayload braille = BrailleSavePayload.forMaterial(
+      widget.result,
+      widget.shownBraille(),
+    );
+
     try {
       await _materialService.uploadMaterial(
         file: widget.scannedImage,
@@ -657,13 +684,9 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
         description: details.description,
         sourceType: MaterialModel.scanResultSourceType,
         recognizedContent: recognizedContent,
-        brailleContent: widget.result.combinedBraille,
-        documentBlocks: widget.result.blocks
-            .map((DocumentBlock block) => block.toJson())
-            .toList(growable: false),
-        documentPages: widget.result.pages
-            .map((DocumentPage page) => page.toJson())
-            .toList(growable: false),
+        brailleContent: braille.brailleContent,
+        documentBlocks: braille.documentBlocks,
+        documentPages: braille.documentPages,
         modelName: widget.result.model,
         pipelineVersion: widget.result.pipelineVersion,
         processingTimeMs: widget.result.processingTimeMs,
