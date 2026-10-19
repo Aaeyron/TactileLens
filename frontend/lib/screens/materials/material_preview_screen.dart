@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/braille/braille_mode.dart';
+import '../../services/braille/braille_mode_translator.dart';
+import '../../styles/widgets/braille/braille_mode_selector_styles.dart';
+import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/document/document_layout_view.dart';
 import '../../models/materials/material_model.dart';
 import '../../services/materials/material_service.dart';
@@ -36,6 +40,18 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
       );
     }, growable: false);
   }
+
+  /// Pages kept once, so switching Braille modes reuses the same record.
+  late final List<DocumentPage> _modePages = _documentPages;
+
+  late final BrailleMode _savedBrailleMode = savedBrailleModeOf(_modePages);
+
+  /// A material saved in Braille 1 on a device that cannot recreate
+  /// Braille 1 (iOS) shows its saved Braille as saved, without pairing.
+  late final bool _showsSavedBraille1AsSaved =
+      _savedBrailleMode == BrailleMode.uncontracted &&
+      BrailleModeTranslator.instance.availabilityOf(_modePages) !=
+          BrailleModeAvailability.available;
 
   bool get _isScannedMaterial {
     return _material.recognizedContent.trim().isNotEmpty ||
@@ -196,7 +212,8 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
                         const SizedBox(
                           height: MaterialDetailScreenStyles.sectionSpacing,
                         ),
-                        if (TextBrailleLayoutView.canDisplay(_documentPages))
+                        if (TextBrailleLayoutView.canDisplay(_documentPages) &&
+                            !_showsSavedBraille1AsSaved)
                           _buildTextAndBrailleContent()
                         else ...<Widget>[
                           _buildRecognizedContent(),
@@ -490,43 +507,68 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
     );
   }
 
-  /// Text with its Braille beneath each word, in one section.
+  /// Text with its Braille beneath each word, in one section, opened in the
+  /// mode the material was saved in.
   Widget _buildTextAndBrailleContent() {
     final String content = _material.recognizedContent.trim();
-    final String braille = _material.brailleContent.trim();
+    final String savedBraille = _material.brailleContent.trim();
 
-    return _MaterialSection(
-      title: MaterialDetailScreenStyles.textAndBrailleSectionTitle,
-      actions: <Widget>[
-        if (content.isNotEmpty)
-          _MaterialSectionAction(
-            label: MaterialDetailScreenStyles.copyTextLabel,
-            tooltip: MaterialDetailScreenStyles.copyContentTooltip,
-            onPressed: () {
-              _copyToClipboard(
-                content: content,
-                confirmationMessage:
-                    MaterialDetailScreenStyles.contentCopiedMessage,
-              );
-            },
+    return BrailleModeSection(
+      pages: _modePages,
+      initialMode: _savedBrailleMode,
+      builder: (BuildContext context, BrailleModeView? view, Widget selector) {
+        // In the saved mode, copy exactly what was saved.
+        final String braille = view == null
+            ? ''
+            : view.mode == _savedBrailleMode && savedBraille.isNotEmpty
+            ? savedBraille
+            : view.combinedBraille;
+
+        return _MaterialSection(
+          title: MaterialDetailScreenStyles.textAndBrailleSectionTitle,
+          actions: <Widget>[
+            if (content.isNotEmpty)
+              _MaterialSectionAction(
+                label: MaterialDetailScreenStyles.copyTextLabel,
+                tooltip: MaterialDetailScreenStyles.copyContentTooltip,
+                onPressed: () {
+                  _copyToClipboard(
+                    content: content,
+                    confirmationMessage:
+                        MaterialDetailScreenStyles.contentCopiedMessage,
+                  );
+                },
+              ),
+            if (braille.isNotEmpty)
+              _MaterialSectionAction(
+                label: MaterialDetailScreenStyles.copyBrailleLabel,
+                tooltip: MaterialDetailScreenStyles.copyBrailleTooltip,
+                onPressed: () {
+                  _copyToClipboard(
+                    content: braille,
+                    confirmationMessage:
+                        MaterialDetailScreenStyles.brailleCopiedMessage,
+                  );
+                },
+              ),
+          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              selector,
+              const SizedBox(height: MaterialDetailScreenStyles.compactSpacing),
+              if (view == null)
+                const BrailleModeLoadingPlaceholder()
+              else
+                TextBrailleLayoutView(
+                  pages: view.pages,
+                  semanticLabel:
+                      MaterialDetailScreenStyles.textAndBrailleSemanticLabel,
+                ),
+            ],
           ),
-        if (braille.isNotEmpty)
-          _MaterialSectionAction(
-            label: MaterialDetailScreenStyles.copyBrailleLabel,
-            tooltip: MaterialDetailScreenStyles.copyBrailleTooltip,
-            onPressed: () {
-              _copyToClipboard(
-                content: braille,
-                confirmationMessage:
-                    MaterialDetailScreenStyles.brailleCopiedMessage,
-              );
-            },
-          ),
-      ],
-      child: TextBrailleLayoutView(
-        pages: _documentPages,
-        semanticLabel: MaterialDetailScreenStyles.textAndBrailleSemanticLabel,
-      ),
+        );
+      },
     );
   }
 
@@ -557,12 +599,29 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
               },
             ),
       child: hasBrailleLayout
-          ? DocumentLayoutView(
-              pages: pages,
-              useBraille: true,
-              fallbackText: _material.recognizedContent,
-              fallbackBraille: content,
-              semanticLabel: MaterialDetailScreenStyles.brailleSemanticLabel,
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                // Saved in Braille 1 on a device that cannot recreate it:
+                // show the saved Braille as saved.
+                if (_savedBrailleMode == BrailleMode.uncontracted) ...<Widget>[
+                  const Text(
+                    BrailleModeSelectorStyles.savedUncontractedNote,
+                    style: BrailleModeSelectorStyles.noteStyle,
+                  ),
+                  const SizedBox(
+                    height: MaterialDetailScreenStyles.compactSpacing,
+                  ),
+                ],
+                DocumentLayoutView(
+                  pages: pages,
+                  useBraille: true,
+                  fallbackText: _material.recognizedContent,
+                  fallbackBraille: content,
+                  semanticLabel:
+                      MaterialDetailScreenStyles.brailleSemanticLabel,
+                ),
+              ],
             )
           : const _MaterialEmptyState(
               icon: MaterialDetailScreenStyles.emptyContentIcon,

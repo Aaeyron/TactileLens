@@ -9,7 +9,10 @@ import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../models/materials/material_model.dart';
+import '../../services/braille/braille_mode_translator.dart';
 import '../../services/materials/material_service.dart';
+import '../../services/settings/braille_mode_settings.dart';
+import '../../widgets/braille/braille_mode_section.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 
 abstract final class _ScanResultText {
@@ -123,29 +126,31 @@ abstract final class _ScanResultText {
   static const String copyTextLabel = 'Copy text';
 }
 
-class ScanResultScreen extends StatelessWidget {
+class ScanResultScreen extends StatefulWidget {
   const ScanResultScreen({
     super.key,
     required this.result,
     required this.scannedImage,
+    this.initialBrailleView,
   });
 
   final ScanDocumentResult result;
   final File scannedImage;
 
+  /// The default Braille mode, prepared before this screen opened.
+  final BrailleModeView? initialBrailleView;
+
+  @override
+  State<ScanResultScreen> createState() => _ScanResultScreenState();
+}
+
+class _ScanResultScreenState extends State<ScanResultScreen> {
+  ScanDocumentResult get result => widget.result;
+  File get scannedImage => widget.scannedImage;
+
   String get _combinedContent => result.combinedContent;
 
-  /// The result's pages, or one page of its blocks when the response
-  /// carried no page data.
-  List<DocumentPage> get _documentPages {
-    if (result.pages.isNotEmpty) {
-      return result.pages;
-    }
-
-    return <DocumentPage>[
-      DocumentPage(pageIndex: 0, width: 0, height: 0, blocks: result.blocks),
-    ];
-  }
+  late final List<DocumentPage> _documentPages = result.displayPages;
 
   Widget _buildCopyTextAction(BuildContext context, {required String label}) {
     return _SectionAction(
@@ -162,7 +167,10 @@ class ScanResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCopyBrailleAction(BuildContext context) {
+  Widget _buildCopyBrailleAction(
+    BuildContext context, {
+    required String content,
+  }) {
     return _SectionAction(
       icon: ScanResultScreenStyles.copyIcon,
       label: _ScanResultText.copyBrailleLabel,
@@ -170,27 +178,54 @@ class ScanResultScreen extends StatelessWidget {
       onPressed: () {
         _copyToClipboard(
           context: context,
-          content: result.combinedBraille,
+          content: content,
           confirmationMessage: _ScanResultText.brailleCopiedMessage,
         );
       },
     );
   }
 
-  /// Text with its Braille beneath each word, in one section.
+  /// Text with its Braille beneath each word, in one section, with the
+  /// Braille mode selector.
   Widget _buildTextAndBrailleSection(BuildContext context) {
-    return _ResultSection(
-      number: _ScanResultText.contentSectionNumber,
-      title: _ScanResultText.textAndBrailleSectionTitle,
-      actions: <Widget>[
-        if (result.hasContent)
-          _buildCopyTextAction(context, label: _ScanResultText.copyTextLabel),
-        if (result.hasBraille) _buildCopyBrailleAction(context),
-      ],
-      child: TextBrailleLayoutView(
-        pages: _documentPages,
-        semanticLabel: _ScanResultText.textAndBrailleSemanticLabel,
-      ),
+    return BrailleModeSection(
+      pages: _documentPages,
+      initialMode:
+          widget.initialBrailleView?.mode ??
+          BrailleModeSettings.defaultMode.value,
+      initialView: widget.initialBrailleView,
+      builder: (BuildContext context, BrailleModeView? view, Widget selector) {
+        return _ResultSection(
+          number: _ScanResultText.contentSectionNumber,
+          title: _ScanResultText.textAndBrailleSectionTitle,
+          actions: <Widget>[
+            if (result.hasContent)
+              _buildCopyTextAction(
+                context,
+                label: _ScanResultText.copyTextLabel,
+              ),
+            if (result.hasBraille && view != null)
+              _buildCopyBrailleAction(
+                context,
+                content: view.combinedBraille,
+              ),
+          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              selector,
+              const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+              if (view == null)
+                const BrailleModeLoadingPlaceholder()
+              else
+                TextBrailleLayoutView(
+                  pages: view.pages,
+                  semanticLabel: _ScanResultText.textAndBrailleSemanticLabel,
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -263,7 +298,10 @@ class ScanResultScreen extends StatelessWidget {
                         number: _ScanResultText.brailleSectionNumber,
                         title: _ScanResultText.brailleSectionTitle,
                         action: result.hasBraille
-                            ? _buildCopyBrailleAction(context)
+                            ? _buildCopyBrailleAction(
+                                context,
+                                content: result.combinedBraille,
+                              )
                             : null,
                         child: result.hasBraille
                             ? _buildBrailleOutput()

@@ -5,9 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/braille/braille_mode.dart';
 import '../../models/history/history_model.dart';
+import '../../services/braille/braille_mode_translator.dart';
 import '../../services/history/history_service.dart';
+import '../../services/settings/braille_mode_settings.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
+import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
 import '../main/tab_data_cache.dart';
@@ -707,11 +711,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     style: HistoryScreenStyles.detailSectionTitleStyle,
                   ),
                   const SizedBox(height: 7),
-                  DocumentLayoutView(
+                  // History is saved in Braille 2; Braille 1 is only shown.
+                  BrailleModeSection(
                     pages: pages,
-                    useBraille: true,
-                    fallbackText: recognizedFallback,
-                    fallbackBraille: brailleFallback,
+                    initialMode: BrailleModeSettings.defaultMode.value,
+                    builder:
+                        (
+                          BuildContext context,
+                          BrailleModeView? view,
+                          Widget selector,
+                        ) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              selector,
+                              const SizedBox(height: 7),
+                              if (view == null)
+                                const BrailleModeLoadingPlaceholder()
+                              else
+                                DocumentLayoutView(
+                                  pages: view.pages,
+                                  useBraille: true,
+                                  fallbackText: recognizedFallback,
+                                  fallbackBraille:
+                                      view.mode == BrailleMode.contracted
+                                      ? brailleFallback
+                                      : view.combinedBraille,
+                                ),
+                            ],
+                          );
+                        },
                   ),
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   FilledButton(

@@ -147,6 +147,18 @@ class ScanDocumentResult {
     );
   }
 
+  /// Pages for display: [pages], or one page of all [blocks] when the
+  /// result carried no page data.
+  List<DocumentPage> get displayPages {
+    if (pages.isNotEmpty) {
+      return pages;
+    }
+
+    return <DocumentPage>[
+      DocumentPage(pageIndex: 0, width: 0, height: 0, blocks: blocks),
+    ];
+  }
+
   /// The combined Braille of [pages], joined exactly like [combinedBraille].
   static String combineBrailleOf(List<DocumentPage> pages) {
     return _combine(
