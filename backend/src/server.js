@@ -3,6 +3,12 @@ require("./config/database");
 
 const express = require("express");
 
+const {
+  warnAboutConfiguration,
+} = require("./services/scan/ai_service_client");
+
+warnAboutConfiguration();
+
 const authRoutes = require("./routes/auth/auth_routes");
 
 const materialRoutes = require("./routes/materials/material_routes");

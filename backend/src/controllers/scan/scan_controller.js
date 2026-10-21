@@ -15,9 +15,12 @@ const scanDocument = async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     if (error instanceof scanService.ScanServiceError) {
+      // fallback_recommended: the app may offer scanning on the device.
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
+        code: error.code,
+        fallback_recommended: error.fallbackRecommended,
       });
     }
 
