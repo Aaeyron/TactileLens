@@ -12,6 +12,9 @@ from PIL import Image, ImageOps
 from services.braille_math_normalizer import (
     BrailleMathNormalizer,
 )
+from services.block_ordering import (
+    assign_identities,
+)
 from services.braille_translation_service import (
     BrailleTranslationService,
 )
@@ -356,15 +359,25 @@ class PaddleOcrVlService:
                     },
                 )
 
-        blocks = [
-            self._serialize_block(
+        block_dicts = [block for block in raw_blocks if isinstance(block, dict)]
+
+        blocks = []
+
+        for block, (block_id, order) in zip(
+            block_dicts,
+            assign_identities(block_dicts),
+        ):
+            serialized = self._serialize_block(
                 block,
-                fallback_id=index,
-                fallback_order=index,
+                fallback_id=block_id,
+                fallback_order=order,
             )
-            for index, block in enumerate(raw_blocks)
-            if isinstance(block, dict)
-        ]
+
+            # Unique even where OCR returned null or repeated values.
+            serialized["id"] = block_id
+            serialized["order"] = order
+
+            blocks.append(serialized)
 
         return {
             "page_index": self._positive_integer_or_default(
