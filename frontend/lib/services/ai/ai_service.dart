@@ -16,7 +16,6 @@ class AIService {
     String? baseUrl,
     String? scanMode,
     this.requestTimeout = const Duration(minutes: 3),
-    this.maxConnectionAttempts = 2,
   }) : _client = client ?? http.Client(),
        _offlineOcrService = offlineOcrService ?? OfflineOcrService(),
        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl),
@@ -51,14 +50,11 @@ class AIService {
   static const String remoteMode = 'remote';
   static const String sessionMode = 'session';
 
-  static const Duration _retryDelay = Duration(seconds: 2);
-
   final http.Client _client;
   final OfflineOcrService _offlineOcrService;
   final String _baseUrl;
   final String _scanMode;
   final Duration requestTimeout;
-  final int maxConnectionAttempts;
 
   bool _disposed = false;
 
@@ -137,23 +133,10 @@ class AIService {
       );
     }
 
-    int attempt = 1;
-
-    while (true) {
-      try {
-        return await _sendScanRequest(uri, token, imageFile);
-      } on AIServiceConnectionException {
-        if (attempt >= maxConnectionAttempts) {
-          rethrow;
-        }
-
-        attempt++;
-
-        debugPrint('Connection failed. Retrying scan (attempt $attempt).');
-
-        await Future<void>.delayed(_retryDelay);
-      }
-    }
+    // Sent once, never retried: after a 502/503, or a connection that
+    // drops mid-request, the image may already have reached the hosted
+    // OCR service, and sending it again would start a second job.
+    return _sendScanRequest(uri, token, imageFile);
   }
 
   Future<ScanDocumentResult> _sendScanRequest(
@@ -186,7 +169,7 @@ class AIService {
 
       // Node returns 502-504 when the AI server behind it is unreachable.
       // Treat these as connection errors so hybrid mode can fall back.
-            if (response.statusCode == 504) {
+      if (response.statusCode == 504) {
         throw AIServiceException(
           _readErrorMessage(payload) ??
               'The AI service did not respond in time.',
@@ -209,7 +192,7 @@ class AIService {
       );
 
       return ScanDocumentResult.fromJson(payload);
-        } on TimeoutException {
+    } on TimeoutException {
       debugPrint(
         'AI scan timed out after '
         '${requestTimeout.inMinutes} minutes.',
@@ -224,7 +207,7 @@ class AIService {
       throw const AIServiceConnectionException(
         'Unable to reach the PaddleOCR-VL service.',
       );
-        } on http.ClientException catch (error) {
+    } on http.ClientException catch (error) {
       debugPrint('AI client connection failed: $error');
 
       throw const AIServiceConnectionException(
