@@ -70,6 +70,8 @@ dependencies {
     implementation(
         "com.microsoft.onnxruntime:onnxruntime-android:1.21.1",
     )
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 kotlin {

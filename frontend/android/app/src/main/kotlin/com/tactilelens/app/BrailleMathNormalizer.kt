@@ -36,8 +36,9 @@ object BrailleMathNormalizer {
     private val STACKED_DOUBLE_SLASH_FRACTION =
         Regex("""\(\s*([A-Za-z0-9.+\- ]+?)\s*\\\\\s*([A-Za-z0-9.+\- ]+?)\s*\)""")
 
+    // The backslash must not start a command: "(x\right)" is not a fraction.
     private val STACKED_SINGLE_SLASH_FRACTION =
-        Regex("""\(\s*([A-Za-z0-9.+\- ]+?)\s*\\\s*([A-Za-z0-9.+\- ]+?)\s*\)""")
+        Regex("""\(\s*([A-Za-z0-9.+\- ]+?)\s*\\(?![A-Za-z])\s*([A-Za-z0-9.+\- ]+?)\s*\)""")
 
     private val INTEGER_EXPONENT =
         Regex("""\^\s*(?:\{\s*([+-]?\s*\d+)\s*\}|([+-]?\s*\d+))""")
