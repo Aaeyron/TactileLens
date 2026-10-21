@@ -370,6 +370,9 @@ def _script(kind, content):
         return ""
 
     if kind == "^":
+        # f^{\prime} is written f′, not f^′.
+        if set(c) == {"′"}:
+            return c
         if _INTEGER.search(c) or c in ("n", "i"):
             return "".join(_SUP.get(ch, ch) for ch in c)
         return "^" + c if len(c) == 1 else f"^({c})"
@@ -543,7 +546,9 @@ def _convert_command(s, start, name, out, text_mode):
         rows = []
         for row in _split_rows(body):
             if line_environment:
-                converted = _convert(row.replace("&", "")).strip()
+                # A space, not nothing: "\quad&Add" must not become the
+                # unknown command "\quadAdd", which would drop the word.
+                converted = _convert(row.replace("&", " ")).strip()
             else:
                 converted = (
                     _convert(row.replace("&", "\u0001"))

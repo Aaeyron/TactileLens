@@ -36,6 +36,22 @@ class LatexToReadableTests(unittest.TestCase):
     def test_subscripts_become_subscripts(self):
         self.assertEqual(latex_to_readable("x_{1}+x_{2}"), "x₁ + x₂")
 
+    def test_prime_is_written_after_the_letter(self):
+        self.assertEqual(latex_to_readable(r"f^{\prime}(x)=2x"), "f′(x) = 2x")
+        self.assertEqual(latex_to_readable(r"g^{\prime\prime}(x)"), "g′′(x)")
+
+    def test_aligned_rows_keep_words_after_spacing(self):
+        # "\quad&Add" must not turn into an unknown command.
+        self.assertEqual(
+            latex_to_readable(
+                r"\begin{aligned}x+1&=4\quad&\text{Add}\\x&=3\end{aligned}"
+            ),
+            "x + 1 = 4 Add\nx = 3",
+        )
+
+    def test_sized_delimiters_are_dropped(self):
+        self.assertEqual(latex_to_readable(r"\bigg(\frac{a}{b}\bigg)^{2}"), "(a/b)²")
+
     def test_inequality_with_minus_and_leq(self):
         self.assertEqual(latex_to_readable(r"3x-4\leq11"), "3x − 4 ≤ 11")
 

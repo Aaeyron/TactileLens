@@ -49,6 +49,12 @@ class _HtmlTableParser(HTMLParser):
 
 
 class TableContentParser:
+    # Read out in place of an empty cell, so a Braille reader knows the
+    # cell is there (for example a space to write an answer).
+    BLANK_CELL = "blank"
+
+    ALL_BLANK_ROW = "all blank"
+
     @classmethod
     def parse(
         cls,
@@ -61,11 +67,15 @@ class TableContentParser:
         parser.feed(content)
         parser.close()
 
-        return [
-            [cell.strip() for cell in row]
-            for row in parser.rows
-            if any(cell.strip() for cell in row)
-        ]
+        # Rows whose cells are all empty are kept; only rows without
+        # any cells are dropped.
+        rows = [[cell.strip() for cell in row] for row in parser.rows if row]
+
+        # A table with no text at all is not a table.
+        if not any(cell for row in rows for cell in row):
+            return []
+
+        return rows
 
     @classmethod
     def to_accessible_text(
@@ -78,9 +88,10 @@ class TableContentParser:
         lines = ["Table"]
 
         for index, row in enumerate(rows, start=1):
-            cells = [cell.strip() for cell in row if cell.strip()]
+            cells = [cell.strip() or cls.BLANK_CELL for cell in row]
 
-            if not cells:
+            if not any(cell.strip() for cell in row):
+                lines.append(f"Row {index}: {cls.ALL_BLANK_ROW}")
                 continue
 
             lines.append(f"Row {index}: {'; '.join(cells)}")

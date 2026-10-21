@@ -25,27 +25,21 @@ class FormulaBrailleGuardTests(unittest.TestCase):
 
         result = review(latex)
 
+        # \Big, \quad and aligned are supported; the English words are not.
         self.assertTrue(result.needs_review)
-        self.assertEqual(
-            result.categories,
-            (UNSUPPORTED_LATEX, ALIGNMENT, ENGLISH_TEXT),
-        )
-        self.assertIn(
-            r"unsupported LaTeX: \Big, \quad, aligned environment",
-            result.reason,
-        )
+        self.assertEqual(result.categories, (ENGLISH_TEXT,))
         # "in" and single letters are too short to count.
-        self.assertIn(
-            "contains English text (6 words: when, Put, for, Multiply, ...)",
+        self.assertEqual(
             result.reason,
+            "contains English text (6 words: when, Put, for, Multiply, ...)",
         )
 
     def test_each_unsupported_construct_is_held(self):
         for latex, expected in (
-            (r"\Big(x+1\Big)^{2}", r"\Big"),
-            (r"x=1\quad y=2", r"\quad"),
-            (r"f^{\prime}(x)=2x", r"\prime"),
+            (r"\hat{x}=2", r"\hat"),
+            (r"\overline{AB}=3", r"\overline"),
             (r"\begin{cases}x=1\end{cases}", "cases environment"),
+            (r"\begin{pmatrix}1&2\end{pmatrix}", "pmatrix environment"),
         ):
             with self.subTest(latex=latex):
                 result = review(latex)
@@ -53,6 +47,22 @@ class FormulaBrailleGuardTests(unittest.TestCase):
                 self.assertTrue(result.needs_review)
                 self.assertIn(UNSUPPORTED_LATEX, result.categories)
                 self.assertIn(expected, result.reason)
+
+    def test_newly_supported_constructs_are_translated(self):
+        for latex in (
+            r"\Big(x+1\Big)^{2}",
+            r"\bigg(\frac{a}{b}\biggr)",
+            r"x=1\quad y=2",
+            r"x=1\qquad y=2",
+            r"f^{\prime}(x)=2x",
+            r"g^{\prime\prime}(x)=6",
+            r"\textbf{A}=\mbox{area}",
+            r"\begin{aligned}x+1&=4\\x&=3\end{aligned}",
+            r"\begin{align*}2x&=8\\x&=4\end{align*}",
+            r"\begin{gathered}x=1\\y=2\end{gathered}",
+        ):
+            with self.subTest(latex=latex):
+                self.assertFalse(review(latex).needs_review)
 
     def test_bare_alignment_markup_is_held(self):
         for latex in (r"x+1&=4", r"x=1\\y=2"):
