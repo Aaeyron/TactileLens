@@ -3,6 +3,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -20,6 +21,9 @@ from services.braille_translation_service import (
 from services.formula_braille_guard import (
     NO_REVIEW,
     review_formula,
+)
+from services.official_api_client import (
+    OfficialApiClient,
 )
 from services.ocr_content_normalizer import (
     OcrContentNormalizer,
@@ -77,6 +81,13 @@ class PaddleOcrVlService:
     DEFAULT_MAX_IMAGE_DIMENSION = 2000
     DEFAULT_JPEG_QUALITY = 88
 
+    # PADDLEOCR_ENGINE: the PaddleOCR-VL pipeline on this machine, or
+    # PaddleOCR's official hosted API. Everything after recognition
+    # (normalizers, guard, Braille) is the same for both.
+    LOCAL_ENGINE = "local"
+    OFFICIAL_API_ENGINE = "official_api"
+    ENGINES = frozenset({LOCAL_ENGINE, OFFICIAL_API_ENGINE})
+
     def __init__(self) -> None:
         self.pipeline_version = os.getenv(
             "PADDLEOCR_PIPELINE_VERSION",
@@ -107,7 +118,15 @@ class PaddleOcrVlService:
 
         self.model_name = "PaddleOCR-VL-" f"{self.pipeline_version.lstrip('v')}"
 
-        # Prevent concurrent requests from exhausting laptop GPU memory.
+        self.engine = os.getenv("PADDLEOCR_ENGINE", self.LOCAL_ENGINE).strip().lower()
+
+        if self.engine not in self.ENGINES:
+            raise ValueError(
+                "PADDLEOCR_ENGINE must be one of: " + ", ".join(sorted(self.ENGINES))
+            )
+
+        # One recognition at a time: protects GPU memory locally and keeps
+        # a single hosted job in flight.
         self._inference_lock = threading.Lock()
 
         self._braille_translator = BrailleTranslationService()
@@ -117,6 +136,15 @@ class PaddleOcrVlService:
         self._guard_counts_lock = threading.Lock()
         self._formulas_checked = 0
         self._formulas_held = 0
+
+        if self.engine == self.OFFICIAL_API_ENGINE:
+            # Fails at startup if the token or daily cap is missing or wrong.
+            self._api_client = OfficialApiClient.from_environment()
+            self.model_name = self._api_client.model
+            self.device = self.OFFICIAL_API_ENGINE
+
+            print(f"Using PaddleOCR's official API ({self.model_name}).")
+            return
 
         initialization_started = time.perf_counter()
 
@@ -184,13 +212,7 @@ class PaddleOcrVlService:
             inference_started = time.perf_counter()
 
             with self._inference_lock:
-                predictions = list(
-                    self._pipeline.predict(
-                        input=str(optimized_image_path),
-                        use_layout_detection=True,
-                        use_queues=False,
-                    )
-                )
+                predictions = self._recognize(optimized_image_path)
 
             inference_seconds = time.perf_counter() - inference_started
 
@@ -254,6 +276,28 @@ class PaddleOcrVlService:
                 optimized_image_path,
                 original_image_path=image_path,
             )
+
+    def _recognize(
+        self,
+        image_path: Path,
+    ) -> list[Any]:
+        """Page results from the configured engine, each with a .json dict."""
+
+        if self.engine == self.OFFICIAL_API_ENGINE:
+            pages = self._api_client.parse_document(
+                image_path.read_bytes(),
+                image_path.name,
+            )
+
+            return [SimpleNamespace(json=page) for page in pages]
+
+        return list(
+            self._pipeline.predict(
+                input=str(image_path),
+                use_layout_detection=True,
+                use_queues=False,
+            )
+        )
 
     def _prepare_image(
         self,
