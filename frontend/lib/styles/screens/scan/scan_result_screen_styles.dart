@@ -431,6 +431,38 @@ abstract final class ScanResultScreenStyles {
     fontWeight: FontWeight.w700,
   );
 
+  // Block held for review: the service produced no Braille for it.
+  static const IconData reviewNoteIcon = Icons.info_outline_rounded;
+  static const double reviewNoteIconSize = 18;
+  static const double reviewNoteSpacing = 8;
+  static const Color reviewNoteBackgroundColor = Color(0xFFEDF3FB);
+
+  static const EdgeInsets reviewNotePadding = EdgeInsets.all(10);
+
+  static const BorderRadius reviewNoteRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const Border reviewNoteBorder = Border.fromBorderSide(
+    BorderSide(color: documentPageOutlineColor, width: 1),
+  );
+
+  static const TextStyle reviewNoteStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    height: 1.45,
+    fontWeight: FontWeight.w600,
+    color: textPrimaryColor,
+  );
+
+  static const TextStyle reviewReasonStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+    color: textSecondaryColor,
+  );
+
   // ============================================================
   // BRAILLE OUTPUT
   // ============================================================

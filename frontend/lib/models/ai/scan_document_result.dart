@@ -343,6 +343,7 @@ class DocumentBlock {
     required this.brailleSuccess,
     required this.brailleError,
     this.needsReview = false,
+    this.reviewReason = '',
     this.savedBrailleMode = BrailleMode.defaultMode,
   });
 
@@ -387,6 +388,15 @@ class DocumentBlock {
   /// default to false.
   final bool needsReview;
 
+  /// Why the AI service held this block for review instead of translating
+  /// it, for example unsupported LaTeX or English text inside a formula.
+  /// Set only by the online pipeline; empty otherwise.
+  final String reviewReason;
+
+  /// True when the AI service withheld this block's Braille. The raw OCR
+  /// text is shown with a note instead.
+  bool get isHeldForReview => needsReview && reviewReason.isNotEmpty;
+
   /// The Braille mode of the record's combined Braille string when it was
   /// saved, stored as `saved_braille_mode` in each block. [brailleContent]
   /// itself always stays Braille 2. Missing means Braille 2.
@@ -422,6 +432,7 @@ class DocumentBlock {
       brailleSuccess: brailleSuccess,
       brailleError: brailleError,
       needsReview: needsReview,
+      reviewReason: reviewReason,
       savedBrailleMode: savedBrailleMode ?? this.savedBrailleMode,
     );
   }
@@ -518,6 +529,7 @@ class DocumentBlock {
       brailleSuccess: brailleSuccess,
       brailleError: brailleError,
       needsReview: json['needs_review'] == true,
+      reviewReason: _readContent(json['review_reason']),
       savedBrailleMode: BrailleMode.fromWireName(json['saved_braille_mode']),
     );
   }
@@ -540,6 +552,8 @@ class DocumentBlock {
       'braille_success': brailleSuccess,
       'braille_error': brailleError,
       'needs_review': needsReview,
+      // Written only when set, so other records keep their existing shape.
+      if (reviewReason.isNotEmpty) 'review_reason': reviewReason,
       // Written only for Braille 1, so Braille 2 records keep their
       // existing shape. A missing key means Braille 2.
       if (savedBrailleMode != BrailleMode.defaultMode)

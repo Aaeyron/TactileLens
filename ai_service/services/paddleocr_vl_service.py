@@ -15,6 +15,10 @@ from services.braille_math_normalizer import (
 from services.braille_translation_service import (
     BrailleTranslationService,
 )
+from services.formula_braille_guard import (
+    NO_REVIEW,
+    review_formula,
+)
 from services.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
@@ -106,6 +110,12 @@ class PaddleOcrVlService:
 
         self._braille_translator = BrailleTranslationService()
 
+        # How often the formula Braille guard holds a block for review,
+        # since the service started.
+        self._guard_counts_lock = threading.Lock()
+        self._formulas_checked = 0
+        self._formulas_held = 0
+
         initialization_started = time.perf_counter()
 
         print(
@@ -193,6 +203,8 @@ class PaddleOcrVlService:
             ]
 
             ordered_blocks = [block for page in pages for block in page["blocks"]]
+
+            self._log_formula_reviews(ordered_blocks)
 
             serialization_seconds = time.perf_counter() - serialization_started
 
@@ -419,18 +431,33 @@ class PaddleOcrVlService:
                 block_type=normalization_block_type,
             )
 
+        review = NO_REVIEW
+
         if is_table:
             braille_source_content = normalized_content
         elif is_formula:
             braille_source_content = BrailleMathNormalizer.normalize(raw_content)
+            review = review_formula(raw_content, braille_source_content)
         else:
             braille_source_content = normalized_content
 
-        braille_result = self._braille_translator.translate_block(
-            braille_source_content,
-            is_formula=is_formula,
-            is_table=is_table,
-        )
+        if review.needs_review:
+            # Never produce Braille that may be wrong. Show exactly what
+            # OCR returned, with the reason, so a teacher can check it.
+            normalized_content = raw_content
+
+            braille_result = {
+                "success": False,
+                "code": BrailleTranslationService.NEMETH_CODE,
+                "content": "",
+                "error": f"Needs review: {review.reason}",
+            }
+        else:
+            braille_result = self._braille_translator.translate_block(
+                braille_source_content,
+                is_formula=is_formula,
+                is_table=is_table,
+            )
 
         bounding_box = self._normalized_bbox(block)
 
@@ -462,7 +489,35 @@ class PaddleOcrVlService:
             "braille_code": braille_result["code"],
             "braille_success": braille_result["success"],
             "braille_error": braille_result["error"],
+            "needs_review": review.needs_review,
+            "review_reason": review.reason,
         }
+
+    def _log_formula_reviews(
+        self,
+        blocks: list[dict[str, Any]],
+    ) -> None:
+        formulas = [block for block in blocks if block["is_formula"]]
+
+        if not formulas:
+            return
+
+        held = [block for block in formulas if block["needs_review"]]
+
+        with self._guard_counts_lock:
+            self._formulas_checked += len(formulas)
+            self._formulas_held += len(held)
+            checked_total = self._formulas_checked
+            held_total = self._formulas_held
+
+        print(
+            f"Formula Braille guard: held {len(held)} of {len(formulas)} "
+            f"formula blocks for review ({held_total} of {checked_total} "
+            "since start)."
+        )
+
+        for block in held:
+            print(f"  Block {block['id']}: {block['review_reason']}")
 
     def _normalized_bbox(
         self,

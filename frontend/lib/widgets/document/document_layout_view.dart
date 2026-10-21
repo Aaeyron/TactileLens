@@ -298,6 +298,10 @@ class _TextBrailleBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (block.isHeldForReview) {
+      return _HeldForReviewBlock(block: block);
+    }
+
     final String content = _ReadableDocumentPage.readableBlockContent(block);
     final String braille = block.hasBraille ? block.brailleContent.trim() : '';
 
@@ -389,6 +393,71 @@ class _WordBrailleColumn extends StatelessWidget {
           Text(pair.braille, style: ScanResultScreenStyles.brailleContentStyle),
         ],
       ),
+    );
+  }
+}
+
+/// A block the AI service held for review: the text exactly as recognized,
+/// with a note that no Braille was produced. Screen readers read both.
+@visibleForTesting
+const String heldForReviewNote =
+    'Needs review: no Braille was produced for this part. '
+    'Compare it with the printed page.';
+
+class _HeldForReviewBlock extends StatelessWidget {
+  const _HeldForReviewBlock({required this.block});
+
+  final DocumentBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    final String recognized = block.rawContent.trim().isNotEmpty
+        ? block.rawContent.trim()
+        : block.normalizedContent.trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SelectableText(
+          recognized,
+          style: ScanResultScreenStyles.recognizedContentStyle,
+        ),
+        const SizedBox(height: ScanResultScreenStyles.reviewNoteSpacing),
+        Container(
+          padding: ScanResultScreenStyles.reviewNotePadding,
+          decoration: const BoxDecoration(
+            color: ScanResultScreenStyles.reviewNoteBackgroundColor,
+            borderRadius: ScanResultScreenStyles.reviewNoteRadius,
+            border: ScanResultScreenStyles.reviewNoteBorder,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Icon(
+                ScanResultScreenStyles.reviewNoteIcon,
+                size: ScanResultScreenStyles.reviewNoteIconSize,
+                color: ScanResultScreenStyles.primaryColor,
+              ),
+              const SizedBox(width: ScanResultScreenStyles.reviewNoteSpacing),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      heldForReviewNote,
+                      style: ScanResultScreenStyles.reviewNoteStyle,
+                    ),
+                    Text(
+                      'Reason: ${block.reviewReason}',
+                      style: ScanResultScreenStyles.reviewReasonStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -543,6 +612,13 @@ class _ReadableDocumentPage extends StatelessWidget {
     }
 
     for (final DocumentBlock block in page.blocks) {
+      if (block.isHeldForReview) {
+        flushPendingContent();
+        _addWithSpacing(widgets, _HeldForReviewBlock(block: block));
+        previousBlock = null;
+        continue;
+      }
+
       final String content = readableBlockContent(block);
 
       if (block.hasTableData) {

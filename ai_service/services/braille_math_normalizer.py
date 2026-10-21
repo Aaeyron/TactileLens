@@ -70,6 +70,61 @@ class BrailleMathNormalizer:
         (r"\%", "%"),
     )
 
+    # Every LaTeX command this class converts. FormulaBrailleGuard holds
+    # any formula using another command for review, because the final
+    # clean-up below would turn it into a plain word ("\Big" -> "Big").
+    SUPPORTED_COMMANDS: Final[frozenset[str]] = frozenset(
+        {
+            "frac",
+            "dfrac",
+            "tfrac",
+            "sqrt",
+            "text",
+            "textrm",
+            "mathrm",
+            "mathbf",
+            "mathit",
+            "operatorname",
+        }
+        | {
+            latex_command[1:]
+            for latex_command, _ in _operator_replacements
+            if latex_command[1:].isalpha()
+        }
+    )
+
+    # Function names may stay as words; Liblouis reads them as written.
+    FUNCTION_NAMES: Final[frozenset[str]] = frozenset(
+        {
+            "sin",
+            "cos",
+            "tan",
+            "sec",
+            "csc",
+            "cot",
+            "log",
+            "ln",
+            "exp",
+            "lim",
+            "max",
+            "min",
+        }
+    )
+
+    # Environments whose rows (\\) and columns (&) are linearised. Stacked
+    # fractions written with "array" are handled separately and are not
+    # listed here.
+    SUPPORTED_ENVIRONMENTS: Final[frozenset[str]] = frozenset()
+
+    @classmethod
+    def replace_stacked_fractions(
+        cls,
+        content: str,
+    ) -> str:
+        """Public form of the stacked-fraction step, for the review guard."""
+
+        return cls._replace_stacked_fractions(content)
+
     @classmethod
     def normalize(
         cls,
