@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from paddleocr import PaddleOCRVL
 from PIL import Image, ImageOps
 
 from services.braille_math_normalizer import (
@@ -124,6 +123,16 @@ class PaddleOcrVlService:
         print(
             "Initializing PaddleOCR-VL " f"{self.pipeline_version} on {self.device}..."
         )
+
+        # Imported here, not at module level, so the rest of the service
+        # (serialization, normalizers, Braille) runs without PaddlePaddle.
+        try:
+            from paddleocr import PaddleOCRVL
+        except ImportError as error:
+            raise ImportError(
+                "The local PaddleOCR-VL engine needs the paddleocr and "
+                "paddlepaddle packages installed."
+            ) from error
 
         self._pipeline = PaddleOCRVL(
             pipeline_version=self.pipeline_version,

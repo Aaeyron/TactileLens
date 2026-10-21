@@ -1,17 +1,6 @@
-import sys
-import types
 import unittest
 
-# The serializer does not need PaddleOCR itself; stub it where it is not
-# installed so these tests run anywhere.
-try:
-    import paddleocr  # noqa: F401
-except ImportError:
-    _stub = types.ModuleType("paddleocr")
-    _stub.PaddleOCRVL = object
-    sys.modules["paddleocr"] = _stub
-
-from services.paddleocr_vl_service import PaddleOcrVlService  # noqa: E402
+from services.paddleocr_vl_service import PaddleOcrVlService
 
 
 class _RecordingTranslator:

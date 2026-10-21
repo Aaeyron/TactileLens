@@ -16,6 +16,7 @@ from fastapi import (
 from fastapi.concurrency import run_in_threadpool
 
 from services.paddleocr_vl_service import PaddleOcrVlService
+from services.service_key import ServiceKeyMiddleware
 
 
 logging.basicConfig(
@@ -113,6 +114,13 @@ app = FastAPI(
     ),
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# Every route except /health needs X-Service-Key = AI_SERVICE_SECRET.
+# Without the secret (local development) requests are not checked.
+app.add_middleware(
+    ServiceKeyMiddleware,
+    secret=os.getenv("AI_SERVICE_SECRET"),
 )
 
 

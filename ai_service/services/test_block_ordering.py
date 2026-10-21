@@ -1,18 +1,8 @@
-import sys
 import types
 import unittest
 
 from services.block_ordering import assign_identities
-
-# The serializer test below does not need PaddleOCR itself.
-try:
-    import paddleocr  # noqa: F401
-except ImportError:
-    _stub = types.ModuleType("paddleocr")
-    _stub.PaddleOCRVL = object
-    sys.modules["paddleocr"] = _stub
-
-from services.paddleocr_vl_service import PaddleOcrVlService  # noqa: E402
+from services.paddleocr_vl_service import PaddleOcrVlService
 
 
 def _blocks(*pairs):
