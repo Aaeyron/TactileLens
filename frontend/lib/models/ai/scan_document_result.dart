@@ -1,6 +1,7 @@
 import '../../utils/document_reading_order.dart';
 import '../braille/braille_mode.dart';
 import '../../utils/math_text_formatter.dart';
+import 'scan_processing_mode.dart';
 
 class ScanDocumentResult {
   const ScanDocumentResult({
@@ -12,7 +13,35 @@ class ScanDocumentResult {
     required this.blocks,
     required this.pages,
     this.historySavedByServer = false,
+    this.processingMode = ScanProcessingMode.online,
+    this.fellBackFromOnline = false,
   });
+
+  /// Which mode produced this result, so the app can always say so.
+  final ScanProcessingMode processingMode;
+
+  /// True when an online scan did not finish and the teacher chose to scan
+  /// on the device instead.
+  final bool fellBackFromOnline;
+
+  /// This result as produced by [mode].
+  ScanDocumentResult withProcessingMode(
+    ScanProcessingMode mode, {
+    bool fellBackFromOnline = false,
+  }) {
+    return ScanDocumentResult(
+      model: model,
+      pipelineVersion: pipelineVersion,
+      device: device,
+      pageCount: pageCount,
+      processingTimeMs: processingTimeMs,
+      blocks: blocks,
+      pages: pages,
+      historySavedByServer: historySavedByServer,
+      processingMode: mode,
+      fellBackFromOnline: fellBackFromOnline,
+    );
+  }
 
   final String model;
   final String pipelineVersion;

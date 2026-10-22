@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/session_manager.dart';
 import 'offline_ocr_service.dart';
 
@@ -58,7 +60,13 @@ class AIService {
 
   bool _disposed = false;
 
-  Future<ScanDocumentResult> scanDocument(File imageFile) async {
+  /// Scans [imageFile]. [mode] is the teacher's choice; guests always scan
+  /// on the device. Each call is one scan the teacher started, sent to the
+  /// server at most once with its own Idempotency-Key.
+  Future<ScanDocumentResult> scanDocument(
+    File imageFile, {
+    ScanProcessingMode? mode,
+  }) async {
     _ensureAvailable();
 
     if (!await imageFile.exists()) {
@@ -77,6 +85,10 @@ class AIService {
           'Please sign in or enter Guest Mode before scanning.',
         );
       }
+    }
+
+    if (mode == ScanProcessingMode.onDevice) {
+      effectiveMode = offlineMode;
     }
 
     _ensureAvailable();
@@ -99,7 +111,13 @@ class AIService {
         'Using offline OCR instead: ${error.message}',
       );
 
-      return _scanOffline(imageFile);
+      // Marked, so the app tells the teacher this was not an online scan.
+      final ScanDocumentResult result = await _scanOffline(imageFile);
+
+      return result.withProcessingMode(
+        ScanProcessingMode.onDevice,
+        fellBackFromOnline: true,
+      );
     }
   }
 
@@ -107,10 +125,25 @@ class AIService {
     debugPrint('Using bundled offline text recognition.');
 
     try {
-      return await _offlineOcrService.scanDocument(imageFile);
+      final ScanDocumentResult result = await _offlineOcrService.scanDocument(
+        imageFile,
+      );
+
+      return result.withProcessingMode(ScanProcessingMode.onDevice);
     } on OfflineOcrException catch (error) {
       throw AIServiceException(error.message);
     }
+  }
+
+  static final Random _keyRandom = Random.secure();
+
+  /// A new random key for one scan, so a repeated request gets the saved
+  /// answer instead of starting a second online job.
+  static String newIdempotencyKey() {
+    return List<String>.generate(
+      16,
+      (_) => _keyRandom.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
   }
 
   Future<ScanDocumentResult> _scanRemotely(File imageFile) async {
@@ -136,19 +169,28 @@ class AIService {
     // Sent once, never retried: after a 502/503, or a connection that
     // drops mid-request, the image may already have reached the hosted
     // OCR service, and sending it again would start a second job.
-    return _sendScanRequest(uri, token, imageFile);
+    final ScanDocumentResult result = await _sendScanRequest(
+      uri,
+      token,
+      imageFile,
+      newIdempotencyKey(),
+    );
+
+    return result.withProcessingMode(ScanProcessingMode.online);
   }
 
   Future<ScanDocumentResult> _sendScanRequest(
     Uri uri,
     String token,
     File imageFile,
+    String idempotencyKey,
   ) async {
     final Stopwatch stopwatch = Stopwatch()..start();
 
     try {
       final http.MultipartRequest request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $token'
+        ..headers['Idempotency-Key'] = idempotencyKey
         ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
 
       final http.StreamedResponse streamedResponse = await _client
@@ -164,6 +206,7 @@ class AIService {
       if (response.statusCode == 401) {
         throw const AIServiceException(
           'Your session has expired. Please sign in again to use online scanning.',
+          statusCode: 401,
         );
       }
 
@@ -173,12 +216,33 @@ class AIService {
         throw AIServiceException(
           _readErrorMessage(payload) ??
               'The AI service did not respond in time.',
+          code: _readCode(payload),
+          statusCode: 504,
+          fallbackRecommended: _readFallback(payload, defaultValue: true),
         );
       }
 
       if (response.statusCode == 502 || response.statusCode == 503) {
         throw AIServiceConnectionException(
           _readErrorMessage(payload) ?? 'The AI service is unavailable.',
+          code: _readCode(payload),
+          statusCode: response.statusCode,
+          fallbackRecommended: _readFallback(payload, defaultValue: true),
+        );
+      }
+
+      // 409 (a scan is already running), 429 (scan limits) and anything
+      // else the server refused.
+      if (response.statusCode >= 400) {
+        throw AIServiceException(
+          _readErrorMessage(payload) ?? 'The document could not be scanned.',
+          code: _readCode(payload),
+          statusCode: response.statusCode,
+          fallbackRecommended: _readFallback(
+            payload,
+            defaultValue: response.statusCode >= 500,
+          ),
+          retryAfter: _readRetryAfter(response, payload),
         );
       }
 
@@ -198,8 +262,12 @@ class AIService {
         '${requestTimeout.inMinutes} minutes.',
       );
 
+      // The server may still be working on it, so it is not sent again;
+      // scanning on the device is safe.
       throw const AIServiceException(
         'This scan took too long. Try again with a clearer photo.',
+        code: 'app_timeout',
+        fallbackRecommended: true,
       );
     } on SocketException catch (error) {
       debugPrint('AI socket connection failed: $error');
@@ -246,6 +314,33 @@ class AIService {
     } on FormatException {
       return null;
     }
+  }
+
+  String? _readCode(Map<String, dynamic>? payload) {
+    final dynamic code = payload?['code'];
+
+    return code is String && code.isNotEmpty ? code : null;
+  }
+
+  bool _readFallback(
+    Map<String, dynamic>? payload, {
+    required bool defaultValue,
+  }) {
+    final dynamic value = payload?['fallback_recommended'];
+
+    return value is bool ? value : defaultValue;
+  }
+
+  Duration? _readRetryAfter(
+    http.Response response,
+    Map<String, dynamic>? payload,
+  ) {
+    final dynamic fromBody = payload?['retry_after_seconds'];
+    final int? seconds = fromBody is num
+        ? fromBody.toInt()
+        : int.tryParse(response.headers['retry-after'] ?? '');
+
+    return seconds != null && seconds > 0 ? Duration(seconds: seconds) : null;
   }
 
   String? _readErrorMessage(Map<String, dynamic>? payload) {
@@ -331,14 +426,43 @@ class AIService {
 }
 
 class AIServiceException implements Exception {
-  const AIServiceException(this.message);
+  const AIServiceException(
+    this.message, {
+    this.code,
+    this.statusCode,
+    this.fallbackRecommended = false,
+    this.retryAfter,
+  });
 
   final String message;
+
+  /// The server's error code, such as hosted_ocr_quota, scan_hourly_limit
+  /// or scan_in_progress. Null for errors raised in the app.
+  final String? code;
+
+  final int? statusCode;
+
+  /// True when scanning this page on the device is worth offering.
+  final bool fallbackRecommended;
+
+  /// How long until online scanning is allowed again (scan limits).
+  final Duration? retryAfter;
+
+  bool get isScanInProgress => code == 'scan_in_progress';
+
+  bool get isScanLimit =>
+      code == 'scan_hourly_limit' || code == 'scan_daily_limit';
 
   @override
   String toString() => message;
 }
 
+/// The server could not be reached, or answered 502/503.
 class AIServiceConnectionException extends AIServiceException {
-  const AIServiceConnectionException(super.message);
+  const AIServiceConnectionException(
+    super.message, {
+    super.code,
+    super.statusCode,
+    super.fallbackRecommended = true,
+  });
 }
