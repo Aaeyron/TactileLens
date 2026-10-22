@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../styles/screens/auth/guest_setup_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../utils/form_keyboard.dart';
 import '../main/main_screen.dart';
 
 enum _GuestRole { student, educator }
@@ -123,7 +124,7 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: FormKeyboard.dismissBehavior,
               padding: GuestStyles.pagePadding,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -391,7 +392,7 @@ class _SectionHeading extends StatelessWidget {
           color: GuestStyles.primaryColor,
         ),
         const SizedBox(width: GuestStyles.itemSpacing),
-        Text(title, style: GuestStyles.sectionTitleStyle),
+        Flexible(child: Text(title, style: GuestStyles.sectionTitleStyle)),
       ],
     );
   }
@@ -430,7 +431,10 @@ class _RoleOption extends StatelessWidget {
           child: AnimatedContainer(
             duration: GuestStyles.roleAnimationDuration,
             curve: Curves.easeOut,
-            height: GuestStyles.roleCardHeight,
+            // Grows at large text sizes instead of clipping the description.
+            constraints: const BoxConstraints(
+              minHeight: GuestStyles.roleCardHeight,
+            ),
             padding: GuestStyles.roleCardPadding,
             decoration: BoxDecoration(
               color: isSelected

@@ -732,27 +732,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: SignUpStyles.primaryColor,
                 ),
               )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    SignUpStyles.googleIconLetter,
-                    style: SignUpStyles.googleIconStyle,
-                  ),
-                  SizedBox(width: SignUpStyles.googleIconSpacing),
-                  Text(
-                    SignUpStyles.googleLabel,
-                    style: SignUpStyles.googleButtonTextStyle,
-                  ),
-                ],
+            // Shrinks to fit on narrow phones and at large text sizes.
+            : const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      SignUpStyles.googleIconLetter,
+                      style: SignUpStyles.googleIconStyle,
+                    ),
+                    SizedBox(width: SignUpStyles.googleIconSpacing),
+                    Text(
+                      SignUpStyles.googleLabel,
+                      style: SignUpStyles.googleButtonTextStyle,
+                    ),
+                  ],
+                ),
               ),
       ),
     );
   }
 
   Widget _buildSignInPrompt() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // Wraps the link onto its own line when the text does not fit.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         const Text(
           SignUpStyles.hasAccountLabel,
@@ -818,7 +824,10 @@ class _RoleCard extends StatelessWidget {
           child: AnimatedContainer(
             duration: SignUpStyles.roleAnimationDuration,
             curve: Curves.easeOut,
-            height: SignUpStyles.roleCardHeight,
+            // Grows at large text sizes instead of clipping the description.
+            constraints: const BoxConstraints(
+              minHeight: SignUpStyles.roleCardHeight,
+            ),
             padding: SignUpStyles.roleCardPadding,
             decoration: BoxDecoration(
               color: isSelected

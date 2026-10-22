@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/auth/auth_service.dart';
 import '../../styles/screens/profile/change_password_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -354,7 +355,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
           child: SlideTransition(
             position: _entrancePosition,
             child: CustomScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: FormKeyboard.dismissBehavior,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: <Widget>[
                 SliverToBoxAdapter(child: _buildHeader(context)),

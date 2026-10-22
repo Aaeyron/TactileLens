@@ -18,6 +18,7 @@ import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/braille/braille_mode_selector.dart';
 import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 
 abstract final class _ScanResultText {
   static const String appBarTitle = 'Scan Result';
@@ -628,7 +629,8 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
   Future<_MaterialDetails?> _requestMaterialDetails() {
     return showGeneralDialog<_MaterialDetails>(
       context: context,
-      barrierDismissible: true,
+      // A tap outside must not throw away the typed title and details.
+      barrierDismissible: FormKeyboard.closeOnTapOutside,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: ScanResultScreenStyles.saveDialogBarrierColor,
       transitionDuration: ScanResultScreenStyles.saveDialogAnimationDuration,

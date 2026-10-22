@@ -14,6 +14,7 @@ import '../../styles/screens/history/history_screen_styles.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
+import '../../utils/form_keyboard.dart';
 import '../main/tab_data_cache.dart';
 
 abstract final class _HistoryText {
@@ -409,10 +410,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<T?> _showAnimatedDialog<T>({required WidgetBuilder builder}) {
+  Future<T?> _showAnimatedDialog<T>({
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+  }) {
     return showGeneralDialog<T>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: barrierDismissible,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: const Color(0x66000000),
       transitionDuration: const Duration(milliseconds: 260),
@@ -457,6 +461,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     final String? newTitle = await _showAnimatedDialog<String>(
+      // A tap outside must not throw away a half-typed title.
+      barrierDismissible: FormKeyboard.closeOnTapOutside,
       builder: (BuildContext dialogContext) {
         return _RenameHistoryDialog(currentTitle: record.title);
       },
@@ -788,7 +794,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           backgroundColor: HistoryScreenStyles.surfaceColor,
           onRefresh: _refreshHistory,
           child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: FormKeyboard.dismissBehavior,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: <Widget>[
               SliverToBoxAdapter(child: _buildHeader(context)),

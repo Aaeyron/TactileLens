@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/guest/guest_data_service.dart';
 import '../../styles/screens/profile/account_information_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 import '../../utils/session_manager.dart';
 import '../auth/auth_screen.dart';
 import 'privacy_security_screen.dart';
@@ -208,6 +209,8 @@ class _AccountInformationScreenState extends State<AccountInformationScreen>
 
     final bool? wasUpdated = await showModalBottomSheet<bool>(
       context: context,
+      // A tap above the sheet must not throw away a half-typed nickname.
+      isDismissible: FormKeyboard.closeOnTapOutside,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,

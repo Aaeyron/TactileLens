@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/auth/auth_service.dart';
 import '../../styles/screens/auth/forgot_password_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, this.initialEmail = ''});
@@ -437,7 +438,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
             return SingleChildScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: FormKeyboard.dismissBehavior,
               physics: const BouncingScrollPhysics(),
               padding: ForgotPasswordScreenStyles.pagePadding,
               child: Center(
