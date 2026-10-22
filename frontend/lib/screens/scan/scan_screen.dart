@@ -450,84 +450,16 @@ class _ScanScreenState extends State<ScanScreen> {
       _isProcessing = true;
     });
 
+    File? imageToScan;
+
     try {
-      final File imageToScan = await _prepareImageForScanning(selectedImage);
+      imageToScan = await _prepareImageForScanning(selectedImage);
 
       if (!mounted) {
         return;
       }
 
-      debugPrint(
-        'Sending image to configured OCR pipeline: '
-        '${imageToScan.path}',
-      );
-
-      final ScanDocumentResult scanResult = await _aiService.scanDocument(
-        imageToScan,
-        mode: mode,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      // The backend saves online scans itself, so only save here when it
-      // did not (offline results and fallbacks).
-      if (!scanResult.historySavedByServer) {
-        unawaited(_saveScanToHistory(scanResult, imageToScan));
-      }
-
-      debugPrint('Document OCR completed successfully.');
-
-      debugPrint(
-        'AI processing time: '
-        '${scanResult.processingTimeMs} ms',
-      );
-
-      debugPrint(
-        'Detected blocks: '
-        '${scanResult.blocks.length}',
-      );
-
-      for (final DocumentBlock block in scanResult.blocks) {
-        debugPrint('[${block.type}] ${block.content}');
-      }
-
-      // Prepare the default Braille mode while the processing overlay is
-      // still up, so the result never shows Braille 2 and then switches.
-      // Braille 2 returns at once; Braille 1 falls back to Braille 2 on
-      // failure instead of throwing.
-      final BrailleModeView brailleView = await BrailleModeTranslator.instance
-          .viewFor(
-            scanResult.displayPages,
-            BrailleModeSettings.defaultMode.value,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isProcessing = false;
-      });
-
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (BuildContext context) {
-            return ScanResultScreen(
-              result: scanResult,
-              scannedImage: imageToScan,
-              initialBrailleView: brailleView,
-            );
-          },
-        ),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      _retakeImage();
+      await _scanAndShowResult(imageToScan, mode);
     } on AIServiceException catch (error, stackTrace) {
       debugPrint('AI service error: ${error.message}');
 
@@ -537,7 +469,11 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      _showScanError(error.message);
+      setState(() {
+        _isProcessing = false;
+      });
+
+      await _handleScanError(error, imageToScan, mode);
     } catch (error, stackTrace) {
       debugPrint('Document scan failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -554,6 +490,142 @@ class _ScanScreenState extends State<ScanScreen> {
         });
       }
     }
+  }
+
+  /// After a failed scan: a clear message, and for a failed online scan
+  /// where the server recommends it, an offer to scan on the device. The
+  /// device is never used without the teacher choosing it.
+  Future<void> _handleScanError(
+    AIServiceException error,
+    File? imageToScan,
+    ScanProcessingMode mode,
+  ) async {
+    if (error.isScanInProgress) {
+      _showScanError(ScanModeText.scanInProgress);
+      return;
+    }
+
+    if (mode != ScanProcessingMode.online ||
+        !error.fallbackRecommended ||
+        imageToScan == null) {
+      _showScanError(error.message);
+      return;
+    }
+
+    final bool scanOnDevice = await showOnlineFailedDialog(context, error);
+
+    if (!scanOnDevice || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await _scanAndShowResult(
+        imageToScan,
+        ScanProcessingMode.onDevice,
+        fellBackFromOnline: true,
+      );
+    } on AIServiceException catch (deviceError) {
+      _showScanError(deviceError.message);
+    } catch (deviceError, stackTrace) {
+      debugPrint('On-device scan after online failure failed: $deviceError');
+      debugPrintStack(stackTrace: stackTrace);
+      _showScanError(_ScanText.scanFailureMessage);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _scanAndShowResult(
+    File imageToScan,
+    ScanProcessingMode mode, {
+    bool fellBackFromOnline = false,
+  }) async {
+    debugPrint(
+      'Sending image to configured OCR pipeline: '
+      '${imageToScan.path}',
+    );
+
+    ScanDocumentResult scanResult = await _aiService.scanDocument(
+      imageToScan,
+      mode: mode,
+    );
+
+    if (fellBackFromOnline) {
+      scanResult = scanResult.withProcessingMode(
+        ScanProcessingMode.onDevice,
+        fellBackFromOnline: true,
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    // The backend saves online scans itself, so only save here when it
+    // did not (offline results and fallbacks).
+    if (!scanResult.historySavedByServer) {
+      unawaited(_saveScanToHistory(scanResult, imageToScan));
+    }
+
+    debugPrint('Document OCR completed successfully.');
+
+    debugPrint(
+      'AI processing time: '
+      '${scanResult.processingTimeMs} ms',
+    );
+
+    debugPrint(
+      'Detected blocks: '
+      '${scanResult.blocks.length}',
+    );
+
+    for (final DocumentBlock block in scanResult.blocks) {
+      debugPrint('[${block.type}] ${block.content}');
+    }
+
+    // Prepare the default Braille mode while the processing overlay is
+    // still up, so the result never shows Braille 2 and then switches.
+    // Braille 2 returns at once; Braille 1 falls back to Braille 2 on
+    // failure instead of throwing.
+    final BrailleModeView brailleView = await BrailleModeTranslator.instance
+        .viewFor(
+          scanResult.displayPages,
+          BrailleModeSettings.defaultMode.value,
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return ScanResultScreen(
+            result: scanResult,
+            scannedImage: imageToScan,
+            initialBrailleView: brailleView,
+          );
+        },
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _retakeImage();
   }
 
   /// The mode the teacher chose, or null to go back and adjust the crop.

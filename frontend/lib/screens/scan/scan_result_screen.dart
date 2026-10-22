@@ -16,6 +16,7 @@ import '../../services/materials/material_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/braille/braille_mode_selector.dart';
+import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 
 abstract final class _ScanResultText {
@@ -371,17 +372,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ),
           ),
           const SizedBox(width: ScanResultScreenStyles.itemSpacing),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
+                const Text(
                   _ScanResultText.successTitle,
                   style: ScanResultScreenStyles.successTitleStyle,
                 ),
-                SizedBox(height: ScanResultScreenStyles.compactSpacing),
-                Text(
+                const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+                const Text(
                   _ScanResultText.successDescription,
+                  style: ScanResultScreenStyles.successDescriptionStyle,
+                ),
+                const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+                // Always says which mode processed the scan.
+                Text(
+                  processedByLabel(widget.result),
                   style: ScanResultScreenStyles.successDescriptionStyle,
                 ),
               ],

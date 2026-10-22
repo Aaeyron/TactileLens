@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
+import '../../services/ai/ai_service.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 
 abstract final class ScanModeText {
@@ -28,6 +30,102 @@ abstract final class ScanModeText {
 
   static const String continueOnline = 'Continue online';
   static const String useOnDevice = 'Use On-device';
+
+  static const String processedOnline = 'Processed online (PaddleOCR-VL).';
+
+  static const String processedOnDevice = 'Processed on this device.';
+
+  static const String processedOnDeviceAfterOnline =
+      'Processed on this device, because the online scan did not finish.';
+
+  static const String onlineFailedTitle = 'Online scan did not finish';
+  static const String scanLimitTitle = 'Online scan limit reached';
+  static const String hostedQuotaTitle = 'Online scanning is unavailable today';
+
+  static const String offerOnDevice =
+      'You can scan this page on this device instead. On-device results may '
+      'differ from online scans.';
+
+  static const String scanOnDevice = 'Scan on this device';
+  static const String notNow = 'Not now';
+
+  static const String scanInProgress =
+      'A scan is already running for your account. Wait for it to finish, '
+      'then try again.';
+}
+
+/// Which mode produced [result], shown on every result.
+String processedByLabel(ScanDocumentResult result) {
+  if (result.processingMode == ScanProcessingMode.online) {
+    return ScanModeText.processedOnline;
+  }
+
+  return result.fellBackFromOnline
+      ? ScanModeText.processedOnDeviceAfterOnline
+      : ScanModeText.processedOnDevice;
+}
+
+/// Title and message offering to scan on the device after [error].
+({String title, String message}) onlineFailureText(AIServiceException error) {
+  final String title = error.isScanLimit
+      ? ScanModeText.scanLimitTitle
+      : error.code == 'hosted_ocr_quota'
+      ? ScanModeText.hostedQuotaTitle
+      : ScanModeText.onlineFailedTitle;
+
+  final Duration? wait = error.retryAfter;
+  final String waitText = error.isScanLimit && wait != null
+      ? ' Online scanning is available again in about '
+            '${_minutes(wait)}.'
+      : '';
+
+  return (
+    title: title,
+    message: '${error.message}$waitText\n\n${ScanModeText.offerOnDevice}',
+  );
+}
+
+String _minutes(Duration wait) {
+  final int minutes = (wait.inSeconds / 60).ceil();
+  return minutes == 1 ? '1 minute' : '$minutes minutes';
+}
+
+/// Asks whether to scan on the device after an online scan failed with a
+/// fallback recommended. True only if the teacher chose it.
+Future<bool> showOnlineFailedDialog(
+  BuildContext context,
+  AIServiceException error,
+) async {
+  final ({String title, String message}) text = onlineFailureText(error);
+
+  final bool? scanOnDevice = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        backgroundColor: ScanScreenStyles.dialogBackgroundColor,
+        icon: const Icon(
+          ScanScreenStyles.onlineFailedIcon,
+          color: ScanScreenStyles.primaryColor,
+        ),
+        title: Text(text.title, style: ScanScreenStyles.dialogTitleStyle),
+        content: Text(text.message, style: ScanScreenStyles.dialogBodyStyle),
+        actions: <Widget>[
+          TextButton(
+            style: ScanScreenStyles.dialogSecondaryButtonStyle,
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(ScanModeText.notNow),
+          ),
+          FilledButton(
+            style: ScanScreenStyles.dialogPrimaryButtonStyle,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(ScanModeText.scanOnDevice),
+          ),
+        ],
+      );
+    },
+  );
+
+  return scanOnDevice ?? false;
 }
 
 /// Online / On-device choice for signed-in teachers.
