@@ -348,6 +348,58 @@ abstract final class ScanScreenStyles {
   );
 
   // ==========================================================
+  // SCAN MODE (Online / On-device) AND ITS DIALOGS
+  // ==========================================================
+
+  static const IconData onlineModeIcon = Icons.cloud_outlined;
+  static const IconData onDeviceModeIcon = Icons.smartphone_rounded;
+  static const IconData privacyNoticeIcon = Icons.privacy_tip_outlined;
+  static const IconData onlineFailedIcon = Icons.cloud_off_rounded;
+
+  static const double scanModeSpacing = 10;
+  static const double scanModeMinimumHeight = 48;
+
+  static final ButtonStyle scanModeButtonStyle = SegmentedButton.styleFrom(
+    selectedBackgroundColor: primaryColor,
+    selectedForegroundColor: onPrimaryColor,
+    foregroundColor: primaryColor,
+    minimumSize: const Size.fromHeight(scanModeMinimumHeight),
+    textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+  );
+
+  static const TextStyle scanModeHintStyle = TextStyle(
+    color: confirmationBodyColor,
+    fontSize: 13,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+  );
+
+  static const TextStyle dialogTitleStyle = TextStyle(
+    color: confirmationTitleColor,
+    fontSize: 19,
+    height: 1.25,
+    fontWeight: FontWeight.w800,
+  );
+
+  static const TextStyle dialogBodyStyle = TextStyle(
+    color: Color(0xFF293A61),
+    fontSize: 14.5,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  static final ButtonStyle dialogPrimaryButtonStyle = FilledButton.styleFrom(
+    backgroundColor: primaryColor,
+    foregroundColor: onPrimaryColor,
+    minimumSize: const Size(64, 48),
+  );
+
+  static final ButtonStyle dialogSecondaryButtonStyle = TextButton.styleFrom(
+    foregroundColor: primaryColor,
+    minimumSize: const Size(64, 48),
+  );
+
+  // ==========================================================
   // SNACKBAR
   // ==========================================================
 
