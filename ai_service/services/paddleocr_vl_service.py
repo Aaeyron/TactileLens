@@ -25,6 +25,9 @@ from services.formula_braille_guard import (
 from services.official_api_client import (
     OfficialApiClient,
 )
+from services.latex_readable_converter import (
+    readable_with_prose,
+)
 from services.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
@@ -508,9 +511,10 @@ class PaddleOcrVlService:
             braille_source_content = normalized_content
 
         if review.needs_review:
-            # Never produce Braille that may be wrong. Show exactly what
-            # OCR returned, with the reason, so a teacher can check it.
-            normalized_content = raw_content
+            # Never produce Braille that may be wrong. Show readable text
+            # with the reason; the original LaTeX stays in raw_content so a
+            # teacher can still check exactly what OCR returned.
+            normalized_content = readable_with_prose(raw_content) or raw_content
 
             braille_result = {
                 "success": False,

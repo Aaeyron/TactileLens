@@ -455,6 +455,23 @@ abstract final class ScanResultScreenStyles {
     color: textPrimaryColor,
   );
 
+  static final ButtonStyle showOriginalButtonStyle = TextButton.styleFrom(
+    foregroundColor: primaryColor,
+    minimumSize: const Size(48, 48),
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  static const TextStyle originalLatexStyle = TextStyle(
+    fontFamily: 'monospace',
+    fontSize: 13,
+    height: 1.45,
+    color: textSecondaryColor,
+  );
+
   static const TextStyle reviewReasonStyle = TextStyle(
     fontFamily: 'Poppins',
     fontSize: 12,

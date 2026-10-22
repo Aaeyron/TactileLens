@@ -145,6 +145,60 @@ def latex_to_readable(latex):
     return readable.replace("\\", "")
 
 
+# Left as they are when prose is marked: command names, environment names
+# and groups that are already text.
+_PROSE_PROTECTED = re.compile(
+    r"\\(?:begin|end)\s*\{[^{}]*\}"
+    r"|\\(?:text|textrm|textit|textbf|textnormal|textsf|texttt|mbox|hbox"
+    r"|mathrm|operatorname)\s*\{[^{}]*\}"
+    r"|\\[A-Za-z]+"
+)
+
+# A run of words of two or more letters, with the spaces and punctuation
+# between and around them.
+_PROSE_RUN = re.compile(
+    r" *[A-Za-z]{2,}(?:[:.,;?!]? +[A-Za-z]{2,})*[:.,;?!]? *"
+)
+
+
+def readable_with_prose(latex):
+    """Readable text for LaTeX that mixes words and math.
+
+    Used only for display (for example of a block held for review): words
+    outside \\text{} keep their spaces, so "Example: Divide. \\frac{1}{2}"
+    reads "Example: Divide. 1/2" instead of "Example:Divide.1/2".
+    """
+    if not latex or not latex.strip():
+        return ""
+
+    # Inline math delimiters ($...$) are never shown; "\$" (money) stays.
+    latex = re.sub(r"(?<!\\)\$", "", latex)
+
+    marked = []
+    position = 0
+
+    for protected in _PROSE_PROTECTED.finditer(latex):
+        marked.append(_mark_prose(latex[position:protected.start()]))
+        marked.append(protected.group(0))
+        position = protected.end()
+
+    marked.append(_mark_prose(latex[position:]))
+
+    readable = latex_to_readable("".join(marked))
+    return re.sub(r" {2,}", " ", readable).strip()
+
+
+def _mark_prose(segment):
+    def to_text(match):
+        run = match.group(0)
+        words = run.strip(" :.,;?!")
+        if words.lower() in _FUNCTIONS:
+            return run
+        return "\\text{" + run + "}"
+
+    return _PROSE_RUN.sub(to_text, segment)
+
+
 def ensure_readable(text):
     """Converts only the LaTeX parts of mixed text.
 

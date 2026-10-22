@@ -397,31 +397,73 @@ class _WordBrailleColumn extends StatelessWidget {
   }
 }
 
-/// A block the AI service held for review: the text exactly as recognized,
-/// with a note that no Braille was produced. Screen readers read both.
+/// A block the AI service held for review: readable text, with a note that
+/// no Braille was produced and a toggle for the original LaTeX. Screen
+/// readers read the readable text and the note.
 @visibleForTesting
 const String heldForReviewNote =
     'Needs review: no Braille was produced for this part. '
     'Compare it with the printed page.';
 
-class _HeldForReviewBlock extends StatelessWidget {
+@visibleForTesting
+const String showOriginalLabel = 'Show original';
+
+@visibleForTesting
+const String hideOriginalLabel = 'Hide original';
+
+class _HeldForReviewBlock extends StatefulWidget {
   const _HeldForReviewBlock({required this.block});
 
   final DocumentBlock block;
 
   @override
+  State<_HeldForReviewBlock> createState() => _HeldForReviewBlockState();
+}
+
+class _HeldForReviewBlockState extends State<_HeldForReviewBlock> {
+  bool _showOriginal = false;
+
+  @override
   Widget build(BuildContext context) {
-    final String recognized = block.rawContent.trim().isNotEmpty
-        ? block.rawContent.trim()
-        : block.normalizedContent.trim();
+    final DocumentBlock block = widget.block;
+    final String original = block.rawContent.trim();
+    final String readable = block.normalizedContent.trim().isNotEmpty
+        ? block.normalizedContent.trim()
+        : original;
+
+    // Records saved before readable text existed show the LaTeX itself,
+    // so there is nothing separate to reveal.
+    final bool hasSeparateOriginal =
+        original.isNotEmpty && original != readable;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SelectableText(
-          recognized,
+          readable,
           style: ScanResultScreenStyles.recognizedContentStyle,
         ),
+        if (hasSeparateOriginal) ...<Widget>[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton(
+              style: ScanResultScreenStyles.showOriginalButtonStyle,
+              onPressed: () {
+                setState(() {
+                  _showOriginal = !_showOriginal;
+                });
+              },
+              child: Text(
+                _showOriginal ? hideOriginalLabel : showOriginalLabel,
+              ),
+            ),
+          ),
+          if (_showOriginal)
+            SelectableText(
+              original,
+              style: ScanResultScreenStyles.originalLatexStyle,
+            ),
+        ],
         const SizedBox(height: ScanResultScreenStyles.reviewNoteSpacing),
         Container(
           padding: ScanResultScreenStyles.reviewNotePadding,

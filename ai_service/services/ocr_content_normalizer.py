@@ -169,8 +169,10 @@ class OcrContentNormalizer:
     ) -> str:
         normalized = cls._remove_outer_math_delimiters(content)
 
-        normalized = cls._unwrap_formatting_commands(normalized)
-
+        # \text{...} and the other wrappers are left for latex_to_readable,
+        # which keeps the spaces inside \text{}. Unwrapping them here put
+        # the words in math mode, where spaces are dropped. Display only:
+        # formula Braille is made from the raw content.
         normalized = cls._replace_spacing_commands(normalized)
 
         normalized = cls._replace_integer_exponents(normalized)

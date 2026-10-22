@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/ai/scan_document_result.dart';
 import 'package:mobile/models/braille/braille_mode.dart';
@@ -15,16 +16,21 @@ const String _heldReason =
     r'unsupported LaTeX: \quad, aligned environment; '
     'contains English text (3 words: Add, three, Answer)';
 
+// What the AI service now sends as normalized_content for that block.
+const String _heldReadable = '2y + 3 Add three\n5 Answer';
+
 final BrailleModeFixture _text = brailleModeFixtures.first;
 
-DocumentBlock _heldBlock() {
+/// [readable] is the display text; records saved before readable text
+/// existed have the LaTeX there instead.
+DocumentBlock _heldBlock({String readable = _heldReadable}) {
   return DocumentBlock.fromJson(
     <String, dynamic>{
       'id': 1,
       'order': 2,
       'type': 'display_formula',
       'raw_content': _heldLatex,
-      'normalized_content': _heldLatex,
+      'normalized_content': readable,
       'is_text': false,
       'is_formula': true,
       'is_table': false,
@@ -117,7 +123,7 @@ void main() {
 
   group('display', () {
     testWidgets(
-      'Text and Braille shows the raw text and the note, no Braille',
+      'Text and Braille shows the readable text and the note, no Braille',
       (WidgetTester tester) async {
         final SemanticsHandle semantics = tester.ensureSemantics();
 
@@ -129,8 +135,24 @@ void main() {
           ),
         );
 
-        expect(find.text(_heldLatex), findsOneWidget);
+        expect(find.text(_heldReadable), findsOneWidget);
+        // The LaTeX is only shown on request.
+        expect(find.text(_heldLatex), findsNothing);
         expect(find.text(heldForReviewNote), findsOneWidget);
+
+        // TalkBack reads the readable text, not LaTeX. Selectable text is
+        // exposed to screen readers as the node's value.
+        final SemanticsNode readableNode = tester.getSemantics(
+          find.text(_heldReadable),
+        );
+        expect(
+          '${readableNode.label} ${readableNode.value}',
+          contains('2y + 3 Add three'),
+        );
+        expect(
+          '${readableNode.label} ${readableNode.value}',
+          isNot(contains(r'\begin')),
+        );
         expect(find.text('Reason: $_heldReason'), findsOneWidget);
 
         // TalkBack reads the note.
@@ -161,7 +183,60 @@ void main() {
         ),
       );
 
+      expect(find.text(_heldReadable), findsOneWidget);
+      expect(find.text(heldForReviewNote), findsOneWidget);
+    });
+
+    testWidgets('Show original reveals the LaTeX and hides it again', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        _host(
+          TextBrailleLayoutView(pages: _pages(<DocumentBlock>[_heldBlock()])),
+        ),
+      );
+
+      expect(find.text(_heldLatex), findsNothing);
+      expect(
+        tester.getSemantics(find.text(showOriginalLabel)),
+        isSemantics(isButton: true, label: showOriginalLabel),
+      );
+      expect(
+        tester
+            .getSize(find.widgetWithText(TextButton, showOriginalLabel))
+            .height,
+        greaterThanOrEqualTo(48),
+      );
+
+      await tester.tap(find.text(showOriginalLabel));
+      await tester.pump();
+
       expect(find.text(_heldLatex), findsOneWidget);
+      expect(find.text(_heldReadable), findsOneWidget);
+
+      await tester.tap(find.text(hideOriginalLabel));
+      await tester.pump();
+
+      expect(find.text(_heldLatex), findsNothing);
+
+      semantics.dispose();
+    });
+
+    testWidgets('older records with only LaTeX show it, without a toggle', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          TextBrailleLayoutView(
+            pages: _pages(<DocumentBlock>[_heldBlock(readable: _heldLatex)]),
+          ),
+        ),
+      );
+
+      expect(find.text(_heldLatex), findsOneWidget);
+      expect(find.text(showOriginalLabel), findsNothing);
       expect(find.text(heldForReviewNote), findsOneWidget);
     });
   });

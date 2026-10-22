@@ -60,10 +60,37 @@ class FormulaReviewSerializationTests(unittest.TestCase):
             block["braille_error"],
             f"Needs review: {block['review_reason']}",
         )
-        # The teacher sees exactly what OCR returned.
-        self.assertEqual(block["normalized_content"], HELD_LATEX.strip())
-        self.assertEqual(block["content"], HELD_LATEX.strip())
+        # Readable text for the teacher; the original LaTeX is kept.
+        self.assertEqual(block["normalized_content"], "2y + 3 Add three\n5 Answer")
+        self.assertEqual(block["content"], block["normalized_content"])
         self.assertEqual(block["raw_content"], HELD_LATEX.strip())
+
+    def test_a_held_instruction_and_fraction_reads_cleanly(self):
+        # Shaped like the reported block: an instruction line and a
+        # fraction read as one formula. Still no Braille.
+        latex = (
+            r"$$ Example: Perform the division and simplify your answer. "
+            r"\frac{2\sqrt{5}-4}{7} $$"
+        )
+        service = _service()
+
+        block = service._serialize_block(
+            _block("display_formula", latex),
+            fallback_id=0,
+            fallback_order=0,
+        )
+
+        self.assertTrue(block["needs_review"])
+        self.assertEqual(service._braille_translator.calls, [])
+        self.assertEqual(block["braille_content"], "")
+        self.assertEqual(
+            block["normalized_content"],
+            "Example: Perform the division and simplify your answer. (2√5 − 4)/7",
+        )
+        self.assertEqual(block["raw_content"], latex.strip())
+
+    # Add the teacher's real held block here when available:
+    # def test_reported_block(self): ...
 
     def test_supported_formula_is_translated(self):
         service = _service()
