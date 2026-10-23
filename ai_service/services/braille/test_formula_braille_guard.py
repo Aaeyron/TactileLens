@@ -5,8 +5,22 @@ from services.braille.formula_braille_guard import (
     ALIGNMENT,
     ENGLISH_TEXT,
     LEFTOVER_MARKUP,
+    ROOT,
+    ROOT_REASON,
     UNSUPPORTED_LATEX,
     review_formula,
+    review_table,
+)
+
+# Every case that must be held because of a root, LaTeX or Unicode.
+ROOT_CASES = (
+    r"$$ \sqrt{9}=3 $$",
+    r"$$ \sqrt[3]{8}=2 $$",
+    r"$$ x=\frac{-b\pm\sqrt{b^{2}-4ac}}{2a} $$",
+    r"$ 2\sqrt{5} $",
+    "∛27 = 3",
+    "∜16 = 2",
+    r"\frac{x+1}{2}\leq\sqrt{9}",
 )
 
 
@@ -77,7 +91,6 @@ class FormulaBrailleGuardTests(unittest.TestCase):
             r"$$ x-5=12 $$",
             r"$$ (x+4)(x-2)=10 $$",
             r"$$ x^{2}+5x+6=0 $$",
-            r"\frac{x+1}{2}\leq\sqrt{9}",
             r"\text{area}=l\times w",
             r"\sin x+\cos x=1",
             r"\log_{2}8=3",
@@ -87,6 +100,36 @@ class FormulaBrailleGuardTests(unittest.TestCase):
         ):
             with self.subTest(latex=latex):
                 self.assertFalse(review(latex).needs_review)
+
+    def test_roots_are_held(self):
+        # Liblouis has no Nemeth radical; held until the expert confirms it.
+        for latex in ROOT_CASES:
+            with self.subTest(latex=latex):
+                result = review(latex)
+
+                self.assertTrue(result.needs_review)
+                self.assertEqual(result.categories, (ROOT,))
+                self.assertEqual(result.reason, ROOT_REASON)
+
+    def test_a_root_is_held_with_other_findings(self):
+        result = review(r"$$ Simplify \sqrt{8} $$")
+
+        self.assertEqual(result.categories, (ENGLISH_TEXT, ROOT))
+        self.assertTrue(result.reason.endswith(ROOT_REASON))
+
+    def test_shared_root_reason(self):
+        # The offline app (offline_ocr_service.dart) uses the same text.
+        self.assertEqual(
+            ROOT_REASON, "contains a root (√): Nemeth radical not yet confirmed"
+        )
+
+    def test_tables_are_held_only_for_roots(self):
+        held = review_table("Table\nRow 1: x; √x\nRow 2: 4; 2\nEnd table")
+        self.assertTrue(held.needs_review)
+        self.assertEqual(held.categories, (ROOT,))
+        self.assertEqual(held.reason, ROOT_REASON)
+
+        self.assertFalse(review_table("Table\nRow 1: x; x²\nEnd table").needs_review)
 
     def test_one_long_word_outside_text_is_held(self):
         result = review(r"x=2 when y=3")

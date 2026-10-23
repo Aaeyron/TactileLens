@@ -28,6 +28,14 @@ UNSUPPORTED_LATEX: Final[str] = "unsupported_latex"
 ALIGNMENT: Final[str] = "alignment"
 ENGLISH_TEXT: Final[str] = "english_text"
 LEFTOVER_MARKUP: Final[str] = "leftover_markup"
+ROOT: Final[str] = "root"
+
+# The Liblouis Nemeth table (en-us-mathtext.ctb, 3.38.0) has no radical
+# symbols: a root comes out as an escape such as '\x221a' written in
+# Braille cells. Roots stay held until the Braille expert confirms the
+# Nemeth radical. The offline app uses the same reason text.
+ROOT_SYMBOLS: Final[str] = "√∛∜"
+ROOT_REASON: Final[str] = "contains a root (√): Nemeth radical not yet confirmed"
 
 # Wrappers whose contents are meant to be words, such as "\text{area}".
 _TEXT_WRAPPER = re.compile(
@@ -90,6 +98,11 @@ def review_formula(raw_content: str, braille_input: str) -> FormulaReview:
             )
         )
 
+    # BrailleMathNormalizer turns every \sqrt into √, so this also catches
+    # roots written as LaTeX.
+    if contains_root(braille_input):
+        findings.append((ROOT, ROOT_REASON))
+
     # Safety net: anything still looking like markup after normalization.
     if not findings and any(mark in braille_input for mark in "\\{}&"):
         findings.append((LEFTOVER_MARKUP, "markup left after normalization"))
@@ -102,6 +115,19 @@ def review_formula(raw_content: str, braille_input: str) -> FormulaReview:
         categories=tuple(category for category, _ in findings),
         reason="; ".join(reason for _, reason in findings),
     )
+
+
+def review_table(table_text: str) -> FormulaReview:
+    """Check a table's row text, which is also translated with Nemeth."""
+
+    if not contains_root(table_text):
+        return NO_REVIEW
+
+    return FormulaReview(needs_review=True, categories=(ROOT,), reason=ROOT_REASON)
+
+
+def contains_root(content: str) -> bool:
+    return any(symbol in content for symbol in ROOT_SYMBOLS)
 
 
 def _unsupported_latex(structure: str) -> list[str]:

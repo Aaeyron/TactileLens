@@ -21,6 +21,7 @@ from services.braille.braille_translation_service import (
 from services.braille.formula_braille_guard import (
     NO_REVIEW,
     review_formula,
+    review_table,
 )
 from services.ocr.official_api_client import (
     OfficialApiClient,
@@ -504,6 +505,7 @@ class PaddleOcrVlService:
 
         if is_table:
             braille_source_content = normalized_content
+            review = review_table(normalized_content)
         elif is_formula:
             braille_source_content = BrailleMathNormalizer.normalize(raw_content)
             review = review_formula(raw_content, braille_source_content)
@@ -513,8 +515,12 @@ class PaddleOcrVlService:
         if review.needs_review:
             # Never produce Braille that may be wrong. Show readable text
             # with the reason; the original LaTeX stays in raw_content so a
-            # teacher can still check exactly what OCR returned.
-            normalized_content = readable_with_prose(raw_content) or raw_content
+            # teacher can still check exactly what OCR returned. A table
+            # keeps its row text; its raw content is HTML.
+            if not is_table:
+                normalized_content = (
+                    readable_with_prose(raw_content) or raw_content
+                )
 
             braille_result = {
                 "success": False,
