@@ -77,12 +77,6 @@ abstract final class MaterialDetailScreenStyles {
   // ENTRANCE ANIMATION
   // ============================================================
 
-  static const Duration entranceDuration = Duration(milliseconds: 520);
-
-  static const Curve entranceCurve = Curves.easeOutCubic;
-
-  static const double entranceOffsetY = 18;
-
   // ============================================================
   // SCREEN LAYOUT
   // ============================================================

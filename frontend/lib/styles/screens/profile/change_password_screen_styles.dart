@@ -107,11 +107,6 @@ abstract final class ChangePasswordScreenStyles {
   // ANIMATION
   // ============================================================
 
-  static const Duration entranceDuration = Duration(milliseconds: 420);
-  static const Duration entranceDelay = Duration(milliseconds: 100);
-  static const Curve entranceCurve = Curves.easeOutCubic;
-  static const Offset entranceBeginOffset = Offset(0, 0.025);
-
   static const Duration snackBarDuration = Duration(seconds: 4);
 
   // ============================================================

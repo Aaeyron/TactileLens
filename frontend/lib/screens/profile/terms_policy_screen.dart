@@ -12,8 +12,7 @@ class TermsPolicyScreen extends StatefulWidget {
   }
 }
 
-class _TermsPolicyScreenState extends State<TermsPolicyScreen>
-    with SingleTickerProviderStateMixin {
+class _TermsPolicyScreenState extends State<TermsPolicyScreen> {
   static const int _termsTabIndex = 0;
   static const int _privacyTabIndex = 1;
 
@@ -118,50 +117,12 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen>
     ),
   ];
 
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
   int _selectedTab = _termsTabIndex;
 
   bool get _showingTerms => _selectedTab == _termsTabIndex;
 
   List<_PolicySectionData> get _visibleSections {
     return _showingTerms ? _termsSections : _privacySections;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: TermsPolicyScreenStyles.entranceDuration,
-    );
-
-    final CurvedAnimation animation = CurvedAnimation(
-      parent: _entranceController,
-      curve: TermsPolicyScreenStyles.entranceCurve,
-    );
-
-    _entranceOpacity = animation;
-
-    _entrancePosition = Tween<Offset>(
-      begin: TermsPolicyScreenStyles.entranceBeginOffset,
-      end: Offset.zero,
-    ).animate(animation);
-
-    Future<void>.delayed(TermsPolicyScreenStyles.entranceDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
   }
 
   void _selectTab(int index) {
@@ -180,77 +141,63 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: TermsPolicyScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: CustomScrollView(
-              physics: const ClampingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              slivers: <Widget>[
-                SliverToBoxAdapter(child: _buildHeader(context)),
-                SliverPadding(
-                  padding: TermsPolicyScreenStyles.contentPadding,
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate.fixed(<Widget>[
-                      const _PolicyIntroductionCard(),
-                      const SizedBox(
-                        height: TermsPolicyScreenStyles.sectionSpacing,
-                      ),
-                      _PolicyTabs(
-                        selectedIndex: _selectedTab,
-                        onSelected: _selectTab,
-                      ),
-                      const SizedBox(
-                        height: TermsPolicyScreenStyles.cardSpacing,
-                      ),
-                      AnimatedSwitcher(
-                        duration: TermsPolicyScreenStyles.contentSwitchDuration,
-                        switchInCurve:
-                            TermsPolicyScreenStyles.contentSwitchCurve,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder:
-                            (Widget child, Animation<double> animation) {
-                              final Animation<Offset> position = Tween<Offset>(
-                                begin: TermsPolicyScreenStyles
-                                    .contentSwitchBeginOffset,
-                                end: Offset.zero,
-                              ).animate(animation);
-
-                              return FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: position,
-                                  child: child,
-                                ),
-                              );
-                            },
-                        child: _PolicyContent(
-                          key: ValueKey<int>(_selectedTab),
-                          title: _showingTerms
-                              ? TermsPolicyScreenStyles.termsContentTitle
-                              : TermsPolicyScreenStyles.privacyContentTitle,
-                          description: _showingTerms
-                              ? TermsPolicyScreenStyles.termsContentDescription
-                              : TermsPolicyScreenStyles
-                                    .privacyContentDescription,
-                          sections: _visibleSections,
-                        ),
-                      ),
-                      const SizedBox(
-                        height: TermsPolicyScreenStyles.cardSpacing,
-                      ),
-                      _PolicyNotice(isTerms: _showingTerms),
-                      const SizedBox(
-                        height: TermsPolicyScreenStyles.bottomSpacing,
-                      ),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
+        body: CustomScrollView(
+          physics: const ClampingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: TermsPolicyScreenStyles.contentPadding,
+              sliver: SliverList(
+                delegate: SliverChildListDelegate.fixed(<Widget>[
+                  const _PolicyIntroductionCard(),
+                  const SizedBox(
+                    height: TermsPolicyScreenStyles.sectionSpacing,
+                  ),
+                  _PolicyTabs(
+                    selectedIndex: _selectedTab,
+                    onSelected: _selectTab,
+                  ),
+                  const SizedBox(height: TermsPolicyScreenStyles.cardSpacing),
+                  AnimatedSwitcher(
+                    duration: TermsPolicyScreenStyles.contentSwitchDuration,
+                    switchInCurve: TermsPolicyScreenStyles.contentSwitchCurve,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          final Animation<Offset> position = Tween<Offset>(
+                            begin: TermsPolicyScreenStyles
+                                .contentSwitchBeginOffset,
+                            end: Offset.zero,
+                          ).animate(animation);
+
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: position,
+                              child: child,
+                            ),
+                          );
+                        },
+                    child: _PolicyContent(
+                      key: ValueKey<int>(_selectedTab),
+                      title: _showingTerms
+                          ? TermsPolicyScreenStyles.termsContentTitle
+                          : TermsPolicyScreenStyles.privacyContentTitle,
+                      description: _showingTerms
+                          ? TermsPolicyScreenStyles.termsContentDescription
+                          : TermsPolicyScreenStyles.privacyContentDescription,
+                      sections: _visibleSections,
+                    ),
+                  ),
+                  const SizedBox(height: TermsPolicyScreenStyles.cardSpacing),
+                  _PolicyNotice(isTerms: _showingTerms),
+                  const SizedBox(height: TermsPolicyScreenStyles.bottomSpacing),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );

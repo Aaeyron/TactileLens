@@ -177,65 +177,46 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: MaterialDetailScreenStyles.backgroundColor,
-        body: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: MaterialDetailScreenStyles.entranceDuration,
-          curve: MaterialDetailScreenStyles.entranceCurve,
-          builder:
-              (BuildContext context, double animationValue, Widget? child) {
-                return Opacity(
-                  opacity: animationValue,
-                  child: Transform.translate(
-                    offset: Offset(
-                      0,
-                      MaterialDetailScreenStyles.entranceOffsetY *
-                          (1 - animationValue),
+        body: Column(
+          children: <Widget>[
+            _buildPageHeader(),
+            Expanded(
+              child: SafeArea(
+                top: false,
+                child: ListView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: MaterialDetailScreenStyles.screenPadding,
+                  children: <Widget>[
+                    _buildMaterialInformation(),
+                    const SizedBox(
+                      height: MaterialDetailScreenStyles.sectionSpacing,
                     ),
-                    child: child,
-                  ),
-                );
-              },
-          child: Column(
-            children: <Widget>[
-              _buildPageHeader(),
-              Expanded(
-                child: SafeArea(
-                  top: false,
-                  child: ListView(
-                    physics: const ClampingScrollPhysics(),
-                    padding: MaterialDetailScreenStyles.screenPadding,
-                    children: <Widget>[
-                      _buildMaterialInformation(),
+                    _buildFilePreview(),
+                    if (_isScannedMaterial) ...<Widget>[
                       const SizedBox(
                         height: MaterialDetailScreenStyles.sectionSpacing,
                       ),
-                      _buildFilePreview(),
-                      if (_isScannedMaterial) ...<Widget>[
+                      if (TextBrailleLayoutView.canDisplay(_documentPages) &&
+                          !_showsSavedBraille1AsSaved)
+                        _buildTextAndBrailleContent()
+                      else ...<Widget>[
+                        _buildRecognizedContent(),
                         const SizedBox(
                           height: MaterialDetailScreenStyles.sectionSpacing,
                         ),
-                        if (TextBrailleLayoutView.canDisplay(_documentPages) &&
-                            !_showsSavedBraille1AsSaved)
-                          _buildTextAndBrailleContent()
-                        else ...<Widget>[
-                          _buildRecognizedContent(),
-                          const SizedBox(
-                            height: MaterialDetailScreenStyles.sectionSpacing,
-                          ),
-                          _buildBrailleContent(),
-                        ],
-                      ] else ...<Widget>[
-                        const SizedBox(
-                          height: MaterialDetailScreenStyles.sectionSpacing,
-                        ),
-                        _buildFileInformation(),
+                        _buildBrailleContent(),
                       ],
+                    ] else ...<Widget>[
+                      const SizedBox(
+                        height: MaterialDetailScreenStyles.sectionSpacing,
+                      ),
+                      _buildFileInformation(),
                     ],
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

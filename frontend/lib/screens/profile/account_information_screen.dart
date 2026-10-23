@@ -17,12 +17,7 @@ class AccountInformationScreen extends StatefulWidget {
   }
 }
 
-class _AccountInformationScreenState extends State<AccountInformationScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
+class _AccountInformationScreenState extends State<AccountInformationScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
@@ -36,39 +31,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen>
   void initState() {
     super.initState();
 
-    _configureEntranceAnimation();
     _loadUser();
-
-    Future<void>.delayed(AccountInformationStyles.entranceDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  void _configureEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: AccountInformationStyles.entranceDuration,
-    );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: AccountInformationStyles.entranceCurve,
-    );
-
-    _entranceOpacity = entranceAnimation;
-
-    _entrancePosition = Tween<Offset>(
-      begin: AccountInformationStyles.entranceBeginOffset,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -285,60 +248,54 @@ class _AccountInformationScreenState extends State<AccountInformationScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AccountInformationStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: RefreshIndicator(
-              color: AccountInformationStyles.primaryColor,
-              backgroundColor: AccountInformationStyles.surfaceColor,
-              onRefresh: _loadUser,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  SliverToBoxAdapter(child: _buildHeader(context)),
-                  SliverPadding(
-                    padding: AccountInformationStyles.contentPadding,
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate.fixed(<Widget>[
-                        if (_isLoading)
-                          const _AccountLoadingState()
-                        else ...<Widget>[
-                          _buildIdentityCard(),
-                          const SizedBox(
-                            height: AccountInformationStyles.sectionSpacing,
-                          ),
-                          if (_isGuest) ...<Widget>[
-                            _buildGuestInformation(),
-                            const SizedBox(
-                              height: AccountInformationStyles.sectionSpacing,
-                            ),
-                          ],
-                          _buildPersonalInformation(),
-                          const SizedBox(
-                            height: AccountInformationStyles.sectionSpacing,
-                          ),
-                          _buildAccountInformation(),
-                          const SizedBox(
-                            height: AccountInformationStyles.sectionSpacing,
-                          ),
-                          _buildPrivacyCard(),
-                          if (_isGuest) ...<Widget>[
-                            const SizedBox(
-                              height: AccountInformationStyles.sectionSpacing,
-                            ),
-                            _buildGuestDataCard(),
-                          ],
-                        ],
+        body: RefreshIndicator(
+          color: AccountInformationStyles.primaryColor,
+          backgroundColor: AccountInformationStyles.surfaceColor,
+          onRefresh: _loadUser,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverPadding(
+                padding: AccountInformationStyles.contentPadding,
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate.fixed(<Widget>[
+                    if (_isLoading)
+                      const _AccountLoadingState()
+                    else ...<Widget>[
+                      _buildIdentityCard(),
+                      const SizedBox(
+                        height: AccountInformationStyles.sectionSpacing,
+                      ),
+                      if (_isGuest) ...<Widget>[
+                        _buildGuestInformation(),
                         const SizedBox(
-                          height: AccountInformationStyles.bottomSpacing,
+                          height: AccountInformationStyles.sectionSpacing,
                         ),
-                      ]),
+                      ],
+                      _buildPersonalInformation(),
+                      const SizedBox(
+                        height: AccountInformationStyles.sectionSpacing,
+                      ),
+                      _buildAccountInformation(),
+                      const SizedBox(
+                        height: AccountInformationStyles.sectionSpacing,
+                      ),
+                      _buildPrivacyCard(),
+                      if (_isGuest) ...<Widget>[
+                        const SizedBox(
+                          height: AccountInformationStyles.sectionSpacing,
+                        ),
+                        _buildGuestDataCard(),
+                      ],
+                    ],
+                    const SizedBox(
+                      height: AccountInformationStyles.bottomSpacing,
                     ),
-                  ),
-                ],
+                  ]),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

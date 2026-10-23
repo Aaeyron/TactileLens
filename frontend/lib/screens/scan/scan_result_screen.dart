@@ -183,85 +183,59 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: ScanResultScreenStyles.backgroundColor,
-        body: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: ScanResultScreenStyles.entranceSequenceDuration,
-          curve: ScanResultScreenStyles.entranceCurve,
-          builder:
-              (BuildContext context, double animationValue, Widget? child) {
-                return Opacity(
-                  opacity: animationValue,
-                  child: FractionalTranslation(
-                    translation: Offset(
-                      ScanResultScreenStyles.entranceBeginOffset.dx *
-                          (1 - animationValue),
-                      ScanResultScreenStyles.entranceBeginOffset.dy *
-                          (1 - animationValue),
-                    ),
-                    child: child,
+        body: ListView(
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          children: <Widget>[
+            _buildPageHeader(context),
+            Padding(
+              padding: ScanResultScreenStyles.screenPadding,
+              child: Column(
+                children: <Widget>[
+                  _buildSuccessBanner(),
+                  const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
+                  _ResultSection(
+                    number: _ScanResultText.imageSectionNumber,
+                    title: _ScanResultText.imageSectionTitle,
+                    child: _buildImagePreview(),
                   ),
-                );
-              },
-          child: ListView(
-            padding: EdgeInsets.zero,
-            physics: const ClampingScrollPhysics(),
-            children: <Widget>[
-              _buildPageHeader(context),
-              Padding(
-                padding: ScanResultScreenStyles.screenPadding,
-                child: Column(
-                  children: <Widget>[
-                    _buildSuccessBanner(),
+                  const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
+                  if (TextBrailleLayoutView.canDisplay(_documentPages))
+                    _buildTextAndBrailleSection(context)
+                  else ...<Widget>[
+                    _ResultSection(
+                      number: _ScanResultText.contentSectionNumber,
+                      title: _ScanResultText.contentSectionTitle,
+                      child: result.hasContent
+                          ? _buildRecognizedContent()
+                          : _buildEmptyResult(),
+                    ),
                     const SizedBox(
                       height: ScanResultScreenStyles.sectionSpacing,
                     ),
                     _ResultSection(
-                      number: _ScanResultText.imageSectionNumber,
-                      title: _ScanResultText.imageSectionTitle,
-                      child: _buildImagePreview(),
+                      number: _ScanResultText.brailleSectionNumber,
+                      title: _ScanResultText.brailleSectionTitle,
+                      child: result.hasBraille
+                          ? _buildBrailleOutput()
+                          : _buildBrailleUnavailable(),
                     ),
+                  ],
+                  if (result.hasContent) ...<Widget>[
                     const SizedBox(
                       height: ScanResultScreenStyles.sectionSpacing,
                     ),
-                    if (TextBrailleLayoutView.canDisplay(_documentPages))
-                      _buildTextAndBrailleSection(context)
-                    else ...<Widget>[
-                      _ResultSection(
-                        number: _ScanResultText.contentSectionNumber,
-                        title: _ScanResultText.contentSectionTitle,
-                        child: result.hasContent
-                            ? _buildRecognizedContent()
-                            : _buildEmptyResult(),
-                      ),
-                      const SizedBox(
-                        height: ScanResultScreenStyles.sectionSpacing,
-                      ),
-                      _ResultSection(
-                        number: _ScanResultText.brailleSectionNumber,
-                        title: _ScanResultText.brailleSectionTitle,
-                        child: result.hasBraille
-                            ? _buildBrailleOutput()
-                            : _buildBrailleUnavailable(),
-                      ),
-                    ],
-                    if (result.hasContent) ...<Widget>[
-                      const SizedBox(
-                        height: ScanResultScreenStyles.sectionSpacing,
-                      ),
-                      _SaveMaterialButton(
-                        result: result,
-                        scannedImage: scannedImage,
-                        shownBraille: () => _shownBraille,
-                      ),
-                    ],
-                    const SizedBox(
-                      height: ScanResultScreenStyles.bottomSpacing,
+                    _SaveMaterialButton(
+                      result: result,
+                      scannedImage: scannedImage,
+                      shownBraille: () => _shownBraille,
                     ),
                   ],
-                ),
+                  const SizedBox(height: ScanResultScreenStyles.bottomSpacing),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -487,7 +461,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       ),
     );
   }
-
 }
 
 class _ScanResultHeaderDecoration extends StatelessWidget {
@@ -986,9 +959,7 @@ class _ResultSection extends StatelessWidget {
 
 /// Runs in a background isolate: returns the EXIF-corrected image size.
 Size? _readOrientedImageSizeInBackground(String path) {
-  final img.Image? decodedImage = img.decodeImage(
-    File(path).readAsBytesSync(),
-  );
+  final img.Image? decodedImage = img.decodeImage(File(path).readAsBytesSync());
 
   if (decodedImage == null) {
     return null;

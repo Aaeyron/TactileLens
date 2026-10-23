@@ -82,11 +82,6 @@ abstract final class TermsPolicyScreenStyles {
   // ANIMATION
   // ============================================================
 
-  static const Duration entranceDuration = Duration(milliseconds: 420);
-  static const Duration entranceDelay = Duration(milliseconds: 100);
-  static const Curve entranceCurve = Curves.easeOutCubic;
-  static const Offset entranceBeginOffset = Offset(0, 0.025);
-
   static const Duration contentSwitchDuration = Duration(milliseconds: 280);
   static const Curve contentSwitchCurve = Curves.easeOutCubic;
   static const Offset contentSwitchBeginOffset = Offset(0.025, 0);
