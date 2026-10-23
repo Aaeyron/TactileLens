@@ -15,7 +15,7 @@ import re
 from dataclasses import dataclass
 from typing import Final
 
-from services.braille_math_normalizer import BrailleMathNormalizer
+from services.braille.braille_math_normalizer import BrailleMathNormalizer
 
 # Provisional thresholds, approved with the Stage 3 findings. Words are
 # runs of ASCII letters; LaTeX command names and FUNCTION_NAMES never count.

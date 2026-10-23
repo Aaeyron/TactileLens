@@ -2,7 +2,7 @@ import asyncio
 import json
 import unittest
 
-from services.service_key import ServiceKeyMiddleware
+from services.security.service_key import ServiceKeyMiddleware
 
 SECRET = "test-secret-not-real"
 

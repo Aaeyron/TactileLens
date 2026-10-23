@@ -1,7 +1,7 @@
 import unittest
 
-from services.braille_math_normalizer import BrailleMathNormalizer
-from services.braille_translation_service import BrailleTranslationService
+from services.braille.braille_math_normalizer import BrailleMathNormalizer
+from services.braille.braille_translation_service import BrailleTranslationService
 
 
 def normalize(latex):

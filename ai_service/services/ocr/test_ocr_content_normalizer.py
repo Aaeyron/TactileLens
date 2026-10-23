@@ -1,6 +1,6 @@
 import unittest
 
-from services.ocr_content_normalizer import OcrContentNormalizer
+from services.ocr.ocr_content_normalizer import OcrContentNormalizer
 
 
 def normalize(content, block_type):

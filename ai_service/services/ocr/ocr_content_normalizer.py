@@ -1,6 +1,6 @@
 import re
 
-from .latex_readable_converter import ensure_readable, latex_to_readable
+from services.ocr.latex_readable_converter import ensure_readable, latex_to_readable
 
 
 class OcrContentNormalizer:

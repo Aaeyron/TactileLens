@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from services.braille_translation_service import (
+from services.braille.braille_translation_service import (
     BrailleTranslationService,
     translator_executable,
 )
@@ -25,7 +25,7 @@ class PaddleImportTests(unittest.TestCase):
                 sys.executable,
                 "-B",
                 "-c",
-                "import sys, services.paddleocr_vl_service; "
+                "import sys, services.ocr.paddleocr_vl_service; "
                 "print('paddleocr' in sys.modules)",
             ],
             cwd=AI_SERVICE_DIRECTORY,
@@ -38,7 +38,7 @@ class PaddleImportTests(unittest.TestCase):
 
     @unittest.skipIf(_PADDLE_INSTALLED, "PaddleOCR is installed here")
     def test_local_engine_without_paddle_explains_what_is_missing(self):
-        from services.paddleocr_vl_service import PaddleOcrVlService
+        from services.ocr.paddleocr_vl_service import PaddleOcrVlService
 
         try:
             BrailleTranslationService()

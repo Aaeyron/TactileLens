@@ -1,8 +1,8 @@
 import types
 import unittest
 
-from services.block_ordering import assign_identities
-from services.paddleocr_vl_service import PaddleOcrVlService
+from services.ocr.block_ordering import assign_identities
+from services.ocr.paddleocr_vl_service import PaddleOcrVlService
 
 
 def _blocks(*pairs):

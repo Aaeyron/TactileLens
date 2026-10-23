@@ -15,9 +15,9 @@ from fastapi import (
 )
 from fastapi.concurrency import run_in_threadpool
 
-from services.official_api_client import HostedOcrError
-from services.paddleocr_vl_service import PaddleOcrVlService
-from services.service_key import ServiceKeyMiddleware
+from services.ocr.official_api_client import HostedOcrError
+from services.ocr.paddleocr_vl_service import PaddleOcrVlService
+from services.security.service_key import ServiceKeyMiddleware
 
 
 logging.basicConfig(

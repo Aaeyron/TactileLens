@@ -46,7 +46,7 @@ class BrailleTranslationService:
         liblouis_root: Path | None = None,
         timeout_seconds: float = 15.0,
     ) -> None:
-        ai_service_directory = Path(__file__).resolve().parent.parent
+        ai_service_directory = Path(__file__).resolve().parent.parent.parent
 
         configured_root = os.getenv("LIBLOUIS_ROOT")
 

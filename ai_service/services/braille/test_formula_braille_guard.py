@@ -1,7 +1,7 @@
 import unittest
 
-from services.braille_math_normalizer import BrailleMathNormalizer
-from services.formula_braille_guard import (
+from services.braille.braille_math_normalizer import BrailleMathNormalizer
+from services.braille.formula_braille_guard import (
     ALIGNMENT,
     ENGLISH_TEXT,
     LEFTOVER_MARKUP,

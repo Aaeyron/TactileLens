@@ -9,29 +9,29 @@ from typing import Any
 import numpy as np
 from PIL import Image, ImageOps
 
-from services.braille_math_normalizer import (
+from services.braille.braille_math_normalizer import (
     BrailleMathNormalizer,
 )
-from services.block_ordering import (
+from services.ocr.block_ordering import (
     assign_identities,
 )
-from services.braille_translation_service import (
+from services.braille.braille_translation_service import (
     BrailleTranslationService,
 )
-from services.formula_braille_guard import (
+from services.braille.formula_braille_guard import (
     NO_REVIEW,
     review_formula,
 )
-from services.official_api_client import (
+from services.ocr.official_api_client import (
     OfficialApiClient,
 )
-from services.latex_readable_converter import (
+from services.ocr.latex_readable_converter import (
     readable_with_prose,
 )
-from services.ocr_content_normalizer import (
+from services.ocr.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
-from services.table_content_parser import (
+from services.ocr.table_content_parser import (
     TableContentParser,
 )
 

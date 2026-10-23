@@ -1,6 +1,6 @@
 import unittest
 
-from services.latex_readable_converter import (
+from services.ocr.latex_readable_converter import (
     contains_latex,
     ensure_readable,
     latex_to_readable,

@@ -1,6 +1,6 @@
 import unittest
 
-from services.paddleocr_vl_service import PaddleOcrVlService
+from services.ocr.paddleocr_vl_service import PaddleOcrVlService
 
 
 class _RecordingTranslator:

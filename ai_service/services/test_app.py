@@ -15,12 +15,12 @@ from unittest import mock
 
 from PIL import Image
 
-from services.braille_translation_service import BrailleTranslationService
-from services.official_api_client import (
+from services.braille.braille_translation_service import BrailleTranslationService
+from services.ocr.official_api_client import (
     DailyPageCounter,
     OfficialApiClient,
 )
-from services.test_official_api_client import (
+from services.ocr.test_official_api_client import (
     TOKEN,
     FakeClock,
     FakeTransport,

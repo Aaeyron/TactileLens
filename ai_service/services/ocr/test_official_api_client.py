@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from services.official_api_client import (
+from services.ocr.official_api_client import (
     BAIDU_DAILY_PAGE_LIMIT,
     DailyPageCounter,
     HostedOcrError,

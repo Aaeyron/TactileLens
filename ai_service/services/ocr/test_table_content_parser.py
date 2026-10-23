@@ -1,6 +1,6 @@
 import unittest
 
-from services.table_content_parser import TableContentParser
+from services.ocr.table_content_parser import TableContentParser
 
 _TABLE = (
     "<table>"
