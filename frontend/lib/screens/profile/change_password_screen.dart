@@ -565,6 +565,7 @@ class _PasswordField extends StatelessWidget {
         Text(label, style: ChangePasswordScreenStyles.fieldLabelStyle),
         const SizedBox(height: 7),
         TextFormField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: controller,
           focusNode: focusNode,
           obscureText: obscureText,

@@ -252,6 +252,7 @@ class _GuestSetupScreenState extends State<GuestSetupScreen> {
         SizedBox(
           height: GuestStyles.inputHeight,
           child: TextField(
+            scrollPadding: FormKeyboard.scrollPadding,
             controller: _nicknameController,
             enabled: !_isSaving,
             maxLength: GuestStyles.nicknameMaximumLength,

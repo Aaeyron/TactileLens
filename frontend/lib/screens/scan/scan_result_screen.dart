@@ -812,6 +812,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _titleController,
               autofocus: true,
               maxLength: ScanResultScreenStyles.maximumMaterialTitleLength,
@@ -837,6 +838,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _subjectController,
               maxLength: ScanResultScreenStyles.maximumMaterialSubjectLength,
               textInputAction: TextInputAction.next,
@@ -851,6 +853,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _descriptionController,
               maxLength:
                   ScanResultScreenStyles.maximumMaterialDescriptionLength,

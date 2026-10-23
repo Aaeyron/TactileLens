@@ -15,4 +15,9 @@ abstract final class FormKeyboard {
 
   /// For dialogs and bottom sheets that contain text fields.
   static const bool closeOnTapOutside = false;
+
+  /// For every form field: when it is focused, it scrolls far enough above
+  /// the keyboard that the error text under it (at 2x text size) is also
+  /// visible. Flutter's default keeps only 20 px.
+  static const EdgeInsets scrollPadding = EdgeInsets.fromLTRB(20, 20, 20, 96);
 }

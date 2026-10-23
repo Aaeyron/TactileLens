@@ -1288,9 +1288,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 style: MaterialScreenStyles.dialogTitleStyle,
               ),
               content: TextField(
+                scrollPadding: FormKeyboard.scrollPadding,
                 autofocus: true,
                 maxLength: MaterialScreenStyles.maximumFolderNameLength,
                 textCapitalization: TextCapitalization.words,
+                // The only field: Done creates the folder.
+                textInputAction: TextInputAction.done,
                 decoration: MaterialScreenStyles.folderNameDecoration.copyWith(
                   hintText: _MaterialText.folderNameHint,
                 ),

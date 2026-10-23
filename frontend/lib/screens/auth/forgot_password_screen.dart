@@ -572,6 +572,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               height: ForgotPasswordScreenStyles.labelFieldSpacing,
             ),
             TextFormField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _emailController,
               focusNode: _emailFocus,
               enabled: !_isSubmitting,
@@ -666,6 +667,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               height: ForgotPasswordScreenStyles.labelFieldSpacing,
             ),
             TextFormField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _resetCodeController,
               focusNode: _resetCodeFocus,
               enabled: !_isSubmitting,
@@ -751,6 +753,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: ForgotPasswordScreenStyles.labelFieldSpacing),
         TextFormField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: _newPasswordController,
           focusNode: _newPasswordFocus,
           enabled: !_isSubmitting,
@@ -801,6 +804,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: ForgotPasswordScreenStyles.labelFieldSpacing),
         TextFormField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: _confirmPasswordController,
           focusNode: _confirmPasswordFocus,
           enabled: !_isSubmitting,

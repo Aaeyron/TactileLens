@@ -824,6 +824,7 @@ class _GuestProfileEditorSheetState extends State<_GuestProfileEditorSheet> {
                   height: AccountInformationStyles.guestSheetItemSpacing,
                 ),
                 TextField(
+                  scrollPadding: FormKeyboard.scrollPadding,
                   controller: _nicknameController,
                   enabled: !_isSaving,
                   maxLength: AccountInformationStyles.nicknameMaximumLength,

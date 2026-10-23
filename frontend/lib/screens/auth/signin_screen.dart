@@ -712,6 +712,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
@@ -733,6 +734,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: passwordController,
           obscureText: !isPasswordVisible,
           textInputAction: TextInputAction.done,

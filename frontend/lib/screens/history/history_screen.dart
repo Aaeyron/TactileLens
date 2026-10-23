@@ -1776,6 +1776,7 @@ class _RenameHistoryDialogState extends State<_RenameHistoryDialog> {
         style: HistoryScreenStyles.dialogTitleStyle,
       ),
       content: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: _controller,
         autofocus: true,
         maxLength: 150,
