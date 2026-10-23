@@ -29,10 +29,13 @@ Future<void> main() async {
   );
 
   // Known before the first screen, so a scan opens directly in the
-  // remembered Braille mode. Missing or unreadable means Braille 2.
+  // remembered Braille mode. Missing, unreadable or slow means Braille 2,
+  // so start-up can never hang here.
   try {
     BrailleModeSettings.defaultMode.value =
-        await SettingsService.getBrailleMode();
+        await SettingsService.getBrailleMode().timeout(
+          const Duration(seconds: 2),
+        );
   } catch (_) {
     BrailleModeSettings.defaultMode.value = BrailleMode.defaultMode;
   }
