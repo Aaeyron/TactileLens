@@ -20,6 +20,7 @@ import '../../utils/session_manager.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../widgets/scan/scan_preview.dart';
+import '../../widgets/scan/scan_progress_overlay.dart';
 import 'scan_result_screen.dart';
 
 abstract final class _ScanText {
@@ -104,8 +105,6 @@ abstract final class _ScanText {
 
   static const String historySaveFailureMessage =
       'The scan was completed, but it could not be added to History.';
-
-  static const String processingLabel = 'Scanning your document...';
 }
 
 class ScanScreen extends StatefulWidget {
@@ -133,6 +132,13 @@ class _ScanScreenState extends State<ScanScreen> {
 
   bool _flashEnabled = false;
   bool _isProcessing = false;
+
+  /// Where the running scan is processed; shown by the progress overlay.
+  ScanProcessingMode _processingMode = ScanProcessingMode.online;
+
+  final GlobalKey<ScanProgressOverlayState> _progressKey =
+      GlobalKey<ScanProgressOverlayState>();
+
   bool _isCapturePending = false;
   bool _isScanPending = false;
 
@@ -448,6 +454,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     setState(() {
       _isProcessing = true;
+      _processingMode = mode!;
     });
 
     File? imageToScan;
@@ -520,6 +527,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     setState(() {
       _isProcessing = true;
+      _processingMode = ScanProcessingMode.onDevice;
     });
 
     try {
@@ -600,6 +608,14 @@ class _ScanScreenState extends State<ScanScreen> {
           scanResult.displayPages,
           BrailleModeSettings.defaultMode.value,
         );
+
+    if (!mounted) {
+      return;
+    }
+
+    // "Scan complete" for TalkBack and a short pulse of the Braille cells
+    // (none with reduce motion), then the result.
+    await _progressKey.currentState?.finish();
 
     if (!mounted) {
       return;
@@ -1101,7 +1117,8 @@ class _ScanScreenState extends State<ScanScreen> {
               ),
             ),
           ),
-          if (_isProcessing) _ProcessingOverlay(),
+          if (_isProcessing)
+            ScanProgressOverlay(key: _progressKey, mode: _processingMode),
         ],
       ),
     );
@@ -1422,110 +1439,6 @@ class _CaptureButtonState extends State<_CaptureButton> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProcessingOverlay extends StatefulWidget {
-  const _ProcessingOverlay();
-
-  @override
-  State<_ProcessingOverlay> createState() => _ProcessingOverlayState();
-}
-
-class _ProcessingOverlayState extends State<_ProcessingOverlay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseController;
-  late final Animation<double> _pulseAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _pulseController.stop();
-    } else if (!_pulseController.isAnimating) {
-      _pulseController.repeat(reverse: true);
-    }
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: ScanScreenStyles.processingOverlayColor,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            SizedBox.square(
-              dimension: ScanScreenStyles.captureOuterSize,
-              child: Stack(
-                alignment: Alignment.center,
-                children: <Widget>[
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: Container(
-                      width: ScanScreenStyles.captureMiddleSize,
-                      height: ScanScreenStyles.captureMiddleSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: ScanScreenStyles.primaryColor.withValues(
-                          alpha: 0.35,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox.square(
-                    dimension: ScanScreenStyles.captureOuterSize,
-                    child: CircularProgressIndicator(
-                      strokeWidth: ScanScreenStyles.processingIndicatorWidth,
-                      color: ScanScreenStyles.primarySoftColor,
-                    ),
-                  ),
-                  Container(
-                    width: ScanScreenStyles.captureInnerSize,
-                    height: ScanScreenStyles.captureInnerSize,
-                    decoration: const BoxDecoration(
-                      color: ScanScreenStyles.primaryColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      ScanScreenStyles.confirmationHeaderIcon,
-                      size: ScanScreenStyles.confirmationIconSize,
-                      color: ScanScreenStyles.primarySoftColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: ScanScreenStyles.processingLabelSpacing),
-            const Text(
-              _ScanText.processingLabel,
-              style: ScanScreenStyles.processingTextStyle,
-            ),
-          ],
         ),
       ),
     );
