@@ -8,6 +8,26 @@ class BrailleTranslationError(Exception):
     """Raised when Liblouis cannot translate recognized content."""
 
 
+def translator_executable(
+    liblouis_root: Path,
+    platform_name: str = os.name,
+    configured_path: str | None = None,
+) -> Path:
+    """Path of the lou_translate program.
+
+    LIBLOUIS_TRANSLATE (passed as configured_path) wins. Otherwise Windows
+    uses the bundled bin/lou_translate.exe and Linux, for example Debian's
+    liblouis-bin with LIBLOUIS_ROOT=/usr, uses bin/lou_translate.
+    """
+
+    if configured_path:
+        return Path(configured_path).resolve()
+
+    name = "lou_translate.exe" if platform_name == "nt" else "lou_translate"
+
+    return liblouis_root / "bin" / name
+
+
 class BrailleTranslationService:
     """Translate normalized OCR content using Liblouis."""
 
@@ -26,7 +46,7 @@ class BrailleTranslationService:
         liblouis_root: Path | None = None,
         timeout_seconds: float = 15.0,
     ) -> None:
-        ai_service_directory = Path(__file__).resolve().parent.parent
+        ai_service_directory = Path(__file__).resolve().parent.parent.parent
 
         configured_root = os.getenv("LIBLOUIS_ROOT")
 
@@ -39,7 +59,10 @@ class BrailleTranslationService:
                 ai_service_directory / "vendor" / "liblouis"
             ).resolve()
 
-        self._executable = self._liblouis_root / "bin" / "lou_translate.exe"
+        self._executable = translator_executable(
+            self._liblouis_root,
+            configured_path=os.getenv("LIBLOUIS_TRANSLATE"),
+        )
 
         self._tables_directory = self._liblouis_root / "share" / "liblouis" / "tables"
 

@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/ai/scan_processing_mode.dart';
 import '../../models/braille/braille_mode.dart';
 import 'braille_mode_settings.dart';
 
@@ -17,6 +18,9 @@ class SettingsService {
   static const String _preserveLayoutKey = 'settings_preserve_layout';
   static const String _autoSaveScansKey = 'settings_auto_save_scans';
   static const String _brailleModeKey = 'settings_braille_mode';
+  static const String _scanModeKey = 'settings_scan_mode';
+  static const String _onlinePrivacyAcceptedKey =
+      'settings_online_privacy_accepted';
 
   // Stored by the earlier "Contracted UEB" switch, which had no effect.
   // Only removed on reset.
@@ -124,6 +128,30 @@ class SettingsService {
     await preferences.setString(_recognitionPreferenceKey, value.name);
   }
 
+  /// The teacher's last choice of where to scan. Missing means Online.
+  /// Guests always scan on the device, whatever is stored here.
+  static Future<ScanProcessingMode> getScanMode() async {
+    final SharedPreferences preferences = await _preferences;
+    return ScanProcessingMode.fromWireName(preferences.getString(_scanModeKey));
+  }
+
+  static Future<void> setScanMode(ScanProcessingMode mode) async {
+    final SharedPreferences preferences = await _preferences;
+    await preferences.setString(_scanModeKey, mode.wireName);
+  }
+
+  /// Whether the teacher has accepted the notice that online scans are
+  /// processed by a third-party service.
+  static Future<bool> getOnlinePrivacyAccepted() async {
+    final SharedPreferences preferences = await _preferences;
+    return preferences.getBool(_onlinePrivacyAcceptedKey) ?? false;
+  }
+
+  static Future<void> setOnlinePrivacyAccepted(bool value) async {
+    final SharedPreferences preferences = await _preferences;
+    await preferences.setBool(_onlinePrivacyAcceptedKey, value);
+  }
+
   // ==========================
   // Braille
   // ==========================
@@ -160,6 +188,9 @@ class SettingsService {
       preferences.remove(_brailleModeKey),
       preferences.remove(_legacyContractedUebKey),
       preferences.remove(_recognitionPreferenceKey),
+      preferences.remove(_scanModeKey),
+      // After a reset the privacy notice is shown again.
+      preferences.remove(_onlinePrivacyAcceptedKey),
     ]);
 
     BrailleModeSettings.defaultMode.value = BrailleMode.defaultMode;

@@ -69,90 +69,70 @@ class AboutTactileLensScreen extends StatelessWidget {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: AboutTactileLensScreenStyles.backgroundColor,
-        body: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: AboutTactileLensScreenStyles.entranceSequenceDuration,
-          curve: AboutTactileLensScreenStyles.entranceCurve,
-          builder:
-              (BuildContext context, double animationValue, Widget? child) {
-                return Opacity(
-                  opacity: animationValue,
-                  child: FractionalTranslation(
-                    translation: Offset(
-                      AboutTactileLensScreenStyles.entranceBeginOffset.dx *
-                          (1 - animationValue),
-                      AboutTactileLensScreenStyles.entranceBeginOffset.dy *
-                          (1 - animationValue),
-                    ),
-                    child: child,
-                  ),
-                );
-              },
-          child: CustomScrollView(
-            physics: const ClampingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: <Widget>[
-              SliverToBoxAdapter(child: _buildHeader(context)),
-              SliverPadding(
-                padding: AboutTactileLensScreenStyles.contentPadding,
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate.fixed(<Widget>[
-                    const _BrandCard(),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.sectionSpacing,
-                    ),
-                    const _InformationCard(
-                      icon: AboutTactileLensScreenStyles.missionIcon,
-                      title: AboutTactileLensScreenStyles.missionTitle,
-                      description:
-                          AboutTactileLensScreenStyles.missionDescription,
-                    ),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.cardSpacing,
-                    ),
-                    const _InformationCard(
-                      icon: AboutTactileLensScreenStyles.overviewIcon,
-                      title: AboutTactileLensScreenStyles.overviewTitle,
-                      description:
-                          AboutTactileLensScreenStyles.overviewDescription,
-                    ),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.sectionSpacing,
-                    ),
-                    const _SectionHeading(
-                      title: AboutTactileLensScreenStyles.featuresTitle,
-                      description:
-                          AboutTactileLensScreenStyles.featuresDescription,
-                    ),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.headingBottomSpacing,
-                    ),
-                    const _FeatureGrid(features: _features),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.sectionSpacing,
-                    ),
-                    const _SectionHeading(
-                      title: AboutTactileLensScreenStyles.projectTitle,
-                      description:
-                          AboutTactileLensScreenStyles.projectDescription,
-                    ),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.headingBottomSpacing,
-                    ),
-                    const _ProjectCard(projectInformation: _projectInformation),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.cardSpacing,
-                    ),
-                    const _ProjectPurposeCard(),
-                    const SizedBox(
-                      height: AboutTactileLensScreenStyles.bottomSpacing,
-                    ),
-                  ]),
-                ),
-              ),
-            ],
+        body: CustomScrollView(
+          physics: const ClampingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: AboutTactileLensScreenStyles.contentPadding,
+              sliver: SliverList(
+                delegate: SliverChildListDelegate.fixed(<Widget>[
+                  const _BrandCard(),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.sectionSpacing,
+                  ),
+                  const _InformationCard(
+                    icon: AboutTactileLensScreenStyles.missionIcon,
+                    title: AboutTactileLensScreenStyles.missionTitle,
+                    description:
+                        AboutTactileLensScreenStyles.missionDescription,
+                  ),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.cardSpacing,
+                  ),
+                  const _InformationCard(
+                    icon: AboutTactileLensScreenStyles.overviewIcon,
+                    title: AboutTactileLensScreenStyles.overviewTitle,
+                    description:
+                        AboutTactileLensScreenStyles.overviewDescription,
+                  ),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.sectionSpacing,
+                  ),
+                  const _SectionHeading(
+                    title: AboutTactileLensScreenStyles.featuresTitle,
+                    description:
+                        AboutTactileLensScreenStyles.featuresDescription,
+                  ),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.headingBottomSpacing,
+                  ),
+                  const _FeatureGrid(features: _features),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.sectionSpacing,
+                  ),
+                  const _SectionHeading(
+                    title: AboutTactileLensScreenStyles.projectTitle,
+                    description:
+                        AboutTactileLensScreenStyles.projectDescription,
+                  ),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.headingBottomSpacing,
+                  ),
+                  const _ProjectCard(projectInformation: _projectInformation),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.cardSpacing,
+                  ),
+                  const _ProjectPurposeCard(),
+                  const SizedBox(
+                    height: AboutTactileLensScreenStyles.bottomSpacing,
+                  ),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../services/auth/auth_service.dart';
 import '../../styles/screens/profile/change_password_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -15,8 +16,7 @@ class ChangePasswordScreen extends StatefulWidget {
   }
 }
 
-class _ChangePasswordScreenState extends State<ChangePasswordScreen>
-    with SingleTickerProviderStateMixin {
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   final TextEditingController _currentPasswordController =
@@ -31,51 +31,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
   final FocusNode _newPasswordFocus = FocusNode();
   final FocusNode _confirmPasswordFocus = FocusNode();
 
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
   bool _showCurrentPassword = false;
   bool _showNewPassword = false;
   bool _showConfirmPassword = false;
   bool _isSubmitting = false;
 
   @override
-  void initState() {
-    super.initState();
-
-    _initializeEntranceAnimation();
-  }
-
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: ChangePasswordScreenStyles.entranceDuration,
-    );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: ChangePasswordScreenStyles.entranceCurve,
-    );
-
-    _entranceOpacity = entranceAnimation;
-
-    _entrancePosition = Tween<Offset>(
-      begin: ChangePasswordScreenStyles.entranceBeginOffset,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-
-    Future<void>.delayed(ChangePasswordScreenStyles.entranceDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _entranceController.dispose();
-
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -349,22 +311,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: ChangePasswordScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: CustomScrollView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: <Widget>[
-                SliverToBoxAdapter(child: _buildHeader(context)),
-                SliverPadding(
-                  padding: ChangePasswordScreenStyles.contentPadding,
-                  sliver: SliverToBoxAdapter(child: _buildPasswordForm()),
-                ),
-              ],
+        body: CustomScrollView(
+          keyboardDismissBehavior: FormKeyboard.dismissBehavior,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: ChangePasswordScreenStyles.contentPadding,
+              sliver: SliverToBoxAdapter(child: _buildPasswordForm()),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -609,6 +565,7 @@ class _PasswordField extends StatelessWidget {
         Text(label, style: ChangePasswordScreenStyles.fieldLabelStyle),
         const SizedBox(height: 7),
         TextFormField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: controller,
           focusNode: focusNode,
           obscureText: obscureText,

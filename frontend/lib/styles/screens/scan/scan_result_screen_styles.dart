@@ -63,20 +63,6 @@ abstract final class ScanResultScreenStyles {
   // ENTRANCE ANIMATION
   // ============================================================
 
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
-
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
-
-  static const Duration entranceSequenceDuration = Duration(milliseconds: 640);
-
-  static const Curve entranceCurve = Interval(
-    0.15625,
-    1,
-    curve: Curves.easeOutCubic,
-  );
-
-  static const Offset entranceBeginOffset = Offset(0, 0.025);
-
   // ============================================================
   // INTEGRATED BLUE HEADER
   // ============================================================
@@ -429,6 +415,55 @@ abstract final class ScanResultScreenStyles {
     color: primaryColor,
     fontSize: 14,
     fontWeight: FontWeight.w700,
+  );
+
+  // Block held for review: the service produced no Braille for it.
+  static const IconData reviewNoteIcon = Icons.info_outline_rounded;
+  static const double reviewNoteIconSize = 18;
+  static const double reviewNoteSpacing = 8;
+  static const Color reviewNoteBackgroundColor = Color(0xFFEDF3FB);
+
+  static const EdgeInsets reviewNotePadding = EdgeInsets.all(10);
+
+  static const BorderRadius reviewNoteRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+
+  static const Border reviewNoteBorder = Border.fromBorderSide(
+    BorderSide(color: documentPageOutlineColor, width: 1),
+  );
+
+  static const TextStyle reviewNoteStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    height: 1.45,
+    fontWeight: FontWeight.w600,
+    color: textPrimaryColor,
+  );
+
+  static final ButtonStyle showOriginalButtonStyle = TextButton.styleFrom(
+    foregroundColor: primaryColor,
+    minimumSize: const Size(48, 48),
+    textStyle: const TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+
+  static const TextStyle originalLatexStyle = TextStyle(
+    fontFamily: 'monospace',
+    fontSize: 13,
+    height: 1.45,
+    color: textSecondaryColor,
+  );
+
+  static const TextStyle reviewReasonStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12,
+    height: 1.45,
+    fontWeight: FontWeight.w400,
+    color: textSecondaryColor,
   );
 
   // ============================================================

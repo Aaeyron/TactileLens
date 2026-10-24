@@ -13,6 +13,7 @@ import 'material_preview_screen.dart';
 import '../../utils/session_manager.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../../utils/form_keyboard.dart';
 import '../main/tab_data_cache.dart';
 
 abstract final class _MaterialText {
@@ -1265,7 +1266,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
     final String? folderName = await showGeneralDialog<String>(
       context: context,
-      barrierDismissible: true,
+      // A tap outside must not throw away a half-typed folder name.
+      barrierDismissible: FormKeyboard.closeOnTapOutside,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: MaterialScreenStyles.dialogBarrierColor,
       transitionDuration: MaterialScreenStyles.dialogAnimationDuration,
@@ -1286,9 +1288,12 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
                 style: MaterialScreenStyles.dialogTitleStyle,
               ),
               content: TextField(
+                scrollPadding: FormKeyboard.scrollPadding,
                 autofocus: true,
                 maxLength: MaterialScreenStyles.maximumFolderNameLength,
                 textCapitalization: TextCapitalization.words,
+                // The only field: Done creates the folder.
+                textInputAction: TextInputAction.done,
                 decoration: MaterialScreenStyles.folderNameDecoration.copyWith(
                   hintText: _MaterialText.folderNameHint,
                 ),
@@ -1450,7 +1455,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           backgroundColor: MaterialScreenStyles.surfaceColor,
           onRefresh: _refreshMaterials,
           child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            keyboardDismissBehavior: FormKeyboard.dismissBehavior,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: <Widget>[
               SliverToBoxAdapter(child: _buildPageHeader(context)),

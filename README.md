@@ -140,13 +140,20 @@ TactileLens/
 │   ├── app.py                       # FastAPI application and image endpoints
 │   ├── modal_app.py                 # Modal serverless GPU deployment
 │   ├── requirements.txt             # Python runtime dependencies
-│   ├── services/
-│   │   ├── paddleocr_vl_service.py  # PaddleOCR-VL pipeline execution
-│   │   ├── braille_translation_service.py # Liblouis UEB & Nemeth translation
-│   │   ├── braille_math_normalizer.py     # LaTeX-to-Nemeth input sanitizer
-│   │   ├── latex_readable_converter.py    # Math formula text formatter
-│   │   ├── ocr_content_normalizer.py      # Unicode & spacing normalizer
-│   │   └── table_content_parser.py        # Table HTML / matrix parser
+│   ├── services/                    # Tests sit next to the module they cover
+│   │   ├── ocr/
+│   │   │   ├── paddleocr_vl_service.py    # Scan pipeline (local or hosted engine)
+│   │   │   ├── official_api_client.py     # PaddleOCR official hosted API client
+│   │   │   ├── block_ordering.py          # Unique block reading order and ids
+│   │   │   ├── ocr_content_normalizer.py  # Unicode & spacing normalizer
+│   │   │   ├── table_content_parser.py    # Table HTML / matrix parser
+│   │   │   └── latex_readable_converter.py # Math formula text formatter
+│   │   ├── braille/
+│   │   │   ├── braille_translation_service.py # Liblouis UEB & Nemeth translation
+│   │   │   ├── braille_math_normalizer.py     # LaTeX-to-Nemeth input sanitizer
+│   │   │   └── formula_braille_guard.py       # Holds unsafe formulas for review
+│   │   └── security/
+│   │       └── service_key.py       # X-Service-Key check for every request
 │   └── vendor/liblouis/             # Bundled Liblouis binaries & tables (Windows)
 │
 ├── backend/                         # Node.js API Service

@@ -79,20 +79,6 @@ abstract final class PrivacySecurityScreenStyles {
   // ANIMATION
   // ============================================================
 
-  static const Duration entranceAnimationDuration = Duration(milliseconds: 540);
-
-  static const Duration entranceAnimationDelay = Duration(milliseconds: 100);
-
-  static const Duration entranceSequenceDuration = Duration(milliseconds: 640);
-
-  static const Curve entranceCurve = Interval(
-    0.15625,
-    1,
-    curve: Curves.easeOutCubic,
-  );
-
-  static const Offset entranceBeginOffset = Offset(0, 0.025);
-
   // ============================================================
   // HEADER
   // ============================================================

@@ -3,22 +3,36 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
-from paddleocr import PaddleOCRVL
 from PIL import Image, ImageOps
 
-from services.braille_math_normalizer import (
+from services.braille.braille_math_normalizer import (
     BrailleMathNormalizer,
 )
-from services.braille_translation_service import (
+from services.ocr.block_ordering import (
+    assign_identities,
+)
+from services.braille.braille_translation_service import (
     BrailleTranslationService,
 )
-from services.ocr_content_normalizer import (
+from services.braille.formula_braille_guard import (
+    NO_REVIEW,
+    review_formula,
+    review_table,
+)
+from services.ocr.official_api_client import (
+    OfficialApiClient,
+)
+from services.ocr.latex_readable_converter import (
+    readable_with_prose,
+)
+from services.ocr.ocr_content_normalizer import (
     OcrContentNormalizer,
 )
-from services.table_content_parser import (
+from services.ocr.table_content_parser import (
     TableContentParser,
 )
 
@@ -71,6 +85,13 @@ class PaddleOcrVlService:
     DEFAULT_MAX_IMAGE_DIMENSION = 2000
     DEFAULT_JPEG_QUALITY = 88
 
+    # PADDLEOCR_ENGINE: the PaddleOCR-VL pipeline on this machine, or
+    # PaddleOCR's official hosted API. Everything after recognition
+    # (normalizers, guard, Braille) is the same for both.
+    LOCAL_ENGINE = "local"
+    OFFICIAL_API_ENGINE = "official_api"
+    ENGINES = frozenset({LOCAL_ENGINE, OFFICIAL_API_ENGINE})
+
     def __init__(self) -> None:
         self.pipeline_version = os.getenv(
             "PADDLEOCR_PIPELINE_VERSION",
@@ -101,16 +122,49 @@ class PaddleOcrVlService:
 
         self.model_name = "PaddleOCR-VL-" f"{self.pipeline_version.lstrip('v')}"
 
-        # Prevent concurrent requests from exhausting laptop GPU memory.
+        self.engine = os.getenv("PADDLEOCR_ENGINE", self.LOCAL_ENGINE).strip().lower()
+
+        if self.engine not in self.ENGINES:
+            raise ValueError(
+                "PADDLEOCR_ENGINE must be one of: " + ", ".join(sorted(self.ENGINES))
+            )
+
+        # One recognition at a time: protects GPU memory locally and keeps
+        # a single hosted job in flight.
         self._inference_lock = threading.Lock()
 
         self._braille_translator = BrailleTranslationService()
+
+        # How often the formula Braille guard holds a block for review,
+        # since the service started.
+        self._guard_counts_lock = threading.Lock()
+        self._formulas_checked = 0
+        self._formulas_held = 0
+
+        if self.engine == self.OFFICIAL_API_ENGINE:
+            # Fails at startup if the token or daily cap is missing or wrong.
+            self._api_client = OfficialApiClient.from_environment()
+            self.model_name = self._api_client.model
+            self.device = self.OFFICIAL_API_ENGINE
+
+            print(f"Using PaddleOCR's official API ({self.model_name}).")
+            return
 
         initialization_started = time.perf_counter()
 
         print(
             "Initializing PaddleOCR-VL " f"{self.pipeline_version} on {self.device}..."
         )
+
+        # Imported here, not at module level, so the rest of the service
+        # (serialization, normalizers, Braille) runs without PaddlePaddle.
+        try:
+            from paddleocr import PaddleOCRVL
+        except ImportError as error:
+            raise ImportError(
+                "The local PaddleOCR-VL engine needs the paddleocr and "
+                "paddlepaddle packages installed."
+            ) from error
 
         self._pipeline = PaddleOCRVL(
             pipeline_version=self.pipeline_version,
@@ -162,13 +216,7 @@ class PaddleOcrVlService:
             inference_started = time.perf_counter()
 
             with self._inference_lock:
-                predictions = list(
-                    self._pipeline.predict(
-                        input=str(optimized_image_path),
-                        use_layout_detection=True,
-                        use_queues=False,
-                    )
-                )
+                predictions = self._recognize(optimized_image_path)
 
             inference_seconds = time.perf_counter() - inference_started
 
@@ -193,6 +241,8 @@ class PaddleOcrVlService:
             ]
 
             ordered_blocks = [block for page in pages for block in page["blocks"]]
+
+            self._log_formula_reviews(ordered_blocks)
 
             serialization_seconds = time.perf_counter() - serialization_started
 
@@ -230,6 +280,28 @@ class PaddleOcrVlService:
                 optimized_image_path,
                 original_image_path=image_path,
             )
+
+    def _recognize(
+        self,
+        image_path: Path,
+    ) -> list[Any]:
+        """Page results from the configured engine, each with a .json dict."""
+
+        if self.engine == self.OFFICIAL_API_ENGINE:
+            pages = self._api_client.parse_document(
+                image_path.read_bytes(),
+                image_path.name,
+            )
+
+            return [SimpleNamespace(json=page) for page in pages]
+
+        return list(
+            self._pipeline.predict(
+                input=str(image_path),
+                use_layout_detection=True,
+                use_queues=False,
+            )
+        )
 
     def _prepare_image(
         self,
@@ -344,15 +416,25 @@ class PaddleOcrVlService:
                     },
                 )
 
-        blocks = [
-            self._serialize_block(
+        block_dicts = [block for block in raw_blocks if isinstance(block, dict)]
+
+        blocks = []
+
+        for block, (block_id, order) in zip(
+            block_dicts,
+            assign_identities(block_dicts),
+        ):
+            serialized = self._serialize_block(
                 block,
-                fallback_id=index,
-                fallback_order=index,
+                fallback_id=block_id,
+                fallback_order=order,
             )
-            for index, block in enumerate(raw_blocks)
-            if isinstance(block, dict)
-        ]
+
+            # Unique even where OCR returned null or repeated values.
+            serialized["id"] = block_id
+            serialized["order"] = order
+
+            blocks.append(serialized)
 
         return {
             "page_index": self._positive_integer_or_default(
@@ -419,18 +501,39 @@ class PaddleOcrVlService:
                 block_type=normalization_block_type,
             )
 
+        review = NO_REVIEW
+
         if is_table:
             braille_source_content = normalized_content
+            review = review_table(normalized_content)
         elif is_formula:
             braille_source_content = BrailleMathNormalizer.normalize(raw_content)
+            review = review_formula(raw_content, braille_source_content)
         else:
             braille_source_content = normalized_content
 
-        braille_result = self._braille_translator.translate_block(
-            braille_source_content,
-            is_formula=is_formula,
-            is_table=is_table,
-        )
+        if review.needs_review:
+            # Never produce Braille that may be wrong. Show readable text
+            # with the reason; the original LaTeX stays in raw_content so a
+            # teacher can still check exactly what OCR returned. A table
+            # keeps its row text; its raw content is HTML.
+            if not is_table:
+                normalized_content = (
+                    readable_with_prose(raw_content) or raw_content
+                )
+
+            braille_result = {
+                "success": False,
+                "code": BrailleTranslationService.NEMETH_CODE,
+                "content": "",
+                "error": f"Needs review: {review.reason}",
+            }
+        else:
+            braille_result = self._braille_translator.translate_block(
+                braille_source_content,
+                is_formula=is_formula,
+                is_table=is_table,
+            )
 
         bounding_box = self._normalized_bbox(block)
 
@@ -462,7 +565,35 @@ class PaddleOcrVlService:
             "braille_code": braille_result["code"],
             "braille_success": braille_result["success"],
             "braille_error": braille_result["error"],
+            "needs_review": review.needs_review,
+            "review_reason": review.reason,
         }
+
+    def _log_formula_reviews(
+        self,
+        blocks: list[dict[str, Any]],
+    ) -> None:
+        formulas = [block for block in blocks if block["is_formula"]]
+
+        if not formulas:
+            return
+
+        held = [block for block in formulas if block["needs_review"]]
+
+        with self._guard_counts_lock:
+            self._formulas_checked += len(formulas)
+            self._formulas_held += len(held)
+            checked_total = self._formulas_checked
+            held_total = self._formulas_held
+
+        print(
+            f"Formula Braille guard: held {len(held)} of {len(formulas)} "
+            f"formula blocks for review ({held_total} of {checked_total} "
+            "since start)."
+        )
+
+        for block in held:
+            print(f"  Block {block['id']}: {block['review_reason']}")
 
     def _normalized_bbox(
         self,

@@ -20,6 +20,16 @@ import 'paddle_onnx_native_service.dart';
 /// Returns the same [ScanDocumentResult] shape as before, so the scan,
 /// result and history screens work unchanged.
 class OfflineOcrService {
+  /// Same text as ROOT_REASON in the AI service's formula_braille_guard.py.
+  static const String rootReviewReason =
+      'contains a root (√): Nemeth radical not yet confirmed';
+
+  static final RegExp _root = RegExp(r'\\sqrt(?![A-Za-z])|[√∛∜]');
+
+  /// Whether formula [content] (LaTeX or Unicode) contains a root.
+  @visibleForTesting
+  static bool containsRoot(String content) => _root.hasMatch(content);
+
   OfflineOcrService({
     PaddleOnnxNativeService? onnxService,
     OfflineBrailleService? brailleService,
@@ -116,8 +126,23 @@ class OfflineOcrService {
             ? _normalizeContent(rawContent)
             : normalizedContent;
 
-        final OfflineBrailleResult brailleResult = await _brailleService
-            .translateBlock(brailleInput, isFormula: isFormula, isTable: false);
+        // Liblouis has no Nemeth radical: a root would come out as an
+        // escape written in Braille cells. Held until the expert confirms
+        // it, exactly like the online formula guard.
+        final bool heldForRoot = isFormula && containsRoot(rawContent);
+
+        final OfflineBrailleResult brailleResult = heldForRoot
+            ? const OfflineBrailleResult(
+                success: false,
+                code: 'nemeth',
+                content: '',
+                error: 'Needs review: $rootReviewReason',
+              )
+            : await _brailleService.translateBlock(
+                brailleInput,
+                isFormula: isFormula,
+                isTable: false,
+              );
 
         final int order = blocks.length;
 
@@ -151,7 +176,8 @@ class OfflineOcrService {
             brailleCode: brailleResult.code,
             brailleSuccess: brailleResult.success,
             brailleError: brailleResult.error ?? '',
-            needsReview: source.needsReview,
+            needsReview: heldForRoot || source.needsReview,
+            reviewReason: heldForRoot ? rootReviewReason : '',
           ),
         );
       }

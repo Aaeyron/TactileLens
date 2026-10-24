@@ -6,6 +6,7 @@ import '../../services/auth/auth_service.dart';
 import '../../services/auth/google_sign_in_service.dart';
 import '../../styles/screens/auth/signin_screen_styles.dart';
 import '../../utils/session_manager.dart';
+import '../../utils/form_keyboard.dart';
 import '../main/main_screen.dart';
 import 'forgot_password_screen.dart';
 import 'guest_setup_screen.dart';
@@ -597,8 +598,7 @@ class _SignInScreenState extends State<SignInScreen> {
             SafeArea(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior: FormKeyboard.dismissBehavior,
                 padding: SignInStyles.pagePadding,
                 child: AutofillGroup(
                   child: Column(
@@ -712,6 +712,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
@@ -733,6 +734,7 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         const SizedBox(height: SignInStyles.labelFieldSpacing),
         TextField(
+          scrollPadding: FormKeyboard.scrollPadding,
           controller: passwordController,
           obscureText: !isPasswordVisible,
           textInputAction: TextInputAction.done,
@@ -823,27 +825,33 @@ class _SignInScreenState extends State<SignInScreen> {
                   color: SignInStyles.primaryColor,
                 ),
               )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    SignInStyles.googleIconLetter,
-                    style: SignInStyles.googleIconStyle,
-                  ),
-                  SizedBox(width: SignInStyles.googleIconSpacing),
-                  Text(
-                    SignInStyles.googleLabel,
-                    style: SignInStyles.googleButtonTextStyle,
-                  ),
-                ],
+            // Shrinks to fit on narrow phones and at large text sizes.
+            : const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      SignInStyles.googleIconLetter,
+                      style: SignInStyles.googleIconStyle,
+                    ),
+                    SizedBox(width: SignInStyles.googleIconSpacing),
+                    Text(
+                      SignInStyles.googleLabel,
+                      style: SignInStyles.googleButtonTextStyle,
+                    ),
+                  ],
+                ),
               ),
       ),
     );
   }
 
   Widget _buildSignUpPrompt() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // Wraps the link onto its own line when the text does not fit.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         const Text(
           SignInStyles.noAccountLabel,

@@ -16,7 +16,9 @@ import '../../services/materials/material_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/braille/braille_mode_selector.dart';
+import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 
 abstract final class _ScanResultText {
   static const String appBarTitle = 'Scan Result';
@@ -181,85 +183,59 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: ScanResultScreenStyles.backgroundColor,
-        body: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: ScanResultScreenStyles.entranceSequenceDuration,
-          curve: ScanResultScreenStyles.entranceCurve,
-          builder:
-              (BuildContext context, double animationValue, Widget? child) {
-                return Opacity(
-                  opacity: animationValue,
-                  child: FractionalTranslation(
-                    translation: Offset(
-                      ScanResultScreenStyles.entranceBeginOffset.dx *
-                          (1 - animationValue),
-                      ScanResultScreenStyles.entranceBeginOffset.dy *
-                          (1 - animationValue),
-                    ),
-                    child: child,
+        body: ListView(
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          children: <Widget>[
+            _buildPageHeader(context),
+            Padding(
+              padding: ScanResultScreenStyles.screenPadding,
+              child: Column(
+                children: <Widget>[
+                  _buildSuccessBanner(),
+                  const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
+                  _ResultSection(
+                    number: _ScanResultText.imageSectionNumber,
+                    title: _ScanResultText.imageSectionTitle,
+                    child: _buildImagePreview(),
                   ),
-                );
-              },
-          child: ListView(
-            padding: EdgeInsets.zero,
-            physics: const ClampingScrollPhysics(),
-            children: <Widget>[
-              _buildPageHeader(context),
-              Padding(
-                padding: ScanResultScreenStyles.screenPadding,
-                child: Column(
-                  children: <Widget>[
-                    _buildSuccessBanner(),
+                  const SizedBox(height: ScanResultScreenStyles.sectionSpacing),
+                  if (TextBrailleLayoutView.canDisplay(_documentPages))
+                    _buildTextAndBrailleSection(context)
+                  else ...<Widget>[
+                    _ResultSection(
+                      number: _ScanResultText.contentSectionNumber,
+                      title: _ScanResultText.contentSectionTitle,
+                      child: result.hasContent
+                          ? _buildRecognizedContent()
+                          : _buildEmptyResult(),
+                    ),
                     const SizedBox(
                       height: ScanResultScreenStyles.sectionSpacing,
                     ),
                     _ResultSection(
-                      number: _ScanResultText.imageSectionNumber,
-                      title: _ScanResultText.imageSectionTitle,
-                      child: _buildImagePreview(),
+                      number: _ScanResultText.brailleSectionNumber,
+                      title: _ScanResultText.brailleSectionTitle,
+                      child: result.hasBraille
+                          ? _buildBrailleOutput()
+                          : _buildBrailleUnavailable(),
                     ),
+                  ],
+                  if (result.hasContent) ...<Widget>[
                     const SizedBox(
                       height: ScanResultScreenStyles.sectionSpacing,
                     ),
-                    if (TextBrailleLayoutView.canDisplay(_documentPages))
-                      _buildTextAndBrailleSection(context)
-                    else ...<Widget>[
-                      _ResultSection(
-                        number: _ScanResultText.contentSectionNumber,
-                        title: _ScanResultText.contentSectionTitle,
-                        child: result.hasContent
-                            ? _buildRecognizedContent()
-                            : _buildEmptyResult(),
-                      ),
-                      const SizedBox(
-                        height: ScanResultScreenStyles.sectionSpacing,
-                      ),
-                      _ResultSection(
-                        number: _ScanResultText.brailleSectionNumber,
-                        title: _ScanResultText.brailleSectionTitle,
-                        child: result.hasBraille
-                            ? _buildBrailleOutput()
-                            : _buildBrailleUnavailable(),
-                      ),
-                    ],
-                    if (result.hasContent) ...<Widget>[
-                      const SizedBox(
-                        height: ScanResultScreenStyles.sectionSpacing,
-                      ),
-                      _SaveMaterialButton(
-                        result: result,
-                        scannedImage: scannedImage,
-                        shownBraille: () => _shownBraille,
-                      ),
-                    ],
-                    const SizedBox(
-                      height: ScanResultScreenStyles.bottomSpacing,
+                    _SaveMaterialButton(
+                      result: result,
+                      scannedImage: scannedImage,
+                      shownBraille: () => _shownBraille,
                     ),
                   ],
-                ),
+                  const SizedBox(height: ScanResultScreenStyles.bottomSpacing),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -371,17 +347,23 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             ),
           ),
           const SizedBox(width: ScanResultScreenStyles.itemSpacing),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(
+                const Text(
                   _ScanResultText.successTitle,
                   style: ScanResultScreenStyles.successTitleStyle,
                 ),
-                SizedBox(height: ScanResultScreenStyles.compactSpacing),
-                Text(
+                const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+                const Text(
                   _ScanResultText.successDescription,
+                  style: ScanResultScreenStyles.successDescriptionStyle,
+                ),
+                const SizedBox(height: ScanResultScreenStyles.compactSpacing),
+                // Always says which mode processed the scan.
+                Text(
+                  processedByLabel(widget.result),
                   style: ScanResultScreenStyles.successDescriptionStyle,
                 ),
               ],
@@ -479,7 +461,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
       ),
     );
   }
-
 }
 
 class _ScanResultHeaderDecoration extends StatelessWidget {
@@ -621,7 +602,8 @@ class _SaveMaterialButtonState extends State<_SaveMaterialButton> {
   Future<_MaterialDetails?> _requestMaterialDetails() {
     return showGeneralDialog<_MaterialDetails>(
       context: context,
-      barrierDismissible: true,
+      // A tap outside must not throw away the typed title and details.
+      barrierDismissible: FormKeyboard.closeOnTapOutside,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: ScanResultScreenStyles.saveDialogBarrierColor,
       transitionDuration: ScanResultScreenStyles.saveDialogAnimationDuration,
@@ -830,6 +812,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _titleController,
               autofocus: true,
               maxLength: ScanResultScreenStyles.maximumMaterialTitleLength,
@@ -855,6 +838,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _subjectController,
               maxLength: ScanResultScreenStyles.maximumMaterialSubjectLength,
               textInputAction: TextInputAction.next,
@@ -869,6 +853,7 @@ class _MaterialDetailsDialogState extends State<_MaterialDetailsDialog> {
               height: ScanResultScreenStyles.saveDialogFieldSpacing,
             ),
             TextField(
+              scrollPadding: FormKeyboard.scrollPadding,
               controller: _descriptionController,
               maxLength:
                   ScanResultScreenStyles.maximumMaterialDescriptionLength,
@@ -977,9 +962,7 @@ class _ResultSection extends StatelessWidget {
 
 /// Runs in a background isolate: returns the EXIF-corrected image size.
 Size? _readOrientedImageSizeInBackground(String path) {
-  final img.Image? decodedImage = img.decodeImage(
-    File(path).readAsBytesSync(),
-  );
+  final img.Image? decodedImage = img.decodeImage(File(path).readAsBytesSync());
 
   if (decodedImage == null) {
     return null;

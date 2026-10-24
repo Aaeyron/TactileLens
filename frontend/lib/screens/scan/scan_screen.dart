@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_processing_mode.dart';
 import '../../services/ai/ai_service.dart';
 import '../../services/braille/braille_mode_translator.dart';
 import '../../services/braille/braille_save_payload.dart';
@@ -13,8 +14,11 @@ import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
 import '../../services/scan/scan_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
+import '../../services/settings/settings_service.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
+import '../../utils/session_manager.dart';
 import '../../widgets/scan/scan_camera_preview.dart';
+import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../widgets/scan/scan_preview.dart';
 import 'scan_result_screen.dart';
 
@@ -133,8 +137,78 @@ class _ScanScreenState extends State<ScanScreen> {
   bool _isScanPending = false;
 
   DeviceOrientation _cameraOrientation = DeviceOrientation.portraitUp;
+
+  // Until the session is read, behave as a guest: never scan online by
+  // mistake.
+  bool _isGuest = true;
+  ScanProcessingMode _scanMode = ScanProcessingMode.onDevice;
+
   bool get _hasSelectedImage {
     return _selectedImage != null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadScanMode());
+  }
+
+  Future<void> _loadScanMode() async {
+    final bool isGuest = await SessionManager.isGuest();
+    final ScanProcessingMode savedMode = await SettingsService.getScanMode();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isGuest = isGuest;
+      _scanMode = isGuest ? ScanProcessingMode.onDevice : savedMode;
+    });
+  }
+
+  /// The mode to scan in, after the privacy notice if this is the first
+  /// online scan. Null when the teacher closed the notice.
+  Future<ScanProcessingMode?> _resolveScanMode(
+    ScanProcessingMode chosen,
+  ) async {
+    if (_isGuest) {
+      return ScanProcessingMode.onDevice;
+    }
+
+    ScanProcessingMode mode = chosen;
+
+    if (mode == ScanProcessingMode.online &&
+        !await SettingsService.getOnlinePrivacyAccepted()) {
+      if (!mounted) {
+        return null;
+      }
+
+      final ScanProcessingMode? decision = await showOnlinePrivacyNotice(
+        context,
+      );
+
+      if (decision == null) {
+        return null;
+      }
+
+      mode = decision;
+
+      if (mode == ScanProcessingMode.online) {
+        await SettingsService.setOnlinePrivacyAccepted(true);
+      }
+    }
+
+    // Remembered for the next scan.
+    await SettingsService.setScanMode(mode);
+
+    if (mounted) {
+      setState(() {
+        _scanMode = mode;
+      });
+    }
+
+    return mode;
   }
 
   void _handleCameraOrientationChanged(DeviceOrientation orientation) {
@@ -356,15 +430,19 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     _isScanPending = true;
-    late final bool shouldScan;
+    ScanProcessingMode? mode;
 
     try {
-      shouldScan = await _confirmDocumentScan();
+      final ScanProcessingMode? chosen = await _confirmDocumentScan();
+
+      if (chosen != null && mounted) {
+        mode = await _resolveScanMode(chosen);
+      }
     } finally {
       _isScanPending = false;
     }
 
-    if (!shouldScan || !mounted) {
+    if (mode == null || !mounted) {
       return;
     }
 
@@ -372,83 +450,16 @@ class _ScanScreenState extends State<ScanScreen> {
       _isProcessing = true;
     });
 
+    File? imageToScan;
+
     try {
-      final File imageToScan = await _prepareImageForScanning(selectedImage);
+      imageToScan = await _prepareImageForScanning(selectedImage);
 
       if (!mounted) {
         return;
       }
 
-      debugPrint(
-        'Sending image to configured OCR pipeline: '
-        '${imageToScan.path}',
-      );
-
-      final ScanDocumentResult scanResult = await _aiService.scanDocument(
-        imageToScan,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      // The backend saves online scans itself, so only save here when it
-      // did not (offline results and fallbacks).
-      if (!scanResult.historySavedByServer) {
-        unawaited(_saveScanToHistory(scanResult, imageToScan));
-      }
-
-      debugPrint('Document OCR completed successfully.');
-
-      debugPrint(
-        'AI processing time: '
-        '${scanResult.processingTimeMs} ms',
-      );
-
-      debugPrint(
-        'Detected blocks: '
-        '${scanResult.blocks.length}',
-      );
-
-      for (final DocumentBlock block in scanResult.blocks) {
-        debugPrint('[${block.type}] ${block.content}');
-      }
-
-      // Prepare the default Braille mode while the processing overlay is
-      // still up, so the result never shows Braille 2 and then switches.
-      // Braille 2 returns at once; Braille 1 falls back to Braille 2 on
-      // failure instead of throwing.
-      final BrailleModeView brailleView = await BrailleModeTranslator.instance
-          .viewFor(
-            scanResult.displayPages,
-            BrailleModeSettings.defaultMode.value,
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isProcessing = false;
-      });
-
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (BuildContext context) {
-            return ScanResultScreen(
-              result: scanResult,
-              scannedImage: imageToScan,
-              initialBrailleView: brailleView,
-            );
-          },
-        ),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      _retakeImage();
+      await _scanAndShowResult(imageToScan, mode);
     } on AIServiceException catch (error, stackTrace) {
       debugPrint('AI service error: ${error.message}');
 
@@ -458,7 +469,11 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      _showScanError(error.message);
+      setState(() {
+        _isProcessing = false;
+      });
+
+      await _handleScanError(error, imageToScan, mode);
     } catch (error, stackTrace) {
       debugPrint('Document scan failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -477,155 +492,318 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<bool> _confirmDocumentScan() async {
-    final bool? shouldContinue = await showModalBottomSheet<bool>(
+  /// After a failed scan: a clear message, and for a failed online scan
+  /// where the server recommends it, an offer to scan on the device. The
+  /// device is never used without the teacher choosing it.
+  Future<void> _handleScanError(
+    AIServiceException error,
+    File? imageToScan,
+    ScanProcessingMode mode,
+  ) async {
+    if (error.isScanInProgress) {
+      _showScanError(ScanModeText.scanInProgress);
+      return;
+    }
+
+    if (mode != ScanProcessingMode.online ||
+        !error.fallbackRecommended ||
+        imageToScan == null) {
+      _showScanError(error.message);
+      return;
+    }
+
+    final bool scanOnDevice = await showOnlineFailedDialog(context, error);
+
+    if (!scanOnDevice || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await _scanAndShowResult(
+        imageToScan,
+        ScanProcessingMode.onDevice,
+        fellBackFromOnline: true,
+      );
+    } on AIServiceException catch (deviceError) {
+      _showScanError(deviceError.message);
+    } catch (deviceError, stackTrace) {
+      debugPrint('On-device scan after online failure failed: $deviceError');
+      debugPrintStack(stackTrace: stackTrace);
+      _showScanError(_ScanText.scanFailureMessage);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _scanAndShowResult(
+    File imageToScan,
+    ScanProcessingMode mode, {
+    bool fellBackFromOnline = false,
+  }) async {
+    debugPrint(
+      'Sending image to configured OCR pipeline: '
+      '${imageToScan.path}',
+    );
+
+    ScanDocumentResult scanResult = await _aiService.scanDocument(
+      imageToScan,
+      mode: mode,
+    );
+
+    if (fellBackFromOnline) {
+      scanResult = scanResult.withProcessingMode(
+        ScanProcessingMode.onDevice,
+        fellBackFromOnline: true,
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    // The backend saves online scans itself, so only save here when it
+    // did not (offline results and fallbacks).
+    if (!scanResult.historySavedByServer) {
+      unawaited(_saveScanToHistory(scanResult, imageToScan));
+    }
+
+    debugPrint('Document OCR completed successfully.');
+
+    debugPrint(
+      'AI processing time: '
+      '${scanResult.processingTimeMs} ms',
+    );
+
+    debugPrint(
+      'Detected blocks: '
+      '${scanResult.blocks.length}',
+    );
+
+    for (final DocumentBlock block in scanResult.blocks) {
+      debugPrint('[${block.type}] ${block.content}');
+    }
+
+    // Prepare the default Braille mode while the processing overlay is
+    // still up, so the result never shows Braille 2 and then switches.
+    // Braille 2 returns at once; Braille 1 falls back to Braille 2 on
+    // failure instead of throwing.
+    final BrailleModeView brailleView = await BrailleModeTranslator.instance
+        .viewFor(
+          scanResult.displayPages,
+          BrailleModeSettings.defaultMode.value,
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          return ScanResultScreen(
+            result: scanResult,
+            scannedImage: imageToScan,
+            initialBrailleView: brailleView,
+          );
+        },
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    _retakeImage();
+  }
+
+  /// The mode the teacher chose, or null to go back and adjust the crop.
+  Future<ScanProcessingMode?> _confirmDocumentScan() async {
+    ScanProcessingMode selectedMode = _isGuest
+        ? ScanProcessingMode.onDevice
+        : _scanMode;
+
+    return showModalBottomSheet<ScanProcessingMode>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext sheetContext) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: ScanScreenStyles.confirmationSheetColor,
-            borderRadius: ScanScreenStyles.confirmationSheetRadius,
-          ),
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: ScanScreenStyles.confirmationSheetPadding,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  Center(
-                    child: Container(
-                      width: ScanScreenStyles.confirmationHandleWidth,
-                      height: ScanScreenStyles.confirmationHandleHeight,
-                      decoration: const BoxDecoration(
-                        color: ScanScreenStyles.confirmationHandleColor,
-                        borderRadius: ScanScreenStyles.confirmationHandleRadius,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationTopSpacing,
-                  ),
-                  Center(
-                    child: Container(
-                      width: ScanScreenStyles.confirmationIconContainerSize,
-                      height: ScanScreenStyles.confirmationIconContainerSize,
-                      decoration: const BoxDecoration(
-                        color: ScanScreenStyles.confirmationIconBackgroundColor,
-                        borderRadius: ScanScreenStyles.confirmationIconRadius,
-                      ),
-                      child: const Icon(
-                        ScanScreenStyles.confirmationHeaderIcon,
-                        size: ScanScreenStyles.confirmationIconSize,
-                        color: ScanScreenStyles.primaryColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationTitleSpacing,
-                  ),
-                  const Text(
-                    _ScanText.confirmationTitle,
-                    textAlign: TextAlign.center,
-                    style: ScanScreenStyles.confirmationTitleStyle,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationDescriptionSpacing,
-                  ),
-                  const Text(
-                    _ScanText.confirmationDescription,
-                    textAlign: TextAlign.center,
-                    style: ScanScreenStyles.confirmationDescriptionStyle,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationDetailsSpacing,
-                  ),
-                  const _ScanConfirmationDetail(
-                    icon: ScanScreenStyles.selectedAreaIcon,
-                    text: _ScanText.selectedAreaDetail,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationDetailSpacing,
-                  ),
-                  const _ScanConfirmationDetail(
-                    icon: ScanScreenStyles.recognitionIcon,
-                    text: _ScanText.recognitionDetail,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationDetailSpacing,
-                  ),
-                  const _ScanConfirmationDetail(
-                    icon: ScanScreenStyles.brailleOutputIcon,
-                    text: _ScanText.brailleDetail,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationDetailSpacing,
-                  ),
-                  const _ScanConfirmationDetail(
-                    icon: ScanScreenStyles.processingTimeIcon,
-                    text: _ScanText.processingDetail,
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationButtonsSpacing,
-                  ),
-                  SizedBox(
-                    height: ScanScreenStyles.confirmationButtonHeight,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop(false);
-                      },
-                      style: ScanScreenStyles.adjustCropButtonStyle,
-                      icon: const Icon(
-                        ScanScreenStyles.adjustCropIcon,
-                        size: ScanScreenStyles.confirmationButtonIconSize,
-                      ),
-                      label: const Text(
-                        _ScanText.adjustCropLabel,
-                        style:
-                            ScanScreenStyles.confirmationSecondaryButtonStyle,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: ScanScreenStyles.confirmationButtonGap,
-                  ),
-                  SizedBox(
-                    height: ScanScreenStyles.confirmationButtonHeight,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(sheetContext).pop(true);
-                      },
-                      style: ScanScreenStyles.scanDocumentButtonStyle,
-                      child: const Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              _ScanText.scanDocumentLabel,
-                              textAlign: TextAlign.center,
-                              style: ScanScreenStyles
-                                  .confirmationPrimaryButtonStyle,
-                            ),
-                          ),
-                          Icon(
-                            ScanScreenStyles.scanDocumentIcon,
-                            size: ScanScreenStyles.confirmationButtonIconSize,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            return _buildConfirmationSheet(
+              sheetContext,
+              selectedMode: selectedMode,
+              onModeChanged: (ScanProcessingMode mode) {
+                setSheetState(() {
+                  selectedMode = mode;
+                });
+              },
+            );
+          },
         );
       },
     );
+  }
 
-    return shouldContinue ?? false;
+  Widget _buildConfirmationSheet(
+    BuildContext sheetContext, {
+    required ScanProcessingMode selectedMode,
+    required ValueChanged<ScanProcessingMode> onModeChanged,
+  }) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: ScanScreenStyles.confirmationSheetColor,
+        borderRadius: ScanScreenStyles.confirmationSheetRadius,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: ScanScreenStyles.confirmationSheetPadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: ScanScreenStyles.confirmationHandleWidth,
+                  height: ScanScreenStyles.confirmationHandleHeight,
+                  decoration: const BoxDecoration(
+                    color: ScanScreenStyles.confirmationHandleColor,
+                    borderRadius: ScanScreenStyles.confirmationHandleRadius,
+                  ),
+                ),
+              ),
+              const SizedBox(height: ScanScreenStyles.confirmationTopSpacing),
+              Center(
+                child: Container(
+                  width: ScanScreenStyles.confirmationIconContainerSize,
+                  height: ScanScreenStyles.confirmationIconContainerSize,
+                  decoration: const BoxDecoration(
+                    color: ScanScreenStyles.confirmationIconBackgroundColor,
+                    borderRadius: ScanScreenStyles.confirmationIconRadius,
+                  ),
+                  child: const Icon(
+                    ScanScreenStyles.confirmationHeaderIcon,
+                    size: ScanScreenStyles.confirmationIconSize,
+                    color: ScanScreenStyles.primaryColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: ScanScreenStyles.confirmationTitleSpacing),
+              const Text(
+                _ScanText.confirmationTitle,
+                textAlign: TextAlign.center,
+                style: ScanScreenStyles.confirmationTitleStyle,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDescriptionSpacing,
+              ),
+              const Text(
+                _ScanText.confirmationDescription,
+                textAlign: TextAlign.center,
+                style: ScanScreenStyles.confirmationDescriptionStyle,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDetailsSpacing,
+              ),
+              if (_isGuest)
+                const Text(
+                  ScanModeText.guestHint,
+                  textAlign: TextAlign.center,
+                  style: ScanScreenStyles.scanModeHintStyle,
+                )
+              else
+                ScanModeSelector(mode: selectedMode, onChanged: onModeChanged),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDetailsSpacing,
+              ),
+              const _ScanConfirmationDetail(
+                icon: ScanScreenStyles.selectedAreaIcon,
+                text: _ScanText.selectedAreaDetail,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDetailSpacing,
+              ),
+              const _ScanConfirmationDetail(
+                icon: ScanScreenStyles.recognitionIcon,
+                text: _ScanText.recognitionDetail,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDetailSpacing,
+              ),
+              const _ScanConfirmationDetail(
+                icon: ScanScreenStyles.brailleOutputIcon,
+                text: _ScanText.brailleDetail,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationDetailSpacing,
+              ),
+              const _ScanConfirmationDetail(
+                icon: ScanScreenStyles.processingTimeIcon,
+                text: _ScanText.processingDetail,
+              ),
+              const SizedBox(
+                height: ScanScreenStyles.confirmationButtonsSpacing,
+              ),
+              SizedBox(
+                height: ScanScreenStyles.confirmationButtonHeight,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                  },
+                  style: ScanScreenStyles.adjustCropButtonStyle,
+                  icon: const Icon(
+                    ScanScreenStyles.adjustCropIcon,
+                    size: ScanScreenStyles.confirmationButtonIconSize,
+                  ),
+                  label: const Text(
+                    _ScanText.adjustCropLabel,
+                    style: ScanScreenStyles.confirmationSecondaryButtonStyle,
+                  ),
+                ),
+              ),
+              const SizedBox(height: ScanScreenStyles.confirmationButtonGap),
+              SizedBox(
+                height: ScanScreenStyles.confirmationButtonHeight,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop(selectedMode);
+                  },
+                  style: ScanScreenStyles.scanDocumentButtonStyle,
+                  child: const Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          _ScanText.scanDocumentLabel,
+                          textAlign: TextAlign.center,
+                          style:
+                              ScanScreenStyles.confirmationPrimaryButtonStyle,
+                        ),
+                      ),
+                      Icon(
+                        ScanScreenStyles.scanDocumentIcon,
+                        size: ScanScreenStyles.confirmationButtonIconSize,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<File> _prepareImageForScanning(File selectedImage) async {

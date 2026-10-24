@@ -10,8 +10,24 @@ class BrailleMathNormalizer:
     _radical_command = re.compile(r"\\sqrt\b")
 
     _formatting_command = re.compile(
-        r"\\(?:text|textrm|mathrm|mathbf|mathit|operatorname)\b"
+        r"\\(?:text|textrm|textbf|textit|mbox|mathrm|mathbf|mathit|operatorname)\b"
     )
+
+    # \big( ... \Bigg] only size the delimiter, which is kept.
+    _sized_delimiter = re.compile(r"\\(?:big|Big|bigg|Bigg)[lrm]?(?![A-Za-z])")
+
+    _spacing_command = re.compile(r"\\q?quad(?![A-Za-z])")
+
+    # ^{\prime}, ^{\prime\prime}, ^\prime and a bare \prime.
+    _prime = re.compile(
+        r"\^\s*\{((?:\s*\\prime)+)\s*\}" r"|\^\s*(\\prime)" r"|(\\prime)(?![A-Za-z])"
+    )
+
+    _row_break = re.compile(r"\\\\(?:\s*\[[^\]]*\])?")
+
+    # Rows of supported environments become separate lines for Liblouis.
+    # A private-use character survives the whitespace clean-up below.
+    _row_separator: Final[str] = "\ue000"
 
     _grouped_exponent = re.compile(r"\^\s*\{\s*([^{}]+?)\s*\}")
 
@@ -30,8 +46,13 @@ class BrailleMathNormalizer:
         r"\(\s*" r"([A-Za-z0-9.+\- ]+?)" r"\s*\\\\\s*" r"([A-Za-z0-9.+\- ]+?)" r"\s*\)"
     )
 
+    # The backslash must not start a command: "(x\right)" is not a fraction.
     _stacked_single_slash_fraction = re.compile(
-        r"\(\s*" r"([A-Za-z0-9.+\- ]+?)" r"\s*\\\s*" r"([A-Za-z0-9.+\- ]+?)" r"\s*\)"
+        r"\(\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\\(?![A-Za-z])\s*"
+        r"([A-Za-z0-9.+\- ]+?)"
+        r"\s*\)"
     )
 
     _integer_exponent = re.compile(
@@ -70,6 +91,81 @@ class BrailleMathNormalizer:
         (r"\%", "%"),
     )
 
+    # Every LaTeX command this class converts. FormulaBrailleGuard holds
+    # any formula using another command for review, because the final
+    # clean-up below would turn it into a plain word ("\Big" -> "Big").
+    SUPPORTED_COMMANDS: Final[frozenset[str]] = frozenset(
+        {
+            "frac",
+            "dfrac",
+            "tfrac",
+            "sqrt",
+            "text",
+            "textrm",
+            "textbf",
+            "textit",
+            "mbox",
+            "mathrm",
+            "mathbf",
+            "mathit",
+            "operatorname",
+            "quad",
+            "qquad",
+            "prime",
+        }
+        | {
+            f"{size}{side}"
+            for size in ("big", "Big", "bigg", "Bigg")
+            for side in ("", "l", "r", "m")
+        }
+        | {
+            latex_command[1:]
+            for latex_command, _ in _operator_replacements
+            if latex_command[1:].isalpha()
+        }
+    )
+
+    # Function names may stay as words; Liblouis reads them as written.
+    FUNCTION_NAMES: Final[frozenset[str]] = frozenset(
+        {
+            "sin",
+            "cos",
+            "tan",
+            "sec",
+            "csc",
+            "cot",
+            "log",
+            "ln",
+            "exp",
+            "lim",
+            "max",
+            "min",
+        }
+    )
+
+    # Environments whose rows (\\) and columns (&) are linearised: each row
+    # becomes one line. Stacked fractions written with "array" are handled
+    # separately and are not listed here.
+    SUPPORTED_ENVIRONMENTS: Final[frozenset[str]] = frozenset(
+        {"aligned", "align", "align*", "gathered", "gather", "split"}
+    )
+
+    _line_environment = re.compile(
+        r"\\begin\s*\{(aligned|align\*?|gathered|gather|split)\}"
+        r"(.*?)"
+        r"\\end\s*\{\1\}",
+        re.DOTALL,
+    )
+
+    @classmethod
+    def replace_stacked_fractions(
+        cls,
+        content: str,
+    ) -> str:
+        """Public form of the stacked-fraction step, for the review guard."""
+
+        return cls._replace_stacked_fractions(content)
+
     @classmethod
     def normalize(
         cls,
@@ -86,6 +182,19 @@ class BrailleMathNormalizer:
             return ""
 
         normalized = cls._replace_stacked_fractions(normalized)
+
+        normalized = cls._sized_delimiter.sub("", normalized)
+
+        normalized = cls._spacing_command.sub(" ", normalized)
+
+        normalized = cls._prime.sub(cls._replace_primes, normalized)
+
+        # After the commands above, so removing "&" cannot join a command
+        # to the next word ("\quad&Add").
+        normalized = cls._line_environment.sub(
+            cls._linearise_rows,
+            normalized,
+        )
 
         normalized = cls._replace_fractions(normalized)
 
@@ -150,7 +259,35 @@ class BrailleMathNormalizer:
             normalized,
         )
 
-        return normalized.strip()
+        lines = (
+            line.strip() for line in normalized.split(cls._row_separator)
+        )
+
+        return "\n".join(line for line in lines if line)
+
+    @classmethod
+    def _linearise_rows(
+        cls,
+        match: re.Match[str],
+    ) -> str:
+        """One line per row; alignment points (&) are removed.
+
+        A space would become an extra blank Braille cell ("x+1 =4").
+        """
+
+        rows = cls._row_break.split(match.group(2))
+
+        return cls._row_separator.join(
+            re.sub(r"(?<!\\)&", "", row) for row in rows
+        )
+
+    @staticmethod
+    def _replace_primes(
+        match: re.Match[str],
+    ) -> str:
+        primes = match.group(1) or match.group(2) or match.group(3)
+
+        return "′" * primes.count(r"\prime")
 
     @classmethod
     def _replace_radicals(

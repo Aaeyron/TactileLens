@@ -17,12 +17,7 @@ class SettingsScreen extends StatefulWidget {
   }
 }
 
-class _SettingsScreenState extends State<SettingsScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _entranceController;
-  late final Animation<double> _entranceOpacity;
-  late final Animation<Offset> _entrancePosition;
-
+class _SettingsScreenState extends State<SettingsScreen> {
   AppTextSize _textSize = AppTextSize.defaultSize;
 
   RecognitionPreference _recognitionPreference = RecognitionPreference.faster;
@@ -41,39 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   void initState() {
     super.initState();
 
-    _initializeEntranceAnimation();
     _loadSettings();
-  }
-
-  void _initializeEntranceAnimation() {
-    _entranceController = AnimationController(
-      vsync: this,
-      duration: SettingsScreenStyles.entranceDuration,
-    );
-
-    final CurvedAnimation entranceAnimation = CurvedAnimation(
-      parent: _entranceController,
-      curve: SettingsScreenStyles.entranceCurve,
-    );
-
-    _entranceOpacity = entranceAnimation;
-
-    _entrancePosition = Tween<Offset>(
-      begin: SettingsScreenStyles.entranceBeginOffset,
-      end: Offset.zero,
-    ).animate(entranceAnimation);
-
-    Future<void>.delayed(SettingsScreenStyles.entranceDelay, () {
-      if (mounted) {
-        _entranceController.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _entranceController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -443,155 +406,143 @@ class _SettingsScreenState extends State<SettingsScreen>
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: SettingsScreenStyles.backgroundColor,
-        body: FadeTransition(
-          opacity: _entranceOpacity,
-          child: SlideTransition(
-            position: _entrancePosition,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: <Widget>[
-                SliverToBoxAdapter(child: _buildHeader(context)),
-                SliverPadding(
-                  padding: SettingsScreenStyles.contentPadding,
-                  sliver: SliverToBoxAdapter(
-                    child: _isLoading
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 80),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: SettingsScreenStyles.primaryColor,
-                              ),
-                            ),
-                          )
-                        : Column(
+        body: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: SettingsScreenStyles.contentPadding,
+              sliver: SliverToBoxAdapter(
+                child: _isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 80),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: SettingsScreenStyles.primaryColor,
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: <Widget>[
+                          _SettingsSection(
+                            title: SettingsScreenStyles.accessibilityTitle,
                             children: <Widget>[
-                              _SettingsSection(
-                                title: SettingsScreenStyles.accessibilityTitle,
-                                children: <Widget>[
-                                  _SettingsDropdownItem<AppTextSize>(
-                                    icon: SettingsScreenStyles.textSizeIcon,
-                                    title: SettingsScreenStyles.textSizeTitle,
-                                    description: SettingsScreenStyles
-                                        .textSizeDescription,
-                                    value: _textSize,
-                                    values: AppTextSize.values,
-                                    labelBuilder: _textSizeLabel,
-                                    onChanged: _changeTextSize,
-                                    showDivider: true,
-                                  ),
-                                  _SettingsSwitchItem(
-                                    icon: SettingsScreenStyles.highContrastIcon,
-                                    title:
-                                        SettingsScreenStyles.highContrastTitle,
-                                    description: SettingsScreenStyles
-                                        .highContrastDescription,
-                                    value: _highContrastEnabled,
-                                    onChanged: _changeHighContrast,
-                                    showDivider: true,
-                                  ),
-                                  _SettingsSwitchItem(
-                                    icon: SettingsScreenStyles
-                                        .reduceAnimationsIcon,
-                                    title: SettingsScreenStyles
-                                        .reduceAnimationsTitle,
-                                    description: SettingsScreenStyles
-                                        .reduceAnimationsDescription,
-                                    value: _reduceAnimationsEnabled,
-                                    onChanged: _changeReduceAnimations,
-                                    showDivider: true,
-                                  ),
-                                  _SettingsSwitchItem(
-                                    icon:
-                                        SettingsScreenStyles.hapticFeedbackIcon,
-                                    title: SettingsScreenStyles
-                                        .hapticFeedbackTitle,
-                                    description: SettingsScreenStyles
-                                        .hapticFeedbackDescription,
-                                    value: _hapticFeedbackEnabled,
-                                    onChanged: _changeHapticFeedback,
-                                  ),
-                                ],
+                              _SettingsDropdownItem<AppTextSize>(
+                                icon: SettingsScreenStyles.textSizeIcon,
+                                title: SettingsScreenStyles.textSizeTitle,
+                                description:
+                                    SettingsScreenStyles.textSizeDescription,
+                                value: _textSize,
+                                values: AppTextSize.values,
+                                labelBuilder: _textSizeLabel,
+                                onChanged: _changeTextSize,
+                                showDivider: true,
                               ),
-                              const SizedBox(
-                                height: SettingsScreenStyles.sectionSpacing,
+                              _SettingsSwitchItem(
+                                icon: SettingsScreenStyles.highContrastIcon,
+                                title: SettingsScreenStyles.highContrastTitle,
+                                description: SettingsScreenStyles
+                                    .highContrastDescription,
+                                value: _highContrastEnabled,
+                                onChanged: _changeHighContrast,
+                                showDivider: true,
                               ),
-                              _SettingsSection(
-                                title: SettingsScreenStyles.scanningTitle,
-                                children: <Widget>[
-                                  _SettingsDropdownItem<RecognitionPreference>(
-                                    icon: SettingsScreenStyles.recognitionIcon,
-                                    title: SettingsScreenStyles
-                                        .recognitionPreferenceTitle,
-                                    description: SettingsScreenStyles
-                                        .recognitionPreferenceDescription,
-                                    value: _recognitionPreference,
-                                    values: RecognitionPreference.values,
-                                    labelBuilder: _recognitionPreferenceLabel,
-                                    onChanged: _changeRecognitionPreference,
-                                    showDivider: true,
-                                  ),
-                                  _SettingsSwitchItem(
-                                    icon:
-                                        SettingsScreenStyles.preserveLayoutIcon,
-                                    title: SettingsScreenStyles
-                                        .preserveLayoutTitle,
-                                    description: SettingsScreenStyles
-                                        .preserveLayoutDescription,
-                                    value: _preserveLayoutEnabled,
-                                    onChanged: _changePreserveLayout,
-                                    showDivider: true,
-                                  ),
-                                  _SettingsSwitchItem(
-                                    icon: SettingsScreenStyles.autoSaveIcon,
-                                    title: SettingsScreenStyles.autoSaveTitle,
-                                    description: SettingsScreenStyles
-                                        .autoSaveDescription,
-                                    value: _autoSaveScansEnabled,
-                                    onChanged: _changeAutoSaveScans,
-                                  ),
-                                ],
+                              _SettingsSwitchItem(
+                                icon: SettingsScreenStyles.reduceAnimationsIcon,
+                                title:
+                                    SettingsScreenStyles.reduceAnimationsTitle,
+                                description: SettingsScreenStyles
+                                    .reduceAnimationsDescription,
+                                value: _reduceAnimationsEnabled,
+                                onChanged: _changeReduceAnimations,
+                                showDivider: true,
                               ),
-                              const SizedBox(
-                                height: SettingsScreenStyles.sectionSpacing,
-                              ),
-                              _SettingsSection(
-                                title: SettingsScreenStyles.brailleTitle,
-                                children: <Widget>[
-                                  _SettingsBrailleModeItem(
-                                    value: _brailleMode,
-                                    onChanged: _changeBrailleMode,
-                                  ),
-                                  const _SettingsInformationItem(
-                                    icon: SettingsScreenStyles.nemethIcon,
-                                    title: SettingsScreenStyles.nemethTitle,
-                                    description:
-                                        SettingsScreenStyles.nemethDescription,
-                                    value: SettingsScreenStyles.automaticLabel,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: SettingsScreenStyles.sectionSpacing,
-                              ),
-                              _SettingsSection(
-                                title: SettingsScreenStyles.resetTitle,
-                                children: <Widget>[
-                                  _SettingsResetItem(
-                                    isResetting: _isResetting,
-                                    onPressed: _confirmResetSettings,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: SettingsScreenStyles.bottomSpacing,
+                              _SettingsSwitchItem(
+                                icon: SettingsScreenStyles.hapticFeedbackIcon,
+                                title: SettingsScreenStyles.hapticFeedbackTitle,
+                                description: SettingsScreenStyles
+                                    .hapticFeedbackDescription,
+                                value: _hapticFeedbackEnabled,
+                                onChanged: _changeHapticFeedback,
                               ),
                             ],
                           ),
-                  ),
-                ),
-              ],
+                          const SizedBox(
+                            height: SettingsScreenStyles.sectionSpacing,
+                          ),
+                          _SettingsSection(
+                            title: SettingsScreenStyles.scanningTitle,
+                            children: <Widget>[
+                              _SettingsDropdownItem<RecognitionPreference>(
+                                icon: SettingsScreenStyles.recognitionIcon,
+                                title: SettingsScreenStyles
+                                    .recognitionPreferenceTitle,
+                                description: SettingsScreenStyles
+                                    .recognitionPreferenceDescription,
+                                value: _recognitionPreference,
+                                values: RecognitionPreference.values,
+                                labelBuilder: _recognitionPreferenceLabel,
+                                onChanged: _changeRecognitionPreference,
+                                showDivider: true,
+                              ),
+                              _SettingsSwitchItem(
+                                icon: SettingsScreenStyles.preserveLayoutIcon,
+                                title: SettingsScreenStyles.preserveLayoutTitle,
+                                description: SettingsScreenStyles
+                                    .preserveLayoutDescription,
+                                value: _preserveLayoutEnabled,
+                                onChanged: _changePreserveLayout,
+                                showDivider: true,
+                              ),
+                              _SettingsSwitchItem(
+                                icon: SettingsScreenStyles.autoSaveIcon,
+                                title: SettingsScreenStyles.autoSaveTitle,
+                                description:
+                                    SettingsScreenStyles.autoSaveDescription,
+                                value: _autoSaveScansEnabled,
+                                onChanged: _changeAutoSaveScans,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: SettingsScreenStyles.sectionSpacing,
+                          ),
+                          _SettingsSection(
+                            title: SettingsScreenStyles.brailleTitle,
+                            children: <Widget>[
+                              _SettingsBrailleModeItem(
+                                value: _brailleMode,
+                                onChanged: _changeBrailleMode,
+                              ),
+                              const _SettingsInformationItem(
+                                icon: SettingsScreenStyles.nemethIcon,
+                                title: SettingsScreenStyles.nemethTitle,
+                                description:
+                                    SettingsScreenStyles.nemethDescription,
+                                value: SettingsScreenStyles.automaticLabel,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: SettingsScreenStyles.sectionSpacing,
+                          ),
+                          _SettingsSection(
+                            title: SettingsScreenStyles.resetTitle,
+                            children: <Widget>[
+                              _SettingsResetItem(
+                                isResetting: _isResetting,
+                                onPressed: _confirmResetSettings,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(
+                            height: SettingsScreenStyles.bottomSpacing,
+                          ),
+                        ],
+                      ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

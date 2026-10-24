@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/auth/google_sign_in_service.dart';
 import '../../styles/screens/auth/signup_screen_styles.dart';
+import '../../utils/form_keyboard.dart';
 import '../../utils/session_manager.dart';
 import '../main/main_screen.dart';
 import 'signin_screen.dart';
@@ -412,6 +413,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           SafeArea(
             child: SingleChildScrollView(
+              keyboardDismissBehavior: FormKeyboard.dismissBehavior,
               physics: const BouncingScrollPhysics(),
               padding: SignUpStyles.pagePadding,
               child: AutofillGroup(
@@ -547,6 +549,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _LabeledField(
       label: SignUpStyles.firstNameLabel,
       child: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: firstNameController,
         enabled: !_isRegistering,
         textCapitalization: TextCapitalization.words,
@@ -562,6 +565,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _LabeledField(
       label: SignUpStyles.lastNameLabel,
       child: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: lastNameController,
         enabled: !_isRegistering,
         textCapitalization: TextCapitalization.words,
@@ -577,6 +581,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _LabeledField(
       label: SignUpStyles.emailLabel,
       child: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: emailController,
         enabled: !_isRegistering,
         keyboardType: TextInputType.emailAddress,
@@ -592,6 +597,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _LabeledField(
       label: SignUpStyles.passwordLabel,
       child: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: passwordController,
         enabled: !_isRegistering,
         obscureText: !isPasswordVisible,
@@ -621,6 +627,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return _LabeledField(
       label: SignUpStyles.confirmPasswordLabel,
       child: TextField(
+        scrollPadding: FormKeyboard.scrollPadding,
         controller: confirmPasswordController,
         enabled: !_isRegistering,
         obscureText: !isConfirmPasswordVisible,
@@ -732,27 +739,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: SignUpStyles.primaryColor,
                 ),
               )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Text(
-                    SignUpStyles.googleIconLetter,
-                    style: SignUpStyles.googleIconStyle,
-                  ),
-                  SizedBox(width: SignUpStyles.googleIconSpacing),
-                  Text(
-                    SignUpStyles.googleLabel,
-                    style: SignUpStyles.googleButtonTextStyle,
-                  ),
-                ],
+            // Shrinks to fit on narrow phones and at large text sizes.
+            : const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      SignUpStyles.googleIconLetter,
+                      style: SignUpStyles.googleIconStyle,
+                    ),
+                    SizedBox(width: SignUpStyles.googleIconSpacing),
+                    Text(
+                      SignUpStyles.googleLabel,
+                      style: SignUpStyles.googleButtonTextStyle,
+                    ),
+                  ],
+                ),
               ),
       ),
     );
   }
 
   Widget _buildSignInPrompt() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // Wraps the link onto its own line when the text does not fit.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         const Text(
           SignUpStyles.hasAccountLabel,
@@ -818,7 +831,10 @@ class _RoleCard extends StatelessWidget {
           child: AnimatedContainer(
             duration: SignUpStyles.roleAnimationDuration,
             curve: Curves.easeOut,
-            height: SignUpStyles.roleCardHeight,
+            // Grows at large text sizes instead of clipping the description.
+            constraints: const BoxConstraints(
+              minHeight: SignUpStyles.roleCardHeight,
+            ),
             padding: SignUpStyles.roleCardPadding,
             decoration: BoxDecoration(
               color: isSelected

@@ -122,81 +122,61 @@ class PrivacySecurityScreen extends StatelessWidget {
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
         backgroundColor: PrivacySecurityScreenStyles.backgroundColor,
-        body: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 0, end: 1),
-          duration: PrivacySecurityScreenStyles.entranceSequenceDuration,
-          curve: PrivacySecurityScreenStyles.entranceCurve,
-          builder:
-              (BuildContext context, double animationValue, Widget? child) {
-                return Opacity(
-                  opacity: animationValue,
-                  child: FractionalTranslation(
-                    translation: Offset(
-                      PrivacySecurityScreenStyles.entranceBeginOffset.dx *
-                          (1 - animationValue),
-                      PrivacySecurityScreenStyles.entranceBeginOffset.dy *
-                          (1 - animationValue),
-                    ),
-                    child: child,
-                  ),
-                );
-              },
-          child: CustomScrollView(
-            physics: const ClampingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: <Widget>[
-              SliverToBoxAdapter(child: _buildHeader(context)),
-              SliverPadding(
-                padding: PrivacySecurityScreenStyles.contentPadding,
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate.fixed(<Widget>[
-                    const _SecurityStatusCard(),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.sectionSpacing,
-                    ),
-                    _RegisteredAccountSecurity(
-                      onChangePassword: () {
-                        _openChangePassword(context);
-                      },
-                    ),
-                    const _SectionHeading(
-                      title: PrivacySecurityScreenStyles.privacyTopicsTitle,
-                      description:
-                          PrivacySecurityScreenStyles.privacyTopicsDescription,
-                    ),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.headingBottomSpacing,
-                    ),
-                    const _PrivacyTopicsCard(topics: _topics),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.sectionSpacing,
-                    ),
-                    const _SectionHeading(
-                      title: PrivacySecurityScreenStyles.securityFeaturesTitle,
-                      description: PrivacySecurityScreenStyles
-                          .securityFeaturesDescription,
-                    ),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.headingBottomSpacing,
-                    ),
-                    const _SecurityFeatureGrid(features: _securityFeatures),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.sectionSpacing,
-                    ),
-                    const _PrivacyOverview(items: _overviewItems),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.cardSpacing,
-                    ),
-                    const _PrivacyPromiseCard(),
-                    const SizedBox(
-                      height: PrivacySecurityScreenStyles.bottomSpacing,
-                    ),
-                  ]),
-                ),
-              ),
-            ],
+        body: CustomScrollView(
+          physics: const ClampingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
+          slivers: <Widget>[
+            SliverToBoxAdapter(child: _buildHeader(context)),
+            SliverPadding(
+              padding: PrivacySecurityScreenStyles.contentPadding,
+              sliver: SliverList(
+                delegate: SliverChildListDelegate.fixed(<Widget>[
+                  const _SecurityStatusCard(),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.sectionSpacing,
+                  ),
+                  _RegisteredAccountSecurity(
+                    onChangePassword: () {
+                      _openChangePassword(context);
+                    },
+                  ),
+                  const _SectionHeading(
+                    title: PrivacySecurityScreenStyles.privacyTopicsTitle,
+                    description:
+                        PrivacySecurityScreenStyles.privacyTopicsDescription,
+                  ),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.headingBottomSpacing,
+                  ),
+                  const _PrivacyTopicsCard(topics: _topics),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.sectionSpacing,
+                  ),
+                  const _SectionHeading(
+                    title: PrivacySecurityScreenStyles.securityFeaturesTitle,
+                    description:
+                        PrivacySecurityScreenStyles.securityFeaturesDescription,
+                  ),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.headingBottomSpacing,
+                  ),
+                  const _SecurityFeatureGrid(features: _securityFeatures),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.sectionSpacing,
+                  ),
+                  const _PrivacyOverview(items: _overviewItems),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.cardSpacing,
+                  ),
+                  const _PrivacyPromiseCard(),
+                  const SizedBox(
+                    height: PrivacySecurityScreenStyles.bottomSpacing,
+                  ),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );

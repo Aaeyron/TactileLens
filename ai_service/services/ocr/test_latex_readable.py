@@ -1,9 +1,10 @@
 import unittest
 
-from services.latex_readable_converter import (
+from services.ocr.latex_readable_converter import (
     contains_latex,
     ensure_readable,
     latex_to_readable,
+    readable_with_prose,
 )
 
 
@@ -35,6 +36,22 @@ class LatexToReadableTests(unittest.TestCase):
 
     def test_subscripts_become_subscripts(self):
         self.assertEqual(latex_to_readable("x_{1}+x_{2}"), "x₁ + x₂")
+
+    def test_prime_is_written_after_the_letter(self):
+        self.assertEqual(latex_to_readable(r"f^{\prime}(x)=2x"), "f′(x) = 2x")
+        self.assertEqual(latex_to_readable(r"g^{\prime\prime}(x)"), "g′′(x)")
+
+    def test_aligned_rows_keep_words_after_spacing(self):
+        # "\quad&Add" must not turn into an unknown command.
+        self.assertEqual(
+            latex_to_readable(
+                r"\begin{aligned}x+1&=4\quad&\text{Add}\\x&=3\end{aligned}"
+            ),
+            "x + 1 = 4 Add\nx = 3",
+        )
+
+    def test_sized_delimiters_are_dropped(self):
+        self.assertEqual(latex_to_readable(r"\bigg(\frac{a}{b}\bigg)^{2}"), "(a/b)²")
 
     def test_inequality_with_minus_and_leq(self):
         self.assertEqual(latex_to_readable(r"3x-4\leq11"), "3x − 4 ≤ 11")
@@ -113,6 +130,68 @@ class EnsureReadableTests(unittest.TestCase):
 
     def test_empty_text_is_unchanged(self):
         self.assertEqual(ensure_readable(""), "")
+
+
+class ReadableWithProseTests(unittest.TestCase):
+    """Display text for formula blocks that mix words and math."""
+
+    def test_instruction_and_fraction(self):
+        self.assertEqual(
+            readable_with_prose(
+                r"$$ Example: Perform the division and simplify your answer. "
+                r"\frac{2\sqrt{5}-4}{7} $$"
+            ),
+            "Example: Perform the division and simplify your answer. (2√5 − 4)/7",
+        )
+
+    def test_one_word_label(self):
+        self.assertEqual(
+            readable_with_prose(r"$$ Divide: \frac{2\sqrt{5}-4}{7} $$"),
+            "Divide: (2√5 − 4)/7",
+        )
+
+    def test_word_between_equations_keeps_its_spaces(self):
+        self.assertEqual(readable_with_prose(r"$$ x=2 when y=3 $$"), "x = 2 when y = 3")
+
+    def test_single_letters_stay_math(self):
+        self.assertEqual(
+            readable_with_prose(r"$$ simplify a fraction \frac{4}{8} $$"),
+            "simplify a fraction 4/8",
+        )
+
+    def test_existing_text_groups_and_commands_are_untouched(self):
+        self.assertEqual(
+            readable_with_prose(
+                r"$$ \text{Example: Perform the division.} \quad "
+                r"\frac{2\sqrt{5}-4}{7} $$"
+            ),
+            "Example: Perform the division. (2√5 − 4)/7",
+        )
+        self.assertEqual(readable_with_prose(r"$$ \sin x+\cos x=1 $$"), "sin x + cos x = 1")
+
+    def test_aligned_rows_stay_on_their_lines(self):
+        self.assertEqual(
+            readable_with_prose(
+                r"$$ \begin{aligned}&2y+3\quad&Add three\\&5\quad&Answer"
+                r"\end{aligned} $$"
+            ),
+            "2y + 3 Add three\n5 Answer",
+        )
+
+    def test_plain_math_is_unchanged(self):
+        for latex in (r"$$ x-5=12 $$", r"\frac{x+1}{2}\leq\sqrt{9}"):
+            with self.subTest(latex=latex):
+                self.assertEqual(readable_with_prose(latex), latex_to_readable(latex))
+
+    def test_inline_math_delimiters_are_not_shown(self):
+        self.assertEqual(
+            readable_with_prose(r"Read \textbf{all} and simplify $\sqrt{2}$ first."),
+            "Read all and simplify √2 first.",
+        )
+
+    def test_empty(self):
+        self.assertEqual(readable_with_prose(""), "")
+        self.assertEqual(readable_with_prose("   "), "")
 
 
 if __name__ == "__main__":

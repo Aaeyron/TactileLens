@@ -15,7 +15,9 @@ from fastapi import (
 )
 from fastapi.concurrency import run_in_threadpool
 
-from services.paddleocr_vl_service import PaddleOcrVlService
+from services.ocr.official_api_client import HostedOcrError
+from services.ocr.paddleocr_vl_service import PaddleOcrVlService
+from services.security.service_key import ServiceKeyMiddleware
 
 
 logging.basicConfig(
@@ -115,6 +117,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Every route except /health needs X-Service-Key = AI_SERVICE_SECRET.
+# Without the secret (local development) requests are not checked.
+app.add_middleware(
+    ServiceKeyMiddleware,
+    secret=os.getenv("AI_SERVICE_SECRET"),
+)
+
 
 @app.get("/health")
 async def health_check() -> dict:
@@ -127,6 +136,7 @@ async def health_check() -> dict:
         "service": "TactileLens AI Service",
         "model": service.model_name,
         "device": service.device,
+        "engine": service.engine,
         "ready": True,
     }
 
@@ -243,6 +253,22 @@ async def scan_document(
         )
 
         return result
+
+    except HostedOcrError as error:
+        # Quota and outages: 503; failed job: 502; deadline: 504. The
+        # message names the job and Baidu's code, never the token.
+        logger.warning(
+            "Hosted OCR request failed: %s",
+            error,
+        )
+
+        raise HTTPException(
+            status_code=error.status_code,
+            detail={
+                "code": error.code,
+                "message": error.public_message,
+            },
+        ) from error
 
     except ValueError as error:
         logger.warning(

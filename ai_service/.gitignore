@@ -6,3 +6,5 @@ uploads/*
 !uploads/.gitkeep
 # Downloaded third-party Liblouis runtime
 vendor/
+# Local virtual environment (never committed)
+.venv/
