@@ -22,6 +22,27 @@ object BrailleMathNormalizer {
     private val FORMATTING_COMMAND =
         Regex("""\\(?:text|textrm|mathrm|mathbf|mathit|operatorname)\b""")
 
+    // Unicode superscripts (x², 10⁻³, xⁿ⁺¹), as OCR or text can write
+    // them. Liblouis's Nemeth table has none of these characters, so each
+    // run becomes ^{...} and is then handled like the caret form.
+    private val SUPERSCRIPT_DIGITS: Map<Char, Char> = mapOf(
+        '⁰' to '0',
+        '¹' to '1',
+        '²' to '2',
+        '³' to '3',
+        '⁴' to '4',
+        '⁵' to '5',
+        '⁶' to '6',
+        '⁷' to '7',
+        '⁸' to '8',
+        '⁹' to '9',
+        'ⁿ' to 'n',
+        '⁺' to '+',
+        '⁻' to '-',
+    )
+
+    private val SUPERSCRIPT_RUN = Regex("""[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺⁻]+""")
+
     private val GROUPED_EXPONENT =
         Regex("""\^\s*\{\s*([^\{\}]+?)\s*\}""")
 
@@ -95,6 +116,11 @@ object BrailleMathNormalizer {
 
         if (normalized.isEmpty()) {
             return ""
+        }
+
+        normalized = SUPERSCRIPT_RUN.replace(normalized) { match ->
+            val exponent = match.value.map { SUPERSCRIPT_DIGITS.getValue(it) }
+            "^{" + exponent.joinToString("") + "}"
         }
 
         normalized = replaceStackedFractions(normalized)
