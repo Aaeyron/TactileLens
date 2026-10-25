@@ -21,3 +21,5 @@ controls,linear_equation,2x + 5 = 11,1500,20,10,template,No superscript: shows w
 controls,brackets,3(x + 2) = 18,800,20,10,template,No superscript.
 controls,prose,Solve for x.,800,20,10,template,No superscript: plain text.
 controls,plain_text,Find the total cost of 3 books.,3000,20,10,template,No superscript: generated plain sentences from a word list so the model keeps reading ordinary text.
+controls,hyphenated_words,Draw the x-axis,1200,20,10,template,Hyphens inside words (labelled -) so a hyphen is not read as a minus.
+controls,ranges_and_dates,pages 12–15,1000,20,10,template,Ranges with a hyphen or en dash and dates; labelled with the dash that is drawn.

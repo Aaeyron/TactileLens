@@ -74,6 +74,17 @@ never textbook or worksheet text. The eval set holds the seven fixed cases
 × 10 renderings, template lines and about 20% controls without
 superscripts.
 
+Two looks (`--profile`):
+- `v1` (eval, frozen): the original fonts and photo effects. Regenerating
+  the eval set gives the same files byte for byte.
+- `v2` (train/val, default): more faces, worksheet surroundings (lined,
+  grid, coloured paper, page edges, table borders, answer rules, slivers
+  of neighbouring lines, item labels such as "3." or "b)"), stronger photo
+  effects, and every minus drawn as a hyphen "-" or a true minus "−" (more
+  often "−" in math-typesetting faces), labelled as drawn. Controls
+  include hyphenated words, ranges and dates. At least 25% of train/val
+  lines have no superscript (`--min-plain`).
+
 ## Baseline / comparing models
 
 ```
@@ -83,6 +94,13 @@ python evaluate.py --set real-eval --rec C:\path\new_rec.onnx --tag retrained
 ```
 
 Preprocessing and decoding are the app's (see `app_ocr.py`).
+
+Side by side (exact and exponent exact for ALL, controls, negative
+exponents, each topic and each photographed sheet):
+
+```
+python compare_models.py --set real-eval --b C:\path\trained.onnx --b-name trained
+```
 
 ## Real photos
 
@@ -106,6 +124,9 @@ training lines. The starter sheets do that:
    sheets) or `data/real` (training sheets). The rest go to
    `review/<sheet>/` with `review.tsv` (crop, what was read, best guess,
    similarity): check them by hand; they are never added automatically.
+5. Real validation (to pick checkpoints during training, never eval):
+   pair the photos of a few training sheets (W111-W113) with `--val`.
+   They go to `data/real/val.txt`, never into training or eval.
 
 Do not photograph textbook pages or worksheets made by others.
 

@@ -77,6 +77,7 @@ class Layout:
             "synthetic-val": self.root / "data" / "synthetic",
             "synthetic-eval": self.root / "eval" / "synthetic",
             "real-train": self.root / "data" / "real",
+            "real-val": self.root / "data" / "real",
             "real-eval": self.root / "eval" / "real",
         }[name]
 
@@ -86,6 +87,7 @@ class Layout:
             "synthetic-val": "val.txt",
             "synthetic-eval": "labels.txt",
             "real-train": "train.txt",
+            "real-val": "val.txt",
             "real-eval": "labels.txt",
         }[name]
 
@@ -218,7 +220,9 @@ def read_manifest(path: Path) -> Iterator[dict]:
 
 # ---------------------------------------------------------------- guard
 
-TRAINING_SETS = ("synthetic-train", "synthetic-val", "real-train")
+# real-val (photos of some training sheets, used to pick checkpoints) is on
+# the training side: it must never share an image or a sheet with eval.
+TRAINING_SETS = ("synthetic-train", "synthetic-val", "real-train", "real-val")
 EVAL_SETS = ("synthetic-eval", "real-eval")
 
 

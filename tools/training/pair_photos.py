@@ -130,6 +130,9 @@ def main() -> None:
     parser.add_argument("--root")
     parser.add_argument("--min-similarity", type=float, default=0.75)
     parser.add_argument("--min-margin", type=float, default=0.15, help="best minus second-best similarity")
+    parser.add_argument("--val", action="store_true",
+                        help="training sheets only: put the crops in data/real/val.txt (real-val), used to pick "
+                             "checkpoints during training, instead of train.txt")
     args = parser.parse_args()
 
     layout = Layout(root_dir(args.root))
@@ -137,7 +140,12 @@ def main() -> None:
     sheet = json.loads((layout.worksheets / f"{args.sheet}.json").read_text(encoding="utf-8"))
     known = sheet["lines"]
     labels = [line["label"] for line in known]
-    set_name = "real-eval" if sheet["split"] == "eval" else "real-train"
+    if sheet["split"] == "eval":
+        if args.val:
+            raise SystemExit(f"{args.sheet} is an eval sheet; --val is only for training sheets.")
+        set_name = "real-eval"
+    else:
+        set_name = "real-val" if args.val else "real-train"
     out_dir = layout.set_dir(set_name)
     review_dir = layout.review / args.sheet
     review_dir.mkdir(parents=True, exist_ok=True)
@@ -169,8 +177,15 @@ def main() -> None:
             if k not in paired_rows:
                 review.append((k, None, 0.0, 0.0))
 
-        # Replace this photo's earlier crops, if any.
+        # Replace this photo's earlier crops, if any. real-train and real-val
+        # share the image folder, so a photo moved from one to the other is
+        # also removed from the other list.
         prefix = f"images/{photo_id}_"
+        for other in {"real-train", "real-val"} - {set_name}:
+            write_labels(layout.label_file(other),
+                         [(i, t) for i, t in read_labels(layout.label_file(other)) if not i.startswith(prefix)])
+            write_manifest(layout.manifest(other),
+                           [m for m in read_manifest(layout.manifest(other)) if not m["path"].startswith(prefix)])
         rows_kept = [(img, text) for img, text in read_labels(layout.label_file(set_name)) if not img.startswith(prefix)]
         manifest_kept = [m for m in read_manifest(layout.manifest(set_name)) if not m["path"].startswith(prefix)]
         for old in (out_dir / "images").glob(f"{photo_id}_*"):

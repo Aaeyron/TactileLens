@@ -301,6 +301,72 @@ TEMPLATES: dict[tuple[str, str], Callable[[random.Random, bool], list[Segment]]]
 }
 
 
+# Hyphens in ordinary text, so the model learns that "-" in words, ranges
+# and dates is a hyphen (or an en dash), not a minus.
+_HYPHENATED = (
+    "well-known x-axis y-axis y-intercept x-intercept two-step one-step "
+    "step-by-step left-hand right-hand long-term self-check re-check "
+    "follow-up warm-up real-world two-digit three-digit non-zero "
+    "multi-step co-ordinate mid-point up-to-date"
+).split()
+
+
+def _hyphenated_words(rng, spaced):
+    words = [rng.choice(_WORDS) for _ in range(rng.randint(0, 2))]
+    words.insert(rng.randrange(len(words) + 1), rng.choice(_HYPHENATED))
+    if rng.random() < 0.5:
+        words.insert(rng.randrange(len(words) + 1), rng.choice(_HYPHENATED))
+    while len(" ".join(words)) > MAX_LABEL_LENGTH - 1 and len(words) > 1:
+        words.pop(0)
+    text = " ".join(words)
+    if rng.random() < 0.6:
+        text = text[0].upper() + text[1:]
+    return [(text + rng.choice(["", ".", ":"]), False)]
+
+
+def _ranges_and_dates(rng, spaced):
+    dash = rng.choice(["-", "-", "–"])  # hyphen or en dash, labelled as drawn
+    a = rng.randint(1, 60)
+    kind = rng.randrange(5)
+    if kind == 0:
+        text = f"{rng.choice(['pages', 'Pages', 'p.', 'Questions', 'Items'])} {a}{dash}{a + rng.randint(1, 9)}"
+    elif kind == 1:
+        text = f"{a}{dash}{a + rng.randint(1, 20)} {rng.choice(['minutes', 'min', 'marks', 'points'])}"
+    elif kind == 2:
+        text = f"{rng.randint(2020, 2030)}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}"
+    elif kind == 3:
+        text = f"{rng.randint(1, 28):02d}-{rng.randint(1, 12):02d}-{rng.randint(2020, 2030)}"
+    else:
+        text = f"Grade {rng.randint(7, 12)} {dash} {rng.choice(['Algebra', 'Unit ' + str(rng.randint(1, 9)), 'Review', 'Quiz'])}"
+    return [(text, False)]
+
+
+TEMPLATES[("controls", "hyphenated_words")] = _hyphenated_words
+TEMPLATES[("controls", "ranges_and_dates")] = _ranges_and_dates
+
+ITEM_LABELS = ("{n}.", "{n})", "({l})", "{l})", "{l}.", "Q{n}.")
+
+
+def with_item_label(line: Line, rng: random.Random) -> Line:
+    """Puts an item label in front of the line ("3. x² + 1"), as on a worksheet."""
+
+    label = rng.choice(ITEM_LABELS).format(n=rng.randint(1, 20), l=rng.choice("abcdefgh"))
+    segments = [(f"{label} ", False)] + list(line.segments)
+    if len(Line(line.topic, line.subcase, segments).label) > MAX_LABEL_LENGTH:
+        return line
+    return Line(line.topic, line.subcase, _merge(segments), line.fixed, {**line.notes, "item_label": label})
+
+
+def with_minus(line: Line, glyph: str) -> Line:
+    """Draws every minus as [glyph] ("-" hyphen or "−" true minus). Labels
+    follow what is drawn; a raised minus is always labelled ⁻."""
+
+    if glyph == MINUS:
+        return line
+    segments = [(text.replace(MINUS, glyph), raised) for text, raised in line.segments]
+    return Line(line.topic, line.subcase, segments, line.fixed, {**line.notes, "minus": glyph})
+
+
 def make_line(topic: str, subcase: str, example: str, rng: random.Random) -> Line:
     spaced = rng.random() < 0.6
     template = TEMPLATES.get((topic, subcase))

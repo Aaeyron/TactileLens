@@ -37,13 +37,16 @@ from common import (
     write_labels,
     write_manifest,
 )
-from render import fonts_for, photo_line, pick_font
-from textgen import FIXED_CASES, Line, fixed_line, make_line
+from render import MATH_FACES, fonts_for, photo_line, photo_line_v2, pick_font
+from textgen import MINUS, FIXED_CASES, Line, fixed_line, make_line, with_item_label, with_minus
 
 HERE = Path(__file__).resolve().parent
 SET_NAMES = {"eval": "synthetic-eval", "train": "synthetic-train", "val": "synthetic-val"}
 DEFAULT_SEEDS = {"eval": 20261025, "train": 1, "val": 2}
 PREFIX = {"eval": "syn_ev", "train": "syn_tr", "val": "syn_va"}
+
+# topics.csv control rows added after the synthetic eval set was frozen.
+ADDED_AFTER_EVAL_FREEZE = {"plain_text", "hyphenated_words", "ranges_and_dates"}
 
 
 def read_topics(path: Path) -> list[dict]:
@@ -54,9 +57,9 @@ def read_topics(path: Path) -> list[dict]:
 def plan_lines(kind: str, count: int, topics: list[dict], rng: random.Random, min_plain: float) -> list[Line]:
     if kind == "eval":
         lines = [fixed_line(t, s, text) for t, s, text in FIXED_CASES for _ in range(10)]
-        # plain_text was added after the eval set was frozen; leaving it out
-        # keeps the eval set identical to the baseline's.
-        controls = [r for r in topics if r["topic"] == "controls" and r["subcase"] != "plain_text"]
+        # These rows were added after the eval set was frozen; leaving them
+        # out keeps the eval set identical to the baseline's.
+        controls = [r for r in topics if r["topic"] == "controls" and r["subcase"] not in ADDED_AFTER_EVAL_FREEZE]
         others = [r for r in topics if r["topic"] != "controls"]
         n_controls = round((count - len(lines)) * 0.3)
         for _ in range(n_controls):
@@ -92,6 +95,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int)
     parser.add_argument("--root")
     parser.add_argument("--topics", default=str(HERE / "topics.csv"))
+    parser.add_argument("--profile", choices=["v1", "v2"], help="default: v1 for eval, v2 for train/val")
     parser.add_argument("--min-plain", type=float, default=0.25,
                         help="train/val: share of lines without superscripts (controls)")
     args = parser.parse_args()
@@ -113,8 +117,15 @@ def main() -> None:
     for old in images_dir.glob(f"{prefix}_*.png"):
         old.unlink()
 
+    # v1: the frozen eval set's look. v2 (train/val): more faces, worksheet
+    # surroundings, stronger photo effects, item labels, hyphen or true
+    # minus as printed.
+    profile = args.profile or ("v1" if args.set == "eval" else "v2")
+
     labels, manifest = [], []
     for index, line in enumerate(lines):
+        if profile == "v2" and rng.random() < 0.2:
+            line = with_item_label(line, rng)
         label = line.label
         bad = unsupported_characters(label, characters)
         if bad:
@@ -122,18 +133,29 @@ def main() -> None:
 
         # Glyph style only with fonts that have every superscript needed.
         style = "typeset"
-        glyph_fonts = fonts_for(label, layout.fonts)
+        glyph_fonts = fonts_for(label, layout.fonts, profile)
         if line.has_superscript and glyph_fonts and rng.random() < 0.3:
             style = "glyph"
             choices = glyph_fonts
         else:
             plain = "".join(text for text, _ in line.segments)
-            choices = fonts_for(plain, layout.fonts)
+            choices = fonts_for(plain, layout.fonts, profile)
         if not choices:
             raise SystemExit(f"No font can draw {label!r}")
         font = pick_font(choices, rng)
 
-        image, drawing = photo_line(line.segments, font, rng, style)
+        if profile == "v2":
+            # A true minus is more common in math typesetting, a hyphen in
+            # word-processor worksheets. The label follows what is drawn.
+            true_minus = rng.random() < (0.8 if font.name.startswith(MATH_FACES) else 0.45)
+            line = with_minus(line, MINUS if true_minus else "-")
+            label = line.label
+            image, drawing = photo_line_v2(line.segments, font, rng, style)
+            drawing["minus"] = "−" if true_minus else "-"
+            if "item_label" in line.notes:
+                drawing["item_label"] = line.notes["item_label"]
+        else:
+            image, drawing = photo_line(line.segments, font, rng, style)
         name = f"{prefix}_{index:06d}.png"
         write_image(images_dir / name, image)
         relative = f"images/{name}"
