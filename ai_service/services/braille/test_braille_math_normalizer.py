@@ -8,6 +8,21 @@ def normalize(latex):
     return BrailleMathNormalizer.normalize(latex)
 
 
+# (Unicode superscript form, the same expression in caret form). The same
+# cases are in the Kotlin BrailleMathNormalizerTest.
+SUPERSCRIPT_CASES = (
+    ("x²", r"x^{2}"),
+    ("xⁿ", r"x^{n}"),
+    ("(a+b)²", r"(a+b)^{2}"),
+    ("10⁻³", r"10^{-3}"),
+    ("2x³y²", r"2x^{3}y^{2}"),
+    ("x² + 3x - 5", r"x^{2} + 3x - 5"),
+    ("a²b³ = c²", r"a^{2}b^{3} = c^{2}"),
+    ("xⁿ⁺¹", r"x^{n+1}"),
+    ("x⁰ + y¹ + z⁴⁵⁶⁷⁸⁹", r"x^{0} + y^{1} + z^{456789}"),
+)
+
+
 class BrailleMathNormalizerTests(unittest.TestCase):
     """The linear math sent to Liblouis. Whether the resulting Braille is
     correct is for a Braille expert to confirm."""
@@ -67,6 +82,25 @@ class BrailleMathNormalizerTests(unittest.TestCase):
         self.assertEqual(normalize(r"(3 \\ 4)"), "(3)/(4)")
         self.assertEqual(normalize(r"(3 \ 4)"), "(3)/(4)")
 
+    def test_unicode_superscripts_become_the_caret_form(self):
+        for unicode_form, expected in (
+            ("x²", "x^2"),
+            ("xⁿ", "x^n"),
+            ("(a+b)²", "(a+b)^2"),
+            ("10⁻³", "10^-3"),
+            ("2x³y²", "2x^3y^2"),
+            ("a²b³ = c²", "a^2b^3 = c^2"),
+            # Grouped like x^{n+1}; see the expert note on baseline return.
+            ("xⁿ⁺¹", "x^n+1"),
+        ):
+            with self.subTest(unicode_form=unicode_form):
+                self.assertEqual(normalize(unicode_form), expected)
+
+    def test_unicode_superscripts_match_their_caret_form(self):
+        for unicode_form, caret_form in SUPERSCRIPT_CASES:
+            with self.subTest(unicode_form=unicode_form):
+                self.assertEqual(normalize(unicode_form), normalize(caret_form))
+
     def test_a_command_after_a_backslash_is_not_a_fraction(self):
         # Previously "(x)/(right)" and "(x)/(bigr)".
         self.assertEqual(normalize(r"\left(x\right)"), "(x)")
@@ -94,6 +128,18 @@ class LiblouisSmokeTests(unittest.TestCase):
         # Rows translate exactly as the same equations on their own.
         self.assertEqual(lines[0], _TRANSLATOR.translate_formula("x+1=4"))
         self.assertEqual(lines[1], _TRANSLATOR.translate_formula("x=3"))
+
+    def test_unicode_superscripts_give_the_caret_braille_and_no_escape(self):
+        # Before, "x²" reached Liblouis as is and came out as the escape
+        # '\x00b2' written in cells (⠄⡳⠭...).
+        for unicode_form, caret_form in SUPERSCRIPT_CASES:
+            with self.subTest(unicode_form=unicode_form):
+                braille = _TRANSLATOR.translate_formula(normalize(unicode_form))
+
+                self.assertEqual(
+                    braille, _TRANSLATOR.translate_formula(normalize(caret_form))
+                )
+                self.assertNotIn("⡳", braille)
 
     def test_prime_and_sized_delimiters_translate(self):
         for latex in (r"f^{\prime}(x)=2x", r"\bigg(\frac{a}{b}\bigg)^{2}"):
