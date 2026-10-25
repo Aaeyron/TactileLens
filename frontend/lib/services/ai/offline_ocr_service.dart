@@ -24,6 +24,31 @@ class OfflineOcrService {
   static const String rootReviewReason =
       'contains a root (√): Nemeth radical not yet confirmed';
 
+  // Why the offline pipeline flagged a block (needs_review). Shown in the
+  // "Needs review" note; the block keeps its Braille.
+  static const String lowConfidenceReason = 'low OCR confidence';
+  static const String fallbackMathReason =
+      'math found in a text line and read by the formula model';
+  static const String formulaUnreadReason =
+      'the formula could not be read; this is the OCR text';
+  static const String unfinishedFormulaReason = 'the formula may be incomplete';
+
+  /// The reason for a block the offline pipeline flagged, from where it
+  /// came from (OfflineDocumentPipeline.kt "source"). Empty if not flagged.
+  @visibleForTesting
+  static String reviewReasonFor(OfflineDocumentBlock source) {
+    if (!source.needsReview) {
+      return '';
+    }
+
+    return switch (source.source) {
+      'formula_fallback' => fallbackMathReason,
+      'ocr_fallback' => formulaUnreadReason,
+      'formula' => unfinishedFormulaReason,
+      _ => lowConfidenceReason,
+    };
+  }
+
   static final RegExp _root = RegExp(r'\\sqrt(?![A-Za-z])|[√∛∜]');
 
   /// Whether formula [content] (LaTeX or Unicode) contains a root.
@@ -177,7 +202,9 @@ class OfflineOcrService {
             brailleSuccess: brailleResult.success,
             brailleError: brailleResult.error ?? '',
             needsReview: heldForRoot || source.needsReview,
-            reviewReason: heldForRoot ? rootReviewReason : '',
+            reviewReason: heldForRoot
+                ? rootReviewReason
+                : reviewReasonFor(source),
           ),
         );
       }
