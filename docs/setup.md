@@ -102,18 +102,26 @@ allows plain HTTP (`usesCleartextTraffic`), which is for local
 development only.
 
 On-device scanning needs the ONNX models, which are **not in git**
-(about 390 MB). Place them before building:
+(about 390 MB): `frontend/android/app/src/main/assets/paddle_onnx/` is
+gitignored, so a fresh clone fails to scan offline until they are added.
+The app needs exactly these files (sizes in bytes):
 
-```
-frontend/android/app/src/main/assets/paddle_onnx/
-  PP-DocLayoutV3/pp_doclayoutv3_nomask.onnx
-  PP-FormulaNet_plus-S/pp-formulanet_plus-s.onnx, pp-formulanet_vocab.json
-  PP-OCRv6-small-rec-onnx/inference.onnx, inference.yml
-  PP-OCRv6-tiny-det-onnx/inference.onnx, inference.yml
-```
+| Asset path (under `paddle_onnx/`) | Size | Source | Loaded by |
+|---|---|---|---|
+| `PP-DocLayoutV3/pp_doclayoutv3_nomask.onnx` | 134,056,969 | PaddlePaddle PP-DocLayoutV3, exported to ONNX without the mask output | `PaddleOnnxLayoutDetector.kt` |
+| `PP-OCRv6-tiny-det-onnx/inference.onnx` + `inference.yml` | 1,829,618 + 883 | PaddleOCR PP-OCRv6_tiny_det, ONNX export with its PaddleX `inference.yml` | `PaddleOnnxOcrEngine.kt` (the `.onnx`; the `.yml` is kept with it but not read) |
+| `PP-OCRv6-small-rec-onnx/inference.onnx` + `inference.yml` | 21,154,056 + 150,579 | PaddleOCR PP-OCRv6_small_rec, ONNX export; `inference.yml` holds the character dictionary | `PaddleOnnxOcrEngine.kt` |
+| `PP-FormulaNet_plus-S/pp-formulanet_plus-s.onnx` | 231,878,904 | PaddleX PP-FormulaNet_plus-S, exported to ONNX | `PaddleOnnxFormulaRecognizer.kt` |
+| `PP-FormulaNet_plus-S/pp-formulanet_vocab.json` | 574,189 | Generated from the model's `pp-formulanet-tokenizer.json` by `tools/model_prep/export_formula_vocab.py` | `PaddleOnnxFormulaRecognizer.kt` |
 
-The repository has no download script for them; `tools/model_prep/` has
-scripts to inspect and test the exports.
+All are pretrained models; none is fine-tuned. Keep the folder and file
+names exactly as above: the Kotlin code loads them by these paths. The
+exact export commands were not recorded; record them here when a model is
+re-exported. (`PP-DocLayout-S-onnx` and `PP-FormulaNet-plus-S-onnx` were
+removed: nothing used them.)
+
+The repository has no download script for them yet; `tools/model_prep/`
+has scripts to inspect and test the exports.
 
 ## Environment variables
 
