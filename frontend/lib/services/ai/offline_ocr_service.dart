@@ -32,6 +32,8 @@ class OfflineOcrService {
   static const String formulaUnreadReason =
       'the formula could not be read; this is the OCR text';
   static const String unfinishedFormulaReason = 'the formula may be incomplete';
+  static const String possibleExponentReason =
+      'a small raised number (an exponent) may have been missed';
 
   /// The reason for a block the offline pipeline flagged, from where it
   /// came from (OfflineDocumentPipeline.kt "source"). Empty if not flagged.
@@ -45,6 +47,7 @@ class OfflineOcrService {
       'formula_fallback' => fallbackMathReason,
       'ocr_fallback' => formulaUnreadReason,
       'formula' => unfinishedFormulaReason,
+      'exponent_check' => possibleExponentReason,
       _ => lowConfidenceReason,
     };
   }
