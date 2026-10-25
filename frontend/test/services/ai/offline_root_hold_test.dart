@@ -69,6 +69,18 @@ Map<String, Object?> _formula(String latex) => <String, Object?>{
   'box': <String, double>{'left': 0, 'top': 0, 'right': 50, 'bottom': 10},
 };
 
+/// A block the offline pipeline flagged (needs_review), from [source]:
+/// "ocr" (low confidence), "formula_fallback", "ocr_fallback", "formula".
+Map<String, Object?> _flagged(String source, String content) =>
+    <String, Object?>{
+      'type': source == 'ocr' || source == 'ocr_fallback' ? 'text' : 'formula',
+      'label': 'text',
+      'content': content,
+      'needs_review': true,
+      'source': source,
+      'box': <String, double>{'left': 0, 'top': 0, 'right': 50, 'bottom': 10},
+    };
+
 /// Every root case, LaTeX and Unicode, as in the AI service tests.
 const List<String> _rootCases = <String>[
   r'\sqrt{9}=3',
@@ -101,6 +113,68 @@ Future<(ScanDocumentResult, _RecordingBrailleService)> _scan(
 }
 
 void main() {
+  group('flagged blocks get a reason and keep their Braille', () {
+    for (final (String source, String content, String reason)
+        in <(String, String, String)>[
+          (
+            'ocr',
+            'Solve each equation.',
+            OfflineOcrService.lowConfidenceReason,
+          ),
+          (
+            'formula_fallback',
+            r'x^{2}+3x-5',
+            OfflineOcrService.fallbackMathReason,
+          ),
+          (
+            'ocr_fallback',
+            'x2 + 3x - 5',
+            OfflineOcrService.formulaUnreadReason,
+          ),
+          ('formula', r'x^{2}+', OfflineOcrService.unfinishedFormulaReason),
+        ]) {
+      test(source, () async {
+        final (ScanDocumentResult result, _RecordingBrailleService braille) =
+            await _scan(<Map<String, Object?>>[_flagged(source, content)]);
+
+        // Translated as usual: flagging never withholds Braille.
+        expect(braille.calls, hasLength(1));
+
+        final DocumentBlock block = result.blocks.single;
+        expect(block.needsReview, isTrue);
+        expect(block.reviewReason, reason);
+        expect(block.brailleSuccess, isTrue);
+        expect(block.isFlaggedForReview, isTrue);
+        expect(block.isHeldForReview, isFalse);
+      });
+    }
+
+    test('a block that is not flagged has no reason', () async {
+      final (ScanDocumentResult result, _) = await _scan(<Map<String, Object?>>[
+        _formula(r'x^{2}+1=5'),
+      ]);
+
+      expect(result.blocks.single.needsReview, isFalse);
+      expect(result.blocks.single.reviewReason, isEmpty);
+    });
+
+    test('a flagged formula with a root is still held for the root', () async {
+      final Map<String, Object?> rootFallback = _flagged(
+        'formula_fallback',
+        r'\sqrt{9}=3',
+      );
+      final (ScanDocumentResult result, _RecordingBrailleService braille) =
+          await _scan(<Map<String, Object?>>[rootFallback]);
+
+      expect(braille.calls, isEmpty);
+      expect(
+        result.blocks.single.reviewReason,
+        OfflineOcrService.rootReviewReason,
+      );
+      expect(result.blocks.single.isHeldForReview, isTrue);
+    });
+  });
+
   test('the reason matches the AI service guard', () {
     expect(
       OfflineOcrService.rootReviewReason,
