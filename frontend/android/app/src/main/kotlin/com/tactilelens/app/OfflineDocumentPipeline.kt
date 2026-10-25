@@ -150,10 +150,6 @@ object OfflineDocumentPipeline {
         Regex("""[√∛∜∑∏∫∞α-ωΑ-Ω]|[A-Za-z0-9)][⁰¹²³⁴⁵⁶⁷⁸⁹]""")
     private val MONOMIAL =
         Regex("""^[+\-]?\d+(?:\.\d+)?\s*[A-Za-z](?:\s*(?:\^\s*\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹]+))?$""")
-    private val MATH_FUNCTION_WORDS = setOf(
-        "sin", "cos", "tan", "sec", "csc", "cot", "log", "ln",
-        "sqrt", "abs", "max", "min", "lim",
-    )
 
     suspend fun scanDocument(
         context: Context,
@@ -406,6 +402,7 @@ object OfflineDocumentPipeline {
     private class Stats {
         var formulaCount = 0
         var fallbackCount = 0
+        var exponentChecks = 0
         var formulaMs = 0L
     }
 
@@ -431,8 +428,22 @@ object OfflineDocumentPipeline {
         val allShortPieces = lines.all { it.text.length <= MAX_SHORT_LINE_CHARACTERS }
         val lineLimit = if (allShortPieces) MAX_SHORT_FALLBACK_LINES else MAX_FALLBACK_LINES
 
-        if (lines.size > lineLimit || !looksLikeMath(lines)) {
+        if (lines.size > lineLimit) {
             return text
+        }
+
+        if (!looksLikeMath(lines)) {
+            return exponentCheckedBlock(
+                context = context,
+                imagePath = imagePath,
+                threadCount = threadCount,
+                label = label,
+                score = score,
+                box = box,
+                lines = lines,
+                text = text,
+                stats = stats,
+            )
         }
 
         val formulaStart = SystemClock.elapsedRealtime()
@@ -540,6 +551,76 @@ object OfflineDocumentPipeline {
         return formula + mapOf(
             "source" to "formula_fallback",
             "ocr_text" to text["content"],
+            "needs_review" to true,
+        )
+    }
+
+    /**
+     * A short line with no operator that may have lost an exponent ("x2"
+     * for "x²"): one formula read, up to ExponentRouting.MAX_CHECKS_PER_PAGE
+     * per page. The formula result is kept only if it is the same text plus
+     * an exponent; if the two readings differ the OCR text is kept and
+     * flagged; if they agree there is nothing to review.
+     */
+    private suspend fun exponentCheckedBlock(
+        context: Context,
+        imagePath: String,
+        threadCount: Int,
+        label: String,
+        score: Double,
+        box: Box,
+        lines: List<Line>,
+        text: Map<String, Any?>,
+        stats: Stats,
+    ): Map<String, Any?> {
+        val ocrText = lines.joinToString(" ") { it.text }.trim()
+
+        if (
+            !ExponentRouting.isCandidate(ocrText) ||
+            stats.exponentChecks >= ExponentRouting.MAX_CHECKS_PER_PAGE
+        ) {
+            return text
+        }
+
+        stats.exponentChecks++
+
+        val formulaStart = SystemClock.elapsedRealtime()
+        val formula = recognizeFormulaBlock(
+            context = context,
+            imagePath = imagePath,
+            threadCount = threadCount,
+            label = label,
+            score = score,
+            box = box,
+            lines = lines,
+            splitLabel = false,
+        )
+        stats.formulaMs += SystemClock.elapsedRealtime() - formulaStart
+
+        val latex = formula["latex"] as? String ?: ""
+
+        Log.d(TAG, "Exponent check \"$ocrText\" -> \"$latex\"")
+
+        if (isAcceptedFormula(formula) && ExponentRouting.keepsFormula(ocrText, latex)) {
+            stats.formulaCount++
+            stats.fallbackCount++
+
+            return formula + mapOf(
+                "source" to "formula_fallback",
+                "ocr_text" to text["content"],
+                "needs_review" to true,
+            )
+        }
+
+        val readingsAgree = latex.isNotBlank() &&
+            latex.replace(Regex("""\s"""), "") == ocrText.replace(Regex("""\s"""), "")
+
+        if (readingsAgree) {
+            return text
+        }
+
+        return text + mapOf(
+            "source" to "exponent_check",
             "needs_review" to true,
         )
     }
@@ -662,10 +743,7 @@ object OfflineDocumentPipeline {
 
         // A single instruction word such as "Solve" must not turn a whole
         // sentence into a formula crop. Standard function names are allowed.
-        val hasProse = REAL_WORD.findAll(text).any { match ->
-            match.value.lowercase() !in MATH_FUNCTION_WORDS
-        }
-        if (hasProse) {
+        if (ExponentRouting.hasProse(text)) {
             return false
         }
 

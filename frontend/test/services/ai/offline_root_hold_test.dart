@@ -73,7 +73,9 @@ Map<String, Object?> _formula(String latex) => <String, Object?>{
 /// "ocr" (low confidence), "formula_fallback", "ocr_fallback", "formula".
 Map<String, Object?> _flagged(String source, String content) =>
     <String, Object?>{
-      'type': source == 'ocr' || source == 'ocr_fallback' ? 'text' : 'formula',
+      'type': <String>{'ocr', 'ocr_fallback', 'exponent_check'}.contains(source)
+          ? 'text'
+          : 'formula',
       'label': 'text',
       'content': content,
       'needs_review': true,
@@ -132,6 +134,7 @@ void main() {
             OfflineOcrService.formulaUnreadReason,
           ),
           ('formula', r'x^{2}+', OfflineOcrService.unfinishedFormulaReason),
+          ('exponent_check', 'x2', OfflineOcrService.possibleExponentReason),
         ]) {
       test(source, () async {
         final (ScanDocumentResult result, _RecordingBrailleService braille) =
