@@ -54,6 +54,20 @@ The application relies on two distinct OCR pathways depending on network connect
 * **Text Recognition (`PP-OCRv6-small-rec`)**: Model file `inference.onnx` (~21.2 MB). Recognizes text characters from detected boxes.
 * **Formula Recognition (`PP-FormulaNet_plus-S`)**: Model file `pp-formulanet_plus-s.onnx` (~231.9 MB) and vocabulary `pp-formulanet_vocab.json`. Recognizes algebraic crops and outputs LaTeX equations.
 
+#### Getting the offline model files
+
+`frontend/android/app/src/main/assets/paddle_onnx/` is gitignored, so a fresh clone has no models and offline scanning fails until they are added. The app needs exactly these files (sizes in bytes):
+
+| Asset path (under `paddle_onnx/`) | Size | Source | Loaded by |
+|---|---|---|---|
+| `PP-DocLayoutV3/pp_doclayoutv3_nomask.onnx` | 134,056,969 | PaddlePaddle PP-DocLayoutV3, exported to ONNX without the mask output | `PaddleOnnxLayoutDetector.kt` |
+| `PP-OCRv6-tiny-det-onnx/inference.onnx` + `inference.yml` | 1,829,618 + 883 | PaddleOCR PP-OCRv6_tiny_det, ONNX export with its PaddleX `inference.yml` | `PaddleOnnxOcrEngine.kt` (the `.onnx`; the `.yml` is kept with it but not read) |
+| `PP-OCRv6-small-rec-onnx/inference.onnx` + `inference.yml` | 21,154,056 + 150,579 | PaddleOCR PP-OCRv6_small_rec, ONNX export; `inference.yml` holds the character dictionary | `PaddleOnnxOcrEngine.kt` |
+| `PP-FormulaNet_plus-S/pp-formulanet_plus-s.onnx` | 231,878,904 | PaddleX PP-FormulaNet_plus-S, exported to ONNX | `PaddleOnnxFormulaRecognizer.kt` |
+| `PP-FormulaNet_plus-S/pp-formulanet_vocab.json` | 574,189 | Generated from the model's `pp-formulanet-tokenizer.json` by `tools/model_prep/export_formula_vocab.py` | `PaddleOnnxFormulaRecognizer.kt` |
+
+All are pretrained models; none is fine-tuned. Keep the folder and file names exactly as above: the Kotlin code loads them by these paths. The exact export commands were not recorded; record them here when a model is re-exported. (`PP-DocLayout-S-onnx` and `PP-FormulaNet-plus-S-onnx` were removed: nothing used them.)
+
 ---
 
 ## Processing Pipeline
