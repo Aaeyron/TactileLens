@@ -101,6 +101,35 @@ class BrailleMathNormalizerTests(unittest.TestCase):
             with self.subTest(unicode_form=unicode_form):
                 self.assertEqual(normalize(unicode_form), normalize(caret_form))
 
+    def test_spaces_around_operators_are_removed(self):
+        for text, expected in (
+            ("x + 3x - 5", "x+3x-5"),
+            ("x - 5", "x-5"),
+            ("x- 5", "x-5"),
+            ("x -5", "x-5"),
+            ("x = -5", "x=-5"),
+            ("x − 5", "x−5"),
+            ("x != 5", "x!=5"),
+            ("x <= 5", "x<=5"),
+            ("2 × 3 ÷ 6 · 1", "2×3÷6·1"),
+            ("(x) / (2)", "(x)/(2)"),
+            ("- 5 + x", "-5+x"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(BrailleMathNormalizer.tighten_operators(text), expected)
+
+    def test_a_sign_after_a_separator_keeps_its_place(self):
+        # Table cells are joined with "; ", so "-3" starts a cell.
+        self.assertEqual(
+            BrailleMathNormalizer.tighten_operators("Row 1: x; -3"), "Row 1: x; -3"
+        )
+        self.assertEqual(BrailleMathNormalizer.tighten_operators("a, - 3"), "a, -3")
+
+    def test_line_breaks_between_rows_are_kept(self):
+        self.assertEqual(
+            BrailleMathNormalizer.tighten_operators("x + 1 = 4\nx = 3"), "x+1=4\nx=3"
+        )
+
     def test_a_command_after_a_backslash_is_not_a_fraction(self):
         # Previously "(x)/(right)" and "(x)/(bigr)".
         self.assertEqual(normalize(r"\left(x\right)"), "(x)")
@@ -140,6 +169,31 @@ class LiblouisSmokeTests(unittest.TestCase):
                     braille, _TRANSLATOR.translate_formula(normalize(caret_form))
                 )
                 self.assertNotIn("⡳", braille)
+
+    def test_spaced_operators_give_the_unspaced_braille(self):
+        # Before, "x + 3x - 5" lost its minus: ⠰⠭⠀⠬⠀⠼⠒⠰⠭⠀⠼⠢.
+        for spaced, unspaced in (
+            ("x + 3x - 5", "x+3x-5"),
+            ("x^2 + 3x - 5", "x^2+3x-5"),
+            ("x + 3x − 5", "x+3x-5"),
+            ("x - 5", "x-5"),
+            ("x = -5", "x=-5"),
+            ("x != 5", "x!=5"),
+            ("x ≠ 5", "x≠5"),
+            ("2 × 3", "2×3"),
+        ):
+            with self.subTest(spaced=spaced):
+                self.assertEqual(
+                    _TRANSLATOR.translate_formula(spaced),
+                    _TRANSLATOR.translate_formula(unspaced),
+                )
+
+        self.assertEqual(_TRANSLATOR.translate_formula("x + 3x - 5"), "⠰⠭⠬⠼⠒⠰⠭⠤⠼⠢")
+
+    def test_unicode_minus_matches_the_ascii_minus(self):
+        self.assertEqual(
+            _TRANSLATOR.translate_formula("x − 5"), _TRANSLATOR.translate_formula("x-5")
+        )
 
     def test_prime_and_sized_delimiters_translate(self):
         for latex in (r"f^{\prime}(x)=2x", r"\bigg(\frac{a}{b}\bigg)^{2}"):

@@ -163,13 +163,32 @@ object BrailleMathNormalizer {
 
     /** Symbol replacements applied before the Nemeth table (Python: translate_formula()). */
     fun toNemethInput(content: String): String {
-        var result = content
+        var result = tightenOperators(content)
 
         for ((symbol, replacement) in NEMETH_INPUT_REPLACEMENTS) {
             result = result.replace(symbol, replacement)
         }
 
         return result
+    }
+
+    // Spaces or tabs around an operator (Python: tighten_operators()).
+    // Liblouis's Nemeth table drops an ASCII minus followed by a space
+    // ("x - 5" -> x 5), misreads "x != 5" and doubles the spaces around "="
+    // or "<". Spaces after an operator always go; spaces before one only
+    // after an operand, so a sign that starts a cell ("x; -3") or a group
+    // keeps its place. Line breaks (aligned rows) are never touched.
+    private const val OPERATOR = """(?:<=|>=|!=|~=|[+\-−=<>≤≥≠≈×÷·±∓*/])"""
+
+    private val SPACE_AFTER_OPERATOR = Regex("""($OPERATOR)[ \t]+""")
+
+    private val SPACE_BEFORE_OPERATOR =
+        Regex("""(?<=[^\s;:,(\[\{])[ \t]+(?=$OPERATOR)""")
+
+    /** Removes spaces around operators; the last step before Nemeth. */
+    fun tightenOperators(content: String): String {
+        val tightened = SPACE_AFTER_OPERATOR.replace(content, "$1")
+        return SPACE_BEFORE_OPERATOR.replace(tightened, "")
     }
 
     private fun script(prefix: String, raw: String): String {

@@ -72,6 +72,45 @@ class BrailleMathNormalizerTest {
     }
 
     @Test
+    fun spacesAroundOperatorsAreRemoved() {
+        // Same cases as the Python test_spaces_around_operators_are_removed.
+        val cases = listOf(
+            "x + 3x - 5" to "x+3x-5",
+            "x - 5" to "x-5",
+            "x- 5" to "x-5",
+            "x -5" to "x-5",
+            "x = -5" to "x=-5",
+            "x − 5" to "x−5",
+            "x != 5" to "x!=5",
+            "x <= 5" to "x<=5",
+            "2 × 3 ÷ 6 · 1" to "2×3÷6·1",
+            "(x) / (2)" to "(x)/(2)",
+            "- 5 + x" to "-5+x",
+        )
+
+        for ((text, expected) in cases) {
+            assertEquals(text, expected, BrailleMathNormalizer.tightenOperators(text))
+        }
+    }
+
+    @Test
+    fun aSignAfterASeparatorKeepsItsPlace() {
+        assertEquals("Row 1: x; -3", BrailleMathNormalizer.tightenOperators("Row 1: x; -3"))
+        assertEquals("a, -3", BrailleMathNormalizer.tightenOperators("a, - 3"))
+    }
+
+    @Test
+    fun lineBreaksBetweenRowsAreKept() {
+        assertEquals("x+1=4\nx=3", BrailleMathNormalizer.tightenOperators("x + 1 = 4\nx = 3"))
+    }
+
+    @Test
+    fun nemethInputIsTightenedBeforeTheReplacements() {
+        assertEquals("x<=5", BrailleMathNormalizer.toNemethInput("x ≤ 5"))
+        assertEquals("x+3x-5", BrailleMathNormalizer.toNemethInput("x + 3x - 5"))
+    }
+
+    @Test
     fun documentedExamplesAreUnchanged() {
         assertEquals("(x+1)/(2)=3", normalize("""\frac{x+1}{2}=3"""))
         assertEquals("(√(2))^2=2", normalize("""\left(\sqrt{2}\right)^{2}=2"""))

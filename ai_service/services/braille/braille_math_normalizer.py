@@ -50,6 +50,16 @@ class BrailleMathNormalizer:
 
     _superscript_run = re.compile("[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺⁻]+")
 
+    # Spaces or tabs around an operator. Liblouis's Nemeth table drops an
+    # ASCII minus followed by a space ("x - 5" -> x 5), misreads "x != 5"
+    # and doubles the spaces around "=" or "<". Spaces after an operator
+    # always go; spaces before one only after an operand, so a sign that
+    # starts a table cell ("x; -3") or a group keeps its place. Line breaks
+    # (aligned rows) are never touched.
+    _operator = r"(?:<=|>=|!=|~=|[+\-−=<>≤≥≠≈×÷·±∓*/])"
+    _space_after_operator = re.compile(rf"({_operator})[ \t]+")
+    _space_before_operator = re.compile(rf"(?<=[^\s;:,(\[{{])[ \t]+(?={_operator})")
+
     _grouped_exponent = re.compile(r"\^\s*\{\s*([^{}]+?)\s*\}")
 
     _grouped_subscript = re.compile(r"_\s*\{\s*([^{}]+?)\s*\}")
@@ -177,6 +187,17 @@ class BrailleMathNormalizer:
         r"\\end\s*\{\1\}",
         re.DOTALL,
     )
+
+    @classmethod
+    def tighten_operators(
+        cls,
+        content: str,
+    ) -> str:
+        """Remove spaces around operators; the last step before Nemeth."""
+
+        tightened = cls._space_after_operator.sub(r"\1", content)
+
+        return cls._space_before_operator.sub("", tightened)
 
     @classmethod
     def replace_stacked_fractions(
