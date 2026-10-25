@@ -51,10 +51,12 @@ def read_topics(path: Path) -> list[dict]:
         return [row for row in csv.DictReader(handle) if row.get("topic")]
 
 
-def plan_lines(kind: str, count: int, topics: list[dict], rng: random.Random) -> list[Line]:
+def plan_lines(kind: str, count: int, topics: list[dict], rng: random.Random, min_plain: float) -> list[Line]:
     if kind == "eval":
         lines = [fixed_line(t, s, text) for t, s, text in FIXED_CASES for _ in range(10)]
-        controls = [r for r in topics if r["topic"] == "controls"]
+        # plain_text was added after the eval set was frozen; leaving it out
+        # keeps the eval set identical to the baseline's.
+        controls = [r for r in topics if r["topic"] == "controls" and r["subcase"] != "plain_text"]
         others = [r for r in topics if r["topic"] != "controls"]
         n_controls = round((count - len(lines)) * 0.3)
         for _ in range(n_controls):
@@ -65,10 +67,20 @@ def plan_lines(kind: str, count: int, topics: list[dict], rng: random.Random) ->
             lines.append(make_line(row["topic"], row["subcase"], row["example"], rng))
         return lines[:count]
 
-    weights = [float(r.get("target_synthetic") or 0) for r in topics]
+    # At least min_plain of the lines come from the control sub-cases (no
+    # superscripts: plain sentences, equations, brackets), so training
+    # keeps the model reading ordinary text; the rest follow the
+    # target_synthetic weights of the other rows.
+    controls = [r for r in topics if r["topic"] == "controls"]
+    others = [r for r in topics if r["topic"] != "controls"]
+    control_weights = [float(r.get("target_synthetic") or 0) for r in controls]
+    other_weights = [float(r.get("target_synthetic") or 0) for r in others]
     lines = []
     for _ in range(count):
-        row = rng.choices(topics, weights=weights, k=1)[0]
+        if rng.random() < min_plain:
+            row = rng.choices(controls, weights=control_weights, k=1)[0]
+        else:
+            row = rng.choices(others, weights=other_weights, k=1)[0]
         lines.append(make_line(row["topic"], row["subcase"], row["example"], rng))
     return lines
 
@@ -80,6 +92,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int)
     parser.add_argument("--root")
     parser.add_argument("--topics", default=str(HERE / "topics.csv"))
+    parser.add_argument("--min-plain", type=float, default=0.25,
+                        help="train/val: share of lines without superscripts (controls)")
     args = parser.parse_args()
 
     layout = Layout(root_dir(args.root))
@@ -91,7 +105,7 @@ def main() -> None:
 
     characters = load_character_list()
     topics = read_topics(Path(args.topics))
-    lines = plan_lines(args.set, args.count, topics, rng)
+    lines = plan_lines(args.set, args.count, topics, rng, args.min_plain)
 
     out_dir = layout.set_dir(set_name)
     images_dir = out_dir / "images"

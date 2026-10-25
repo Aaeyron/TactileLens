@@ -227,6 +227,42 @@ def _control_prose(rng, spaced):
     return [(words.format(v=_var(rng), n=rng.randint(1, 9)), False)]
 
 
+# Plain words for generated sentences (no superscripts), so training
+# keeps reading ordinary text. Common English and classroom words.
+_WORDS = (
+    "the a an and or of to in on for with from by at as is are was be this that "
+    "these each every all some any no not more less most least than then when "
+    "find solve simplify expand factor evaluate write show check explain compare "
+    "answer question number numbers value values term terms expression equation "
+    "equations sum product difference quotient total area perimeter length width "
+    "height side sides angle angles line lines point points graph table chart "
+    "page step steps example examples exercise practice review part section "
+    "student students teacher class lesson unit test quiz homework work book "
+    "first second third last next before after above below left right top bottom "
+    "half twice double even odd whole positive negative greater smaller equal "
+    "same different correct simplest form units square cube root power powers "
+    "base exponent fraction decimal percent ratio rate time day week year minute "
+    "hour meter metre centimeter gram litre money cost price change pattern rule"
+).split()
+
+
+# The recognizer's training config has max_text_length 25; longer labels
+# are dropped by the trainer, so generated lines stay within it.
+MAX_LABEL_LENGTH = 25
+
+
+def _control_text(rng, spaced):
+    words = [rng.choice(_WORDS) for _ in range(rng.randint(2, 7))]
+    if rng.random() < 0.3:
+        words.insert(rng.randrange(len(words) + 1), str(rng.randint(1, 999)))
+    while len(" ".join(words)) > MAX_LABEL_LENGTH - 1 and len(words) > 1:
+        words.pop()
+    text = " ".join(words)
+    if rng.random() < 0.7:
+        text = text[0].upper() + text[1:]
+    return [(text + rng.choice([".", ".", ":", "?", ""]), False)]
+
+
 def _merge(segments: list[Segment]) -> list[Segment]:
     out: list[Segment] = []
     for text, raised in segments:
@@ -261,6 +297,7 @@ TEMPLATES: dict[tuple[str, str], Callable[[random.Random, bool], list[Segment]]]
     ("controls", "linear_equation"): _control_equation,
     ("controls", "brackets"): _control_brackets,
     ("controls", "prose"): _control_prose,
+    ("controls", "plain_text"): _control_text,
 }
 
 

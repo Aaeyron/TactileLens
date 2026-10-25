@@ -20,3 +20,4 @@ inequalities,linear,2x − 3 ≤ 7,500,20,10,template,No superscript: control fo
 controls,linear_equation,2x + 5 = 11,1500,20,10,template,No superscript: shows whether plain lines get worse.
 controls,brackets,3(x + 2) = 18,800,20,10,template,No superscript.
 controls,prose,Solve for x.,800,20,10,template,No superscript: plain text.
+controls,plain_text,Find the total cost of 3 books.,3000,20,10,template,No superscript: generated plain sentences from a word list so the model keeps reading ordinary text.
