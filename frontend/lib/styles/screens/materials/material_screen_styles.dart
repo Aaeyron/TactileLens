@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 abstract final class MaterialScreenStyles {
@@ -255,6 +257,61 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
   static const double addFolderCardIconSize = 34;
   static const double addFolderLabelSpacing = 10;
   static const double addFolderProgressSize = 27;
+  static const int addFolderLabelMaxLines = 2;
+
+  // ============================================================
+  // FOLDERS STRIP HEIGHT
+  // ============================================================
+
+  static const EdgeInsets folderStripPadding = EdgeInsets.only(
+    left: 2,
+    right: 2,
+    top: 2,
+    bottom: 14,
+  );
+
+  // The strip is a horizontal list, so it needs a fixed height. It is the
+  // usual card height, or more when large text needs it: every text line
+  // in a folder card is capped (name 1, count 1, "Add Folder" 2) and the
+  // styles fix the line height, so the content height follows the text
+  // scale. Rounding allowance per text line.
+  static const double folderTextLineAllowance = 1;
+
+  // A card's border is added to its padding (selected folders use 1.5).
+  static const double folderCardBorderAllowance = 2 * 1.5;
+
+  static double folderStripHeight(TextScaler textScaler) {
+    double line(TextStyle style, int lines) {
+      return lines *
+          (textScaler.scale(style.fontSize!) * style.height! +
+              folderTextLineAllowance);
+    }
+
+    final double folderContent =
+        folderPadding.vertical +
+        folderCardBorderAllowance +
+        folderIconContainerSize +
+        folderIconSpacing +
+        line(folderTitleStyle, 1) +
+        folderCountSpacing +
+        line(folderCountStyle, 1);
+
+    final double addFolderContent =
+        folderPadding.vertical +
+        folderCardBorderAllowance +
+        math.max(addFolderCardIconSize, addFolderProgressSize) +
+        addFolderLabelSpacing +
+        line(addFolderTextStyle, addFolderLabelMaxLines);
+
+    // 116 at normal text, as before.
+    const double usualCardHeight = folderCardHeight + 4;
+
+    return math.max(
+          usualCardHeight,
+          math.max(folderContent, addFolderContent),
+        ) +
+        folderStripPadding.vertical;
+  }
 
   // ============================================================
   // MATERIAL CARDS

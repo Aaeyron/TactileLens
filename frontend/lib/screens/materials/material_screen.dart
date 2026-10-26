@@ -1635,13 +1635,15 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
+        // A Wrap, so with large text "View all" moves below the title
+        // instead of the title breaking mid-word.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
-            const Expanded(
-              child: Text(
-                _MaterialText.foldersTitle,
-                style: MaterialScreenStyles.sectionTitleStyle,
-              ),
+            const Text(
+              _MaterialText.foldersTitle,
+              style: MaterialScreenStyles.sectionTitleStyle,
             ),
             TextButton(
               onPressed: null,
@@ -1654,14 +1656,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           height: MaterialScreenStyles.folderSectionContentSpacing,
         ),
         SizedBox(
-          height: MaterialScreenStyles.folderCardHeight + 20,
+          height: MaterialScreenStyles.folderStripHeight(
+            MediaQuery.textScalerOf(context),
+          ),
           child: ListView.separated(
-            padding: const EdgeInsets.only(
-              left: 2,
-              right: 2,
-              top: 2,
-              bottom: 14,
-            ),
+            padding: MaterialScreenStyles.folderStripPadding,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: _isLoading
@@ -1941,6 +1940,8 @@ class _AddFolderCard extends StatelessWidget {
               ),
               const Text(
                 _MaterialText.addFolderLabel,
+                maxLines: MaterialScreenStyles.addFolderLabelMaxLines,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: MaterialScreenStyles.addFolderTextStyle,
               ),
@@ -2041,6 +2042,7 @@ class _FolderCard extends StatelessWidget {
                   '${folder.itemCount} '
                   '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: MaterialScreenStyles.folderCountStyle,
                 ),
