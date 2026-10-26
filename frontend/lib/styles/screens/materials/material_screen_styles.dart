@@ -261,6 +261,12 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
   // ============================================================
 
   static const double materialCardHeight = 100;
+
+  // Rows grow with large text instead of overflowing.
+  static const BoxConstraints materialCardConstraints = BoxConstraints(
+    minHeight: materialCardHeight,
+  );
+
   static const double materialCardSpacing = 12;
   static const double materialContentSpacing = 13;
 
@@ -325,6 +331,10 @@ BoxShadow(color: Color(0x0A003797), blurRadius: 7, offset: Offset(0, 2)),
 
   static const double materialMenuButtonSize = 38;
   static const double materialMenuIconSize = 22;
+
+  // Three-dot "more" button on a material row, as on History rows.
+  static const IconData materialMoreIcon = Icons.more_vert_rounded;
+  static const double materialMenuTapTarget = 48;
 
   static const EdgeInsets materialMenuPadding = EdgeInsets.zero;
 
