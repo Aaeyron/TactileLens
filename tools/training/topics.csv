@@ -1,0 +1,25 @@
+topic,subcase,example,target_synthetic,target_real_train,target_real_eval,status,notes
+exponents,single_digit,x²,4000,20,10,template,Fixed case x². Letter or number with one raised digit.
+exponents,letter_n,xⁿ,1500,20,10,template,Fixed case xⁿ. Only ⁿ exists as a letter superscript in the charset.
+exponents,multi_digit,x¹⁰,1000,20,10,template,Two-digit exponents.
+exponents,bracket_power,(a+b)²,2000,20,10,template,Fixed case (a+b)².
+negative_exponents,power_of_ten,10⁻³,1500,20,10,template,Fixed case 10⁻³.
+negative_exponents,variable,x⁻²,1000,20,10,template,
+negative_exponents,scientific_notation,3.2 × 10⁻⁴,1000,20,10,template,
+products_of_powers,two_variables,2x³y²,2000,20,10,template,Fixed case 2x³y².
+polynomials,quadratic,x² + 3x − 5,3000,20,10,template,Fixed case x² + 3x − 5.
+polynomials,cubic,2x³ − x² + 4x − 7,1500,20,10,template,
+equations_with_powers,products,a²b³ = c²,1500,20,10,template,Fixed case a²b³ = c².
+equations_with_powers,square_equals,x² = 49,1000,20,10,template,
+equations_with_powers,bracket_equation,(x+1)² = 16,1000,20,10,template,
+roots,root_of_squares,√(a² + b²),800,20,10,template,Roots are held for review in Braille until the expert confirms Nemeth; OCR still matters.
+roots,cube_root,∛27 = 3,500,20,10,template,
+fractions,linear_with_power,(x² + 1)/2,800,20,10,template,Only fractions written on one line. Stacked fractions span several lines (formula model territory).
+inequalities,quadratic,x² < 9,800,20,10,template,
+inequalities,linear,2x − 3 ≤ 7,500,20,10,template,No superscript: control for operators.
+controls,linear_equation,2x + 5 = 11,1500,20,10,template,No superscript: shows whether plain lines get worse.
+controls,brackets,3(x + 2) = 18,800,20,10,template,No superscript.
+controls,prose,Solve for x.,800,20,10,template,No superscript: plain text.
+controls,plain_text,Find the total cost of 3 books.,3000,20,10,template,No superscript: generated plain sentences from a word list so the model keeps reading ordinary text.
+controls,hyphenated_words,Draw the x-axis,1200,20,10,template,Hyphens inside words (labelled -) so a hyphen is not read as a minus.
+controls,ranges_and_dates,pages 12–15,1000,20,10,template,Ranges with a hyphen or en dash and dates; labelled with the dash that is drawn.

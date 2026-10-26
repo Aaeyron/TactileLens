@@ -1,0 +1,21 @@
+{
+  "_comment": "Mappings for the PaddleOCR-VL fine-tuning tools. Filenames are topic_source_kind_number.ext; the labels CSV has filename,task,target,split.",
+  "sources": {
+    "ss": "screenshot",
+    "cap": "phone capture"
+  },
+  "kinds": {
+    "S": "single equation/notation",
+    "M": "multi notation",
+    "T": "text + notation",
+    "W": "full worksheet/document"
+  },
+  "tasks": {
+    "formula": {"prompt": "Formula Recognition:", "target_format": "latex", "local_prompt_label": "formula"},
+    "table": {"prompt": "Table Recognition:", "target_format": "otsl", "local_prompt_label": "table"},
+    "text": {"prompt": "OCR:", "target_format": "text", "local_prompt_label": "ocr"}
+  },
+  "splits": ["train", "val", "eval"],
+  "image_extensions": [".png", ".jpg", ".jpeg"],
+  "formula_wrap": "\\[{}\\]"
+}
