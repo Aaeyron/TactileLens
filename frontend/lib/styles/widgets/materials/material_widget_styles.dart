@@ -29,6 +29,12 @@ class MaterialWidgetStyles {
 
   static const double emptyCardHeight = 260.0;
 
+  // At least the usual height; taller when the text needs it (narrow
+  // phones, large text). The Materials page scrolls, so it never overflows.
+  static const BoxConstraints emptyCardConstraints = BoxConstraints(
+    minHeight: emptyCardHeight,
+  );
+
   static const EdgeInsets emptyCardPadding = EdgeInsets.all(24);
 
   static const Color emptyCardColor = Colors.white;

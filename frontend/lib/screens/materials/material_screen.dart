@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/materials/material_model.dart';
@@ -56,8 +57,8 @@ abstract final class _MaterialText {
   static const String deleteFolderFailureMessage =
       'Unable to delete the folder.';
 
-  static const String mathNemethLabel = 'Math • Nemeth';
-  static const String textUebLabel = 'Text • UEB';
+  static const String mathNemethLabel = 'Math (Nemeth)';
+  static const String textUebLabel = 'Text (UEB)';
 
   static const String loadingLabel = 'Loading your materials...';
   static const String errorTitle = 'Unable to load materials';
@@ -87,7 +88,12 @@ abstract final class _MaterialText {
 
   static const String clearSearchTooltip = 'Clear material search';
   static const String sortTooltip = 'Sort materials';
-  static const String materialOptionsTooltip = 'Material options';
+  static const String moreOptionsTooltipPrefix = 'More options for';
+
+  static const String detailSeparator = ' · ';
+  static const String imageTypeLabel = 'Image';
+  static const String pdfTypeLabel = 'PDF';
+  static const String documentTypeLabel = 'Document';
   static const String newestSortLabel = 'Newest first';
   static const String oldestSortLabel = 'Oldest first';
   static const String titleSortLabel = 'Title A–Z';
@@ -127,12 +133,22 @@ class _FolderSelectionResult {
 }
 
 class MaterialsScreen extends StatefulWidget {
-  const MaterialsScreen({super.key, required this.cache, required this.onBack});
+  const MaterialsScreen({
+    super.key,
+    required this.cache,
+    required this.onBack,
+    this.materialService,
+    this.folderService,
+  });
 
   /// Shown at once on return visits while fresh data loads.
   final TabDataCache cache;
 
   final VoidCallback onBack;
+
+  /// Replaced in tests; the screen creates its own when null.
+  final MaterialService? materialService;
+  final MaterialFolderService? folderService;
 
   @override
   State<MaterialsScreen> createState() {
@@ -141,8 +157,10 @@ class MaterialsScreen extends StatefulWidget {
 }
 
 class _MaterialsScreenState extends State<MaterialsScreen> {
-  final MaterialService _materialService = MaterialService();
-  final MaterialFolderService _folderService = MaterialFolderService();
+  late final MaterialService _materialService =
+      widget.materialService ?? MaterialService();
+  late final MaterialFolderService _folderService =
+      widget.folderService ?? MaterialFolderService();
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -718,12 +736,10 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
 
                                         return _RecentMaterialCard(
                                           title: _materialTitle(material),
-                                          category: _formatMaterialType(
-                                            material,
-                                          ),
-                                          date: _formatDateTime(
+                                          subtitle: _materialSubtitle(material),
+                                          details: _materialDetails(
                                             context,
-                                            material.uploadDate,
+                                            material,
                                           ),
                                           isImage: _isImageMaterial(material),
                                           filePath: material.filePath,
@@ -1437,6 +1453,28 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     return '$date, $time';
   }
 
+  /// Second row line: subject · Math/Text.
+  String _materialSubtitle(MaterialModel material) {
+    final String subject = material.subject.trim();
+    final String type = _formatMaterialType(material);
+
+    return subject.isEmpty
+        ? type
+        : '$subject${_MaterialText.detailSeparator}$type';
+  }
+
+  /// Third row line: file type · date.
+  String _materialDetails(BuildContext context, MaterialModel material) {
+    final String fileType = _isImageMaterial(material)
+        ? _MaterialText.imageTypeLabel
+        : _isPdfMaterial(material)
+        ? _MaterialText.pdfTypeLabel
+        : _MaterialText.documentTypeLabel;
+
+    return '$fileType${_MaterialText.detailSeparator}'
+        '${_formatDateTime(context, material.uploadDate)}';
+  }
+
   String _materialTitle(MaterialModel material) {
     final String title = material.title.trim();
 
@@ -1597,13 +1635,15 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Row(
+        // A Wrap, so with large text "View all" moves below the title
+        // instead of the title breaking mid-word.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
-            const Expanded(
-              child: Text(
-                _MaterialText.foldersTitle,
-                style: MaterialScreenStyles.sectionTitleStyle,
-              ),
+            const Text(
+              _MaterialText.foldersTitle,
+              style: MaterialScreenStyles.sectionTitleStyle,
             ),
             TextButton(
               onPressed: null,
@@ -1616,14 +1656,11 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           height: MaterialScreenStyles.folderSectionContentSpacing,
         ),
         SizedBox(
-          height: MaterialScreenStyles.folderCardHeight + 20,
+          height: MaterialScreenStyles.folderStripHeight(
+            MediaQuery.textScalerOf(context),
+          ),
           child: ListView.separated(
-            padding: const EdgeInsets.only(
-              left: 2,
-              right: 2,
-              top: 2,
-              bottom: 14,
-            ),
+            padding: MaterialScreenStyles.folderStripPadding,
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: _isLoading
@@ -1734,8 +1771,8 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           ),
           child: _RecentMaterialCard(
             title: _materialTitle(material),
-            category: _formatMaterialType(material),
-            date: _formatDateTime(context, material.uploadDate),
+            subtitle: _materialSubtitle(material),
+            details: _materialDetails(context, material),
             isImage: _isImageMaterial(material),
             filePath: material.filePath,
             materialId: material.id,
@@ -1903,6 +1940,8 @@ class _AddFolderCard extends StatelessWidget {
               ),
               const Text(
                 _MaterialText.addFolderLabel,
+                maxLines: MaterialScreenStyles.addFolderLabelMaxLines,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: MaterialScreenStyles.addFolderTextStyle,
               ),
@@ -2003,6 +2042,7 @@ class _FolderCard extends StatelessWidget {
                   '${folder.itemCount} '
                   '${folder.itemCount == 1 ? _MaterialText.itemSingular : _MaterialText.itemPlural}',
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: MaterialScreenStyles.folderCountStyle,
                 ),
@@ -2015,11 +2055,18 @@ class _FolderCard extends StatelessWidget {
   }
 }
 
+/// One material in the Recent Materials list and in a folder's contents.
+///
+/// Tapping the card always opens the preview. The three-dot button opens
+/// Preview, Move to folder and Delete. For TalkBack the row is a single
+/// focus stop (title and details) whose double tap opens the preview, with
+/// Move to folder and Delete as custom actions; the button itself is left
+/// out of the accessibility tree so the row is not two stops.
 class _RecentMaterialCard extends StatelessWidget {
   const _RecentMaterialCard({
     required this.title,
-    required this.category,
-    required this.date,
+    required this.subtitle,
+    required this.details,
     required this.isImage,
     required this.filePath,
     required this.materialId,
@@ -2029,8 +2076,13 @@ class _RecentMaterialCard extends StatelessWidget {
   });
 
   final String title;
-  final String category;
-  final String date;
+
+  /// Subject · Math/Text.
+  final String subtitle;
+
+  /// File type · date.
+  final String details;
+
   final bool isImage;
   final String filePath;
   final int? materialId;
@@ -2040,109 +2092,133 @@ class _RecentMaterialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: MaterialScreenStyles.materialCardHeight,
-      child: Material(
-        color: MaterialScreenStyles.recentCardBackgroundColor,
-        borderRadius: MaterialScreenStyles.materialCardRadius,
-        elevation: 3,
-        shadowColor: const Color(0x260F2748),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onPressed,
+    return Semantics(
+      container: true,
+      button: true,
+      excludeSemantics: true,
+      label: '$title. $subtitle. $details',
+      onTap: onPressed,
+      customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+        const CustomSemanticsAction(
+          label: _MaterialText.moveToFolderLabel,
+        ): () =>
+            onMenuSelected(_MaterialMenuAction.moveToFolder),
+        const CustomSemanticsAction(label: _MaterialText.deleteLabel): () =>
+            onMenuSelected(_MaterialMenuAction.delete),
+      },
+      child: ConstrainedBox(
+        constraints: MaterialScreenStyles.materialCardConstraints,
+        child: Material(
+          color: MaterialScreenStyles.recentCardBackgroundColor,
           borderRadius: MaterialScreenStyles.materialCardRadius,
-          child: Container(
-            padding: MaterialScreenStyles.materialCardPadding,
-            decoration: const BoxDecoration(
-              borderRadius: MaterialScreenStyles.materialCardRadius,
-              border: MaterialScreenStyles.cardBorder,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                _MaterialThumbnail(
-                  isImage: isImage,
-                  filePath: filePath,
-                  materialId: materialId,
-                  isServerFile: isServerFile,
-                ),
-                const SizedBox(
-                  width: MaterialScreenStyles.materialContentSpacing,
-                ),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: MaterialScreenStyles.materialTitleStyle,
-                      ),
-                      const SizedBox(
-                        height: MaterialScreenStyles.categorySpacing,
-                      ),
-                      Text(
-                        category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: MaterialScreenStyles.materialCategoryStyle,
-                      ),
-                      const SizedBox(
-                        height: MaterialScreenStyles.metadataSpacing,
-                      ),
-                      Text(
-                        date,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: MaterialScreenStyles.metadataStyle,
-                      ),
-                    ],
+          elevation: 3,
+          shadowColor: const Color(0x260F2748),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: MaterialScreenStyles.materialCardRadius,
+            child: Container(
+              constraints: MaterialScreenStyles.materialCardConstraints,
+              padding: MaterialScreenStyles.materialCardPadding,
+              decoration: const BoxDecoration(
+                borderRadius: MaterialScreenStyles.materialCardRadius,
+                border: MaterialScreenStyles.cardBorder,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  _MaterialThumbnail(
+                    isImage: isImage,
+                    filePath: filePath,
+                    materialId: materialId,
+                    isServerFile: isServerFile,
                   ),
-                ),
-                PopupMenuButton<_MaterialMenuAction>(
-                  tooltip: _MaterialText.materialOptionsTooltip,
-                  padding: MaterialScreenStyles.materialMenuPadding,
-                  onSelected: onMenuSelected,
-                  icon: const Icon(
-                    Icons.chevron_right_rounded,
-                    size: MaterialScreenStyles.materialMenuIconSize,
-                    color: MaterialScreenStyles.textMutedColor,
+                  const SizedBox(
+                    width: MaterialScreenStyles.materialContentSpacing,
                   ),
-                  itemBuilder: (BuildContext context) {
-                    return const <PopupMenuEntry<_MaterialMenuAction>>[
-                      PopupMenuItem<_MaterialMenuAction>(
-                        value: _MaterialMenuAction.preview,
-                        child: ListTile(
-                          leading: Icon(MaterialScreenStyles.previewIcon),
-                          title: Text(_MaterialText.previewLabel),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MaterialScreenStyles.materialTitleStyle,
                         ),
-                      ),
-                      PopupMenuItem<_MaterialMenuAction>(
-                        value: _MaterialMenuAction.moveToFolder,
-                        child: ListTile(
-                          leading: Icon(MaterialScreenStyles.moveToFolderIcon),
-                          title: Text(_MaterialText.moveToFolderLabel),
+                        const SizedBox(
+                          height: MaterialScreenStyles.categorySpacing,
                         ),
-                      ),
-                      PopupMenuItem<_MaterialMenuAction>(
-                        value: _MaterialMenuAction.delete,
-                        child: ListTile(
-                          leading: Icon(
-                            MaterialScreenStyles.deleteIcon,
-                            color: MaterialScreenStyles.primaryColor,
-                          ),
-                          title: Text(_MaterialText.deleteLabel),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MaterialScreenStyles.materialCategoryStyle,
                         ),
-                      ),
-                    ];
-                  },
-                ),
-              ],
+                        const SizedBox(
+                          height: MaterialScreenStyles.metadataSpacing,
+                        ),
+                        Text(
+                          details,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: MaterialScreenStyles.metadataStyle,
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildMenuButton(),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMenuButton() {
+    return SizedBox.square(
+      dimension: MaterialScreenStyles.materialMenuTapTarget,
+      child: PopupMenuButton<_MaterialMenuAction>(
+        tooltip: '${_MaterialText.moreOptionsTooltipPrefix} $title',
+        padding: MaterialScreenStyles.materialMenuPadding,
+        position: PopupMenuPosition.under,
+        onSelected: onMenuSelected,
+        icon: const Icon(
+          MaterialScreenStyles.materialMoreIcon,
+          size: MaterialScreenStyles.materialMenuIconSize,
+          color: MaterialScreenStyles.textMutedColor,
+        ),
+        itemBuilder: (BuildContext context) {
+          return const <PopupMenuEntry<_MaterialMenuAction>>[
+            PopupMenuItem<_MaterialMenuAction>(
+              value: _MaterialMenuAction.preview,
+              child: ListTile(
+                leading: Icon(MaterialScreenStyles.previewIcon),
+                title: Text(_MaterialText.previewLabel),
+              ),
+            ),
+            PopupMenuItem<_MaterialMenuAction>(
+              value: _MaterialMenuAction.moveToFolder,
+              child: ListTile(
+                leading: Icon(MaterialScreenStyles.moveToFolderIcon),
+                title: Text(_MaterialText.moveToFolderLabel),
+              ),
+            ),
+            PopupMenuItem<_MaterialMenuAction>(
+              value: _MaterialMenuAction.delete,
+              child: ListTile(
+                leading: Icon(
+                  MaterialScreenStyles.deleteIcon,
+                  color: MaterialScreenStyles.primaryColor,
+                ),
+                title: Text(_MaterialText.deleteLabel),
+              ),
+            ),
+          ];
+        },
       ),
     );
   }

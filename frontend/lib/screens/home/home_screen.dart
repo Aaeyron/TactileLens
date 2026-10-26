@@ -40,8 +40,8 @@ abstract final class _HomeText {
   static const String recentActivityTitle = 'Recent Activity';
   static const String viewAllLabel = 'View all';
 
-  static const String mathNemethLabel = 'Math • Nemeth';
-  static const String textUebLabel = 'Text • UEB';
+  static const String mathNemethLabel = 'Math (Nemeth)';
+  static const String textUebLabel = 'Text (UEB)';
 
   static const String loadingTitle = 'Loading activity';
   static const String loadingDescription =
