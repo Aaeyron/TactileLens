@@ -8,7 +8,7 @@ class MaterialsEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: MaterialWidgetStyles.emptyCardHeight,
+      constraints: MaterialWidgetStyles.emptyCardConstraints,
       padding: MaterialWidgetStyles.emptyCardPadding,
 
       decoration: BoxDecoration(
