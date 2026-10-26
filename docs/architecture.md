@@ -16,6 +16,49 @@ The app talks only to the backend. The backend calls the AI service with
 the shared `X-Service-Key` header (`ai_service/services/security/service_key.py`);
 only `/health` is open.
 
+## Scan modes: who can use what
+
+| | Online | On-device |
+|---|---|---|
+| Guest (**Continue without an account**) | not available | always |
+| Signed-in user | chosen before each scan | chosen before each scan |
+
+From `frontend/lib/screens/scan/scan_screen.dart`,
+`frontend/lib/widgets/scan/scan_mode_widgets.dart` and
+`frontend/lib/services/ai/ai_service.dart`:
+
+- **Guests** always scan on the device with the offline models. The
+  confirmation sheet shows "Guest scans are always processed on this
+  phone." instead of a choice, and `AIService` routes a guest to the
+  device even if Online were requested. There is no online option.
+- **Signed-in users** pick **Online** or **On-device** in the
+  confirmation sheet before each scan. The choice is saved
+  (`SettingsService.setScanMode`) and preselected next time; a new
+  install starts on Online.
+- **Privacy notice**: before a signed-in user's first online scan the app
+  shows "Online scanning: Online scans are processed by a third-party
+  service. For sensitive documents, use On-device." with **Continue
+  online** or **Use On-device**; closing it cancels the scan. Once Online
+  is accepted it is not shown again, until the settings are reset.
+- **Online path**: every online scan goes through the backend, which
+  requires login and allows **one scan at a time per user** (a second one
+  gets "A scan is already running…") and **30 scans per hour and 100 per
+  day per user** (`SCAN_LIMIT_PER_HOUR`, `SCAN_LIMIT_PER_DAY`; counted in
+  memory, reset when the backend restarts).
+- **When an online scan fails** (no connection, timeout, AI service or
+  hosted API error, hosted daily cap, or the user's scan limit), the app
+  shows why and offers **Scan on this device** or **Not now**. Each scan
+  is sent online at most once, with its own `Idempotency-Key`; there is no
+  automatic online retry and no switch without the teacher's choice. A
+  running scan or an invalid image gets only a message.
+- **Every result screen** states how the page was processed: "Processed
+  online (PaddleOCR-VL).", "Processed on this device." or "Processed on
+  this device, because the online scan did not finish." (The label is on
+  the result screen after a scan; History does not show it.)
+- `AI_SCAN_MODE` (`--dart-define`) is read by `AIService`, but the scan
+  screen creates its `AIService` with `session` explicitly, so the define
+  does not change these rules.
+
 ## Online pipeline (signed-in users, "Online")
 
 1. **App**: sends the image once to `POST /api/scan-document` with an

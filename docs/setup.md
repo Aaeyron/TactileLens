@@ -173,5 +173,5 @@ be committed.
 |---|---|---|
 | `AI_BASE_URL` | backend URL for scans | `http://10.0.2.2:5000` (emulator) |
 | `BACKEND_BASE_URL` | backend URL for sign-in and accounts | `http://10.0.2.2:5000` |
-| `AI_SCAN_MODE` | `session` (guests on device, signed-in online), `offline`, `remote`, `hybrid` | `session` |
+| `AI_SCAN_MODE` | `session`, `offline`, `remote` or `hybrid` for `AIService`; the scan screen creates its `AIService` with `session` explicitly, so this define currently has no effect on scans (see [scan modes](architecture.md#scan-modes-who-can-use-what)) | `session` |
 | `GOOGLE_SERVER_CLIENT_ID` | Google sign-in server client id | none |

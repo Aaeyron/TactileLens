@@ -41,7 +41,23 @@ flowchart LR
   ONNX --> LL2["Liblouis (JNI)"]
 ```
 
-**Online** (signed-in users, the default): the app sends the image once
+**Who can use which mode**
+
+| | Online | On-device |
+|---|---|---|
+| Guest (**Continue without an account**) | not available | always |
+| Signed-in user | chosen before each scan (remembered) | chosen before each scan (remembered) |
+
+- Signed-in users see a privacy notice before their first online scan and
+  can switch to On-device there.
+- Online scans go through the backend: 30 per hour and 100 per day per
+  user, one at a time.
+- If an online scan fails, the app offers to scan on the device; it never
+  retries online or switches on its own.
+- The result screen says whether the page was processed online or on the
+  device.
+
+**Online**: the app sends the image once
 to the backend, which checks the login, size and per-user limits and
 forwards it to the AI service. The AI service prepares the image,
 recognises it with PaddleOCR-VL (on our own GPU, or through PaddleOCR's
@@ -49,14 +65,13 @@ hosted API), orders the blocks, parses tables, checks formulas with the
 guard and translates with Liblouis. The backend saves the result to the
 user's history.
 
-**On-device** (guests always, signed-in users by choice): layout,
+**On-device**: layout,
 text-line and formula models run on the phone's CPU with ONNX Runtime;
 Liblouis is compiled into the app. Nothing leaves the phone.
 
 What differs: online reads tables into rows and applies the full formula
 guard; on-device reads tables as text, holds only roots, and flags
-low-confidence blocks for a check. If an online scan fails, the app
-offers an on-device scan; it never switches on its own.
+low-confidence blocks for a check.
 
 Details: [docs/architecture.md](docs/architecture.md).
 
@@ -124,7 +139,7 @@ Main variables (names only; never commit values):
 | AI service | `PADDLEOCR_DAILY_PAGE_CAP` | hosted pages per day (below 3000) | `2500` |
 | AI service | `LIBLOUIS_ROOT` | Liblouis folder | `ai_service/vendor/liblouis` |
 | app | `AI_BASE_URL`, `BACKEND_BASE_URL` | backend address | `http://10.0.2.2:5000` |
-| app | `AI_SCAN_MODE` | `session`, `offline`, `remote`, `hybrid` | `session` |
+| app | `AI_SCAN_MODE` | read by `AIService`, but the scan screen always uses `session` (guests on device, signed-in users by choice), so it has no effect on scans | `session` |
 | app | `GOOGLE_SERVER_CLIENT_ID` | Google sign-in | none |
 
 The full tables (email, password reset, timeouts, hosted API settings)
