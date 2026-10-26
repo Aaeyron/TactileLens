@@ -42,7 +42,10 @@ class _FakeFolderService extends MaterialFolderService {
   Future<List<MaterialFolderModel>> getFolders() async => folders;
 }
 
-MaterialModel _material({int? folderId}) {
+MaterialModel _material({
+  int? folderId,
+  String recognizedContent = 'x^2 + 3x - 4 = 0',
+}) {
   return MaterialModel(
     id: 1,
     folderId: folderId,
@@ -54,7 +57,7 @@ MaterialModel _material({int? folderId}) {
     fileSize: 1000,
     filePath: '',
     uploadDate: DateTime(2026, 10, 26, 15, 49),
-    recognizedContent: 'x^2 + 3x - 4 = 0',
+    recognizedContent: recognizedContent,
   );
 }
 
@@ -253,6 +256,31 @@ void main() {
       expect(find.text('Material deleted successfully.'), findsOneWidget);
     });
 
+    testWidgets('line 2 is subject · Math (Nemeth) for math', (
+      WidgetTester tester,
+    ) async {
+      await _Harness(
+        materials: <MaterialModel>[_material()],
+        folders: const <MaterialFolderModel>[],
+      ).pump(tester);
+      await _showRow(tester);
+      expect(find.text('General Algebra · Math (Nemeth)'), findsOneWidget);
+    });
+
+    testWidgets('line 2 is subject · Text (UEB) for text', (
+      WidgetTester tester,
+    ) async {
+      await _Harness(
+        materials: <MaterialModel>[
+          _material(recognizedContent: 'Read the passage below.'),
+        ],
+        folders: const <MaterialFolderModel>[],
+      ).pump(tester);
+      await _showRow(tester);
+      expect(find.text('General Algebra · Text (UEB)'), findsOneWidget);
+      expect(find.textContaining('Math'), findsNothing);
+    });
+
     testWidgets('one TalkBack stop with the details and two custom actions', (
       WidgetTester tester,
     ) async {
@@ -269,9 +297,8 @@ void main() {
 
       final SemanticsNode node = tester.getSemantics(row);
       final String label = node.label;
-      expect(label, contains('General Algebra'));
-      expect(label, contains('Math'));
-      expect(label, contains('PDF'));
+      expect(label, contains('General Algebra · Math (Nemeth)'));
+      expect(label, contains('PDF · '));
 
       expect(
         node,

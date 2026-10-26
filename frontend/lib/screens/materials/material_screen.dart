@@ -57,8 +57,8 @@ abstract final class _MaterialText {
   static const String deleteFolderFailureMessage =
       'Unable to delete the folder.';
 
-  static const String mathNemethLabel = 'Math • Nemeth';
-  static const String textUebLabel = 'Text • UEB';
+  static const String mathNemethLabel = 'Math (Nemeth)';
+  static const String textUebLabel = 'Text (UEB)';
 
   static const String loadingLabel = 'Loading your materials...';
   static const String errorTitle = 'Unable to load materials';
