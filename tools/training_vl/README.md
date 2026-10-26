@@ -93,6 +93,16 @@ guard would hold the block (prediction, and target for reference).
 Output: `tactilelens-training\outputs\vl_eval\<time>_<engine>_<hash>\`
 (`results.md`, `results.csv`, `predictions.tsv`, `run.json`).
 
+## 3. Fine-tuning (not run)
+
+Feasibility and memory estimates: [docs/vl_finetuning_feasibility.md](../../docs/vl_finetuning_feasibility.md).
+In short: not on our 6 GB card or a free Colab T4; a Colab A100 is the
+realistic option. `colab_sft.ipynb` follows the ERNIEKit guide (full
+fine-tuning of PaddleOCR-VL-0.9B on `train.jsonl`, `val.jsonl` for eval,
+`eval.jsonl` never used); it stops on GPUs below compute 8.0 / 39 GB.
+**It has never been run.** Its data-check cell (absolute image links,
+hashes, eval leak guard) was run locally on the fake dataset.
+
 ## Tests and dry run
 
 ```
