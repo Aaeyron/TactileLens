@@ -58,6 +58,38 @@ eval image of the dataset or of the recognizer tools' eval sets
 (`tools/training`: `eval/real`, `eval/synthetic`), and no file name may
 be in two splits.
 
+## 2. Evaluate engines on the held-out eval set
+
+```
+python evaluate_vl.py --eval D:\vl_data\sft --engine local                 # PaddleOCR-VL-1.6 on this PC
+python evaluate_vl.py --eval D:\vl_data\sft --engine local --mode layout   # with layout detection, as the app
+python evaluate_vl.py --eval D:\vl_data\sft --engine finetuned --model-dir D:\vl_ft\export
+python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-material --max-pages 50
+```
+
+- `local` / `finetuned` run `local_vl_worker.py` with
+  `paddleocr_vl_env` (used as is, nothing installed). **Stop the AI
+  service first** so the 6 GB GPU is free. `--mode prompt` (default)
+  reads the whole image with the task prompt; `--mode layout` runs layout
+  detection as the app does.
+- `hosted` uses the AI service's client. The client reads
+  `PADDLEOCR_ACCESS_TOKEN` from the environment; this script never reads,
+  prints or stores it. **Images sent are stored by Baidu: only your own
+  material, no third-party pages or personal data.** It counts pages with
+  the daily cap (`PADDLEOCR_DAILY_PAGE_CAP`, below 3000) and stops at the
+  cap or `--max-pages`; failed jobs are not resubmitted. Set
+  `PADDLEOCR_PAGE_COUNT_FILE` to the AI service's file to share its count
+  (otherwise `outputs/vl_eval/hosted_page_count.json`). The hosted API
+  always runs layout detection (no task prompt). Only label and text of
+  each block are kept; image links are dropped.
+
+Metrics overall and per task, topic, kind and source: exact match after
+normalisation (LaTeX delimiters and spaces ignored, tables compared as
+OTSL), mean normalised edit distance, and how often the app's formula
+guard would hold the block (prediction, and target for reference).
+Output: `tactilelens-training\outputs\vl_eval\<time>_<engine>_<hash>\`
+(`results.md`, `results.csv`, `predictions.tsv`, `run.json`).
+
 ## Tests and dry run
 
 ```
@@ -66,6 +98,11 @@ python make_fake_dataset.py --out C:\temp\vl_fake            # 12 generated imag
 python make_fake_dataset.py --out C:\temp\vl_fake_leak --leak  # + a planted leak
 ```
 
-Verified: the unit tests pass; the fake dataset converts (6 train, 2 val,
-4 eval) and the planted leak is refused with nothing written. Not
-verified: ERNIEKit actually training on these files (no training run).
+Verified: the unit tests pass (15); the fake dataset converts (6 train,
+2 val, 4 eval) and the planted leak is refused with nothing written; the
+local engine ran on the 4 fake eval images in both modes (prompt mode:
+2/4 exact, layout mode: 3/4; the table differed only in `n²` vs
+`$ n^{2} $`). This is a plumbing check on generated images, not a
+measure of accuracy. Not verified: the hosted engine (not run by us),
+the `finetuned` engine (no fine-tuned model), ERNIEKit training on
+these files (no training run).
