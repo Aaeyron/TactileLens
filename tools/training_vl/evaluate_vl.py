@@ -2,7 +2,8 @@
 
 Example (from tools/training_vl):
   python evaluate_vl.py --eval D:\\vl_data\\sft --engine local
-  python evaluate_vl.py --eval D:\\vl_data\\sft --engine finetuned --model-dir D:\\vl_ft\\export
+  python evaluate_vl.py --eval D:\\vl_data\\sft --engine finetuned --model-dir D:\\vl_ft\\export \\
+      --vl-model-name PaddleOCR-VL-0.9B --pipeline-version v1
   python evaluate_vl.py --eval D:\\vl_data\\sft --engine hosted --confirm-own-material --max-pages 50
 
 Engines
@@ -108,6 +109,10 @@ def run_local(items: list[dict], args, config: dict) -> tuple[dict, dict]:
                    "--mode", args.mode]
         if args.engine == "finetuned":
             command += ["--model-dir", args.model_dir]
+        if args.vl_model_name:
+            command += ["--model-name", args.vl_model_name]
+        if args.pipeline_version:
+            command += ["--pipeline-version", args.pipeline_version]
         print("Running the local engine (first run loads the model; this takes a while)...", flush=True)
         if subprocess.run(command).returncode != 0 or not out_file.exists():
             raise SystemExit("The local engine failed (is the GPU free? stop the AI service first).")
@@ -253,6 +258,8 @@ def main() -> None:
     parser.add_argument("--engine", required=True, choices=["local", "finetuned", "hosted", "mock"])
     parser.add_argument("--mode", choices=["prompt", "layout"], default="prompt", help="local/finetuned only")
     parser.add_argument("--model-dir", help="fine-tuned VL model folder (finetuned)")
+    parser.add_argument("--vl-model-name", help="local/finetuned: PaddleOCR-VL-1.6-0.9B (v1.6) or PaddleOCR-VL-0.9B (v1)")
+    parser.add_argument("--pipeline-version", help="local/finetuned: v1, v1.5 or v1.6 (worker default v1.6)")
     parser.add_argument("--vl-python", default=str(VL_PYTHON))
     parser.add_argument("--max-pages", type=int, default=100, help="hosted: at most this many images this run")
     parser.add_argument("--confirm-own-material", action="store_true",
@@ -295,7 +302,8 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(summary)
     run = {"engine": args.engine, "mode": args.mode if args.engine in ("local", "finetuned") else
-           ("layout" if args.engine == "hosted" else None), "model_dir": args.model_dir, "eval": str(sft),
+           ("layout" if args.engine == "hosted" else None), "model_dir": args.model_dir,
+           "vl_model_name": args.vl_model_name, "pipeline_version": args.pipeline_version, "eval": str(sft),
            "eval_sha8": eval_hash, "items": len(items), "scored": len(rows), "guard": GUARD_ERROR or "ok", **info}
     (out / "run.json").write_text(json.dumps(run, ensure_ascii=False, indent=1), encoding="utf-8")
 

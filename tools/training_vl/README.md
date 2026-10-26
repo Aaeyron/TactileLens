@@ -63,7 +63,7 @@ be in two splits.
 ```
 python evaluate_vl.py --eval D:\vl_data\sft --engine local                 # PaddleOCR-VL-1.6 on this PC
 python evaluate_vl.py --eval D:\vl_data\sft --engine local --mode layout   # with layout detection, as the app
-python evaluate_vl.py --eval D:\vl_data\sft --engine finetuned --model-dir D:\vl_ft\export
+python evaluate_vl.py --eval D:\vl_data\sft --engine finetuned --model-dir D:\vl_ft\export --vl-model-name PaddleOCR-VL-0.9B --pipeline-version v1
 python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-material --max-pages 50
 ```
 
@@ -71,7 +71,10 @@ python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-materi
   `paddleocr_vl_env` (used as is, nothing installed). **Stop the AI
   service first** so the 6 GB GPU is free. `--mode prompt` (default)
   reads the whole image with the task prompt; `--mode layout` runs layout
-  detection as the app does.
+  detection as the app does. `--vl-model-name` / `--pipeline-version`
+  choose the model: `PaddleOCR-VL-1.6-0.9B` with `v1.6` (default) or
+  `PaddleOCR-VL-0.9B` with `v1` (the model ERNIEKit fine-tunes; a
+  fine-tuned folder loaded this way is not verified).
 - `hosted` uses the AI service's client. The client reads
   `PADDLEOCR_ACCESS_TOKEN` from the environment; this script never reads,
   prints or stores it. **Images sent are stored by Baidu: only your own
