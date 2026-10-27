@@ -85,10 +85,6 @@ which `requirements.txt` does not list (they come with PaddleOCR); install
 them for a hosted-only setup. Images sent to the hosted API are stored by
 Baidu: use only material you may share.
 
-Cloud GPU: `ai_service/modal_app.py` deploys the same app to Modal on an
-NVIDIA L4 (one scan at a time, scales to zero after 2 idle minutes). It
-does not set `PADDLEOCR_ENGINE`, so it runs the local engine.
-
 ## 3. App on a USB phone
 
 ```

@@ -166,7 +166,6 @@ to the hosted API.
 TactileLens/
 ├── ai_service/                  Python AI service (FastAPI)
 │   ├── app.py                   endpoints: /health, /api/scan-document
-│   ├── modal_app.py             deployment on Modal (NVIDIA L4)
 │   └── services/
 │       ├── ocr/                 scan pipeline, hosted API client, block order, normalisers, tables
 │       ├── braille/             Liblouis translation, LaTeX-to-Nemeth input, formula guard
