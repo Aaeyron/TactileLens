@@ -137,8 +137,11 @@ Nemeth math and tables are never changed by this setting.
 ## Not part of the app
 
 - `frontend/third_party/llama.cpp` and `PaddleOcrVlNative.kt` /
-  `paddleocr_vl_bridge.cpp` are an on-device PaddleOCR-VL experiment,
-  used only by `frontend/lib/paddle_onnx_benchmark.dart`. The native
-  code is still compiled into the Android build.
+  `paddleocr_vl_bridge.cpp` are an on-device PaddleOCR-VL experiment.
+  Its Dart benchmark screen (`paddle_onnx_benchmark.dart` and
+  `paddleocr_vl_native_service.dart`) has been removed, so nothing in the
+  app calls it any more. The native code (the Kotlin VL channel, the C++
+  bridge and the llama.cpp CMake section) is still compiled into the
+  Android build; removing it is a separate change.
 - `tools/` holds evaluation and training tools; nothing there changes the
   app.
