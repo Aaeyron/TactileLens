@@ -166,7 +166,6 @@ to the hosted API.
 TactileLens/
 ├── ai_service/                  Python AI service (FastAPI)
 │   ├── app.py                   endpoints: /health, /api/scan-document
-│   ├── modal_app.py             deployment on Modal (NVIDIA L4)
 │   └── services/
 │       ├── ocr/                 scan pipeline, hosted API client, block order, normalisers, tables
 │       ├── braille/             Liblouis translation, LaTeX-to-Nemeth input, formula guard
@@ -246,7 +245,7 @@ we trained.
 | PP-DocLayoutV3, PP-OCRv6, PP-FormulaNet_plus-S (PaddleOCR models, ONNX) | on-device recognition | Apache-2.0, as PaddleOCR (where the ONNX exports were obtained is not recorded in the repo) |
 | [ONNX Runtime](https://github.com/microsoft/onnxruntime) Android 1.21.1 | on-device inference | MIT |
 | [Liblouis](https://github.com/liblouis/liblouis) 3.38.0 | Braille translation | library LGPL-2.1-or-later; command-line tools (`lou_translate`, used by the AI service) GPL-3.0-or-later |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | on-device VL experiment (not used by the app) | MIT |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | on-device VL experiment: native code still built, not used by the app (its Dart benchmark was removed) | MIT |
 
 Open fonts, used **only** by `tools/training` to draw synthetic training
 and test images (the app bundles no fonts): DejaVu (Bitstream Vera
