@@ -988,19 +988,35 @@ class _ScanScreenState extends State<ScanScreen> {
       child: Scaffold(
         backgroundColor: ScanScreenStyles.backgroundColor,
         body: SafeArea(
-          child: Column(
-            children: <Widget>[
-              _buildHeader(),
-              Expanded(child: _buildCameraArea()),
-              _buildBottomControls(),
-            ],
+          child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+              // With large text on a short screen (or a short window on a
+              // tablet or in split screen) the header shows the title
+              // only, so the camera area keeps room. The help button
+              // still explains how to scan.
+              final bool largeText =
+                  MediaQuery.textScalerOf(context).scale(10) >=
+                  ScanScreenStyles.largeTextScale * 10;
+              final bool compact =
+                  constraints.maxHeight < ScanScreenStyles.veryShortHeight ||
+                  (largeText &&
+                      constraints.maxHeight < ScanScreenStyles.shortHeight);
+
+              return Column(
+                children: <Widget>[
+                  _buildHeader(compact: compact),
+                  Expanded(child: _buildCameraArea()),
+                  _buildBottomControls(compact: compact),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({required bool compact}) {
     return ColoredBox(
       color: ScanScreenStyles.headerColor,
       child: Padding(
@@ -1028,16 +1044,22 @@ class _ScanScreenState extends State<ScanScreen> {
                   const Text(
                     _ScanText.screenTitle,
                     textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: ScanScreenStyles.headerTitleStyle,
                   ),
-                  const SizedBox(
-                    height: ScanScreenStyles.titleDescriptionSpacing,
-                  ),
-                  const Text(
-                    _ScanText.screenDescription,
-                    textAlign: TextAlign.center,
-                    style: ScanScreenStyles.headerDescriptionStyle,
-                  ),
+                  if (!compact) ...<Widget>[
+                    const SizedBox(
+                      height: ScanScreenStyles.titleDescriptionSpacing,
+                    ),
+                    const Text(
+                      _ScanText.screenDescription,
+                      textAlign: TextAlign.center,
+                      maxLines: ScanScreenStyles.headerDescriptionMaxLines,
+                      overflow: TextOverflow.ellipsis,
+                      style: ScanScreenStyles.headerDescriptionStyle,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1137,11 +1159,14 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Widget _buildBottomControls() {
+  Widget _buildBottomControls({required bool compact}) {
+    // At least the usual height; taller only if large text needs it.
     return Container(
-      height: ScanScreenStyles.controlsHeight,
+      constraints: ScanScreenStyles.controlsConstraints,
       color: ScanScreenStyles.controlPanelColor,
-      padding: ScanScreenStyles.controlsPadding,
+      padding: compact
+          ? ScanScreenStyles.compactControlsPadding
+          : ScanScreenStyles.controlsPadding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
@@ -1318,12 +1343,22 @@ class _CameraControlButton extends StatelessWidget {
               ),
             ),
             const SizedBox(height: ScanScreenStyles.controlLabelSpacing),
-            Text(
-              label,
-              style: ScanScreenStyles.controlLabelStyle.copyWith(
-                color: onPressed == null
-                    ? ScanScreenStyles.mutedTextColor
-                    : ScanScreenStyles.primaryTextColor,
+            // One short word under a fixed-size button: at very large text
+            // it shrinks to the button's width rather than pushing the
+            // row off screen. The full label stays in the semantics.
+            SizedBox(
+              width: ScanScreenStyles.sideControlLabelWidth,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: ScanScreenStyles.controlLabelStyle.copyWith(
+                    color: onPressed == null
+                        ? ScanScreenStyles.mutedTextColor
+                        : ScanScreenStyles.primaryTextColor,
+                  ),
+                ),
               ),
             ),
           ],

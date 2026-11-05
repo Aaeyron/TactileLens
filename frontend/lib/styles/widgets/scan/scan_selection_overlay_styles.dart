@@ -45,6 +45,12 @@ abstract final class ScanSelectionOverlayStyles {
   static const double resetIconSize = 18;
   static const double resetIconSpacing = 6;
 
+  /// Minimum touch target around the Reset pill.
+  static const BoxConstraints resetTapTarget = BoxConstraints(
+    minWidth: 48,
+    minHeight: 48,
+  );
+
   static const EdgeInsets resetButtonPadding = EdgeInsets.symmetric(
     horizontal: 13,
     vertical: 9,

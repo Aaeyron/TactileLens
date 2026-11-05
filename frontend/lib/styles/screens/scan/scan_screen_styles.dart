@@ -120,8 +120,31 @@ abstract final class ScanScreenStyles {
   // ==========================================================
 
   static const EdgeInsets controlsPadding = EdgeInsets.fromLTRB(24, 20, 24, 22);
+  static const EdgeInsets compactControlsPadding = EdgeInsets.fromLTRB(
+    24,
+    10,
+    24,
+    10,
+  );
 
   static const double controlsHeight = 154;
+
+  // A minimum, so large text can make the bar taller instead of
+  // overflowing it.
+  static const BoxConstraints controlsConstraints = BoxConstraints(
+    minHeight: controlsHeight,
+  );
+
+  // Large text (1.3x or more) on a screen shorter than [shortHeight], or
+  // any screen shorter than [veryShortHeight]: the header shows the title
+  // only. Logical pixels of the area below the system bars.
+  static const double largeTextScale = 1.3;
+  static const double shortHeight = 700;
+  static const double veryShortHeight = 420;
+  static const int headerDescriptionMaxLines = 2;
+
+  // Room for a side control's label, a little wider than its button.
+  static const double sideControlLabelWidth = 84;
 
   static const double sideControlSize = 72;
   static const double sideControlIconSize = 31;

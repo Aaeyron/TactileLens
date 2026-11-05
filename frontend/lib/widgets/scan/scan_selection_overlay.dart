@@ -498,27 +498,37 @@ class _ResetCropButton extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: ScanSelectionOverlayStyles.resetButtonRadius,
-          child: Container(
-            padding: ScanSelectionOverlayStyles.resetButtonPadding,
-            decoration: const BoxDecoration(
-              color: ScanSelectionOverlayStyles.resetBackgroundColor,
-              borderRadius: ScanSelectionOverlayStyles.resetButtonRadius,
-              boxShadow: ScanSelectionOverlayStyles.resetButtonShadow,
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  Icons.refresh_rounded,
-                  size: ScanSelectionOverlayStyles.resetIconSize,
-                  color: ScanSelectionOverlayStyles.resetForegroundColor,
+          // The pill stays its size; the touch target is at least 48 dp.
+          child: ConstrainedBox(
+            constraints: ScanSelectionOverlayStyles.resetTapTarget,
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: Container(
+                padding: ScanSelectionOverlayStyles.resetButtonPadding,
+                decoration: const BoxDecoration(
+                  color: ScanSelectionOverlayStyles.resetBackgroundColor,
+                  borderRadius: ScanSelectionOverlayStyles.resetButtonRadius,
+                  boxShadow: ScanSelectionOverlayStyles.resetButtonShadow,
                 ),
-                SizedBox(width: ScanSelectionOverlayStyles.resetIconSpacing),
-                Text(
-                  _ScanSelectionOverlayText.resetLabel,
-                  style: ScanSelectionOverlayStyles.resetButtonTextStyle,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.refresh_rounded,
+                      size: ScanSelectionOverlayStyles.resetIconSize,
+                      color: ScanSelectionOverlayStyles.resetForegroundColor,
+                    ),
+                    SizedBox(
+                      width: ScanSelectionOverlayStyles.resetIconSpacing,
+                    ),
+                    Text(
+                      _ScanSelectionOverlayText.resetLabel,
+                      style: ScanSelectionOverlayStyles.resetButtonTextStyle,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
