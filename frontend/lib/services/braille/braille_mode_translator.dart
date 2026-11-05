@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../models/braille/braille_mode.dart';
+import 'formula_braille_guard.dart';
 import 'offline_braille_service.dart';
 
 /// Translates a batch of UEB text lines into [mode], one result per line.
@@ -219,6 +220,14 @@ class BrailleModeTranslator {
         if (!result.success || result.content.trim().isEmpty) {
           throw OfflineBrailleException(
             result.error ?? 'Liblouis returned an empty translation.',
+          );
+        }
+
+        // Never show an undefined-symbol escape as Braille 1: fall back to
+        // Braille 2, where the same check already applies.
+        if (FormulaBrailleGuard.containsBrailleEscape(result.content)) {
+          throw const OfflineBrailleException(
+            'Braille 1 has a symbol our Braille tables do not support.',
           );
         }
 

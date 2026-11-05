@@ -20,6 +20,7 @@ from services.braille.braille_translation_service import (
 )
 from services.braille.formula_braille_guard import (
     NO_REVIEW,
+    review_braille_output,
     review_formula,
     review_table,
 )
@@ -534,6 +535,29 @@ class PaddleOcrVlService:
                 is_formula=is_formula,
                 is_table=is_table,
             )
+
+            # Catch-all for any block: a symbol the Braille tables do not
+            # define comes out as an escape, never shown as Braille.
+            output_review = (
+                review_braille_output(braille_result["content"] or "")
+                if braille_result["success"]
+                else NO_REVIEW
+            )
+
+            if output_review.needs_review:
+                review = output_review
+
+                if is_formula:
+                    normalized_content = (
+                        readable_with_prose(raw_content) or raw_content
+                    )
+
+                braille_result = {
+                    "success": False,
+                    "code": braille_result["code"],
+                    "content": "",
+                    "error": f"Needs review: {review.reason}",
+                }
 
         bounding_box = self._normalized_bbox(block)
 

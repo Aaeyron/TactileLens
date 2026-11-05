@@ -119,6 +119,9 @@ def main() -> None:
             "total_word_limit": guard.TOTAL_WORD_LIMIT,
             "root_symbols": guard.ROOT_SYMBOLS,
             "root_reason": guard.ROOT_REASON,
+            "unsupported_symbol_reason": guard.UNSUPPORTED_SYMBOL_REASON,
+            # Liblouis output cells with dot 7 or 8 (undefined-symbol escapes).
+            "escape_cell_range": [0x2840, 0x28FF],
         },
         "cases": cases,
     }

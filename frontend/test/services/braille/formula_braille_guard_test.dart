@@ -52,6 +52,43 @@ void main() {
     expect(FormulaBrailleGuard.totalWordLimit, vocabulary['total_word_limit']);
     expect(FormulaBrailleGuard.rootSymbols, vocabulary['root_symbols']);
     expect(FormulaBrailleGuard.rootReason, vocabulary['root_reason']);
+    expect(
+      FormulaBrailleGuard.unsupportedSymbolReason,
+      vocabulary['unsupported_symbol_reason'],
+    );
+
+    final List<dynamic> range =
+        vocabulary['escape_cell_range'] as List<dynamic>;
+    final int first = range[0] as int;
+    final int last = range[1] as int;
+
+    expect(
+      FormulaBrailleGuard.containsBrailleEscape(String.fromCharCode(first)),
+      isTrue,
+    );
+    expect(
+      FormulaBrailleGuard.containsBrailleEscape(String.fromCharCode(last)),
+      isTrue,
+    );
+    expect(
+      FormulaBrailleGuard.containsBrailleEscape(String.fromCharCode(first - 1)),
+      isFalse,
+    );
+    expect(
+      FormulaBrailleGuard.containsBrailleEscape(String.fromCharCode(last + 1)),
+      isFalse,
+    );
+  });
+
+  test('Liblouis escapes are detected; 6-dot Braille is not', () {
+    // "Find ∛27" in UEB: the escape '\x221b' with its 8-dot backslash ⡳.
+    expect(
+      FormulaBrailleGuard.containsBrailleEscape('⠠⠋⠔⠙⠀⠄⡳⠭⠆⠆⠂⠃⠄⠼⠃⠛'),
+      isTrue,
+    );
+    expect(FormulaBrailleGuard.containsBrailleEscape('⠠⠋⠔⠙⠀⠼⠃⠛'), isFalse);
+    expect(FormulaBrailleGuard.containsBrailleEscape('⠀⠿\n⠁'), isFalse);
+    expect(FormulaBrailleGuard.containsBrailleEscape(''), isFalse);
   });
 
   test('every shared case gives the same result as the AI service', () {
