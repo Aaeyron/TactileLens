@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../services/scan/image_crop_service.dart';
 import '../../styles/widgets/scan/scan_selection_overlay_styles.dart';
 
 abstract final class _ScanSelectionOverlayText {
@@ -18,10 +19,16 @@ class ScanSelectionOverlay extends StatefulWidget {
     super.key,
     required this.onRegionSelected,
     required this.onSelectionCleared,
+    this.imageSize,
   });
 
   final ValueChanged<Rect> onRegionSelected;
   final VoidCallback onSelectionCleared;
+
+  /// Pixel size of the image under the overlay (drawn with cover fit).
+  /// When known, a change of overlay size (the phone was rotated) keeps
+  /// the same part of the image selected.
+  final Size? imageSize;
 
   @override
   State<ScanSelectionOverlay> createState() {
@@ -32,6 +39,45 @@ class ScanSelectionOverlay extends StatefulWidget {
 class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
   Rect? _selectedRegion;
   Size? _overlaySize;
+
+  /// The teacher's crop in image pixels, when the image size is known.
+  /// Changed only by the teacher (drag, reset) or the first default; a
+  /// rotation only changes how much of it the preview can show, so turning
+  /// the phone back restores the whole crop.
+  Rect? _imageRegion;
+
+  @override
+  void didUpdateWidget(ScanSelectionOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final Rect? region = _selectedRegion;
+    final Size? size = _overlaySize;
+
+    if (oldWidget.imageSize != widget.imageSize &&
+        _imageRegion == null &&
+        region != null &&
+        size != null) {
+      _rememberImageRegion(region, size);
+    }
+  }
+
+  void _rememberImageRegion(Rect region, Size overlaySize) {
+    final Size? imageSize = widget.imageSize;
+
+    if (imageSize == null || imageSize.isEmpty || overlaySize.isEmpty) {
+      return;
+    }
+
+    try {
+      _imageRegion = ImageCropService.mapPreviewRegionToImage(
+        selectedRegion: region,
+        previewSize: overlaySize,
+        imageSize: imageSize,
+      );
+    } on FormatException {
+      // Outside the image: keep the previous crop.
+    }
+  }
 
   _CropDragMode? _activeDragMode;
 
@@ -111,15 +157,19 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
 
     Rect nextRegion;
 
+    final bool isFirstRegion = previousRegion == null;
+
     if (previousSize != null &&
         !previousSize.isEmpty &&
         previousRegion != null) {
-      nextRegion = Rect.fromLTRB(
-        previousRegion.left / previousSize.width * overlaySize.width,
-        previousRegion.top / previousSize.height * overlaySize.height,
-        previousRegion.right / previousSize.width * overlaySize.width,
-        previousRegion.bottom / previousSize.height * overlaySize.height,
-      );
+      nextRegion =
+          _previewRegionOfImageCrop(overlaySize) ??
+          Rect.fromLTRB(
+            previousRegion.left / previousSize.width * overlaySize.width,
+            previousRegion.top / previousSize.height * overlaySize.height,
+            previousRegion.right / previousSize.width * overlaySize.width,
+            previousRegion.bottom / previousSize.height * overlaySize.height,
+          );
 
       nextRegion = _constrainRegion(nextRegion, overlaySize);
     } else {
@@ -135,8 +185,31 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
         _selectedRegion = nextRegion;
       });
 
+      if (isFirstRegion) {
+        _rememberImageRegion(nextRegion, overlaySize);
+      }
+
       widget.onRegionSelected(nextRegion);
     });
+  }
+
+  /// The teacher's image crop as drawn on an overlay of [overlaySize]:
+  /// only the part the preview can show. Null when unknown or not visible.
+  Rect? _previewRegionOfImageCrop(Size overlaySize) {
+    final Rect? imageRegion = _imageRegion;
+    final Size? imageSize = widget.imageSize;
+
+    if (imageRegion == null || imageSize == null || imageSize.isEmpty) {
+      return null;
+    }
+
+    final Rect visible = ImageCropService.mapImageRegionToPreview(
+      imageRegion: imageRegion,
+      previewSize: overlaySize,
+      imageSize: imageSize,
+    ).intersect(Offset.zero & overlaySize);
+
+    return visible.isEmpty ? null : visible;
   }
 
   Rect _createDefaultRegion(Size overlaySize) {
@@ -312,6 +385,12 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
     });
 
     if (wasAdjusting && selectedRegion != null) {
+      final Size? overlaySize = _overlaySize;
+
+      if (overlaySize != null) {
+        _rememberImageRegion(selectedRegion, overlaySize);
+      }
+
       widget.onRegionSelected(selectedRegion);
     }
   }
@@ -399,6 +478,7 @@ class _ScanSelectionOverlayState extends State<ScanSelectionOverlay> {
       _isAdjusting = false;
     });
 
+    _rememberImageRegion(defaultRegion, overlaySize);
     widget.onRegionSelected(defaultRegion);
   }
 }

@@ -10,13 +10,14 @@ abstract final class _ScanPreviewText {
   static const String imageLoadFailure = 'Selected image will appear here';
 }
 
-class ScanPreview extends StatelessWidget {
+class ScanPreview extends StatefulWidget {
   const ScanPreview({
     super.key,
     required this.selectedImage,
     required this.deviceOrientation,
     required this.onRegionSelected,
     required this.onSelectionCleared,
+    this.imageSize,
   });
 
   final File selectedImage;
@@ -27,8 +28,94 @@ class ScanPreview extends StatelessWidget {
 
   final VoidCallback onSelectionCleared;
 
+  /// The image's pixel size, when already known (tests). Otherwise it is
+  /// read from the image once it is decoded.
+  final Size? imageSize;
+
+  @override
+  State<ScanPreview> createState() => _ScanPreviewState();
+}
+
+class _ScanPreviewState extends State<ScanPreview> {
+  Size? _decodedSize;
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+
+  Size? get _imageSize => widget.imageSize ?? _decodedSize;
+
+  @override
+  void initState() {
+    super.initState();
+    _readImageSize();
+  }
+
+  @override
+  void didUpdateWidget(ScanPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.selectedImage.path != widget.selectedImage.path) {
+      _decodedSize = null;
+      _readImageSize();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    super.dispose();
+  }
+
+  /// The overlay needs the image's size to keep the same part of the page
+  /// selected when the preview is rotated.
+  void _readImageSize() {
+    _stopListening();
+
+    if (widget.imageSize != null) {
+      return;
+    }
+
+    final ImageStream stream = FileImage(
+      widget.selectedImage,
+    ).resolve(ImageConfiguration.empty);
+
+    final ImageStreamListener listener = ImageStreamListener(
+      (ImageInfo info, bool _) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _decodedSize = Size(
+            info.image.width.toDouble(),
+            info.image.height.toDouble(),
+          );
+        });
+        _stopListening();
+      },
+      onError: (Object error, StackTrace? stackTrace) {
+        // Without the size, a rotation scales the crop proportionally.
+        _stopListening();
+      },
+    );
+
+    _stream = stream;
+    _listener = listener;
+    stream.addListener(listener);
+  }
+
+  void _stopListening() {
+    final ImageStreamListener? listener = _listener;
+
+    if (listener != null) {
+      _stream?.removeListener(listener);
+    }
+
+    _stream = null;
+    _listener = null;
+  }
+
   int _contentQuarterTurns() {
-    return switch (deviceOrientation) {
+    return switch (widget.deviceOrientation) {
       DeviceOrientation.portraitUp => 0,
       DeviceOrientation.landscapeLeft => 1,
       DeviceOrientation.portraitDown => 2,
@@ -55,8 +142,8 @@ class ScanPreview extends StatelessWidget {
             fit: StackFit.expand,
             children: <Widget>[
               Image.file(
-                selectedImage,
-                key: ValueKey<String>(selectedImage.path),
+                widget.selectedImage,
+                key: ValueKey<String>(widget.selectedImage.path),
                 fit: ScanPreviewStyles.imageFit,
                 alignment: Alignment.center,
                 width: double.infinity,
@@ -88,17 +175,15 @@ class ScanPreview extends StatelessWidget {
                     constraints.maxHeight,
                   );
 
+                  // Keyed by the image only: rotating the phone (a new
+                  // orientation and preview size) keeps the teacher's crop.
                   return ScanSelectionOverlay(
-                    key: ValueKey<String>(
-                      '${selectedImage.path}-'
-                      '${deviceOrientation.name}-'
-                      '${previewSize.width}-'
-                      '${previewSize.height}',
-                    ),
+                    key: ValueKey<String>(widget.selectedImage.path),
+                    imageSize: _imageSize,
                     onRegionSelected: (Rect selectedRegion) {
-                      onRegionSelected(selectedRegion, previewSize);
+                      widget.onRegionSelected(selectedRegion, previewSize);
                     },
-                    onSelectionCleared: onSelectionCleared,
+                    onSelectionCleared: widget.onSelectionCleared,
                   );
                 },
               ),
