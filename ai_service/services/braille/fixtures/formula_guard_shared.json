@@ -89,7 +89,12 @@
     "short_word_limit": 2,
     "total_word_limit": 6,
     "root_symbols": "√∛∜",
-    "root_reason": "contains a root (√): Nemeth radical not yet confirmed"
+    "root_reason": "contains a root (√): Nemeth radical not yet confirmed",
+    "unsupported_symbol_reason": "contains a symbol our Braille tables don't support",
+    "escape_cell_range": [
+      10304,
+      10495
+    ]
   },
   "cases": [
     {

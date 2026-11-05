@@ -121,7 +121,7 @@ kept in a local SQLite database.
 | who | signed-in users (default) | guests always; signed-in users by choice |
 | recogniser | PaddleOCR-VL 1.6 (local GPU) or the hosted API | PP-DocLayoutV3 + PP-OCRv6 + PP-FormulaNet_plus-S |
 | tables | parsed into rows, Braille per row (Nemeth) | read as text |
-| held for review (no Braille) | roots, unsupported LaTeX, alignment markup, English words in formulas, leftover markup | the same, except leftover markup (the app does not see the server's normalized text); same rules and reason text, kept in sync by `ai_service/services/braille/fixtures/formula_guard_shared.json` |
+| held for review (no Braille) | roots, unsupported LaTeX, alignment markup, English words in formulas, leftover markup; any block whose Braille contains an undefined-symbol escape (a dot-7/8 cell) | the same, except leftover markup (the app does not see the server's normalized text); same rules and reason text, kept in sync by `ai_service/services/braille/fixtures/formula_guard_shared.json` |
 | flagged for a check (Braille kept) | — | low OCR confidence, a formula that failed or did not finish, fallback blocks |
 | where the image goes | backend, AI service and, with the hosted engine, Baidu | nowhere |
 | history | PostgreSQL, per account | SQLite on the phone |

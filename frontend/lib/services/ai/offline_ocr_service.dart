@@ -128,12 +128,11 @@ class OfflineOcrService {
         // The same formula guard as online: unsupported LaTeX, alignment
         // markup, English words in the math and roots (Liblouis has no
         // Nemeth radical) are held for review, never sent to Liblouis.
-        final FormulaReview review = isFormula
+        FormulaReview review = isFormula
             ? FormulaBrailleGuard.review(rawContent)
             : FormulaReview.none;
-        final bool heldByGuard = review.needsReview;
 
-        final OfflineBrailleResult brailleResult = heldByGuard
+        OfflineBrailleResult brailleResult = review.needsReview
             ? OfflineBrailleResult(
                 success: false,
                 code: 'nemeth',
@@ -145,6 +144,25 @@ class OfflineOcrService {
                 isFormula: isFormula,
                 isTable: false,
               );
+
+        // Catch-all for any block, as online: a symbol the Braille tables
+        // do not define comes out as an escape, never shown as Braille.
+        if (brailleResult.success &&
+            FormulaBrailleGuard.containsBrailleEscape(brailleResult.content)) {
+          review = const FormulaReview(
+            needsReview: true,
+            categories: <String>[FormulaBrailleGuard.unsupportedSymbol],
+            reason: FormulaBrailleGuard.unsupportedSymbolReason,
+          );
+          brailleResult = OfflineBrailleResult(
+            success: false,
+            code: brailleResult.code,
+            content: '',
+            error: 'Needs review: ${review.reason}',
+          );
+        }
+
+        final bool heldByGuard = review.needsReview;
 
         final int order = blocks.length;
 

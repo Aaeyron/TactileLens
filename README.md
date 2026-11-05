@@ -86,6 +86,12 @@ Details: [docs/architecture.md](docs/architecture.md).
   left after normalisation. Unknown LaTeX would otherwise come out as
   Braille that looks right but is wrong. A false hold only costs the
   teacher a check.
+- **Unsupported symbols are held** (online and on-device, any block:
+  text, formula or table). Liblouis writes a symbol its tables don't
+  define, such as ∛ in UEB text, as an escape code in Braille cells; any
+  output with a dot-7 or dot-8 cell is held with the reason "contains a
+  symbol our Braille tables don't support". Braille 1 falls back to
+  Braille 2 if a line would contain one.
 - **Roots are always held** (online and on-device). The Liblouis Nemeth
   table has no radical symbol, so a root would come out as an escape
   code. They stay held until a Braille expert confirms the Nemeth

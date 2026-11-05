@@ -40,6 +40,15 @@ class SharedGuardFixtureTests(unittest.TestCase):
         self.assertEqual(vocabulary["total_word_limit"], guard.TOTAL_WORD_LIMIT)
         self.assertEqual(vocabulary["root_symbols"], guard.ROOT_SYMBOLS)
         self.assertEqual(vocabulary["root_reason"], guard.ROOT_REASON)
+        self.assertEqual(
+            vocabulary["unsupported_symbol_reason"], guard.UNSUPPORTED_SYMBOL_REASON
+        )
+
+        first, last = vocabulary["escape_cell_range"]
+        self.assertTrue(guard.contains_braille_escape(chr(first)))
+        self.assertTrue(guard.contains_braille_escape(chr(last)))
+        self.assertFalse(guard.contains_braille_escape(chr(first - 1)))
+        self.assertFalse(guard.contains_braille_escape(chr(last + 1)))
 
     def test_every_case_matches_the_python_guard(self):
         cases = self.fixture["cases"]

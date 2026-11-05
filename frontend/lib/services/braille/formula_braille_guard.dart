@@ -48,6 +48,22 @@ abstract final class FormulaBrailleGuard {
   static const String rootReason =
       'contains a root (√): Nemeth radical not yet confirmed';
 
+  /// Any block, after translation: Liblouis writes a symbol its tables do
+  /// not define as an escape such as '\x221b' in Braille cells, whose
+  /// backslash is an 8-dot cell. UEB and Nemeth only use 6-dot cells.
+  static const String unsupportedSymbol = 'unsupported_symbol';
+  static const String unsupportedSymbolReason =
+      "contains a symbol our Braille tables don't support";
+  static const int _eightDotFirst = 0x2840;
+  static const int _eightDotLast = 0x28FF;
+
+  /// Whether Liblouis output contains a cell with dot 7 or 8.
+  static bool containsBrailleEscape(String braille) {
+    return braille.runes.any(
+      (int cell) => cell >= _eightDotFirst && cell <= _eightDotLast,
+    );
+  }
+
   /// Every LaTeX command the Braille normalizer converts
   /// (BrailleMathNormalizer.SUPPORTED_COMMANDS in the AI service).
   static const Set<String> supportedCommands = <String>{
