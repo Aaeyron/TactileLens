@@ -149,7 +149,9 @@ the crop box and the messages, not the layout.
   phone keeps it; sideways the preview shows the part that fits.
 - **Server, again before OCR** (`_prepare_image` in
   `ai_service/services/ocr/paddleocr_vl_service.py`): `ImageOps.exif_transpose`,
-  since any client can send a rotated image. The on-device pipeline also
+  since any client can send a rotated image. All 8 EXIF orientations are
+  tested (`services/ocr/test_prepare_image_orientation.py`, generated
+  images). The on-device pipeline also
   applies EXIF before its models.
 
 ## Braille 1 and Braille 2
