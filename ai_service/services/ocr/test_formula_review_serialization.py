@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from services.braille.braille_translation_service import BrailleTranslationService
 from services.braille.formula_braille_guard import ROOT_REASON
@@ -201,8 +202,8 @@ class FormulaReviewSerializationTests(unittest.TestCase):
     def test_guard_counts_are_logged(self):
         service = _service()
         service._guard_counts_lock = __import__("threading").Lock()
-        service._formulas_checked = 0
-        service._formulas_held = 0
+        service._blocks_checked = 0
+        service._blocks_held = 0
 
         blocks = [
             service._serialize_block(
@@ -216,8 +217,39 @@ class FormulaReviewSerializationTests(unittest.TestCase):
         service._log_formula_reviews(blocks)
         service._log_formula_reviews(blocks)
 
-        self.assertEqual(service._formulas_checked, 4)
-        self.assertEqual(service._formulas_held, 2)
+        self.assertEqual(service._blocks_checked, 4)
+        self.assertEqual(service._blocks_held, 2)
+
+    def test_held_tables_are_counted_and_logged(self):
+        service = _service()
+        service._guard_counts_lock = __import__("threading").Lock()
+        service._blocks_checked = 0
+        service._blocks_held = 0
+
+        blocks = [
+            service._serialize_block(_block(label, content), fallback_id=i, fallback_order=i)
+            for i, (label, content) in enumerate(
+                (
+                    ("display_formula", HELD_LATEX),
+                    ("display_formula", " $$ x-5=12 $$ "),
+                    ("table", ROOT_TABLE),
+                    ("table", "<table><tr><td>a</td></tr></table>"),
+                    ("text", "Write the answer."),
+                )
+            )
+        ]
+
+        with patch("builtins.print") as printed:
+            service._log_formula_reviews(blocks)
+
+        # Two formulas and two tables are checked; one of each is held.
+        self.assertEqual(service._blocks_checked, 4)
+        self.assertEqual(service._blocks_held, 2)
+
+        summary = printed.call_args_list[0].args[0]
+        self.assertIn("held 2 of 4 blocks for review", summary)
+        self.assertIn("formulas 1 of 2", summary)
+        self.assertIn("tables 1 of 2", summary)
 
 
 if __name__ == "__main__":
