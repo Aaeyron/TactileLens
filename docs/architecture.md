@@ -62,7 +62,11 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
 ## Online pipeline (signed-in users, "Online")
 
 1. **App**: sends the image once to `POST /api/scan-document` with an
-   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`).
+   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`). An
+   image larger than 2000 px on its long side is first scaled down to
+   2000 px (lossless PNG; `AIService.onlineUploadMaxDimension`, the same
+   size the AI service scales to, checked by a test); on-device scans are
+   never scaled.
 2. **Backend** (`backend/src/routes/scan/`, `services/scan/`): login
    required; image type and size checked (20 MB); one scan in flight per
    user; 30 scans per hour and 100 per day per user (in memory, reset on

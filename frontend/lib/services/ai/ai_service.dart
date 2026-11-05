@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
@@ -46,6 +47,16 @@ class AIService {
     'AI_SCAN_MODE',
     defaultValue: 'session',
   );
+
+  /// Longest side, in pixels, of an image sent for an online scan.
+  ///
+  /// Matches the AI service's default cap (DEFAULT_MAX_IMAGE_DIMENSION /
+  /// PADDLEOCR_MAX_IMAGE_DIMENSION in ai_service/services/ocr/
+  /// paddleocr_vl_service.py), which scales every image to this size
+  /// before OCR anyway; online_upload_cap_test.dart checks they match.
+  /// Larger photos are scaled down here so they upload faster and use
+  /// less memory; on-device scans are never scaled.
+  static const int onlineUploadMaxDimension = 2000;
 
   static const String offlineMode = 'offline';
   static const String hybridMode = 'hybrid';
@@ -166,17 +177,45 @@ class AIService {
       );
     }
 
-    // Sent once, never retried: after a 502/503, or a connection that
-    // drops mid-request, the image may already have reached the hosted
-    // OCR service, and sending it again would start a second job.
-    final ScanDocumentResult result = await _sendScanRequest(
-      uri,
-      token,
-      imageFile,
-      newIdempotencyKey(),
-    );
+    final File upload = await capForOnlineUpload(imageFile);
 
-    return result.withProcessingMode(ScanProcessingMode.online);
+    try {
+      // Sent once, never retried: after a 502/503, or a connection that
+      // drops mid-request, the image may already have reached the hosted
+      // OCR service, and sending it again would start a second job.
+      final ScanDocumentResult result = await _sendScanRequest(
+        uri,
+        token,
+        upload,
+        newIdempotencyKey(),
+      );
+
+      return result.withProcessingMode(ScanProcessingMode.online);
+    } finally {
+      if (upload.path != imageFile.path) {
+        try {
+          await upload.delete();
+        } catch (_) {
+          // A temporary file; ignore cleanup failures.
+        }
+      }
+    }
+  }
+
+  /// [imageFile] scaled so its longest side is at most
+  /// [onlineUploadMaxDimension], as a lossless PNG in a temporary file, or
+  /// [imageFile] itself when it is already within the cap or cannot be
+  /// decoded (the server then checks it as before).
+  static Future<File> capForOnlineUpload(File imageFile) async {
+    final String? cappedPath = await compute(_writeCappedUpload, (
+      sourcePath: imageFile.path,
+      outputPath:
+          '${Directory.systemTemp.path}${Platform.pathSeparator}'
+          'tactilelens_upload_${DateTime.now().microsecondsSinceEpoch}.png',
+      maxDimension: onlineUploadMaxDimension,
+    ));
+
+    return cappedPath == null ? imageFile : File(cappedPath);
   }
 
   Future<ScanDocumentResult> _sendScanRequest(
@@ -423,6 +462,41 @@ class AIService {
 
     unawaited(_offlineOcrService.dispose());
   }
+}
+
+/// Runs in a background isolate. Writes the scaled image and returns its
+/// path, or null when no scaling is needed or the image cannot be read.
+String? _writeCappedUpload(
+  ({String sourcePath, String outputPath, int maxDimension}) job,
+) {
+  final img.Image? decoded;
+
+  try {
+    decoded = img.decodeImage(File(job.sourcePath).readAsBytesSync());
+  } catch (_) {
+    return null;
+  }
+
+  if (decoded == null ||
+      max(decoded.width, decoded.height) <= job.maxDimension) {
+    return null;
+  }
+
+  final img.Image scaled = decoded.width >= decoded.height
+      ? img.copyResize(
+          decoded,
+          width: job.maxDimension,
+          interpolation: img.Interpolation.cubic,
+        )
+      : img.copyResize(
+          decoded,
+          height: job.maxDimension,
+          interpolation: img.Interpolation.cubic,
+        );
+
+  File(job.outputPath).writeAsBytesSync(img.encodePng(scaled), flush: true);
+
+  return job.outputPath;
 }
 
 class AIServiceException implements Exception {
