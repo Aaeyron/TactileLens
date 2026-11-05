@@ -1,0 +1,480 @@
+{
+  "about": "Shared by the online formula guard (ai_service/services/braille/formula_braille_guard.py) and the offline one (frontend/lib/services/braille/formula_braille_guard.dart). Both test suites check their vocabulary and every case against this file, so the two cannot drift apart. Regenerate from the Python guard when it changes.",
+  "vocabulary": {
+    "supported_commands": [
+      "Big",
+      "Bigg",
+      "Biggl",
+      "Biggm",
+      "Biggr",
+      "Bigl",
+      "Bigm",
+      "Bigr",
+      "alpha",
+      "approx",
+      "beta",
+      "big",
+      "bigg",
+      "biggl",
+      "biggm",
+      "biggr",
+      "bigl",
+      "bigm",
+      "bigr",
+      "cdot",
+      "delta",
+      "dfrac",
+      "div",
+      "frac",
+      "gamma",
+      "ge",
+      "geq",
+      "infty",
+      "int",
+      "lambda",
+      "le",
+      "left",
+      "leq",
+      "mathbf",
+      "mathit",
+      "mathrm",
+      "mbox",
+      "mp",
+      "mu",
+      "ne",
+      "neq",
+      "operatorname",
+      "pi",
+      "pm",
+      "prime",
+      "prod",
+      "qquad",
+      "quad",
+      "right",
+      "sigma",
+      "sqrt",
+      "sum",
+      "text",
+      "textbf",
+      "textit",
+      "textrm",
+      "tfrac",
+      "theta",
+      "times"
+    ],
+    "function_names": [
+      "cos",
+      "cot",
+      "csc",
+      "exp",
+      "lim",
+      "ln",
+      "log",
+      "max",
+      "min",
+      "sec",
+      "sin",
+      "tan"
+    ],
+    "supported_environments": [
+      "align",
+      "align*",
+      "aligned",
+      "gather",
+      "gathered",
+      "split"
+    ],
+    "long_word_length": 4,
+    "short_word_length": 3,
+    "short_word_limit": 2,
+    "total_word_limit": 6,
+    "root_symbols": "√∛∜",
+    "root_reason": "contains a root (√): Nemeth radical not yet confirmed"
+  },
+  "cases": [
+    {
+      "input": "$$ x-5=12 $$",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "$$ (x+4)(x-2)=10 $$",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "$$ x^{2}+5x+6=0 $$",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\text{area}=l\\times w",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\sin x+\\cos x=1",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\log_{2}8=3",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\left(\\frac{a}{b}\\right)^{2}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\left( \\begin{array}{c} 3 \\\\ 4 \\end{array} \\right)",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "(3 \\\\ 4)",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\Big(x+1\\Big)^{2}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\bigg(\\frac{a}{b}\\biggr)",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "x=1\\quad y=2",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "f^{\\prime}(x)=2x",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "g^{\\prime\\prime}(x)=6",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\textbf{A}=\\mbox{area}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\begin{aligned}x+1&=4\\\\x&=3\\end{aligned}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\begin{align*}2x&=8\\\\x&=4\\end{align*}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\begin{gathered}x=1\\\\y=2\\end{gathered}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "abc=6",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "dy+dx=xy",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\text{the total cost per box}=c",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\frac{3}{4}+\\frac{1}{4}=1",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "2x+3\\leq 7",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "x\\neq 0",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\pi r^{2}",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "",
+      "needs_review": false,
+      "categories": [],
+      "reason": "",
+      "online_only": false
+    },
+    {
+      "input": "\\hat{x}=2",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex"
+      ],
+      "reason": "unsupported LaTeX: \\hat",
+      "online_only": false
+    },
+    {
+      "input": "\\overline{AB}=3",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex"
+      ],
+      "reason": "unsupported LaTeX: \\overline",
+      "online_only": false
+    },
+    {
+      "input": "\\begin{cases}x=1\\end{cases}",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex"
+      ],
+      "reason": "unsupported LaTeX: cases environment",
+      "online_only": false
+    },
+    {
+      "input": "\\begin{pmatrix}1&2\\end{pmatrix}",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex",
+        "alignment"
+      ],
+      "reason": "unsupported LaTeX: pmatrix environment; alignment or row markup (& or \\\\)",
+      "online_only": false
+    },
+    {
+      "input": "\\vec{v}+\\hat{u}",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex"
+      ],
+      "reason": "unsupported LaTeX: \\hat, \\vec",
+      "online_only": false
+    },
+    {
+      "input": "x+1&=4",
+      "needs_review": true,
+      "categories": [
+        "alignment"
+      ],
+      "reason": "alignment or row markup (& or \\\\)",
+      "online_only": false
+    },
+    {
+      "input": "x=1\\\\y=2",
+      "needs_review": true,
+      "categories": [
+        "alignment"
+      ],
+      "reason": "alignment or row markup (& or \\\\)",
+      "online_only": false
+    },
+    {
+      "input": "x=2 when y=3",
+      "needs_review": true,
+      "categories": [
+        "english_text"
+      ],
+      "reason": "contains English text (1 words: when)",
+      "online_only": false
+    },
+    {
+      "input": "abc+xyz=6",
+      "needs_review": true,
+      "categories": [
+        "english_text"
+      ],
+      "reason": "contains English text (2 words: abc, xyz)",
+      "online_only": false
+    },
+    {
+      "input": "\\text{the total cost per box now}=c",
+      "needs_review": true,
+      "categories": [
+        "english_text"
+      ],
+      "reason": "contains English text (6 words: the, total, cost, per, ...)",
+      "online_only": false
+    },
+    {
+      "input": "Solve for x: 2x+3=7",
+      "needs_review": true,
+      "categories": [
+        "english_text"
+      ],
+      "reason": "contains English text (2 words: Solve, for)",
+      "online_only": false
+    },
+    {
+      "input": "$$ \\begin{aligned}&2y+y(4-y)\\Big(\\frac{y}{2}\\Big)when y=-3\\quad&Put -3 in for y\\\\&(-3)+(-3)(7)\\quad&Multiply first\\\\&-24\\quad&Answer\\end{aligned} $$",
+      "needs_review": true,
+      "categories": [
+        "english_text"
+      ],
+      "reason": "contains English text (6 words: when, Put, for, Multiply, ...)",
+      "online_only": false
+    },
+    {
+      "input": "$$ \\sqrt{9}=3 $$",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "$$ \\sqrt[3]{8}=2 $$",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "$$ x=\\frac{-b\\pm\\sqrt{b^{2}-4ac}}{2a} $$",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "$ 2\\sqrt{5} $",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "∛27 = 3",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "∜16 = 2",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "√x = 4",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "\\frac{x+1}{2}\\leq\\sqrt{9}",
+      "needs_review": true,
+      "categories": [
+        "root"
+      ],
+      "reason": "contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "$$ Simplify \\sqrt{8} $$",
+      "needs_review": true,
+      "categories": [
+        "english_text",
+        "root"
+      ],
+      "reason": "contains English text (1 words: Simplify); contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    },
+    {
+      "input": "\\hat{x}=\\sqrt{2} when x>0",
+      "needs_review": true,
+      "categories": [
+        "unsupported_latex",
+        "english_text",
+        "root"
+      ],
+      "reason": "unsupported LaTeX: \\hat; contains English text (1 words: when); contains a root (√): Nemeth radical not yet confirmed",
+      "online_only": false
+    }
+  ]
+}
