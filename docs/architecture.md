@@ -134,6 +134,14 @@ every letter spelled out); it re-translates the source text on the phone
 with Liblouis (`frontend/lib/services/braille/braille_mode_translator.dart`).
 Nemeth math and tables are never changed by this setting.
 
+- If Braille 1 cannot be made, Braille 2 is shown with a visible banner
+  ("Braille 1 could not be created for this page. Showing Braille 2
+  (Contracted) instead."), which screen readers announce.
+- Saved records say which grade they were saved in, under the mode
+  buttons: History always saves Braille 2; a material saves the mode that
+  was on screen (`saved_braille_mode` in each block; missing means
+  Braille 2, the only grade before modes existed).
+
 ## Not part of the app
 
 - `frontend/third_party/llama.cpp` and `PaddleOcrVlNative.kt` /

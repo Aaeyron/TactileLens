@@ -721,6 +721,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   BrailleModeSection(
                     pages: pages,
                     initialMode: BrailleModeSettings.defaultMode.value,
+                    savedMode: savedBrailleModeOf(pages),
                     builder:
                         (
                           BuildContext context,
