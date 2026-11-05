@@ -12,6 +12,7 @@ import '../../services/braille/braille_save_payload.dart';
 import '../../services/history/history_service.dart';
 import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
+import '../../services/scan/image_orientation_service.dart';
 import '../../services/scan/scan_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../services/settings/settings_service.dart';
@@ -125,6 +126,8 @@ class _ScanScreenState extends State<ScanScreen> {
   final HistoryService _historyService = HistoryService();
 
   final ImageCropService _imageCropService = ImageCropService();
+  final ImageOrientationService _imageOrientationService =
+      const ImageOrientationService();
 
   File? _selectedImage;
   Rect? _selectedRegion;
@@ -291,7 +294,17 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
 
-      _setSelectedImage(selectedFile);
+      // The same orientation step as camera captures: EXIF applied and
+      // removed once, so preview, crop and upload see upright pixels.
+      final File uprightFile = await _imageOrientationService.normalizeFile(
+        selectedFile,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _setSelectedImage(uprightFile);
     } catch (error, stackTrace) {
       debugPrint('Image selection failed: $error');
       debugPrintStack(stackTrace: stackTrace);
