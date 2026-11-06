@@ -49,7 +49,7 @@ class ScanDocumentResult {
   final int pageCount;
   final double processingTimeMs;
   final List<DocumentBlock> blocks;
-    final List<DocumentPage> pages;
+  final List<DocumentPage> pages;
 
   // True when the backend already saved this scan to History.
   final bool historySavedByServer;
