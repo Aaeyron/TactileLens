@@ -102,6 +102,38 @@ exponents, each topic and each photographed sheet):
 python compare_models.py --set real-eval --b C:\path\trained.onnx --b-name trained
 ```
 
+## Full run (Track B)
+
+```
+C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split <root>\splits\<id>
+```
+
+Training lines from `data/synthetic/train.txt`, `data/real/train.txt` and
+the dataset split's `rec_train.txt` (`tools/dataset/`). The checkpoint is
+picked, and training stopped early (3 validations without improvement),
+on REAL validation lines only (`data/real/val.txt`, the split's
+`rec_val.txt`); with none it stops. Batch 64, at most 8 epochs. The leak
+guard also compares bytes with every eval image (eval/real,
+eval/synthetic, the split's `rec_eval.txt`, the frozen eval registry).
+Full precision by default (AMP crashes with NumPy 2.4 here; see
+docs/training_runbook.md). Then export, ONNX with PaddleX paddle2onnx (opset 17), a check of the
+ONNX inputs/outputs and dictionary against the app's, and `evaluate.py`
+with the app's model and the new one on every eval set:
+`outputs/full/<run>/comparison.md`. The app is not changed.
+
+`evaluate.py --labels <file>` scores any label file (e.g. a split's
+`rec_eval.txt`; topic from the file name).
+
+On Windows PaddleOCR skips the last batch of every validation pass
+(`tools/program.py`), so validation runs in batches of 8
+(`--eval-batch-size`) and the run refuses if fewer than 80% of the
+validation lines would be scored. If a run stops after training (or is
+interrupted), `train_full.py --continue-run <run folder>` skips training
+and continues with export, ONNX and evaluation from that run's
+checkpoint. Dry-run options (`--cpu`,
+`--allow-synthetic-val`, `--subset-train`, `--subset-val`) mark the run
+"DRY RUN (not a result)".
+
 ## Real photos
 
 Targets per topic (see `topics.csv`): about 10 held-out (eval) and 20
