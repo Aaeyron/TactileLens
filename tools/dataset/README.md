@@ -94,5 +94,17 @@ Not measured: the near-duplicate threshold on real photos (check the
 near-duplicate list of the first real intake), and the flags' false
 positives on real worksheets.
 
-Tests: `python -m unittest discover -s tests -t .` (8, on a temporary
+## Public formulas for a preliminary run: `algebra_filter.py`
+
+```
+python algebra_filter.py --labels public_labels.tsv --out kept.tsv --report report.md
+```
+
+Keeps algebra-level LaTeX only (allowed commands, at most 60 tokens, no
+environments, sums, integrals, limits, accents or fonts, at least one of
+= < > ^ \frac \sqrt f(x)); every dropped line is counted by reason. For
+im2latex-100k (CC0); see `docs/training_runbook.md`. Not run on a real
+dataset yet (none downloaded).
+
+Tests: `python -m unittest discover -s tests -t .` (11, on a temporary
 root, never the real one).
