@@ -405,6 +405,9 @@ abstract final class ScanScreenStyles {
 
   static const Duration snackBarDuration = Duration(seconds: 3);
 
+  /// The Cancel message is longer and must be readable (and heard).
+  static const Duration cancelledSnackBarDuration = Duration(seconds: 8);
+
   static const EdgeInsets snackBarMargin = EdgeInsets.all(16);
 
   static const BorderRadius snackBarRadius = BorderRadius.all(

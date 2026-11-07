@@ -17,10 +17,17 @@ import '../../styles/widgets/scan/scan_progress_overlay_styles.dart';
 /// is not in the semantics tree. With reduce motion the cells are shown
 /// raised and nothing moves.
 class ScanProgressOverlay extends StatefulWidget {
-  const ScanProgressOverlay({super.key, required this.mode});
+  const ScanProgressOverlay({super.key, required this.mode, this.onCancel});
+
+  static const String cancelLabel = 'Cancel';
+  static const String cancelSemanticsLabel = 'Cancel scan';
 
   /// Where the page is being scanned; shown under the main line.
   final ScanProcessingMode mode;
+
+  /// Shows a Cancel button while scanning. Cancel only stops waiting; the
+  /// caller tells the teacher what happens to the scan.
+  final VoidCallback? onCancel;
 
   @override
   State<ScanProgressOverlay> createState() => ScanProgressOverlayState();
@@ -225,6 +232,25 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
                                 textAlign: TextAlign.center,
                                 style: ScanProgressOverlayStyles
                                     .stillWorkingTextStyle,
+                              ),
+                            ],
+                            if (widget.onCancel != null &&
+                                !_finished) ...<Widget>[
+                              const SizedBox(
+                                height: ScanProgressOverlayStyles.cancelSpacing,
+                              ),
+                              Semantics(
+                                button: true,
+                                label: ScanProgressOverlay.cancelSemanticsLabel,
+                                excludeSemantics: true,
+                                child: TextButton(
+                                  style: ScanProgressOverlayStyles
+                                      .cancelButtonStyle,
+                                  onPressed: widget.onCancel,
+                                  child: const Text(
+                                    ScanProgressOverlay.cancelLabel,
+                                  ),
+                                ),
                               ),
                             ],
                           ],

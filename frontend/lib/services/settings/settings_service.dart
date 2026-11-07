@@ -80,7 +80,7 @@ class SettingsService {
     return preferences.getBool(_hapticFeedbackKey) ?? true;
   }
 
-  static Future<void> setHapticFeedbackEnabled(bool value) async {
+    static Future<void> setHapticFeedbackEnabled(bool value) async {
     final SharedPreferences preferences = await _preferences;
     await preferences.setBool(_hapticFeedbackKey, value);
   }

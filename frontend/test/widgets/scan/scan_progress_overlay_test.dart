@@ -263,9 +263,17 @@ void main() {
       'lib/screens/scan/scan_screen.dart',
     ).readAsStringSync().replaceAll('\r\n', '\n');
 
+    expect(source, contains('ScanProgressOverlay(\n'));
+    expect(source, contains('key: _progressKey,\n'));
+    expect(source, contains('mode: _processingMode,\n'));
+    // Cancel is offered for online scans only.
     expect(
       source,
-      contains('ScanProgressOverlay(key: _progressKey, mode: _processingMode)'),
+      contains(
+        'onCancel: _processingMode == ScanProcessingMode.online\n'
+        '                  ? _cancelScan\n'
+        '                  : null,',
+      ),
     );
     expect(source, contains('await _progressKey.currentState?.finish();'));
     expect(source, isNot(contains('_ProcessingOverlay')));
