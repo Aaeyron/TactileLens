@@ -103,6 +103,16 @@ fine-tuning of PaddleOCR-VL-0.9B on `train.jsonl`, `val.jsonl` for eval,
 **It has never been run.** Its data-check cell (absolute image links,
 hashes, eval leak guard) was run locally on the fake dataset.
 
+Partial fine-tuning (LoRA), the free-Colab path:
+`colab_lora_sft.ipynb` (**never run**). It trains the documented 0.9B
+model with `fine_tuning=LoRA` (stated by an ERNIE maintainer, no shipped
+config), stops on a T4 unless `EXPERIMENTAL_T4 = True` (a 20-step fp16
+test, undocumented), checkpoints to Google Drive and resumes after a
+timeout, tries the LoRA merge (not verified) and evaluates the merged
+model and the base 0.9B with `evaluate_vl.py`. Sources, Drive layout,
+memory test plan and serving: [docs/training_runbook.md](../../docs/training_runbook.md).
+Data comes from `tools/dataset/split_dataset.py` (`labels.csv`).
+
 ## Tests and dry run
 
 ```

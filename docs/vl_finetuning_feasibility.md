@@ -5,6 +5,12 @@ for training**; every memory and time figure below is calculated, not
 observed. Tools: `tools/training_vl/` (converter, evaluation harness,
 Colab notebook `colab_sft.ipynb`, never run).
 
+Update 2026-11-07: this page covers **full** fine-tuning. Partial
+fine-tuning (LoRA; what is and is not documented, a memory test plan for
+the laptop and the free-Colab notebook `colab_lora_sft.ipynb`) is in
+[training_runbook.md](training_runbook.md#track-c-paddleocr-vl-partial-fine-tuning).
+Freezing the vision encoder is still not documented.
+
 ## What can be fine-tuned
 
 - **Baidu's hosted API (the app's online engine) cannot be fine-tuned.**
