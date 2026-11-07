@@ -6,10 +6,11 @@
 /// See "Cancelling a scan" in docs/architecture.md.
 class ScanRun {
   /// Shown after Cancel on an online scan. The server allows one scan at
-  /// a time per user and online scans can take up to about 2 minutes.
+  /// a time per user and holds it until the AI service answers (at most
+  /// 170 s), and the finished scan is saved to History.
   static const String cancelledOnlineMessage =
-      'This scan will finish in the background; you can scan again in '
-      'about 2 minutes.';
+      'This scan will finish in the background; you can scan again in up to '
+      '3 minutes. It may still appear in History when it finishes.';
 
   int _current = 0;
   bool _cancelled = false;

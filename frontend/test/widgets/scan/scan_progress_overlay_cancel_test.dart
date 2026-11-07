@@ -127,8 +127,8 @@ void main() {
     test('the message says what really happens', () {
       expect(
         ScanRun.cancelledOnlineMessage,
-        'This scan will finish in the background; you can scan again in '
-        'about 2 minutes.',
+        'This scan will finish in the background; you can scan again in up to '
+        '3 minutes. It may still appear in History when it finishes.',
       );
     });
   });

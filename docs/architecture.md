@@ -54,8 +54,8 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
 - **Cancelling a scan** (online only): the scanning overlay has a
   **Cancel** button. It only stops the app waiting: the request is not
   aborted, the server finishes the scan and saves it to History, and the
-  app shows "This scan will finish in the background; you can scan again
-  in about 2 minutes." A result or error that arrives later for the
+  app shows "This scan will finish in the background; you can scan again in
+  up to 3 minutes. It may still appear in History when it finishes." A result or error that arrives later for the
   cancelled scan is dropped (`ScanRun`). Until the server finishes, a new
   online scan gets "A scan is already running…" (the server holds its
   one-scan lock until the AI service answers, at most 170 s). On-device
