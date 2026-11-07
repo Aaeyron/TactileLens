@@ -74,7 +74,8 @@ python intake.py --incoming <scratch>\incoming --work <scratch>\intake --registr
 python split_dataset.py --intake <scratch>\intake\<run> --out <scratch>\splits --registry <scratch>\splits\frozen_eval.jsonl
 ```
 
-The fake delivery (generated drawings marked FAKE; a zip and a folder;
+The fake delivery (generated drawings marked FAKE, each labelled exactly as
+drawn except the one planted broken label; a zip and a folder;
 51 images, 51 label rows) has planted problems. Result:
 
 - 48 usable, 4 errors: the broken label (`\sqrt{x+9=5`), the bad name
@@ -106,5 +107,5 @@ environments, sums, integrals, limits, accents or fonts, at least one of
 im2latex-100k (CC0); see `docs/training_runbook.md`. Not run on a real
 dataset yet (none downloaded).
 
-Tests: `python -m unittest discover -s tests -t .` (11, on a temporary
+Tests: `python -m unittest discover -s tests -t .` (13, on a temporary
 root, never the real one).
