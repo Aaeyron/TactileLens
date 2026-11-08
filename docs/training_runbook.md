@@ -70,16 +70,19 @@ Measured so far (synthetic lines only, not a result):
 - GPU dry run 2026-11-08, batch 64, 2,048 lines, 40 steps: finished in
   195 s including two validations; peak 5,858 MB reserved (trainer) /
   5,908 MB (nvidia-smi) on the 6 GB card, so batch 64 fits **with
-  almost no headroom**. If a real run runs out of memory, use
-  `--batch-size 48`.
+  almost no headroom**. If a run runs out of memory, `train_full.py`
+  retries automatically at 48, then 32 (`--fallback-batch-sizes`), each
+  attempt with its own log (`train_bs<N>.log`) and listed in `run.json`.
+  Tested by asking for batch 256: it ran out of memory and the run
+  continued at 64.
 - October trial, batch 96: 38.3 lines/s, about 157 s per epoch of 6,000
   lines.
 - Estimate (not measured): about 12,000 synthetic + the dataset's lines
   at about 35 lines/s is about 6 minutes per epoch, so at most about an
   hour for 8 epochs with validations; early stopping usually ends sooner.
 
-**Track A (laptop), after your approval** (see "Approvals"): the memory
-trial below, then a full run only if it fits.
+**Track A (laptop)**: memory trial done (batch 5 fits, 4 is safe; see
+Track A); a short real run when the data is ready.
 
 **Track C.** You open `colab_lora_sft.ipynb` in Colab, choose a GPU
 runtime and run the cells. On the free T4 cell 1 stops unless you set
@@ -122,8 +125,8 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
   "Training Model" link in that doc; 256,890,832 bytes = 244 MiB). The
   app's ONNX (`pp-formulanet_plus-s.onnx`, sha256 `449d205c...`) is the
   same file as `models\PP-FormulaNet_plus-S\pp-formulanet_plus-s.onnx`;
-  that it was converted from this exact checkpoint is **not verified**
-  (step 2 below checks it).
+  it is **verified** to be this model (weights and outputs; "Done" 3
+  below).
 - **Vocabulary: matches.** The trainer's tokenizer
   (`ppocr/utils/dict/unimernet_tokenizer/tokenizer.json`) and the one the
   app's `pp-formulanet_vocab.json` was exported from have the same 50,000
@@ -141,24 +144,68 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
   training run would fail when Snow is drawn. A memory trial can run
   without the training augmentation; a real run needs ImageMagick or WSL2.
 
-**Plan (each step after your approval)**
+**Done (2026-11-08, after approval)**
 
-1. Install the four packages into a copy of `paddle_train_env` (so the
-   recognizer environment stays as it is) and download the 244 MiB
-   checkpoint.
-2. Export check before training: `tools/export_model.py` on the
-   downloaded checkpoint -> `paddlex --paddle2onnx` -> compare with the
-   app's ONNX: same inputs/outputs, the decoding `Loop` operator inside the
-   graph (the Android runtime needs it), and the same predictions on our
-   `formula_eval.txt` with `evaluate_formula.py`. If this does not
-   reproduce the app's model, we stop: a retrained model could not be
-   used.
-3. Memory trial (about 15 minutes): batch 8, then 4, then 2, AMP on,
-   `max_new_tokens` 1024, 50 steps on the split's `formula_train.txt` (or
-   the 23 MiB official demo set), no Snow augmentation; record peak GPU
-   memory (trainer log `max_mem_reserved`) and seconds per step.
-4. Only if a batch fits: a short real run, export as in 2, and
-   `evaluate_formula.py` against the app's model.
+1. **Environment:** `C:\Projects\Capstone\paddle_formula_env`, a copy of
+   `paddle_train_env` (3.65 GB, Paddle 3.2.1, NumPy 2.4.1), plus
+   `tokenizers` 0.19.1, `ftfy` 6.3.1, `imagesize` 2.0.1, `Wand` 0.7.2 and
+   the dependencies pip added for them (`huggingface_hub` 0.36.2,
+   `wcwidth`, `fsspec`, `filelock`). No ImageMagick: `import wand.image`
+   fails, and the Snow augmentation is skipped (returns the image
+   unchanged); the other augmentations run. `paddle_train_env` is
+   unchanged. Use `python -m pip` in the copy (its `pip.exe` points to the
+   old folder).
+2. **Downloads** (sizes equal to the servers'): in
+   `tactilelens-training\pretrained\formula\`
+   `PP-FormulaNet_plus-S_pretrained.pdparams` (256,890,832 bytes, sha256
+   `a8a72053...`) and `PP-FormulaNet_plus-S_infer.tar` (259,604,480,
+   `31e8659f...`); the demo set `ocr_rec_latexocr_dataset_example.tar`
+   (25,108,480, `6ed9bd71...`; 10,000 train / 500 val arXiv-style formulas)
+   in `data\public\formula_demo\`.
+3. **The app's ONNX is this model** (`tools/model_prep/compare_onnx.py`):
+   - official inference model -> `paddlex --paddle2onnx` vs the app's
+     ONNX: all 836 weight tensors (57,916,120 values) identical, same 1,160
+     operators including the decoding `Loop`, same inputs/outputs
+     (`x` [N,1,384,384] -> token ids), opset 18, identical token ids on
+     20 of 20 demo images. The files differ only in ONNX `ir_version`
+     (10 vs 8, a different converter release).
+   - **training checkpoint -> our export -> ONNX** vs the app's ONNX:
+     832 of 836 weight tensors identical (the other 4 hold one value each),
+     same inputs/outputs, opset 18, the `Loop` present, 22 fewer graph
+     nodes, and **identical token ids on 50 of 50 demo images**. So a
+     model trained from this checkpoint can be exported to an ONNX the app
+     can load (running it on the phone: not verified).
+   - Needed for that: `tools/model_prep/export_formula.py`. Paddle 3.2.1
+     records `masked_fill_` as its own operator, which paddle2onnx 2.0.2rc3
+     cannot convert ("unsupported operators"); during export only it is
+     written as `where(mask, full_like(x, value), x)` (the official model
+     has `where` + `full_like` there), then PaddleOCR's
+     `tools/export_model.py` runs unchanged.
+4. **Memory trial on the RTX 4050** (`tools/model_prep/formula_memory_trial.py`;
+   demo set, 30 steps per batch, fp32, Snow skipped, from the official
+   checkpoint; `outputs\formula_trial\20261108_161345\`):
+
+   | batch | result | trainer max_mem_reserved | nvidia-smi peak | s/step | samples/s |
+   |---|---|---|---|---|---|
+   | 8 | runs only by spilling into system memory | 6,805 MB | 5,909 MB | 0.532 | 17.4 |
+   | 6 | runs only by spilling into system memory | 6,361 MB | 5,877 MB | 0.309 | 21.1 |
+   | **5** | **fits** | **5,703 MB** | 5,837 MB | **0.215** | **23.6** |
+   | 4 | fits | 3,722 MB | 3,863 MB | 0.194 | 20.7 |
+
+   The card has 6,141 MB. **Largest batch that fits: 5** (fastest, but
+   close to the limit); batch 4 leaves about 2 GB free. On Windows the
+   driver lets larger batches run by spilling into system memory: an
+   earlier pass reported batch 14 "running" with 11,860 MB reserved at
+   2.55 s/step (6.1 samples/s), so the trial now counts a batch as
+   fitting only if the reserved memory is within the card. Reserved
+   memory varied between the two passes (batch 8: 9,099 vs 6,805 MB).
+   The demo set's formulas are long arXiv formulas (median 118 characters,
+   longest 1,351); algebra-level formulas are shorter and should need less
+   memory (not measured).
+
+**Next (when our data or the filtered im2latex is ready)**: a short real
+run at batch 4 (5 if it stays within memory), export with
+`export_formula.py`, and `evaluate_formula.py` against the app's model.
 
 ## Track C: PaddleOCR-VL partial fine-tuning
 
@@ -184,15 +231,42 @@ Colab.
 
 **Colab (free)**: `tools/training_vl/colab_lora_sft.ipynb` (never run).
 Cell 1 checks the GPU and stops on a T4 unless `EXPERIMENTAL_T4 = True`
-(fp16, no flash attention, 20 steps: a feasibility and memory test, not
-documented). It mounts Drive, unpacks the split, runs `convert_to_sft.py`,
-installs PaddlePaddle + ERNIEKit, caches the base model on Drive, trains
-with checkpoints on Drive and resumes from the newest after a timeout
-(`resume_from_checkpoint`: not verified), tries the LoRA merge (not
-verified), evaluates the merged model and the base 0.9B with
-`evaluate_vl.py` on the held-out eval, and leaves everything in
-`runs/<run id>/` for download. The older `colab_sft.ipynb` (full
-fine-tuning, A100 40 GB) is kept for reference; it needs a paid GPU.
+(fp16, no flash attention, 20 steps). In that mode the run folder ends in
+`_EXPERIMENTAL_T4`, `run.json` is labelled **"EXPERIMENTAL, not the
+documented setup, not a usable model"**, and cells 7 and 8 (merge,
+evaluation) refuse to run. Otherwise it mounts Drive, unpacks the split,
+runs `convert_to_sft.py`, installs PaddlePaddle + ERNIEKit, caches the base
+model on Drive, trains with checkpoints on Drive and resumes from the
+newest after a timeout (`resume_from_checkpoint`: not verified), tries the
+LoRA merge (not verified), evaluates the merged model and the base 0.9B
+with `evaluate_vl.py`, and leaves everything in `runs/<run id>/`. The older
+`colab_sft.ipynb` (full fine-tuning, A100 40 GB) is kept for reference.
+
+**The approved T4 test, step by step (you run every cell):**
+
+1. In Google Drive, create `MyDrive/tactilelens/` and upload into it the
+   two folders I prepared (about 0.3 MB): `tools/training_vl/` (5 files) and
+   `data/FAKE_split_T4_test.zip` (the FAKE dry-run split: 46 generated
+   images, labelled FAKE; the test needs data only to run, not to learn).
+2. colab.research.google.com > File > Upload notebook >
+   `tools/training_vl/colab_lora_sft.ipynb`.
+3. Runtime > Change runtime type > **T4 GPU** > Save.
+4. In cell 1 set `EXPERIMENTAL_T4 = True`. In cell 2 set
+   `SPLIT_ZIP = BASE / "data" / "FAKE_split_T4_test.zip"`.
+5. Run cells 1 to 6 in order. Cell 2 asks you to sign in to Google Drive.
+   Cell 4 installs PaddlePaddle and ERNIEKit on Colab (time not measured);
+   cell 5 downloads the 0.9B model to `MyDrive/tactilelens/cache/` (2.0
+   GiB of your Drive); cell 6 trains 20 steps.
+6. Do not run cells 7 and 8 (they stop in this mode anyway).
+7. Send me `MyDrive/tactilelens/runs/<id>_EXPERIMENTAL_T4/run.json` and
+   `logs/` (`train.log`, `gpu_memory.csv`), or paste the last 50 lines of
+   cell 6 and any error. If a cell fails, send that cell's output.
+8. Afterwards you may delete `runs/CURRENT_RUN.txt` (so a later run starts
+   fresh) and `cache/` (2.0 GiB) if Drive space is needed.
+
+What it can show: whether ERNIEKit accepts fp16 without flash attention
+for PaddleOCR-VL on a T4, peak GPU memory, seconds per step. What it
+cannot show: anything about accuracy (20 steps on FAKE data).
 
 **Serving for the demo**: run the fine-tuned model on the laptop through
 the AI service's local engine (`PADDLEOCR_ENGINE=local`); the deployed app
@@ -204,15 +278,26 @@ Until then `evaluate_vl.py --engine finetuned --model-dir ...` runs it.
 
 ## Public data for the preliminary run (Track A)
 
-Recommended (not downloaded):
-
 1. **im2latex-100k** (huggingface.co/datasets/yuntian-deng/im2latex-100k):
-   CC0-1.0; rendered printed formulas from arXiv LaTeX; train 55,033 / val
-   6,072 / test 6,810; about 337 MB. Mostly advanced math, so filter first.
+   CC0-1.0 (its README: `license: cc0-1.0`); rendered printed formulas
+   from arXiv LaTeX; train 55,033 / val 6,072 / test 6,810. **Downloaded
+   2026-11-08** to `tactilelens-training\data\public\im2latex-100k\`: three
+   Parquet files, 272,974,295 + 30,031,854 + 34,007,576 bytes (= the
+   listing). **Not filtered yet:** no environment can read Parquet (no
+   `pyarrow`); `pyarrow` 26.0.1 is a 27.7 MiB wheel (approval needed).
 2. **UniMER-Test SPE** (huggingface.co/datasets/wanderkid/UniMER_Dataset):
-   Apache-2.0 tag; 6,762 simple printed expressions; held out for
-   evaluation only. The whole UniMER download is about 2.13 GB (SPE alone:
-   not checked).
+   not downloaded. Hugging Face has only `UniMER-Test.zip` (146.7 MB, all
+   four test subsets) and `UniMER-1M.zip` (1,983.6 MB). Reading only the
+   zip's index (range requests, 2.4 MB) shows SPE can be fetched alone:
+   `spe/` 6,762 images, 9.1 MB, and `spe.txt` 36.6 MB (9.0 MB compressed),
+   so about **18 MB** to download. Source (dataset card): "Pix2tex
+   Validation". Pix2tex (github.com/lukas-blecher/LaTeX-OCR) renders LaTeX
+   collected from Wikipedia, arXiv and im2latex-100k with XeLaTeX in many
+   fonts; its MIT licence covers its code, and its README states no
+   licence for the data. The only licence on the UniMER dataset is the
+   card's `apache-2.0`, for the whole dataset; there is no separate SPE
+   statement. UniMER-1M (training) contains "Pix2tex Train", so SPE is
+   close to data a formula model like ours was probably trained on.
 
 Caveat: PP-FormulaNet was very likely trained on data from the same
 sources, so these are a plumbing and sanity check, not an unseen test;
@@ -258,25 +343,28 @@ how much of im2latex-100k it keeps is not measured.
 |---|---|---|---|---|
 | `20261107_224849_dryrun` | CPU | 192 / 40 (32 scored) | stopped at the 40-minute limit, then `--continue-run`: export, ONNX, evaluation | ONNX inputs/outputs and dictionary as the app's: yes; app model on synthetic-eval 68.5% exact (= October) |
 | `20261107_235841_dryrun` | GPU, batch 64 | 2,048 / 80 (72 scored) | finished in 195 s (40 steps), export, ONNX, evaluation | as above; peak 5,858 MB reserved |
+| `20261108_081812_dryrun` | GPU, batch 256 requested | 2,048 / 80 (72 scored) | batch 256 ran out of memory (cuDNN `CUDNN_STATUS_INTERNAL_ERROR_HOST_ALLOCATION_FAILED`), retried at 64, finished in 100 s | fallback works; peak at 64: 5,143 MB reserved |
 
 The "new" model's numbers in those runs (79.5% and 88.0% exact on
 synthetic-eval) come from a few steps on lines from the same generator as
 that eval set; they show the plumbing works, nothing about real photos.
 
-## Approvals needed (nothing below has been done)
+## Approvals
+
+Done after approval (2026-11-08): the Track A environment copy and
+packages, the checkpoint, the official inference model, the demo set,
+im2latex-100k (download only).
+
+Still needed:
 
 | item | size | why |
 |---|---|---|
-| Track A packages into a copy of `paddle_train_env` (`tokenizers==0.19.1`, `ftfy`, `imagesize`, `Wand`) | about 2.3 MB of wheels; the env copy is about the size of `paddle_train_env` (not measured) | formula training |
-| ImageMagick for Windows (Wand) | not checked | the Snow augmentation of a real Track A run |
-| `PP-FormulaNet_plus-S_pretrained.pdparams` | 244 MiB | Track A checkpoint |
-| optional: `PP-FormulaNet_plus-S_infer.tar` | 247 MiB | a second check of the export path |
-| optional: formula demo set `ocr_rec_latexocr_dataset_example.tar` | 23 MiB | memory trial before our data |
-| WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test |
-| `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test and the base-model baseline |
-| im2latex-100k | about 337 MB | preliminary Track A run |
-| UniMER-Test (SPE) | whole dataset about 2.13 GB | public held-out check |
-| AI service: optional VL model folder settings | code change | demo of a fine-tuned VL model |
+| `pyarrow` 26.0.1 into `paddle_formula_env` | 27.7 MiB wheel | read im2latex-100k's Parquet files to filter them |
+| UniMER-Test SPE only (range requests) | about 18 MB | public held-out check (licence: see above) |
+| ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
+| WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
+| `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |
+| AI service: optional VL model folder settings | code change | demo of a fine-tuned VL model (on hold) |
 
 Colab installs and downloads happen on Google's machines when you run the
 notebook; nothing is installed on the PC for that.
