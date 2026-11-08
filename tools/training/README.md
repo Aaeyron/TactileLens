@@ -127,7 +127,9 @@ with the app's model and the new one on every eval set:
 On Windows PaddleOCR skips the last batch of every validation pass
 (`tools/program.py`), so validation runs in batches of 8
 (`--eval-batch-size`) and the run refuses if fewer than 80% of the
-validation lines would be scored. If a run stops after training (or is
+validation lines would be scored. If the GPU runs out of memory, the run
+retries at batch 48, then 32 (`--fallback-batch-sizes`; tests:
+`python -m unittest discover -s tests -t .`). If a run stops after training (or is
 interrupted), `train_full.py --continue-run <run folder>` skips training
 and continues with export, ONNX and evaluation from that run's
 checkpoint. Dry-run options (`--cpu`,

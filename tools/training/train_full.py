@@ -39,6 +39,7 @@ import datetime as dt
 import json
 import os
 import random
+import shutil
 import re
 import subprocess
 import sys
@@ -62,6 +63,10 @@ HERE = Path(__file__).resolve().parent
 BEST_LINE = re.compile(r"best metric, acc: ")
 ONNX_PYTHON = Path(r"C:\Projects\Capstone\paddle_onnx_env\Scripts\python.exe")
 PADDLEX = ONNX_PYTHON.parent / "paddlex.exe"
+# How running out of GPU memory shows up in the trainer log (seen 2026-11-08:
+# cuDNN reports it as a failed allocation, not as "out of memory").
+OOM_SIGNS = ("ResourceExhaustedError", "cudaErrorMemoryAllocation", "CUDA error(2)",
+             "CUDNN_STATUS_ALLOC_FAILED", "ALLOCATION_FAILED")
 METRIC = re.compile(r"cur metric, acc: ([\d.]+)")
 MAX_EPOCHS = 8
 
@@ -118,7 +123,7 @@ def train(python: str, config: Path, log_path: Path, patience: int, max_seconds:
         while process.poll() is None:
             time.sleep(5)
             text = log_path.read_text(encoding="utf-8", errors="replace")
-            if "out of memory" in text.lower() or "ResourceExhaustedError" in text:
+            if any(sign in text for sign in OOM_SIGNS) or "out of memory" in text.lower():
                 outcome = "oom"
                 break
             metrics = [float(m) for m in METRIC.findall(text)]
@@ -145,6 +150,26 @@ def train(python: str, config: Path, log_path: Path, patience: int, max_seconds:
             outcome = "finished" if process.returncode == 0 else "error"
     return {"outcome": outcome, "seconds": round(time.time() - start), "validation_acc": history,
             "best_validation_acc": best if best >= 0 else None}
+
+
+def fallback_sizes(requested: int, fallbacks: str) -> list[int]:
+    """The requested batch, then each smaller fallback (default 48, 32)."""
+
+    sizes = [requested] + [int(b) for b in fallbacks.split(",") if b.strip() and int(b) < requested]
+    return list(dict.fromkeys(sizes))
+
+
+def train_with_fallback(sizes: list[int], attempt) -> tuple[int, dict, list[dict]]:
+    """Runs attempt(batch) for each size until one does not run out of GPU
+    memory. Returns (batch used, its result, every attempt)."""
+
+    attempts = []
+    for batch_size in sizes:
+        result = attempt(batch_size)
+        attempts.append({"batch_size": batch_size, "outcome": result["outcome"]})
+        if result["outcome"] != "oom":
+            return batch_size, result, attempts
+    raise SystemExit(f"Out of GPU memory at every batch size {sizes}; see train_bs*.log")
 
 
 def run_logged(command: list[str], log_path: Path, cwd: Path | None = None, path_first: Path | None = None) -> int:
@@ -234,7 +259,8 @@ def export_and_compare(run: dict, run_dir: Path, layout: Layout) -> None:
 
     lines = [f"# Recognizer {run['kind']}: {run_id}", "",
              f"- Training lines {run['train_lines']}, validation {run['val_lines']} ({run['validation']};"
-             f" {run['val_lines_scored_per_validation']} scored per validation), batch {run['args']['batch_size']},"
+             f" {run['val_lines_scored_per_validation']} scored per validation), batch {run.get('batch_size', run['args']['batch_size'])}"
+             f"{' (after running out of memory at ' + ', '.join(str(a['batch_size']) for a in run.get('batch_attempts', [])[:-1]) + ')' if len(run.get('batch_attempts', [])) > 1 else ''},"
              f" at most {run['args']['epochs']} epochs, patience {run['args']['patience']}",
              f"- Training: {run['training']['outcome']} after {run['training']['seconds']} s,"
              f" best validation acc {run['training']['best_validation_acc']}",
@@ -268,6 +294,8 @@ def main() -> None:
     parser.add_argument("--root")
     parser.add_argument("--split", help="a dataset split folder (tools/dataset/split_dataset.py)")
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--fallback-batch-sizes", default="48,32",
+                        help="tried in order if the GPU runs out of memory (only those below --batch-size)")
     parser.add_argument("--epochs", type=int, default=MAX_EPOCHS, help=f"at most {MAX_EPOCHS}")
     parser.add_argument("--eval-every", type=int, help="validation every N steps (default: twice per epoch)")
     parser.add_argument("--eval-batch-size", type=int, default=8,
@@ -341,11 +369,6 @@ def main() -> None:
         with open(run_dir / name, "w", encoding="utf-8", newline="\n") as handle:
             handle.writelines(f"{image}\t{text}\n" for image, text in rows)
 
-    steps_per_epoch = -(-len(train_rows) // args.batch_size)
-    trial_args = argparse.Namespace(epochs=args.epochs, eval_every=args.eval_every or max(steps_per_epoch // 2, 1),
-                                    amp=args.amp, lr=args.lr, warmup_epochs=args.warmup_epochs, workers=args.workers)
-    config = make_config(trial_args, run_dir, root, args.batch_size)
-
     # On Windows PaddleOCR's tools/program.py skips the LAST batch of every
     # validation (max_iter = len(loader) - 1). Validate in small batches so
     # few lines are lost, and refuse if too few would be scored.
@@ -355,13 +378,26 @@ def main() -> None:
         raise SystemExit(f"Only {scored} of {len(val_rows)} validation lines would be scored on Windows "
                          f"(the last batch of {args.eval_batch_size} is skipped). Add validation lines or "
                          "lower --eval-batch-size.")
-    import yaml  # noqa: E402
 
-    data = yaml.safe_load(config.read_text(encoding="utf-8"))
-    data["Eval"]["loader"]["batch_size_per_card"] = args.eval_batch_size
-    if args.cpu:
-        data["Global"].update({"use_gpu": False, "use_amp": False})
-    config.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    def build_config(batch_size: int) -> tuple[Path, int, int]:
+        """config_bs<N>.yml for this batch size; (path, steps per epoch, eval every)."""
+
+        import yaml  # noqa: E402
+
+        steps = -(-len(train_rows) // batch_size)
+        trial_args = argparse.Namespace(epochs=args.epochs, eval_every=args.eval_every or max(steps // 2, 1),
+                                        amp=args.amp, lr=args.lr, warmup_epochs=args.warmup_epochs,
+                                        workers=args.workers)
+        path = make_config(trial_args, run_dir, root, batch_size)
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data["Eval"]["loader"]["batch_size_per_card"] = args.eval_batch_size
+        if args.cpu:
+            data["Global"].update({"use_gpu": False, "use_amp": False})
+        path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return path, steps, trial_args.eval_every
+
+    sizes = fallback_sizes(args.batch_size, args.fallback_batch_sizes)
+    config, steps_per_epoch, eval_every = build_config(sizes[0])
 
     import paddle  # noqa: E402  (training env only)
 
@@ -370,7 +406,8 @@ def main() -> None:
         "started": dt.datetime.now().isoformat(timespec="seconds"),
         "args": vars(args), "split": str(split) if split else None,
         "train_lines": len(train_rows), "val_lines": len(val_rows), "validation": val_kind,
-        "steps_per_epoch": steps_per_epoch, "eval_every_steps": trial_args.eval_every,
+        "steps_per_epoch": steps_per_epoch, "eval_every_steps": eval_every,
+        "batch_sizes_to_try": sizes,
         "val_lines_scored_per_validation": scored, "eval_batch_size": args.eval_batch_size,
         "base_config": str(CONFIG), "config": str(config),
         "pretrained": {"path": str(PRETRAINED), "sha256": sha256_of(PRETRAINED)},
@@ -380,12 +417,24 @@ def main() -> None:
     write = lambda: (run_dir / "run.json").write_text(json.dumps(run, ensure_ascii=False, indent=1), encoding="utf-8")  # noqa: E731
     write()
 
-    sampler = GpuSampler()
-    sampler.start()
-    run["training"] = train(sys.executable, config, run_dir / "train.log", args.patience,
-                            args.max_minutes * 60 if args.max_minutes else None)
-    sampler.stop.set()
-    run["training"]["gpu_peak_nvidia_smi_mb"] = sampler.peak or "not measured (nvidia-smi unavailable)"
+    def attempt(batch_size: int) -> dict:
+        nonlocal config
+        config, steps, every = build_config(batch_size)
+        run.update({"config": str(config), "steps_per_epoch": steps, "eval_every_steps": every})
+        if (run_dir / "model").exists():  # partial checkpoints of a failed attempt
+            shutil.rmtree(run_dir / "model")
+        sampler = GpuSampler()
+        sampler.start()
+        result = train(sys.executable, config, run_dir / f"train_bs{batch_size}.log", args.patience,
+                       args.max_minutes * 60 if args.max_minutes else None)
+        sampler.stop.set()
+        result["gpu_peak_nvidia_smi_mb"] = sampler.peak or "not measured (nvidia-smi unavailable)"
+        print(f"batch {batch_size}: {result['outcome']}")
+        return result
+
+    batch_size, run["training"], run["batch_attempts"] = train_with_fallback(sizes, attempt)
+    run["batch_size"] = batch_size
+    shutil.copyfile(run_dir / f"train_bs{batch_size}.log", run_dir / "train.log")
     steps, _ = parse_log(run_dir / "train.log")
     if steps:
         keys = list(dict.fromkeys(k for s in steps for k in s))
