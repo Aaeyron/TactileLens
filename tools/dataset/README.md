@@ -1,4 +1,4 @@
-# Dataset intake and split (all training tracks)
+# Datasets: intake, splits, public and synthetic data (all tracks)
 
 The first two steps when a dataset arrives, before any training. One
 audit and one split feed all three tracks, so an item held out for one
@@ -15,16 +15,16 @@ never in git. Python: any of our environments with Pillow
 
 ## 1. Audit: `intake.py`
 
-Put the delivery (zips and/or folders) in `<root>\incoming\`, then:
+Put the delivery (zips and/or folders) in `<root>\datasets\own\incoming\`, then:
 
 ```
 python intake.py
 ```
 
 The originals are never changed: zips are extracted and folders copied to
-`<root>\intake\<run>\extracted\` (zip entries that would escape the
+`<root>\datasets\own\intake\<run>\extracted\` (zip entries that would escape the
 folder are refused), and only that copy is read. Report:
-`<root>\intake\<run>\report.md` (+ `report.json`, `items.csv`).
+`<root>\datasets\own\intake\<run>\report.md` (+ `report.json`, `items.csv`).
 
 | check | result |
 |---|---|
@@ -43,7 +43,7 @@ deleted or fixed automatically.
 ## 2. Split: `split_dataset.py`
 
 ```
-python split_dataset.py --intake <root>\intake\<run>
+python split_dataset.py --intake <root>\datasets\own\intake\<run>
 ```
 
 - Groups: items with the same bytes, near-duplicates, the same task and
@@ -53,15 +53,15 @@ python split_dataset.py --intake <root>\intake\<run>
   too few captures (noted in the report). Then validation (10%), then
   training. `eval` given in the labels CSV is kept.
 - Leak guard against every existing eval set: the recognizer's
-  `eval/real` and `eval/synthetic`, and every item any earlier split held
-  out (`<root>\splits\frozen_eval.jsonl`, appended after each split).
+  `datasets/own/text_lines/eval` and `datasets/synthetic/text_lines/eval`, and every item any earlier split held
+  out (`<root>\datasets\own\splits\frozen_eval.jsonl`, appended after each split).
   An item an earlier split held out goes to eval again. An item matching
   the recognizer's eval sets stops the split with nothing written, unless
   `--drop-eval-overlap` leaves it out. After assigning, an independent
   check confirms no train/val item has the bytes, a near-duplicate or the
   target of an eval item.
 
-Output `<root>\splits\<id>\`: `images\`, `labels.csv`, `rec_{train,val,eval}.txt`
+Output `<root>\datasets\own\splits\<id>\`: `images\`, `labels.csv`, `rec_{train,val,eval}.txt`
 (one-line text items of kinds S/M/T in the recognizer's charset),
 `formula_{train,val,eval}.txt` (LaTeX without delimiters),
 `split_report.md`/`.json`.
@@ -69,7 +69,7 @@ Output `<root>\splits\<id>\`: `images\`, `labels.csv`, `rec_{train,val,eval}.txt
 ## Dry run on a FAKE delivery (done 2026-11-07)
 
 ```
-python make_fake_intake.py --out <scratch>\incoming --leak-from <root>\eval\synthetic
+python make_fake_intake.py --out <scratch>\incoming --leak-from <root>\datasets\synthetic\text_lines\eval
 python intake.py --incoming <scratch>\incoming --work <scratch>\intake --registry <scratch>\splits\frozen_eval.jsonl
 python split_dataset.py --intake <scratch>\intake\<run> --out <scratch>\splits --registry <scratch>\splits\frozen_eval.jsonl
 ```

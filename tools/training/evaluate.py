@@ -12,7 +12,7 @@ Metrics, overall and per topic (topic from the manifest):
   base exact           exact after superscripts are read as plain
                        characters (x² = x2): is the rest of the line right?
 
-Output: <root>/outputs/<tag>/<date>_<model sha256[:8]>_<set>/
+Output: <root>/evaluations/trackB_recognizer/<tag>/<date>_<model sha256[:8]>_<set>/ (or --out)
   results.md, results.csv, predictions.tsv
 The model hash, eval-set hash and date are in every file, so runs before
 and after training can be compared.
@@ -88,6 +88,7 @@ def main() -> None:
     parser.add_argument("--rec", default=str(REC_MODEL), help="recognizer ONNX (default: the app's)")
     parser.add_argument("--rec-config", default=str(REC_CONFIG), help="inference.yml with the dictionary")
     parser.add_argument("--tag", default="baseline")
+    parser.add_argument("--out", help="output folder (default: <root>/evaluations/trackB_recognizer/<tag>/...)")
     args = parser.parse_args()
 
     layout = Layout(root_dir(args.root))
@@ -122,7 +123,7 @@ def main() -> None:
     model_hash = sha256_of(Path(args.rec))
     eval_hash = hashlib.sha256(label_file.read_bytes()).hexdigest()
     today = dt.date.today().isoformat()
-    out = layout.outputs / args.tag / f"{today}_{model_hash[:8]}_{set_name}"
+    out = Path(args.out) if args.out else layout.evaluations("trackB_recognizer") / args.tag / f"{today}_{model_hash[:8]}_{set_name}"
     out.mkdir(parents=True, exist_ok=True)
 
     table = [overall.row("ALL")] + [by_topic[t].row(t) for t in sorted(by_topic)]

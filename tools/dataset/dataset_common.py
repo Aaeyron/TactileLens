@@ -241,7 +241,7 @@ def existing_eval_images(root: Path, registry: Path | None = None) -> dict[str, 
 
 
 def registry_path(root: Path) -> Path:
-    return root / "splits" / "frozen_eval.jsonl"
+    return rec_common.Layout(root).registry
 
 
 def read_registry(path: Path) -> list[dict]:

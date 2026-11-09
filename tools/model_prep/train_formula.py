@@ -28,9 +28,11 @@ images/, e.g. tools/dataset/prepare_im2latex.py's output.
    preprocessing, CPU, 4 threads) on --eval-list (default test.txt), and
    compares them with compare_formula.py.
 
-Output: <root>/outputs/formula_runs/<time>_<name>/ with train.log,
-gpu_memory.csv, run.json, summary.md, model/ (checkpoints), export/
-and eval/.
+Output: <root>/runs/<date>-<time>_trackA_<data>_<name>/ (data: im2latex,
+im2latex+synthetic, or the data folder's name), sorted at the end by
+common.tidy_run: run.json, summary.md, config/, logs/, charts/,
+best_checkpoint/, checkpoints/ (others), onnx/, evaluation/ (the app's
+and the new model's scores and the comparison).
 """
 
 from __future__ import annotations
@@ -51,7 +53,11 @@ HERE = Path(__file__).resolve().parent
 PADDLEOCR = Path(r"C:\Projects\Capstone\PaddleOCR-official")
 CONFIG = PADDLEOCR / "configs" / "rec" / "PP-FormuaNet" / "PP-FormulaNet_plus-S.yaml"
 ROOT = Path(os.environ.get("TL_TRAIN_ROOT", r"C:\Projects\Capstone\tactilelens-training"))
-PRETRAINED = ROOT / "pretrained" / "formula" / "PP-FormulaNet_plus-S_pretrained"
+sys.path.insert(0, str(HERE.parent / "training"))
+from common import Layout, tidy_run  # noqa: E402  (tools/training/common.py: the workspace layout)
+
+LAYOUT = Layout(ROOT)
+PRETRAINED = LAYOUT.pretrained / "formula" / "PP-FormulaNet_plus-S_pretrained"
 ONNX_PYTHON = Path(r"C:\Projects\Capstone\paddle_onnx_env\Scripts\python.exe")
 APP_MODEL = HERE.parents[1] / "frontend" / "android" / "app" / "src" / "main" / "assets" / "paddle_onnx" / \
     "PP-FormulaNet_plus-S" / "pp-formulanet_plus-s.onnx"
@@ -317,9 +323,9 @@ def run(cmd: list[str], log: Path, cwd: Path = HERE) -> tuple[int, str]:
     return code, log.read_text(encoding="utf-8", errors="replace")
 
 
-def evaluate(model: Path, labels: Path, tag: str, out: Path) -> Path | None:
+def evaluate(model: Path, labels: Path, tag: str, out: Path, sub: str) -> Path | None:
     code, text = run([str(ONNX_PYTHON), "evaluate_formula.py", "--labels", str(labels), "--model", str(model),
-                      "--tag", tag, "--root", str(ROOT)], out / f"eval_{tag}.log")
+                      "--tag", tag, "--root", str(ROOT), "--out", str(out / "eval" / sub)], out / f"eval_{sub}.log")
     found = re.findall(r"Written to (.+)", text)
     return Path(found[-1].strip()) if code == 0 and found else None
 
@@ -357,7 +363,8 @@ def main() -> None:
             raise SystemExit(f"missing {f}")
     for f in (data / "train.txt", data / "val.txt", eval_list):
         check_label_file(f)
-    out = ROOT / "outputs" / "formula_runs" / f"{dt.datetime.now():%Y%m%d_%H%M%S}_{args.name}"
+    data_tag = ("im2latex" if "im2latex" in str(data) else data.name) + ("+synthetic" if args.extra_train else "")
+    out = LAYOUT.run_dir("trackA", data_tag, args.name)
     out.mkdir(parents=True)
     info = {"args": vars(args), "config": str(CONFIG), "pretrained": str(PRETRAINED), "precision": "fp32",
             "snow_augmentation": "skipped (no ImageMagick)", "eval_list": str(eval_list)}
@@ -381,8 +388,8 @@ def main() -> None:
         if info["export"] == "ok" and args.no_final_eval:
             info["comparison"] = "skipped (--no-final-eval: the evaluation list is kept for the real run)"
         elif info["export"] == "ok":
-            before = evaluate(APP_MODEL, eval_list, "app", out)
-            after = evaluate(onnx, eval_list, f"run_{out.name}", out)
+            before = evaluate(APP_MODEL, eval_list, "app", out, "app")
+            after = evaluate(onnx, eval_list, f"run_{out.name}", out, "new")
             info["eval_app"], info["eval_new"] = str(before), str(after)
             if before and after:
                 code, text = run([str(ONNX_PYTHON), "compare_formula.py", "--before", str(before), "--after", str(after),
@@ -416,6 +423,9 @@ def main() -> None:
         lines += ["", Path(info["comparison"]).read_text(encoding="utf-8")]
     (out / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
+    # Sort the finished run (config/ logs/ charts/ best_checkpoint/ onnx/ evaluation/).
+    tidy_run(out)
+    print(f"\nRun folder (sorted): {out}")
 
 
 if __name__ == "__main__":

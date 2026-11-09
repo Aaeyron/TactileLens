@@ -207,7 +207,7 @@ def main() -> None:
     root = rec_common.root_dir(args.root)
     intake = Path(args.intake)
     registry = Path(args.registry) if args.registry else dc.registry_path(root)
-    out_base = Path(args.out) if args.out else root / "splits"
+    out_base = Path(args.out) if args.out else rec_common.Layout(root).splits
 
     all_items = dc.read_items(intake / "items.csv")
     excluded = {}

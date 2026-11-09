@@ -153,8 +153,9 @@ are in [docs/setup.md](docs/setup.md#environment-variables).
 | Backend (Node) | `cd backend && npm test` | 31 passed |
 | App (Flutter) | `cd frontend && flutter test` | 241 passed |
 | Android (Kotlin) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` | 4 passed |
-| VL tools | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed |
-| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-09) |
+| VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed (2026-11-10) |
+| Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-10) |
+| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-10) |
 | Formula comparison (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula` (`paddle_onnx_env`) | 10 passed (2026-11-10) |
 
 Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9
@@ -182,10 +183,10 @@ TactileLens/
 │   └── third_party/             Liblouis and llama.cpp (git submodules)
 ├── docs/                        architecture, setup, evaluation plan
 └── tools/
-    ├── dataset/                 intake audit and split for every training track
-    ├── model_prep/              inspect and test the ONNX exports, formula model evaluation
-    ├── training/                offline recognizer: synthetic data, worksheets, evaluation, trial and full runs
-    └── training_vl/             PaddleOCR-VL: SFT data converter, evaluation harness, Colab notebooks
+    ├── dataset/                 datasets for all tracks: intake, split, public (im2latex) and synthetic formulas
+    ├── model_prep/              Track A: on-device formula model: ONNX checks, training, export, evaluation
+    ├── training/                Track B: on-device text-line recognizer; also the workspace layout (common.py)
+    └── training_vl/             Track C: PaddleOCR-VL: SFT data converter, evaluation harness, Colab notebooks
 ```
 
 ## Evaluation and training status

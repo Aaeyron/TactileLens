@@ -326,8 +326,9 @@ def main() -> None:
 
     root = rec_common.root_dir(args.root)
     registry = Path(args.registry) if args.registry else None
-    incoming = Path(args.incoming) if args.incoming else root / "incoming"
-    work = Path(args.work) if args.work else root / "intake"
+    layout = rec_common.Layout(root)
+    incoming = Path(args.incoming) if args.incoming else layout.incoming
+    work = Path(args.work) if args.work else layout.intake
     if not incoming.is_dir() or not any(incoming.iterdir()):
         raise SystemExit(f"Nothing to audit in {incoming}")
     if work.resolve().is_relative_to(incoming.resolve()):

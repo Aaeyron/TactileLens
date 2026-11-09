@@ -9,7 +9,7 @@ function_notation) the templates below draw random worksheet-level
 formulas (e.g. \\frac{3x+1}{4}=2, \\sqrt{x+9}=5, -3<2x+1\\leq 7). Each is
 rendered with matplotlib's mathtext in one of 10 font styles (5 built-in
 math font sets + Latin Modern, TeX Gyre Termes / Pagella, Liberation
-Serif / Sans from <root>/fonts) and put on paper with Track B's
+Serif / Sans from <root>/resources/fonts) and put on paper with Track B's
 backgrounds (tools/training/render.py: _background, _ink) and phone-photo
 effects of the same kinds as Track B's augment_v2 with formula-safe ranges
 (formula_effects); about 15% are left clean.
@@ -20,7 +20,7 @@ two labels). The formula a template writes is exactly what is drawn.
 
 Leak guard (training only): a formula is dropped when its LaTeX (spaces
 removed) equals an im2latex-100k val or test formula of --im2latex, or a
-formula target in the frozen eval registry (<root>/splits/frozen_eval.jsonl,
+formula target in the frozen eval registry (<root>/datasets/own/splits/frozen_eval.jsonl,
 when it exists), or an earlier synthetic formula (no duplicates).
 
 Writes <out>/images/<topic>_syn_<n>.png, <out>/train.txt (LF line ends,
@@ -50,6 +50,9 @@ TOPICS = ["fractions", "exponents", "radicals", "linear_equations", "quadratic_e
 TOKEN = re.compile(r"\\[A-Za-z]+|\\.|[{}^_]|[A-Za-z]|\d|[^\sA-Za-z\d]")  # algebra_filter.py's
 VARS = ["x", "x", "x", "y", "a", "n", "m", "t", "b", "k"]
 ROOT = Path(os.environ.get("TL_TRAIN_ROOT", r"C:\Projects\Capstone\tactilelens-training"))
+from common import Layout  # noqa: E402  (tools/training/common.py: the workspace layout)
+
+LAYOUT = Layout(ROOT)
 
 
 # ------------------------------------------------------------- templates
@@ -234,7 +237,7 @@ def _init_worker() -> None:
     for name, files in CUSTOM.items():
         names = []
         for f in files:
-            path = ROOT / "fonts" / f
+            path = LAYOUT.fonts / f
             font_manager.fontManager.addfont(str(path))
             names.append(font_manager.FontProperties(fname=str(path)).get_name())
         _custom_names[name] = (names[0], names[1])
@@ -383,7 +386,7 @@ def held_out_keys(im2latex: Path | None) -> dict[str, str]:
             for line in (im2latex / f"{split}.txt").read_text(encoding="utf-8").splitlines():
                 if "\t" in line:
                     keys[key(line.split("\t", 1)[1])] = f"im2latex {split}"
-    registry = ROOT / "splits" / "frozen_eval.jsonl"
+    registry = LAYOUT.registry
     if registry.exists():
         for line in registry.read_text(encoding="utf-8").splitlines():
             entry = json.loads(line) if line.strip() else {}
@@ -398,7 +401,7 @@ def main() -> None:
     parser.add_argument("--per-topic", type=int, default=300)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=2026)
-    parser.add_argument("--im2latex", default=str(ROOT / "data" / "public" / "im2latex_algebra_lf"),
+    parser.add_argument("--im2latex", default=str(LAYOUT.im2latex_filtered),
                         help="prepare_im2latex.py output; its val and test formulas are never generated")
     args = parser.parse_args()
 
@@ -408,7 +411,7 @@ def main() -> None:
     (out / "images").mkdir(parents=True, exist_ok=True)
     held = held_out_keys(Path(args.im2latex) if args.im2latex else None)
     print(f"leak guard: {len(held)} held-out formulas "
-          f"({'with' if (ROOT / 'splits' / 'frozen_eval.jsonl').exists() else 'no'} frozen eval registry)")
+          f"({'with' if LAYOUT.registry.exists() else 'no'} frozen eval registry)")
 
     r = random.Random(args.seed)
     jobs, seen, drops = [], set(), {t: {"duplicate": 0, "held-out formula": 0} for t in TOPICS}
@@ -444,7 +447,7 @@ def main() -> None:
              f"- Generated {len(rows)} images in {seconds:.0f} s with {args.workers} processes "
              f"({len(rows) / seconds:.1f} images/s); seed {args.seed}.",
              f"- Leak guard: {len(held)} held-out formulas (im2latex val/test"
-             f"{', frozen eval registry' if (ROOT / 'splits' / 'frozen_eval.jsonl').exists() else '; no frozen eval registry yet'}).",
+             f"{', frozen eval registry' if LAYOUT.registry.exists() else '; no frozen eval registry yet'}).",
              f"- Clean (no photo effects): {clean}; with photo effects (formula_effects): {len(rows) - clean}.", "",
              "| topic | images | dropped: duplicate | dropped: held-out formula |", "|---|---|---|---|"]
     lines += [f"| {t} | {per_topic[t]} | {drops[t]['duplicate']} | {drops[t]['held-out formula']} |" for t in TOPICS]

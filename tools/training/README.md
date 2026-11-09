@@ -1,4 +1,4 @@
-# Offline recognizer: training groundwork
+# Track B: on-device text-line recognizer (PP-OCRv6 small rec)
 
 Tools to build data for, and measure, the offline text recognizer
 (PP-OCRv6 small rec, `frontend/android/app/src/main/assets/paddle_onnx/PP-OCRv6-small-rec-onnx/`)
@@ -21,14 +21,14 @@ can be copied to Google Drive / Colab as is.
 
 ```
 fonts/                    open fonts + licences (FONTS.md)
-data/synthetic/images/    train.txt  val.txt
-data/real/images/         train.txt
-eval/synthetic/images/    labels.txt        held out
-eval/real/images/         labels.txt        held out, NEVER used for training
+datasets/synthetic/text_lines/train_val/images/    train.txt  val.txt
+datasets/own/text_lines/train_val/images/         train.txt
+datasets/synthetic/text_lines/eval/images/    labels.txt        held out
+datasets/own/text_lines/eval/images/         labels.txt        held out, NEVER used for training
 worksheets/               W001.pdf/.png/.json ...
-review/<sheet>/           crops that need a human (review.tsv)
-manifests/<set>.jsonl     one row per image
-outputs/<tag>/<date>_<model sha8>_<set>/   results.md results.csv predictions.tsv
+datasets/own/photo_pairs_review/<sheet>/           crops that need a human (review.tsv)
+datasets/synthetic/text_lines/manifests/<set>.jsonl     one row per image
+evaluations/trackB_recognizer/<tag>/<date>_<model sha8>_<set>/   results.md results.csv predictions.tsv
 ```
 
 ## Formats
@@ -105,21 +105,21 @@ python compare_models.py --set real-eval --b C:\path\trained.onnx --b-name train
 ## Full run (Track B)
 
 ```
-C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split <root>\splits\<id>
+C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split <root>\datasets\own\splits\<id>
 ```
 
-Training lines from `data/synthetic/train.txt`, `data/real/train.txt` and
+Training lines from `datasets/synthetic/text_lines/train_val/train.txt`, `datasets/own/text_lines/train_val/train.txt` and
 the dataset split's `rec_train.txt` (`tools/dataset/`). The checkpoint is
 picked, and training stopped early (3 validations without improvement),
-on REAL validation lines only (`data/real/val.txt`, the split's
+on REAL validation lines only (`datasets/own/text_lines/train_val/val.txt`, the split's
 `rec_val.txt`); with none it stops. Batch 64, at most 8 epochs. The leak
-guard also compares bytes with every eval image (eval/real,
-eval/synthetic, the split's `rec_eval.txt`, the frozen eval registry).
+guard also compares bytes with every eval image (datasets/own/text_lines/eval,
+datasets/synthetic/text_lines/eval, the split's `rec_eval.txt`, the frozen eval registry).
 Full precision by default (AMP crashes with NumPy 2.4 here; see
 docs/training_runbook.md). Then export, ONNX with PaddleX paddle2onnx (opset 17), a check of the
 ONNX inputs/outputs and dictionary against the app's, and `evaluate.py`
 with the app's model and the new one on every eval set:
-`outputs/full/<run>/comparison.md`. The app is not changed.
+`runs/<date>-<time>_trackB_<data>_full/comparison.md`. The app is not changed.
 
 `evaluate.py --labels <file>` scores any label file (e.g. a split's
 `rec_eval.txt`; topic from the file name).
@@ -144,7 +144,7 @@ training lines. The starter sheets do that:
 - Eval: W001-W010 (16 lines each, including the seven fixed cases).
 - Training: W101-W113 (16 lines each, template lines only).
 
-1. Print `worksheets/Wxxx.pdf` on A4 at 100% (no "fit to page").
+1. Print `datasets/synthetic/worksheets/Wxxx.pdf` on A4 at 100% (no "fit to page").
 2. Photograph each sheet with your phone, the whole page in view, roughly
    flat, normal room light. Eval sheets: one photo each. Training sheets:
    1-3 photos each in different light, angle or distance.
@@ -154,13 +154,13 @@ training lines. The starter sheets do that:
    ```
    python pair_photos.py --sheet W001 C:\photos\W001_a.jpg
    ```
-   Lines that match their known text clearly go to `eval/real` (eval
-   sheets) or `data/real` (training sheets). The rest go to
-   `review/<sheet>/` with `review.tsv` (crop, what was read, best guess,
+   Lines that match their known text clearly go to `datasets/own/text_lines/eval` (eval
+   sheets) or `datasets/own/text_lines/train_val` (training sheets). The rest go to
+   `datasets/own/photo_pairs_review/<sheet>/` with `review.tsv` (crop, what was read, best guess,
    similarity): check them by hand; they are never added automatically.
 5. Real validation (to pick checkpoints during training, never eval):
    pair the photos of a few training sheets (W111-W113) with `--val`.
-   They go to `data/real/val.txt`, never into training or eval.
+   They go to `datasets/own/text_lines/train_val/val.txt`, never into training or eval.
 
 Do not photograph textbook pages or worksheets made by others.
 
@@ -177,6 +177,6 @@ identical and the boxes are within 2 px.
 
 ## Fonts
 
-See `<root>/fonts/FONTS.md`: DejaVu (Bitstream Vera + public domain),
+See `<root>/resources/fonts/FONTS.md`: DejaVu (Bitstream Vera + public domain),
 STIX (SIL OFL 1.1), Liberation (SIL OFL 1.1), TeX Gyre and Latin Modern
 (GUST Font License), each with its licence file.

@@ -26,7 +26,7 @@ Defaults follow the plan: batch 64, at most 8 epochs, early stopping.
   5. Runs evaluate.py (the app's preprocessing) with the app's model and
      the new one on every eval set that exists, and writes comparison.md.
 
-Everything goes to <root>/outputs/full/<run>/ (run.json, train.log,
+Everything goes to <root>/runs/<date>-<time>_trackB_<data>_<full|dryrun>/ (run.json, train.log,
 loss_curve.csv, model/, infer/, onnx/inference.onnx, comparison.md).
 Replacing the app's model is a separate, manual step after review.
 """
@@ -55,6 +55,7 @@ from common import (
     read_labels,
     root_dir,
     sha256_of,
+    tidy_run,
 )
 from train_trial import CONFIG, PRETRAINED, GpuSampler, make_config, parse_log
 from train_trial import PADDLEOCR as PADDLEOCR_ROOT
@@ -96,7 +97,7 @@ def eval_hashes(layout: Layout, split: Path | None) -> dict[str, str]:
     if split and (split / "rec_eval.txt").exists():
         for image, _ in read_labels(split / "rec_eval.txt"):
             found[sha256_of(split / image)] = f"{split.name}/rec_eval"
-    registry = layout.root / "splits" / "frozen_eval.jsonl"
+    registry = layout.registry
     if registry.exists():
         for line in registry.read_text(encoding="utf-8").splitlines():
             if line.strip():
@@ -251,9 +252,11 @@ def export_and_compare(run: dict, run_dir: Path, layout: Layout) -> None:
     comparison = []
     for name, selector in sets:
         safe = name.replace("/", "_")
-        app = evaluate([*selector, "--tag", f"{tag}_{run_id}_app"], run_dir / f"eval_app_{safe}.log")
+        app = evaluate([*selector, "--tag", f"{tag}_{run_id}_app", "--out", str(run_dir / "eval" / f"app_{safe}")],
+                       run_dir / f"eval_app_{safe}.log")
         new = evaluate([*selector, "--rec", str(new_onnx), "--rec-config", str(infer / "inference.yml"),
-                        "--tag", f"{tag}_{run_id}_new"], run_dir / f"eval_new_{safe}.log")
+                        "--tag", f"{tag}_{run_id}_new", "--out", str(run_dir / "eval" / f"new_{safe}")],
+                       run_dir / f"eval_new_{safe}.log")
         comparison.append((name, app, new))
     run["evaluation"] = [{"set": n, "app": str(a) if a else None, "new": str(b) if b else None} for n, a, b in comparison]
 
@@ -349,7 +352,7 @@ def main() -> None:
     val_rows, val_kind = real_val, "real"
     if not val_rows:
         if not args.allow_synthetic_val:
-            raise SystemExit("No REAL validation lines (data/real/val.txt or the split's rec_val.txt). "
+            raise SystemExit("No REAL validation lines (datasets/own/text_lines/train_val/val.txt or the split's rec_val.txt). "
                              "A full run must select checkpoints on real photos.")
         val_rows, val_kind = lines_of(layout.label_file("synthetic-val"), root), "synthetic (DRY RUN ONLY)"
     train_rows = subset(train_rows, args.subset_train, 1)
@@ -363,7 +366,9 @@ def main() -> None:
             raise SystemExit(f"LEAK: {image} has the same bytes as an eval image ({source}). Nothing trained.")
 
     run_id = dt.datetime.now().strftime("%Y%m%d_%H%M%S") + ("_dryrun" if dry_run else "_full")
-    run_dir = layout.outputs / args.tag / run_id
+    data_name = f"split-{split.name}" if split else "synthetic-lines"
+    run_dir = layout.run_dir("trackB", data_name, "dryrun" if dry_run else args.tag,
+                             when=dt.datetime.now().strftime("%Y%m%d-%H%M%S"))
     run_dir.mkdir(parents=True, exist_ok=True)
     for name, rows in (("train_list.txt", train_rows), ("val_list.txt", val_rows)):
         with open(run_dir / name, "w", encoding="utf-8", newline="\n") as handle:
@@ -447,6 +452,11 @@ def main() -> None:
     write()
 
     export_and_compare(run, run_dir, layout)
+    # Sort the finished run into config/ logs/ charts/ best_checkpoint/ onnx/
+    # evaluation/ (common.tidy_run). --continue-run needs an unsorted run,
+    # so a run is only sorted once everything has finished.
+    tidy_run(run_dir)
+    print(f"Sorted: {run_dir}")
 
 
 if __name__ == "__main__":

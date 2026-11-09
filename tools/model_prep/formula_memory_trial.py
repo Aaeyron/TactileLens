@@ -15,7 +15,7 @@ as such, and much slower). The largest batch that fits is reported. Nothing is s
 
 The "Snow" augmentation needs ImageMagick (Wand), which is not installed;
 it is skipped (returns the image unchanged). The other augmentations run
-as configured. Output: <root>/outputs/formula_trial/<time>/ (one log
+as configured. Output: <root>/runs/<date>-<time>_trackA_<data>_memory-trial/ (one log
 per batch size, results.json, results.md).
 """
 
@@ -36,7 +36,11 @@ HERE = Path(__file__).resolve().parent
 PADDLEOCR = Path(r"C:\Projects\Capstone\PaddleOCR-official")
 CONFIG = PADDLEOCR / "configs" / "rec" / "PP-FormuaNet" / "PP-FormulaNet_plus-S.yaml"
 ROOT = Path(os.environ.get("TL_TRAIN_ROOT", r"C:\Projects\Capstone\tactilelens-training"))
-PRETRAINED = ROOT / "pretrained" / "formula" / "PP-FormulaNet_plus-S_pretrained"
+sys.path.insert(0, str(HERE.parent / "training"))
+from common import Layout, tidy_run  # noqa: E402  (tools/training/common.py: the workspace layout)
+
+LAYOUT = Layout(ROOT)
+PRETRAINED = LAYOUT.pretrained / "formula" / "PP-FormulaNet_plus-S_pretrained"
 
 STEP = re.compile(r"global_step: (\d+), .*?avg_batch_cost: ([\d.]+) s, avg_samples: ([\d.]+), ips: ([\d.]+) samples/s"
                   r"(?:.*?max_mem_reserved: (\d+) MB)?")
@@ -135,7 +139,7 @@ def main() -> None:
     parser.add_argument("--keep-going", action="store_true", help="also measure the smaller sizes after one fits")
     args = parser.parse_args()
 
-    out = ROOT / "outputs" / "formula_trial" / dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    out = LAYOUT.run_dir("trackA", Path(args.data).name, "memory-trial")
     out.mkdir(parents=True, exist_ok=True)
     results = []
     for batch in [int(b) for b in args.batch_sizes.split(",")]:
@@ -158,7 +162,8 @@ def main() -> None:
     lines += ["", f"Largest batch that fits: {summary['largest_batch_that_fits']}"]
     (out / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
-    print(f"\nOutput: {out}")
+    tidy_run(out)
+    print(f"\nOutput (sorted): {out}")
 
 
 if __name__ == "__main__":

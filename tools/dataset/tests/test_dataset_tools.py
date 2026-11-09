@@ -34,16 +34,17 @@ class DatasetToolsTest(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         base = Path(cls.tmp.name)
         cls.root = base / "root"
-        # A tiny existing eval set (recognizer layout) to leak from.
-        images = cls.root / "eval" / "synthetic" / "images"
+        # A tiny existing eval set (recognizer layout: datasets/synthetic/text_lines/eval) to leak from.
+        eval_dir = dc.rec_common.Layout(cls.root).set_dir("synthetic-eval")
+        images = eval_dir / "images"
         images.mkdir(parents=True)
         image = Image.new("RGB", (300, 60), "white")
         ImageDraw.Draw(image).text((10, 20), "EVAL LINE 10^-3", fill="black")
         image.save(images / "e0001.png")
-        (cls.root / "eval" / "synthetic" / "labels.txt").write_text("images/e0001.png\tEVAL LINE 10⁻³\n", encoding="utf-8")
+        (eval_dir / "labels.txt").write_text("images/e0001.png\tEVAL LINE 10⁻³\n", encoding="utf-8")
 
         cls.incoming = base / "incoming"
-        result = run("make_fake_intake.py", "--out", cls.incoming, "--leak-from", cls.root / "eval" / "synthetic")
+        result = run("make_fake_intake.py", "--out", cls.incoming, "--leak-from", eval_dir)
         assert result.returncode == 0, result.stderr
         cls.registry = base / "splits" / "frozen_eval.jsonl"
         result = run("intake.py", "--root", cls.root, "--incoming", cls.incoming, "--work", base / "intake",

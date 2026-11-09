@@ -51,7 +51,7 @@ from pathlib import Path
 from vl_common import DEFAULT_CONFIG, HERE, REPO, load_config, normalize_for_compare, normalized_edit_distance
 
 DATA_ROOT = Path(r"C:\Projects\Capstone\tactilelens-training")
-DEFAULT_OUT_ROOT = DATA_ROOT / "outputs" / "vl_eval"
+DEFAULT_OUT_ROOT = DATA_ROOT / "evaluations" / "trackC_vl"
 VL_PYTHON = Path(r"C:\Projects\Capstone\paddleocr_vl_env\Scripts\python.exe")
 HOSTED_WARNING = (
     "Images sent to the hosted API are stored by Baidu. Send only your own material: "

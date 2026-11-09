@@ -15,7 +15,7 @@ fractions_pub_i2l-test_00012.png) and per formula length (LaTeX tokens;
 "simple" = at most 20): exact match after removing delimiters and spaces
 (the VL evaluator's comparison), and mean normalised edit distance.
 compare_formula.py compares two runs. Output:
-<root>/outputs/formula/<tag>/<date>_<model sha8>_<list>/ results.md,
+<root>/evaluations/trackA_formula/<tag>/<date>_<model sha8>_<list>/ (or --out) results.md,
 results.csv, predictions.tsv.
 """
 
@@ -42,7 +42,7 @@ sys.path.insert(0, str(REPO / "tools" / "training"))
 
 import test_formulanet as tf  # noqa: E402  (normalize, decode, load_tokenizer, constants)
 import vl_common  # noqa: E402
-from common import read_labels, root_dir, sha256_of  # noqa: E402
+from common import Layout, read_labels, root_dir, sha256_of  # noqa: E402
 
 APP_MODEL = REPO / "frontend" / "android" / "app" / "src" / "main" / "assets" / "paddle_onnx" / "PP-FormulaNet_plus-S" / "pp-formulanet_plus-s.onnx"
 TOKENIZERS = [
@@ -92,6 +92,7 @@ def main() -> None:
     parser.add_argument("--model", default=str(APP_MODEL))
     parser.add_argument("--tokenizer", help="tokenizer.json (default: the one the app's vocabulary came from)")
     parser.add_argument("--root")
+    parser.add_argument("--out", help="output folder (default: <root>/evaluations/trackA_formula/<tag>/...)")
     parser.add_argument("--tag", default="baseline")
     parser.add_argument("--threads", type=int, default=4, help="4 = the phone's setting")
     args = parser.parse_args()
@@ -130,7 +131,8 @@ def main() -> None:
     model_hash = sha256_of(Path(args.model))
     labels_hash = hashlib.sha256(label_file.read_bytes()).hexdigest()
     today = dt.date.today().isoformat()
-    out = root_dir(args.root) / "outputs" / "formula" / args.tag / f"{today}_{model_hash[:8]}_{label_file.parent.name}-{label_file.stem}"
+    out = Path(args.out) if args.out else (Layout(root_dir(args.root)).evaluations("trackA_formula") / args.tag
+                                           / f"{today}_{model_hash[:8]}_{label_file.parent.name}-{label_file.stem}")
     out.mkdir(parents=True, exist_ok=True)
     with open(out / "results.csv", "w", encoding="utf-8", newline="") as handle:
         handle.write(f"# date={today} model_sha256={model_hash} labels={label_file} labels_sha256={labels_hash}\n")

@@ -18,6 +18,45 @@ The app is not changed by any of this. Data stays in
 model into the app is a separate, reviewed step, and any change that
 affects Braille output goes to the Braille expert first.
 
+## Training workspace (layout of 2026-11-10)
+
+`C:\Projects\Capstone\tactilelens-training` (never in git; a README in
+each top-level folder):
+
+| folder | what |
+|---|---|
+| `datasets\public\im2latex-100k\raw\`, `\filtered_general_algebra\` | im2latex-100k as published, and filtered to general-algebra notation (formulas from physics papers) |
+| `datasets\public\paddleocr_formula_demo\` | PaddleOCR's formula demo set |
+| `datasets\own\incoming\`, `intake\`, `splits\` | our dataset: delivery, intake reports, splits and the frozen eval registry `splits\frozen_eval.jsonl` |
+| `datasets\own\text_lines\`, `photo_pairs_review\` | Track B real photo lines |
+| `datasets\synthetic\text_lines\`, `worksheets\`, `formulas_pilot_20261109\` | synthetic data (training only) |
+| `models\pretrained\` | official checkpoints and models |
+| `runs\<date>-<time>_<track>_<data>_<purpose>\` | one training run: `summary.md`, `run.json`, `config\`, `logs\`, `charts\`, `best_checkpoint\`, `checkpoints\` (others, where kept), `onnx\`, `evaluation\` |
+| `evaluations\trackA_formula\`, `trackB_recognizer\`, `trackC_vl\` | scores not tied to a run |
+| `reports\` | im2latex filtering report and panel page, notes, the move list |
+| `resources\fonts\`, `colab\upload\` | fonts; files for Google Drive / Colab |
+
+All tools take these paths from `Layout` in `tools/training/common.py`.
+`train_formula.py`, `train_full.py` and `formula_memory_trial.py` sort a
+finished run with `common.tidy_run`.
+
+Reorganisation (2026-11-10, approved): `tools/training/reorganize_workspace.py`;
+the move list (54 renames, nothing deleted) is
+`reports\workspace_move_list_20261110.md`. 19 earlier training runs were
+sorted the same way; the Track A ONNX verification and the Track C
+fake-data dry run were kept as written. Path strings in run JSON /
+Markdown / list files were rewritten to the new places (logs keep the
+paths of the day). Remaining references to paths that no longer exist
+were checked one by one: weights deleted earlier with your approval
+(CRLF subset, three ONNX files, check-run checkpoints), checkpoint names
+written without extension (the files exist), and the old `data` root in
+the two October trials (its contents are now split across `datasets\`).
+After the move: all tool tests pass (dataset 19, recognizer and layout
+12, VL 15, formula comparison 10), and a short Track A check run on the
+new layout (`runs\20261110-011959_trackA_im2latex+synthetic_layout-check`;
+40 + 48 items, 22 steps, export to ONNX, test split not scored) wrote and
+sorted its run folder correctly.
+
 ## Adoption rule for our own data (decided 2026-11-10, before any run on it)
 
 Written down before any model is trained or scored on our own dataset,
@@ -27,7 +66,7 @@ so the rule cannot be fitted to the results.
   replace the app's: Track A (PP-FormulaNet_plus-S) and the formula
   blocks of Track C. Track B (text lines) keeps its own rule (Day 3).
 - **Evaluation set:** the frozen eval registry of our own data
-  (`splits\frozen_eval.jsonl`), mainly phone captures (`cap`). The
+  (`datasets\own\splits\frozen_eval.jsonl`), mainly phone captures (`cap`). The
   registry is created by the first split of our data
   (`split_dataset.py`, Day 1) and only ever grows; its items are never
   trained on or used to choose settings or checkpoints.
@@ -52,9 +91,9 @@ so the rule cannot be fitted to the results.
 **You**
 
 1. Copy the delivery (zips and/or folders) into
-   `C:\Projects\Capstone\tactilelens-training\incoming\`. Keep the originals
+   `C:\Projects\Capstone\tactilelens-training\datasets\own\incoming\`. Keep the originals
    elsewhere too; the tools never change them.
-2. Read `intake\<run>\report.md` when I send it, and check every flagged
+2. Read `datasets\own\intake\<run>\report.md` when I send it, and check every flagged
    item (personal data, third-party pages, items already in an eval set).
    Tell me which flagged items may be used.
 3. Upload to Google Drive (for Track C):
@@ -69,13 +108,13 @@ so the rule cannot be fitted to the results.
 2. After your answers: `python tools\dataset\split_dataset.py --intake ...`
    (add `--allow-flagged` only for items you cleared). Held-out eval comes
    mainly from labelled phone captures; this first split **creates the
-   frozen eval registry** (`splits\frozen_eval.jsonl`), which keeps them
+   frozen eval registry** (`datasets\own\splits\frozen_eval.jsonl`), which keeps them
    out of training for good (see "Adoption rule for our own data").
-3. Zip `splits\<id>\images` + `labels.csv` for Drive and tell you its size.
+3. Zip `datasets\own\splits\<id>\images` + `labels.csv` for Drive and tell you its size.
 4. Baselines of today's models on the held-out eval (nothing trained yet):
-   - recognizer: `tools\training\evaluate.py --labels splits\<id>\rec_eval.txt`
-   - formula: `tools\model_prep\evaluate_formula.py --labels splits\<id>\formula_eval.txt`
-   - VL: `tools\training_vl\evaluate_vl.py --eval splits\<id>\sft --engine local`
+   - recognizer: `tools\training\evaluate.py --labels datasets\own\splits\<id>\rec_eval.txt`
+   - formula: `tools\model_prep\evaluate_formula.py --labels datasets\own\splits\<id>\formula_eval.txt`
+   - VL: `tools\training_vl\evaluate_vl.py --eval datasets\own\splits\<id>\sft --engine local`
      (PaddleOCR-VL-1.6 on the laptop; stop the AI service first)
 
 ## Day 2: training
@@ -84,16 +123,16 @@ so the rule cannot be fitted to the results.
 
 ```
 cd C:\Projects\Capstone\TactileLens\tools\training
-C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split C:\Projects\Capstone\tactilelens-training\splits\<id>
+C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split C:\Projects\Capstone\tactilelens-training\datasets\own\splits\<id>
 ```
 
 Batch 64, at most 8 epochs, validation on REAL lines only (the split's
-`rec_val.txt` and `data\real\val.txt`; it stops if there are none),
+`rec_val.txt` and `datasets\own\text_lines\train_val\val.txt`; it stops if there are none),
 early stopping after 3 validations without a better accuracy, then export,
 ONNX (PaddleX paddle2onnx, opset 17), a check of the ONNX inputs/outputs
 and dictionary against the app's, and `evaluate.py` with the app's model
 and the new one on every eval set. Output and `comparison.md`:
-`outputs\full\<run>\`. Full precision (AMP crashes in this environment,
+`runs\<date>-<time>_trackB_<data>_full\`. Full precision (AMP crashes in this environment,
 see "Known issues").
 
 Measured so far (synthetic lines only, not a result):
@@ -188,12 +227,12 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
    unchanged. Use `python -m pip` in the copy (its `pip.exe` points to the
    old folder).
 2. **Downloads** (sizes equal to the servers'): in
-   `tactilelens-training\pretrained\formula\`
+   `tactilelens-training\models\pretrained\formula\`
    `PP-FormulaNet_plus-S_pretrained.pdparams` (256,890,832 bytes, sha256
    `a8a72053...`) and `PP-FormulaNet_plus-S_infer.tar` (259,604,480,
    `31e8659f...`); the demo set `ocr_rec_latexocr_dataset_example.tar`
    (25,108,480, `6ed9bd71...`; 10,000 train / 500 val arXiv-style formulas)
-   in `data\public\formula_demo\`.
+   in `datasets\public\paddleocr_formula_demo\`.
 3. **The app's ONNX is this model** (`tools/model_prep/compare_onnx.py`):
    - official inference model -> `paddlex --paddle2onnx` vs the app's
      ONNX: all 836 weight tensors (57,916,120 values) identical, same 1,160
@@ -215,7 +254,7 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
      `tools/export_model.py` runs unchanged.
 4. **Memory trial on the RTX 4050** (`tools/model_prep/formula_memory_trial.py`;
    demo set, 30 steps per batch, fp32, Snow skipped, from the official
-   checkpoint; `outputs\formula_trial\20261108_161345\`):
+   checkpoint; `runs\20261108-161345_trackA_paddleocr-demo_memory-trial\`):
 
    | batch | result | trainer max_mem_reserved | nvidia-smi peak | s/step | samples/s |
    |---|---|---|---|---|---|
@@ -315,7 +354,7 @@ first experiment on public data, not a model for the app):**
   worse: the strict gain came from copying im2latex's spacing habits,
   while real errors increased (e.g. `v~<<0`, runs of backslashes,
   `\frac\{P{((z)}}`).
-- Outputs: `tactilelens-training\outputs\formula_runs\20261109_163905_prelim\`
+- Outputs: `tactilelens-training\runs\20261109-163905_trackA_im2latex_prelim\`
   (`summary.md`, `run.json`, charts, `eval\comparison.md`). Kept: the
   epoch-5 checkpoint (`model\best_accuracy.*`) and its export (ONNX); the
   other checkpoints were deleted (2026-11-10, approved), 1.2 GB left.
@@ -332,7 +371,7 @@ alongside (`compare_formula.py`, 10 tests).
 
 **Synthetic pilot (built 2026-11-10, approved)**:
 `tools/dataset/make_synthetic_formulas.py`, output
-`tactilelens-training\data\synthetic\formula_pilot_20261109\` (2,400
+`tactilelens-training\datasets\synthetic\formulas_pilot_20261109\` (2,400
 images, 122 MB; `train.txt` only, LF; `manifest.jsonl`; `report.md`).
 
 - 300 per topic from templates at worksheet level (e.g.
@@ -397,7 +436,7 @@ the last run on im2latex: after this we wait for our own data).**
   im2latex's spacing style; no clear gain in reading formulas on this
   physics-paper data. Whether the synthetic worksheet formulas help on
   real worksheets can only be shown on our own `cap` eval set.
-- Outputs: `tactilelens-training\outputs\formula_runs\20261109_235227_followup_synth\`
+- Outputs: `tactilelens-training\runs\20261109-235227_trackA_im2latex+synthetic_followup\`
   (2.5 GB with all checkpoints). The plumbing check before it
   (`20261109_234813_check_mix`, 40 + 48 items, 22 steps, test split not
   scored) is 2.5 GB too.
@@ -536,7 +575,7 @@ Until then `evaluate_vl.py --engine finetuned --model-dir ...` runs it.
 1. **im2latex-100k** (huggingface.co/datasets/yuntian-deng/im2latex-100k):
    CC0-1.0 (its README: `license: cc0-1.0`); rendered printed formulas
    from arXiv LaTeX; train 55,033 / val 6,072 / test 6,810. Downloaded
-   2026-11-08 to `tactilelens-training\data\public\im2latex-100k\` (three
+   2026-11-08 to `tactilelens-training\datasets\public\im2latex-100k\raw\` (three
    Parquet files, 272,974,295 + 30,031,854 + 34,007,576 bytes = the
    listing). `pyarrow` 26.0.1 installed in `paddle_formula_env`
    (2026-11-09, after approval; no other packages added).
@@ -553,7 +592,7 @@ never trained on or used for model selection.
 
 **im2latex-100k filtered to expressions using general-algebra notation;
 the source formulas come from physics papers** (`tools/dataset/prepare_im2latex.py`,
-2026-11-09): `tactilelens-training\data\public\im2latex_algebra_lf\` (7.9 MB).
+2026-11-09): `tactilelens-training\datasets\public\im2latex-100k\filtered_general_algebra\` (7.9 MB).
 Not a worksheet algebra dataset. Panel page (filter rules, counts,
 examples, limits, both runs' charts):
 https://claude.ai/artifact/RzYqVDqxHiLboEnVZjzdVv (private until you share it),
@@ -675,14 +714,15 @@ dry-run checkpoints and Track A verification exports (weights only, about
 deleting the check runs' checkpoints and the CRLF subset (about 5 GB).
 2026-11-10: matplotlib 3.11.2 and dependencies; the synthetic pilot
 (2,400); the follow-up run; keeping only the preliminary run's epoch-5
-checkpoint and ONNX. Declined: UniMER-Test SPE, the looser filter.
+checkpoint and ONNX; the workspace reorganisation; deleting the follow-up
+run's other checkpoints and the `check_mix` run's checkpoints (about
+3.8 GB). Declined: UniMER-Test SPE, the looser filter.
 
 Still needed:
 
 | item | size | why |
 |---|---|---|
-| Workspace reorganisation (proposal, waiting for your OK) | moves only | a layout a newcomer understands |
-| Delete the follow-up run's non-best checkpoints and the `check_mix` run's checkpoints | frees about 3.8 GB | disk |
+| Delete the layout check run's checkpoints and export (`runs\20261110-011959_trackA_im2latex+synthetic_layout-check`) | frees about 2.5 GB | disk |
 | ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
 | WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
 | `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |

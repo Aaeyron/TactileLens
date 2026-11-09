@@ -1,4 +1,4 @@
-# PaddleOCR-VL fine-tuning tools (online engine)
+# Track C: PaddleOCR-VL fine-tuning (online engine)
 
 Tooling only. **No model has been fine-tuned and there are no fine-tuning
 results.**
@@ -55,7 +55,7 @@ wrong, or an eval image leaks, nothing is written.**
 
 Leak guard: no train/val image may have the same bytes (sha256) as an
 eval image of the dataset or of the recognizer tools' eval sets
-(`tools/training`: `eval/real`, `eval/synthetic`), and no file name may
+(`tools/training`: `datasets/own/text_lines/eval`, `datasets/synthetic/text_lines/eval`), and no file name may
 be in two splits.
 
 ## 2. Evaluate engines on the held-out eval set
@@ -82,7 +82,7 @@ python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-materi
   the daily cap (`PADDLEOCR_DAILY_PAGE_CAP`, below 3000) and stops at the
   cap or `--max-pages`; failed jobs are not resubmitted. Set
   `PADDLEOCR_PAGE_COUNT_FILE` to the AI service's file to share its count
-  (otherwise `outputs/vl_eval/hosted_page_count.json`). The hosted API
+  (otherwise `evaluations/trackC_vl/hosted_page_count.json`). The hosted API
   always runs layout detection (no task prompt). Only label and text of
   each block are kept; image links are dropped.
 
@@ -90,7 +90,7 @@ Metrics overall and per task, topic, kind and source: exact match after
 normalisation (LaTeX delimiters and spaces ignored, tables compared as
 OTSL), mean normalised edit distance, and how often the app's formula
 guard would hold the block (prediction, and target for reference).
-Output: `tactilelens-training\outputs\vl_eval\<time>_<engine>_<hash>\`
+Output: `tactilelens-training\evaluations\trackC_vl\<time>_<engine>_<hash>\`
 (`results.md`, `results.csv`, `predictions.tsv`, `run.json`).
 
 ## 3. Fine-tuning (not run)
