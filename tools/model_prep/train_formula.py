@@ -144,12 +144,49 @@ def parse_metric(text: str) -> dict:
     return values
 
 
+def latex_key(label: str) -> str:
+    return re.sub(r"\s+", "", label)
+
+
+def extra_training_list(folder: Path, held_out: list[Path], out: Path) -> dict:
+    """Extra training data (e.g. the synthetic pilot): its train.txt with
+    absolute image paths (PaddleOCR joins data_dir with a relative path; an
+    absolute one is used as is), minus any formula that is also in the
+    validation list or the final evaluation list (leak guard, checked again
+    here although the generator already guards)."""
+
+    src = folder / "train.txt"
+    check_label_file(src)
+    held = set()
+    for path in held_out:
+        held |= {latex_key(l.split("\t", 1)[1]) for l in path.read_text(encoding="utf-8").splitlines() if "\t" in l}
+    kept, dropped = [], 0
+    for line in src.read_text(encoding="utf-8").splitlines():
+        if "\t" not in line:
+            continue
+        image, label = line.split("\t", 1)
+        if latex_key(label) in held:
+            dropped += 1
+            continue
+        kept.append(f"{(folder / image).resolve()}\t{label}")
+    target = out / "extra_train.txt"
+    with open(target, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(kept) + "\n")
+    return {"list": target, "items": len(kept), "dropped_by_leak_guard": dropped, "source": str(folder)}
+
+
 def train(args, out: Path, data: Path) -> dict:
     train_list = subset(data / "train.txt", args.subset_train, out / "train_subset.txt", args.seed)
     val_list = subset(data / "val.txt", args.subset_val, out / "val_subset.txt", args.seed)
     n_train = sum(1 for l in train_list.read_text(encoding="utf-8").splitlines() if l.strip())
     n_val = sum(1 for l in val_list.read_text(encoding="utf-8").splitlines() if l.strip())
-    steps_per_epoch = -(-n_train // args.batch_size)
+    lists, ratios, extra = [train_list], [1.0], None
+    if args.extra_train:
+        extra = extra_training_list(Path(args.extra_train), [val_list, Path(args.eval_list_resolved)], out)
+        lists.append(extra["list"])
+        ratios.append(args.extra_ratio)
+    per_epoch = n_train + (round(extra["items"] * args.extra_ratio) if extra else 0)
+    steps_per_epoch = -(-per_epoch // args.batch_size)
     eval_every = args.eval_every or steps_per_epoch
     overrides = [
         f"Global.pretrained_model={PRETRAINED}", f"Global.save_model_dir={out / 'model'}",
@@ -159,7 +196,9 @@ def train(args, out: Path, data: Path) -> dict:
         f"Global.eval_batch_step=[0, {eval_every}]", "Global.cal_metric_during_train=True",
         "Global.use_visualdl=False", "Global.save_epoch_step=100000", f"Global.seed={args.seed}",
         f"Optimizer.lr.learning_rate={args.lr}", f"Optimizer.lr.warmup_steps={args.warmup_steps}",
-        f"Train.dataset.data_dir={data}", f"Train.dataset.label_file_list=['{train_list}']",
+        f"Train.dataset.data_dir={data}",
+        "Train.dataset.label_file_list=[" + ", ".join(f"'{p}'" for p in lists) + "]",
+        "Train.dataset.ratio_list=[" + ", ".join(str(r) for r in ratios) + "]",
         "Train.loader.shuffle=True", f"Train.loader.batch_size_per_card={args.batch_size}",
         f"Eval.dataset.data_dir={data}", f"Eval.dataset.label_file_list=['{val_list}']",
         f"Eval.loader.batch_size_per_card={args.eval_batch_size}",
@@ -212,6 +251,8 @@ def train(args, out: Path, data: Path) -> dict:
         "nvidia_smi_peak_mb": gpu.peak or None, "gpu_total_mb": gpu.total,
         "seconds_per_step": round(sum(float(s[3]) for s in later) / len(later), 3) if later else None,
         "validations": metrics, "baseline_validation": baseline,
+        "extra_train": {k: str(v) if isinstance(v, Path) else v for k, v in extra.items()} if extra else None,
+        "extra_ratio": args.extra_ratio if extra else None, "items_per_epoch": per_epoch,
     }
     if result["max_mem_reserved_mb"] and gpu.total and result["max_mem_reserved_mb"] > gpu.total:
         result["memory_note"] = "reserved more than the card has: spilled into system memory (slower)"
@@ -259,8 +300,9 @@ def write_curves(out: Path, t: dict) -> None:
     if t["loss_history"]:
         line_chart({"training loss (smoothed, 10 steps)": [(r["step"], r["loss"]) for r in t["loss_history"]]},
                    "PP-FormulaNet_plus-S fine-tuning: training loss", "step", "loss", out / "loss_curve.png",
-                   note=f"{t['train_items']} training formulas (im2latex-100k algebra subset), batch "
-                        f"{t.get('batch_size', '')}; preliminary run")
+                   note=f"{t['train_items']} im2latex-100k formulas (filtered to general-algebra notation; from physics "
+                        f"papers)" + (f" + {round(t['extra_train']['items'] * t['extra_ratio'])} synthetic per epoch"
+                                      if t.get("extra_train") else "") + f"; batch {t.get('batch_size', '')}")
     if rows:
         line_chart({"validation exact match %": [(r["step"], r["exp_rate_pct"]) for r in rows]},
                    f"Validation exact match ({n} formulas)", "step", "exact match %", out / "validation_history.png",
@@ -300,10 +342,16 @@ def main() -> None:
                         help="PaddleOCR's Global.seed (its default) and the subset draw; augmentation and GPU kernels"
                              " can still make two runs differ")
     parser.add_argument("--cpu", action="store_true", help="train on the CPU (plumbing checks only; very slow)")
+    parser.add_argument("--no-final-eval", action="store_true",
+                        help="plumbing checks: export, but do not score anything on the evaluation list")
+    parser.add_argument("--extra-train",help="folder with an extra train.txt (e.g. the synthetic pilot); training only")
+    parser.add_argument("--extra-ratio", type=float, default=1.0,
+                        help="share of the extra list drawn each epoch (PaddleOCR ratio_list; a new draw per epoch)")
     args = parser.parse_args()
 
     data = Path(args.data).resolve()
     eval_list = Path(args.eval_list).resolve() if args.eval_list else data / "test.txt"
+    args.eval_list_resolved = str(eval_list)
     for f in (data / "train.txt", data / "val.txt", eval_list, PRETRAINED.with_suffix(".pdparams")):
         if not f.exists():
             raise SystemExit(f"missing {f}")
@@ -330,7 +378,9 @@ def main() -> None:
                           "--out", str(out / "export")], out / "export.log")
         onnx = out / "export" / "onnx" / "inference.onnx"
         info["export"] = "ok" if code == 0 and onnx.exists() else f"failed (exit {code}), see export.log"
-        if info["export"] == "ok":
+        if info["export"] == "ok" and args.no_final_eval:
+            info["comparison"] = "skipped (--no-final-eval: the evaluation list is kept for the real run)"
+        elif info["export"] == "ok":
             before = evaluate(APP_MODEL, eval_list, "app", out)
             after = evaluate(onnx, eval_list, f"run_{out.name}", out)
             info["eval_app"], info["eval_new"] = str(before), str(after)
@@ -341,7 +391,11 @@ def main() -> None:
     (out / "run.json").write_text(json.dumps(info, indent=1), encoding="utf-8")
 
     t = info["train"]
+    extra = t.get("extra_train")
     lines = [f"# Track A run `{out.name}`", "", f"- Data: `{data}` ({t['train_items']} train, {t['val_items']} val)",
+             (f"- Extra training data: `{extra['source']}` ({extra['items']} items, {extra['dropped_by_leak_guard']} "
+              f"dropped by the leak guard), ratio {t['extra_ratio']} per epoch; {t['items_per_epoch']} items per epoch"
+              if extra else "- Extra training data: none"),
              f"- Batch {args.batch_size}, lr {args.lr}, warmup {args.warmup_steps} steps, up to {args.epochs} epochs,"
              f" patience {args.patience}, seed {args.seed}; fp32; Snow skipped",
              "- Charts: `loss_curve.png`, `validation_history.png` (data in the .csv files)",

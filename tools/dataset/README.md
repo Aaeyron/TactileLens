@@ -101,7 +101,7 @@ positives on real worksheets.
 python algebra_filter.py --labels public_labels.tsv --out kept.tsv --report report.md
 ```
 
-Keeps algebra-level LaTeX only (allowed commands, at most 60 tokens, no
+Keeps expressions using general-algebra notation only (allowed commands, at most 60 tokens, no
 environments, sums, integrals, limits, accents or fonts, at least one of
 = < > ^ \frac \sqrt f(x)); every dropped line is counted by reason.
 
@@ -133,6 +133,22 @@ rejected examples with the reason, limits, and counts for looser filter
 variants), the example images, two example sheets and three charts
 (`chart_funnel.png`, `chart_topics.png`, `chart_looser.png`). Charts are
 drawn with Pillow (`tools/model_prep/charts.py`).
+
+## Synthetic formulas for Track A (training only): `make_synthetic_formulas.py`
+
+```
+python make_synthetic_formulas.py --out <new folder> --per-topic 300 --workers 8 --seed 2026
+```
+
+`paddle_formula_env` (matplotlib, Pillow, OpenCV). Worksheet-level
+formulas from templates for the 8 topics, rendered with matplotlib's
+mathtext in 10 font styles, on Track B paper, with phone-photo effects in
+formula-safe ranges; labels in im2latex's spaced style, exactly what is
+drawn. Writes `images/<topic>_syn_<n>.png`, `train.txt` (no val or test:
+synthetic data is never used to evaluate), `manifest.jsonl` and
+`report.md`. Leak guard against im2latex val/test and the frozen eval
+registry. Pilot on 2026-11-10: 2,400 images in 47 s; details in
+`docs/training_runbook.md` (Track A).
 
 Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
 root, never the real one).

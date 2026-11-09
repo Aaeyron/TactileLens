@@ -37,6 +37,33 @@ class CompareTest(unittest.TestCase):
             compare({"a": row("a", "x", "x", True, 0)}, {"a": row("a", "y", "y", True, 0)})
 
 
+class SpacingTest(unittest.TestCase):
+    def test_spacing_commands_are_ignored(self):
+        from compare_formula import spacing_scores
+        self.assertTrue(spacing_scores(r"b \geq a r , \qquad a \geq 2 n", r"b\geq a r,\;a\geq2n")[0])
+        self.assertTrue(spacing_scores(r"\{ F , G \} =", r"\{F,G\}\,=")[0])
+        self.assertTrue(spacing_scores(r"x = 1 \ ,", r"x=1~,")[0])
+        self.assertTrue(spacing_scores(r"a \hspace{2em} b", r"a b")[0])
+
+    def test_other_differences_still_count(self):
+        from compare_formula import spacing_scores
+        self.assertFalse(spacing_scores(r"d f = - [ \theta , f ]", r"d f\,--[\theta,f]")[0])
+        self.assertFalse(spacing_scores(r"\frac { a } { b }", r"{\frac{a}{b}}")[0])
+        self.assertFalse(spacing_scores(r"x \le 1", r"x \leq 1")[0])
+        self.assertFalse(spacing_scores(r"\quadrant", r"rant")[0])  # only whole commands
+
+    def test_line_break_is_not_spacing(self):
+        from compare_formula import drop_spacing
+        self.assertIn(r"\\", drop_spacing(r"a \\ b"))
+
+    def test_both_modes_reported(self):
+        before = {"a": row("a", r"x = 1 \quad y", r"x=1 \quad y", True, 0)}
+        after = {"a": row("a", r"x = 1 \quad y", r"x=1\;y", False, 0.1)}
+        self.assertFalse(compare(before, after, "strict")["pass_bar"]["passed"] is None)
+        self.assertEqual(compare(before, after, "strict")["groups"]["ALL"]["got_worse"], 1)
+        self.assertEqual(compare(before, after, "spacing-normalized")["groups"]["ALL"]["got_worse"], 0)
+
+
 class GroupsTest(unittest.TestCase):
     def test_topic_from_public_name(self):
         self.assertEqual(topic_of("images/fractions_pub_i2l-test_00012.png"), "fractions")

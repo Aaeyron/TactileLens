@@ -8,7 +8,8 @@ printed formulas rendered from arXiv LaTeX, splits train / val / test.
 Labels are kept exactly as published (LaTeX with a space between tokens,
 the same style as PaddleOCR's formula demo set).
 
-1. algebra_filter.reason_to_drop keeps algebra-level formulas only.
+1. algebra_filter.reason_to_drop keeps expressions using general-algebra notation only
+   (the formulas still come from physics papers; this is not a worksheet algebra set).
 2. Each kept formula gets ONE topic by the first rule that matches
    (a heuristic on the LaTeX, see TOPIC_RULES): function_notation,
    inequalities, radicals, fractions, quadratic_equations, exponents,
@@ -182,9 +183,9 @@ def main() -> None:
     (out / "report.json").write_text(json.dumps(report, indent=1), encoding="utf-8")
 
     topics = sorted({t for s in SPLITS for t in report["splits"][s]["topics"]})
-    lines = ["# im2latex-100k, algebra subset", "", f"Source: `{src}` (CC0-1.0).", "",
+    lines = ["# im2latex-100k, general-algebra notation", "", "Data: im2latex-100k filtered to expressions using general-algebra notation; the source formulas come from physics papers.", "", f"Source: `{src}` (CC0-1.0).", "",
              "| | " + " | ".join(SPLITS) + " |", "|---|" + "---|" * len(SPLITS)]
-    for label, field in (("published", "published"), ("passed the algebra filter", "passed_filter")):
+    for label, field in (("published", "published"), ("passed the general-algebra notation filter", "passed_filter")):
         lines.append(f"| {label} | " + " | ".join(str(report["splits"][s][field]) for s in SPLITS) + " |")
     lines.append("| dropped by the leak guard | " + " | ".join(
         str(sum(report["splits"][s]["dropped_by_leak_guard"].values())) for s in SPLITS) + " |")

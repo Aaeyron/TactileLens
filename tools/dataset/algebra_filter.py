@@ -1,4 +1,4 @@
-"""Keep only algebra-level formulas from a public LaTeX dataset.
+"""Keep only expressions that use general-algebra notation from a public LaTeX dataset.
 
 For the preliminary run (Track A, PP-FormulaNet_plus-S) on a public
 printed dataset such as im2latex-100k (CC0) before our own data is ready.

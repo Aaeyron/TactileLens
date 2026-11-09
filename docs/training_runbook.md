@@ -266,8 +266,8 @@ first experiment on public data, not a model for the app):**
   | 21-40 tokens | 62 | 50.0% (31) | 56.5% (35) | 3 | 7 |
   | more than 40 tokens | 34 | 41.2% (14) | 35.3% (12) | 5 | 3 |
 
-- **Pass bar: not passed.** 3 of the 24 simple formulas got worse (the
-  bar allows 1); overall 58 -> 61. The 3: `b \geq a r , \qquad ...`
+- **The run failed the pre-agreed strict pass bar.** 3 of the 24 simple
+  formulas got worse (the bar allows 1); overall 58 -> 61. The 3: `b \geq a r , \qquad ...`
   read with `\;` instead of `\qquad` (spacing); `\{ F , G \} =` read with
   an extra `\,` (spacing); `d f = - [ \theta , f ] ,` read as
   `d f\,--[\theta,f],` (a real error). Of the 11 that got worse overall,
@@ -277,9 +277,98 @@ first experiment on public data, not a model for the app):**
 - Per-topic differences are 1-2 formulas on 1-54 items: too small to
   call a gain or a loss. The test split is very likely close to the base
   model's training data.
+- **Spacing-normalized score** (rule below, applied to both models the
+  same way): overall 84 -> **78** of 120 (14 got worse, 8 better);
+  simple 19 -> 17 of 24 (3 worse). On this score the fine-tuned model is
+  worse: the strict gain came from copying im2latex's spacing habits,
+  while real errors increased (e.g. `v~<<0`, runs of backslashes,
+  `\frac\{P{((z)}}`).
 - Outputs: `tactilelens-training\outputs\formula_runs\20261109_163905_prelim\`
-  (`summary.md`, `run.json`, charts, `eval\comparison.md`; checkpoints and
-  export 2.5 GB).
+  (`summary.md`, `run.json`, charts, `eval\comparison.md`). Kept: the
+  epoch-5 checkpoint (`model\best_accuracy.*`) and its export (ONNX); the
+  other checkpoints were deleted (2026-11-10, approved), 1.2 GB left.
+
+**Two scores, decided in advance (2026-11-10).** Strict: math delimiters
+and whitespace removed (evaluate_formula.py). Spacing-normalized: strict,
+and in addition these LaTeX spacing commands are removed from target and
+prediction before comparing: `\,` `\:` `\;` `\!` `\ ` (backslash-space)
+`~` `\quad` `\qquad` `\enspace` `\thinspace` `\medspace` `\thickspace`
+`\negthinspace` `\negmedspace` `\negthickspace` `\hspace{...}`. Nothing
+else changes (braces, `\left`/`\right`, `\le` vs `\leq` still count).
+**The pass bar is decided on the strict score**; the other is reported
+alongside (`compare_formula.py`, 10 tests).
+
+**Synthetic pilot (built 2026-11-10, approved)**:
+`tools/dataset/make_synthetic_formulas.py`, output
+`tactilelens-training\data\synthetic\formula_pilot_20261109\` (2,400
+images, 122 MB; `train.txt` only, LF; `manifest.jsonl`; `report.md`).
+
+- 300 per topic from templates at worksheet level (e.g.
+  `\frac{3x+1}{4}=2`, `\sqrt{x+9}=5`, `-3<2x+1\leq 7`,
+  `f(x)=2x^{2}-3x+1`); labels in im2latex's spaced style, exactly what is
+  drawn (`\leq`/`\geq`/`\neq` always written the same way). A check drew
+  3,000 per topic: all 24,000 parse in mathtext; 1,049-2,859 distinct
+  formulas per topic.
+- Rendered with matplotlib 3.11.2 mathtext (installed 2026-11-10 with
+  contourpy 1.3.3, cycler, fonttools 4.68.0, kiwisolver, pyparsing,
+  python-dateutil 2.9.0.post0, six) in 10 font styles (cm, stix,
+  stixsans, dejavusans, dejavuserif, Latin Modern, TeX Gyre Termes and
+  Pagella, Liberation Serif and Sans; 219-262 images each). Half the
+  fractions are drawn in display size (`\dfrac`), still labelled `\frac`.
+- Paper from Track B (plain, tinted, lined or grid; the page-edge and
+  table backgrounds are left out because they can put dark areas under
+  the formula). Photo effects of the same kinds as Track B's
+  `augment_v2` but with formula-safe ranges (`formula_effects`): Track B
+  shrinks a line to 14-48 px high, which erased fractions and exponents in
+  a first preview, and its perspective cut off the ends of a formula.
+  15.7% are left clean (376), 2,024 have effects.
+- Leak guard: no generated formula equals an im2latex val or test formula
+  (224 held out; 0 matches) or a target in the frozen eval registry (none
+  exists yet); duplicates dropped. `train_formula.py --extra-train`
+  checks again against val and the final evaluation list (0 dropped).
+- Generation: 47 s on 8 processes (51 images/s). A first attempt stopped
+  on a template bug (`\leq` followed by a letter became the unknown command
+  `\leqn`); its partial folder was replaced.
+
+**Follow-up run `20261109_235227_followup_synth` (2026-11-10, approved;
+the last run on im2latex: after this we wait for our own data).**
+
+- Data: the 945 im2latex training formulas every epoch, plus 945 of the
+  2,400 synthetic formulas drawn anew each epoch (PaddleOCR `ratio_list`
+  0.394), so synthetic is half of each epoch (1,891 items, 473 steps).
+- Settings, chosen on validation only: as the preliminary run (batch 4,
+  lr 2e-5, warmup 100, seed 1024, patience 3), up to 10 epochs because
+  the preliminary run's validation peaked at epochs 4-5.
+- Speed: 0.12-0.14 s/step, 2,475 MB reserved; 2,860 steps in 442 s.
+- Validation (104): original 41; epochs 1-6: 47, 52, **54**, 50, 50, 52.
+  Stopped after epoch 6; exported checkpoint: epoch 3.
+- **Test split (120 formulas), used once:**
+
+  | score | all, original | all, fine-tuned | simple, original | simple, fine-tuned | simple got worse | bar |
+  |---|---|---|---|---|---|---|
+  | strict | 58 (48.3%) | **71 (59.2%)** | 13 (54.2%) | 17 (70.8%) | 0 | **met** |
+  | spacing-normalized | 84 (70.0%) | 83 (69.2%) | 19 (79.2%) | 20 (83.3%) | 0 | not met (overall -1) |
+
+  Per topic (strict): exponents 14 -> 15 of 17, fractions 21 -> 25 of 54,
+  function_notation 3 -> 2 of 3, inequalities 2 -> 5 of 10,
+  linear_equations 8 -> 10 of 15, polynomials 0 -> 1 of 1,
+  quadratic_equations 5 -> 6 of 8, radicals 5 -> 7 of 12.
+  Spacing-normalized: exponents 14 -> 15, fractions 34 -> 30,
+  function_notation 3 -> 2, inequalities 6 -> 8, linear_equations
+  11 -> 11, polynomials 1 -> 1, quadratic_equations 7 -> 8, radicals
+  8 -> 8.
+- **Meets the pre-agreed strict bar.** On the spacing-normalized score
+  it is level with the original (83 vs 84; 8 worse, 7 better). The 8 that
+  got worse are real errors: several drop the final `,` or `.` after a
+  spacing command, one `\\\ =k`, one `c c)`, one broken `\ \(`, one reads
+  `\left( ... \right)` as plain brackets. So most of the strict gain is
+  im2latex's spacing style; no clear gain in reading formulas on this
+  physics-paper data. Whether the synthetic worksheet formulas help on
+  real worksheets can only be shown on our own `cap` eval set.
+- Outputs: `tactilelens-training\outputs\formula_runs\20261109_235227_followup_synth\`
+  (2.5 GB with all checkpoints). The plumbing check before it
+  (`20261109_234813_check_mix`, 40 + 48 items, 22 steps, test split not
+  scored) is 2.5 GB too.
 
 **Filtering report for the panel:** `tactilelens-training\reports\im2latex_filter\`
 (`report.md`, `chart_funnel.png`, `chart_topics.png`, `chart_looser.png`,
@@ -300,7 +389,7 @@ linear_equations 669, quadratic_equations 432, inequalities 331, radicals
 327, function_notation 60, polynomials 31 (current: 407, 149, 98, 89, 85,
 92, 28, 5).
 
-**Proposal (not built): synthetic algebra formulas for Track A training**
+**Proposal (2026-11-09; built as a pilot on 2026-11-10, see above): synthetic algebra formulas for Track A training**
 
 - What: formulas generated from templates for the 8 topics (fractions,
   exponents, radicals, linear and quadratic equations, inequalities,
@@ -430,13 +519,18 @@ Until then `evaluate_vl.py --engine finetuned --model-dir ...` runs it.
 frozen eval split). Public check: im2latex-100k's own **test** split,
 never trained on or used for model selection.
 
-**Algebra subset** (`tools/dataset/prepare_im2latex.py`, 2026-11-09):
-`tactilelens-training\data\public\im2latex_algebra_lf\` (7.9 MB).
+**im2latex-100k filtered to expressions using general-algebra notation;
+the source formulas come from physics papers** (`tools/dataset/prepare_im2latex.py`,
+2026-11-09): `tactilelens-training\data\public\im2latex_algebra_lf\` (7.9 MB).
+Not a worksheet algebra dataset. Panel page (filter rules, counts,
+examples, limits, both runs' charts):
+https://claude.ai/artifact/RzYqVDqxHiLboEnVZjzdVv (private until you share it),
+local copy `tactilelens-training\reports\im2latex_filter\im2latex_filter_report.html`.
 
 | | train | val | test |
 |---|---|---|---|
 | published | 55,033 | 6,072 | 6,810 |
-| passed the algebra filter | 953 | 104 | 120 |
+| passed the filter | 953 | 104 | 120 |
 | dropped by the leak guard | 8 | 0 | 0 |
 | **kept** | **945** | **104** | **120** |
 
@@ -547,14 +641,16 @@ im2latex-100k (download). 2026-11-09: `pyarrow` 26.0.1; deleting the
 dry-run checkpoints and Track A verification exports (weights only, about
 6 GB; logs, configs and results kept); the Track A preliminary run;
 deleting the check runs' checkpoints and the CRLF subset (about 5 GB).
-Declined: UniMER-Test SPE.
+2026-11-10: matplotlib 3.11.2 and dependencies; the synthetic pilot
+(2,400); the follow-up run; keeping only the preliminary run's epoch-5
+checkpoint and ONNX. Declined: UniMER-Test SPE, the looser filter.
 
 Still needed:
 
 | item | size | why |
 |---|---|---|
-| matplotlib 3.11.2 + dependencies into `paddle_formula_env` | about 11 MB (PyPI sizes) | render synthetic formulas (proposal in Track A) |
-| Build the synthetic formula generator and a pilot (2,400 images) | about 0.1 GB disk (estimate) | Track A training data |
+| Workspace reorganisation (proposal, waiting for your OK) | moves only | a layout a newcomer understands |
+| Delete the follow-up run's non-best checkpoints and the `check_mix` run's checkpoints | frees about 3.8 GB | disk |
 | ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
 | WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
 | `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |

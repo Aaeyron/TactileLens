@@ -1,4 +1,6 @@
-"""Filtering report for im2latex-100k (for the panel), plus looser-filter counts.
+"""Filtering report for im2latex-100k filtered to expressions using general-algebra
+notation (the source formulas come from physics papers), for the panel, plus
+looser-filter counts.
 
 With C:\\Projects\\Capstone\\paddle_formula_env (pyarrow, Pillow), run with -I:
   python -I im2latex_filter_report.py --src <folder with the .parquet files>
@@ -203,8 +205,8 @@ def main() -> None:
         data = images[i]["bytes"]
         (out / "examples" / f"rejected_{n}.png").write_bytes(data)
         rej_items.append((data, formulas[i].strip(), f"rejected: {why}"))
-    sheet(kept_items, out / "examples_kept.png", "Kept by the algebra filter (im2latex-100k train)")
-    sheet(rej_items, out / "examples_rejected.png", "Rejected by the algebra filter, with the reason")
+    sheet(kept_items, out / "examples_kept.png", "Kept by the general-algebra notation filter (im2latex-100k train)")
+    sheet(rej_items, out / "examples_rejected.png", "Rejected by the general-algebra notation filter, with the reason")
 
     # Charts.
     labels = ["published"] + [f"after: {r}" for r, _ in RULES]
@@ -215,7 +217,7 @@ def main() -> None:
     topics = sorted({t for s in SPLITS for t in subset["splits"][s]["topics"]},
                     key=lambda t: -subset["splits"]["train"]["topics"].get(t, 0))
     bar_chart(topics, {s: [subset["splits"][s]["topics"].get(t, 0) for t in topics] for s in SPLITS},
-              "Algebra subset per topic (after the leak guard)", out / "chart_topics.png",
+              "im2latex-100k, general-algebra notation: per topic (after the leak guard)", out / "chart_topics.png",
               note="One topic per formula, assigned by a rule on the LaTeX (not checked by hand).")
     vnames = {"A": "current filter", "B": "+ subscripts (x_n)", "C": "+ Greek letters", "D": "+ both"}
     bar_chart([vnames[v] for v in "ABCD"], {s: [variants[s].get(v, 0) for v in "ABCD"] for s in SPLITS},
@@ -226,7 +228,8 @@ def main() -> None:
               "variant_topics": variant_topics, "subset": {s: subset["splits"][s] for s in SPLITS}}
     (out / "counts.json").write_text(json.dumps(counts, indent=1, ensure_ascii=False), encoding="utf-8")
 
-    L = ["# im2latex-100k algebra subset: filtering report", "",
+    L = ["# im2latex-100k, general-algebra notation: filtering report", "",
+         "Data: im2latex-100k filtered to expressions using general-algebra notation; the source formulas come from physics papers.", "",
          "## Source and licence", "",
          "- im2latex-100k (Deng et al., 2017), Hugging Face copy `yuntian-deng/im2latex-100k`.",
          "- Licence: CC0-1.0 (public domain dedication), as stated in the dataset README.",
