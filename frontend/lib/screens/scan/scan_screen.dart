@@ -87,7 +87,7 @@ abstract final class _ScanText {
   static const String brailleDetail =
       'Braille output will be generated when translation succeeds.';
 
-  static const String processingDetail = 'Processing can take up to 2 minutes.';
+  static const String processingDetail = ScanRun.processingTimeMessage;
 
   static const String adjustCropLabel = 'Adjust Crop';
 

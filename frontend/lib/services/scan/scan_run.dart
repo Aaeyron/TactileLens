@@ -12,6 +12,11 @@ class ScanRun {
       'This scan will finish in the background; you can scan again in up to '
       '3 minutes. It may still appear in History when it finishes.';
 
+  /// Shown on the confirmation sheet before a scan. Uses the same limit
+  /// as [cancelledOnlineMessage] (the server waits at most 170 s).
+  static const String processingTimeMessage =
+      'Processing can take up to 3 minutes.';
+
   int _current = 0;
   bool _cancelled = false;
 

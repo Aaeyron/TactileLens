@@ -60,7 +60,9 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   online scan gets "A scan is already running…" (the server holds its
   one-scan lock until the AI service answers, at most 170 s). On-device
   scans have no Cancel: the native scan cannot be stopped and a second one
-  must not run beside it. A full cancel is proposed in
+  must not run beside it. The confirmation sheet before a scan states the
+  same limit: "Processing can take up to 3 minutes."
+  (`ScanRun.processingTimeMessage`). A full cancel is proposed in
   [Full scan cancel (proposal)](#full-scan-cancel-proposal).
 - **Every result screen** states how the page was processed: "Processed
   online (PaddleOCR-VL).", "Processed on this device." or "Processed on
