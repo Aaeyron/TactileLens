@@ -203,9 +203,55 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
    longest 1,351); algebra-level formulas are shorter and should need less
    memory (not measured).
 
-**Next (when our data or the filtered im2latex is ready)**: a short real
-run at batch 4 (5 if it stays within memory), export with
-`export_formula.py`, and `evaluate_formula.py` against the app's model.
+**Preliminary run on im2latex (2026-11-09)**: `tools/model_prep/train_formula.py`
+trains from the official checkpoint (batch 4, shuffled, lr and warmup set
+explicitly because the config's warmup is 5,000 steps, validation on
+`val.txt` each epoch, early stopping), exports `best_accuracy` with
+`export_formula.py`, scores the app's ONNX and the new ONNX on
+`test.txt` with `evaluate_formula.py` (the app's preprocessing, CPU, 4
+threads; per topic and per formula length) and compares them with
+`compare_formula.py` (per group, plus the items that were exact before
+and not after, simple ones first).
+
+Short end-to-end checks (40 train / 16 val items, 10 steps, then export
+and the comparison on all 120 test formulas). **Plumbing checks, not
+results:**
+
+| run | where | outcome | notes |
+|---|---|---|---|
+| `20261109_111643_check` | GPU | validation crashed | `cal_metric_during_train=False` makes PaddleOCR validate formula models on the wrong path; now `True` as in the config |
+| `20261109_112129_check` | GPU | finished, exported, compared; 10 steps in 80 s, 2,317 MB reserved | **invalid:** the label files had CRLF line ends, so every label ended in `\r` (val exp_rate 0.0); fixed |
+| `20261109_133324_check_lf_cpu` | CPU (GPU unavailable, see Known issues) | finished, exported, compared; 10 steps in 240 s (10.3 s/step) | val exp_rate 0.25 (4 of 16); test: app 48.3% exact, after 10 steps 48.3%; simple formulas 54.2% both, none got worse |
+
+App model on the im2latex algebra test split (120 formulas, exact after
+removing spaces and delimiters): **48.3% overall**; exponents 82.4%,
+fractions 38.9%, linear_equations 53.3%, radicals 41.7%,
+quadratic_equations 62.5%, inequalities 20.0%; simple (at most 20
+tokens) 54.2%. Many misses are notation variants the strict comparison
+counts as wrong (`\left(` vs `(`, `'` vs `\prime`, `\le` vs `\leq`).
+
+**Proposed full preliminary run (waiting for approval):**
+
+- Data: `im2latex_algebra_lf`, all 945 train / 104 val; test only for
+  the final comparison.
+- Batch 4, fp32, lr 2e-5 (a fifth of the config's 1e-4: small data, a
+  converged model), warmup 100 steps, cosine decay, up to 20 epochs (the
+  config's), 237 steps per epoch.
+- Selection: PaddleOCR's `best_accuracy` (highest val exp_rate; one val
+  item is about 1%).
+- Early stopping: after 3 validations (epochs) without a higher val
+  exp_rate.
+- Time (estimated from measurements, not measured for this run): 0.19
+  s/step at batch 4 in the memory trial, 1.2 s/step averaged over the
+  check's first 10 steps (includes start-up); validation of 104 items at
+  about 4 items/s on the GPU (check: 3.97) is about 30 s. So 1-5 minutes
+  per epoch, about 20-100 minutes for 20 epochs, less with early stopping.
+- Disk: about 2.5 GB per run (best and latest checkpoints with optimizer
+  state, 720 MB each, plus the 448 MB export).
+- Report: per topic and per length, original vs fine-tuned on the test
+  split, and every item that was exact before and not after. Suggested
+  bar for "simple formulas didn't get worse": at most 1 of the 24 simple
+  test items exact before and not after, and overall exact not lower.
 
 ## Track C: PaddleOCR-VL partial fine-tuning
 
@@ -280,36 +326,91 @@ Until then `evaluate_vl.py --engine finetuned --model-dir ...` runs it.
 
 1. **im2latex-100k** (huggingface.co/datasets/yuntian-deng/im2latex-100k):
    CC0-1.0 (its README: `license: cc0-1.0`); rendered printed formulas
-   from arXiv LaTeX; train 55,033 / val 6,072 / test 6,810. **Downloaded
-   2026-11-08** to `tactilelens-training\data\public\im2latex-100k\`: three
-   Parquet files, 272,974,295 + 30,031,854 + 34,007,576 bytes (= the
-   listing). **Not filtered yet:** no environment can read Parquet (no
-   `pyarrow`); `pyarrow` 26.0.1 is a 27.7 MiB wheel (approval needed).
-2. **UniMER-Test SPE** (huggingface.co/datasets/wanderkid/UniMER_Dataset):
-   not downloaded. Hugging Face has only `UniMER-Test.zip` (146.7 MB, all
-   four test subsets) and `UniMER-1M.zip` (1,983.6 MB). Reading only the
-   zip's index (range requests, 2.4 MB) shows SPE can be fetched alone:
-   `spe/` 6,762 images, 9.1 MB, and `spe.txt` 36.6 MB (9.0 MB compressed),
-   so about **18 MB** to download. Source (dataset card): "Pix2tex
-   Validation". Pix2tex (github.com/lukas-blecher/LaTeX-OCR) renders LaTeX
-   collected from Wikipedia, arXiv and im2latex-100k with XeLaTeX in many
-   fonts; its MIT licence covers its code, and its README states no
-   licence for the data. The only licence on the UniMER dataset is the
-   card's `apache-2.0`, for the whole dataset; there is no separate SPE
-   statement. UniMER-1M (training) contains "Pix2tex Train", so SPE is
-   close to data a formula model like ours was probably trained on.
+   from arXiv LaTeX; train 55,033 / val 6,072 / test 6,810. Downloaded
+   2026-11-08 to `tactilelens-training\data\public\im2latex-100k\` (three
+   Parquet files, 272,974,295 + 30,031,854 + 34,007,576 bytes = the
+   listing). `pyarrow` 26.0.1 installed in `paddle_formula_env`
+   (2026-11-09, after approval; no other packages added).
+2. **UniMER-Test SPE: not used** (your decision, 2026-11-09): no licence
+   stated for that subset, and it overlaps the data the base model was
+   trained on. (Findings kept for reference: SPE is "Pix2tex Validation",
+   LaTeX from Wikipedia, arXiv and im2latex-100k rendered with XeLaTeX;
+   about 18 MB of the 146.7 MB `UniMER-Test.zip`; the only licence is the
+   card's `apache-2.0` for the whole dataset.)
+
+**Evaluation sets.** Main: our own held-out phone captures (`cap`, the
+frozen eval split). Public check: im2latex-100k's own **test** split,
+never trained on or used for model selection.
+
+**Algebra subset** (`tools/dataset/prepare_im2latex.py`, 2026-11-09):
+`tactilelens-training\data\public\im2latex_algebra_lf\` (7.9 MB).
+
+| | train | val | test |
+|---|---|---|---|
+| published | 55,033 | 6,072 | 6,810 |
+| passed the algebra filter | 953 | 104 | 120 |
+| dropped by the leak guard | 8 | 0 | 0 |
+| **kept** | **945** | **104** | **120** |
+
+| topic | train | val | test |
+|---|---|---|---|
+| fractions | 405 | 44 | 54 |
+| exponents | 149 | 14 | 17 |
+| linear_equations | 96 | 12 | 15 |
+| radicals | 91 | 7 | 12 |
+| quadratic_equations | 87 | 10 | 8 |
+| inequalities | 84 | 13 | 10 |
+| function_notation | 28 | 2 | 3 |
+| polynomials | 5 | 2 | 1 |
+
+| formula length (LaTeX tokens) | train | val | test |
+|---|---|---|---|
+| at most 20 ("simple") | 134 | 13 | 24 |
+| 21-40 | 560 | 65 | 62 |
+| more than 40 | 251 | 26 | 34 |
+
+- The filter keeps 1.7% of im2latex (most drops: longer than 60 tokens
+  11,920; accents 3,787; subscripts other than x_1 2,663; `\mu` 2,248).
+- Topics are a heuristic on the LaTeX, one per formula, first rule that
+  matches: f(x) -> function_notation; <, >, \le, \ge, \neq ->
+  inequalities; \sqrt -> radicals; \frac -> fractions; = and a power of 2
+  -> quadratic_equations; a power with + or - and no = -> polynomials;
+  other powers -> exponents; the rest -> linear_equations. Not checked by
+  hand.
+- Leak guard between the splits: a train or val formula is dropped when
+  its image (sha256) or its LaTeX (spaces removed) is also in test, and a
+  train formula when it is also in val. It dropped 8 train images that are
+  byte-identical to val (5) or test (3) images.
+- These are physics-paper formulas that pass the filter on syntax (for
+  example `F ^ { 2 } - 1 \le 2 ( N ^ { 2 } - 1 ) + ...`), not worksheet
+  algebra; good for checking the pipeline and catching regressions, not a
+  stand-in for our data.
 
 Caveat: PP-FormulaNet was very likely trained on data from the same
-sources, so these are a plumbing and sanity check, not an unseen test;
-our own held-out phone captures are. Filter:
-`tools/dataset/algebra_filter.py` (allowed commands only: frac, sqrt,
-cdot, times, div, pm, inequalities, spacing, a few Greek letters; at most
-60 tokens; no environments, sums, integrals, limits, accents or fonts; at
-least one of = < > ^ \frac \sqrt f(x)). Tested on hand-written examples;
-how much of im2latex-100k it keeps is not measured.
+sources (arXiv formulas, im2latex), so the public check is not an unseen
+test; our own held-out phone captures are.
 
 ## Known issues found while preparing
 
+- **PaddleOCR reads label lines with `strip("\n")` only.** A label file
+  with Windows line ends (CRLF) leaves `\r` at the end of every label: the
+  model is trained to output it and no validation item matches (exp_rate
+  0.0). `prepare_im2latex.py` writes LF (tested) and `train_formula.py`
+  refuses a label file containing CR. The first im2latex subset
+  (`data\public\im2latex_algebra\`, CRLF, 7.9 MB) is superseded by
+  `im2latex_algebra_lf\` (same text and images).
+- PaddleOCR switches validation of formula models to the right code path
+  only inside its training-metric code, so `cal_metric_during_train` must
+  stay `True` (it is in the config).
+- `train_formula.py` tells `tools/program.py` the platform is Linux so
+  that every training batch and every validation item is used (the
+  Windows last-batch skip exists for data-loader workers; we use 0).
+- **2026-11-09, about 12:30: the RTX 4050 disappeared from Windows**
+  (device status `CM_PROB_PHANTOM`, `nvidia-smi`: "insufficient
+  permissions", Paddle: "no CUDA-capable device"); the laptop was on
+  battery (47%). The GPU checks before that ran on it. Usually the
+  dedicated GPU is switched off by a power / graphics mode (e.g. on
+  battery) or needs a restart; not diagnosed further.
 - On Windows, PaddleOCR's `tools/program.py` skips the last batch of every
   validation pass and of every training epoch (`max_iter = len(loader) - 1`).
   With a single validation batch nothing is scored (acc 0, edit distance
@@ -351,16 +452,18 @@ that eval set; they show the plumbing works, nothing about real photos.
 
 ## Approvals
 
-Done after approval (2026-11-08): the Track A environment copy and
+Done after approval: 2026-11-08: the Track A environment copy and
 packages, the checkpoint, the official inference model, the demo set,
-im2latex-100k (download only).
+im2latex-100k (download). 2026-11-09: `pyarrow` 26.0.1; deleting the
+dry-run checkpoints and Track A verification exports (weights only, about
+6 GB; logs, configs and results kept). Declined: UniMER-Test SPE.
 
 Still needed:
 
 | item | size | why |
 |---|---|---|
-| `pyarrow` 26.0.1 into `paddle_formula_env` | 27.7 MiB wheel | read im2latex-100k's Parquet files to filter them |
-| UniMER-Test SPE only (range requests) | about 18 MB | public held-out check (licence: see above) |
+| Track A preliminary run on the im2latex algebra subset (proposal in Track A) | about 2.5 GB disk per run; 20-100 min estimated, not measured | first fine-tuned formula model |
+| Delete superseded outputs: `im2latex_algebra\` (CRLF) and the checkpoints of the three check runs | frees about 5 GB | disk |
 | ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
 | WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
 | `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |

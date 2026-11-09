@@ -103,9 +103,21 @@ python algebra_filter.py --labels public_labels.tsv --out kept.tsv --report repo
 
 Keeps algebra-level LaTeX only (allowed commands, at most 60 tokens, no
 environments, sums, integrals, limits, accents or fonts, at least one of
-= < > ^ \frac \sqrt f(x)); every dropped line is counted by reason. For
-im2latex-100k (CC0); see `docs/training_runbook.md`. Not run on a real
-dataset yet (none downloaded).
+= < > ^ \frac \sqrt f(x)); every dropped line is counted by reason.
 
-Tests: `python -m unittest discover -s tests -t .` (13, on a temporary
+For im2latex-100k (CC0), `prepare_im2latex.py` does it all in one step
+(`paddle_formula_env`, needs `pyarrow`; run with `python -I`):
+
+```
+python -I prepare_im2latex.py --src <folder with the .parquet files> --out <new folder>
+```
+
+It applies the filter, gives each formula one topic (a heuristic on the
+LaTeX; rules in the script and the report), drops train/val formulas
+whose image or LaTeX is also in test (and train ones also in val), and
+writes `images/<topic>_pub_i2l-<split>_<n>.png`, `train.txt`, `val.txt`,
+`test.txt` and `report.md`. Result on 2026-11-09: 945 / 104 / 120 kept
+of 55,033 / 6,072 / 6,810; per topic in `docs/training_runbook.md`.
+
+Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
 root, never the real one).

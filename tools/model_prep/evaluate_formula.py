@@ -10,9 +10,11 @@ transforms, as ported to the app): crop margin, short side 384, fit in
 384 x 384, black padding, gray, mean 0.7931 / std 0.1738; greedy ids from
 the graph, GPT-2 byte-level tokenizer, PaddleX normalisation.
 
-Metrics, overall and per topic (from names like radicals_cap_S_005.png):
-exact match after removing delimiters and spaces (the VL evaluator's
-comparison), and mean normalised edit distance. Output:
+Metrics, overall, per topic (from names like radicals_cap_S_005.png or
+fractions_pub_i2l-test_00012.png) and per formula length (LaTeX tokens;
+"simple" = at most 20): exact match after removing delimiters and spaces
+(the VL evaluator's comparison), and mean normalised edit distance.
+compare_formula.py compares two runs. Output:
 <root>/outputs/formula/<tag>/<date>_<model sha8>_<list>/ results.md,
 results.csv, predictions.tsv.
 """
@@ -66,7 +68,22 @@ def preprocess(path: Path) -> np.ndarray:
 
 
 def topic_of(name: str) -> str:
-    return re.split(r"_(?:ss|cap)_", Path(name).name)[0]
+    """radicals_cap_S_005.png -> radicals; fractions_pub_i2l-test_00012.png -> fractions."""
+
+    return re.split(r"_(?:ss|cap|pub)_", Path(name).name)[0]
+
+
+SIMPLE_MAX_TOKENS = 20
+TOKEN = re.compile(r"\\[A-Za-z]+|\\.|[{}^_]|[A-Za-z]|\d|[^\sA-Za-z\d]")  # algebra_filter.py's
+
+
+def length_group(target: str) -> str:
+    """Formula length in LaTeX tokens (algebra_filter.py's count)."""
+
+    n = len(TOKEN.findall(target))
+    if n <= SIMPLE_MAX_TOKENS:
+        return f"length <={SIMPLE_MAX_TOKENS} (simple)"
+    return "length 21-40" if n <= 40 else "length >40"
 
 
 def main() -> None:
@@ -90,7 +107,7 @@ def main() -> None:
     session = ort.InferenceSession(args.model, options, providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
 
-    overall, by_topic, predictions, times = [], defaultdict(list), [], []
+    overall, by_topic, by_length, predictions, times = [], defaultdict(list), defaultdict(list), [], []
     for image, target in rows:
         start = time.perf_counter()
         ids = session.run(None, {input_name: preprocess(label_file.parent / image)})[0][0]
@@ -100,13 +117,15 @@ def main() -> None:
         score = (a == b, vl_common.normalized_edit_distance(a, b))
         overall.append(score)
         by_topic[topic_of(image)].append(score)
+        by_length[length_group(target)].append(score)
         predictions.append((image, topic_of(image), target, latex, score[0], round(score[1], 4)))
 
     def row(name, scores):
         return {"group": name, "items": len(scores), "exact_pct": round(100 * sum(s[0] for s in scores) / len(scores), 1),
                 "mean_ned": round(sum(s[1] for s in scores) / len(scores), 4)}
 
-    table = [row("ALL", overall)] + [row(t, s) for t, s in sorted(by_topic.items())]
+    table = ([row("ALL", overall)] + [row(t, s) for t, s in sorted(by_topic.items())]
+             + [row(g, s) for g, s in sorted(by_length.items())])
     model_hash = sha256_of(Path(args.model))
     labels_hash = hashlib.sha256(label_file.read_bytes()).hexdigest()
     today = dt.date.today().isoformat()
