@@ -74,6 +74,24 @@ runpy.run_path("tools/train.py", run_name="__main__")
 '''
 
 
+EVAL_CHILD = CHILD.replace('"tools/train.py"', '"tools/eval.py"')
+
+
+def baseline_validation(overrides: list[str], out: Path) -> dict | None:
+    """PaddleOCR's metric for the original checkpoint on the same val list (step 0)."""
+
+    keep = [o for o in overrides if o.startswith(("Global.pretrained_model", "Eval.", "Global.use_gpu",
+                                                   "Global.print_mem_info", "Global.seed"))]
+    log = out / "baseline_val.log"
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", FLAGS_allocator_strategy="auto_growth")
+    with open(log, "w", encoding="utf-8") as handle:
+        subprocess.run([sys.executable, "-c", EVAL_CHILD, "-c", str(CONFIG), "-o", *keep], cwd=PADDLEOCR,
+                       stdout=handle, stderr=subprocess.STDOUT, env=env)
+    text = log.read_text(encoding="utf-8", errors="replace")
+    values = dict(re.findall(r"ppocr INFO: (exp_rate|edit distance|bleu_score):\s*([\d.]+)", text))
+    return {k: float(v) for k, v in values.items()} or None
+
+
 class GpuLog(threading.Thread):
     def __init__(self, path: Path) -> None:
         super().__init__(daemon=True)
@@ -139,13 +157,14 @@ def train(args, out: Path, data: Path) -> dict:
         # True as in the config: PaddleOCR switches validation to the formula
         # path only inside the training-metric code (False breaks validation).
         f"Global.eval_batch_step=[0, {eval_every}]", "Global.cal_metric_during_train=True",
-        "Global.use_visualdl=False", "Global.save_epoch_step=100000",
+        "Global.use_visualdl=False", "Global.save_epoch_step=100000", f"Global.seed={args.seed}",
         f"Optimizer.lr.learning_rate={args.lr}", f"Optimizer.lr.warmup_steps={args.warmup_steps}",
         f"Train.dataset.data_dir={data}", f"Train.dataset.label_file_list=['{train_list}']",
         "Train.loader.shuffle=True", f"Train.loader.batch_size_per_card={args.batch_size}",
         f"Eval.dataset.data_dir={data}", f"Eval.dataset.label_file_list=['{val_list}']",
         f"Eval.loader.batch_size_per_card={args.eval_batch_size}",
     ] + (["Global.use_gpu=False", "Global.print_mem_info=False"] if args.cpu else [])
+    baseline = baseline_validation(overrides, out)
     log_path = out / "train.log"
     env = dict(os.environ, PYTHONIOENCODING="utf-8", FLAGS_allocator_strategy="auto_growth")
     gpu = GpuLog(out / "gpu_memory.csv")
@@ -192,13 +211,61 @@ def train(args, out: Path, data: Path) -> dict:
         "max_mem_reserved_mb": max((int(s[6]) for s in steps if s[6]), default=None),
         "nvidia_smi_peak_mb": gpu.peak or None, "gpu_total_mb": gpu.total,
         "seconds_per_step": round(sum(float(s[3]) for s in later) / len(later), 3) if later else None,
-        "validations": metrics,
+        "validations": metrics, "baseline_validation": baseline,
     }
     if result["max_mem_reserved_mb"] and gpu.total and result["max_mem_reserved_mb"] > gpu.total:
         result["memory_note"] = "reserved more than the card has: spilled into system memory (slower)"
     if "Traceback" in text and outcome not in ("finished", "stopped early"):
         result["error"] = text[text.rfind("Traceback"):][-800:]
+    result["loss_history"], result["validation_steps"] = history(text)
     return result
+
+
+LOSS = re.compile(r"epoch: \[(\d+)/\d+\], global_step: (\d+), lr: ([\d.e-]+),.*? loss: ([\d.]+),")
+
+
+def history(text: str) -> tuple[list[dict], list[int]]:
+    """Training loss per logged step (PaddleOCR's smoothed loss over 10 steps)
+    and the global step of each validation."""
+
+    losses = [{"epoch": int(m.group(1)), "step": int(m.group(2)), "lr": float(m.group(3)), "loss": float(m.group(4))}
+              for m in LOSS.finditer(text)]
+    val_steps = []
+    for m in METRIC.finditer(text):
+        before = [int(s.group(2)) for s in LOSS.finditer(text[:m.start()])]
+        val_steps.append(before[-1] if before else 0)
+    return losses, val_steps
+
+
+def write_curves(out: Path, t: dict) -> None:
+    import csv
+
+    from charts import line_chart
+
+    with open(out / "loss_curve.csv", "w", encoding="utf-8", newline="") as handle:
+        w = csv.DictWriter(handle, fieldnames=["epoch", "step", "lr", "loss"])
+        w.writeheader()
+        w.writerows(t["loss_history"])
+    n = t["val_items"]
+    pairs = ([(0, t["baseline_validation"])] if t.get("baseline_validation") else []) + list(
+        zip(t["validation_steps"], t["validations"]))
+    rows = [{"validation": i, "step": s, "exp_rate_pct": round(100 * m.get("exp_rate", 0), 1),
+             "exact": round(m.get("exp_rate", 0) * n), "items": n, "edit_distance": m.get("edit distance")}
+            for i, (s, m) in enumerate(pairs, 0 if t.get("baseline_validation") else 1)]
+    with open(out / "validation_history.csv", "w", encoding="utf-8", newline="") as handle:
+        w = csv.DictWriter(handle, fieldnames=["validation", "step", "exp_rate_pct", "exact", "items", "edit_distance"])
+        w.writeheader()
+        w.writerows(rows)
+    if t["loss_history"]:
+        line_chart({"training loss (smoothed, 10 steps)": [(r["step"], r["loss"]) for r in t["loss_history"]]},
+                   "PP-FormulaNet_plus-S fine-tuning: training loss", "step", "loss", out / "loss_curve.png",
+                   note=f"{t['train_items']} training formulas (im2latex-100k algebra subset), batch "
+                        f"{t.get('batch_size', '')}; preliminary run")
+    if rows:
+        line_chart({"validation exact match %": [(r["step"], r["exp_rate_pct"]) for r in rows]},
+                   f"Validation exact match ({n} formulas)", "step", "exact match %", out / "validation_history.png",
+                   note="Step 0 = the original model. Exact = PaddleOCR's exp_rate (after its normalisation); count above each point",
+                   markers=True, y_range=(0, 100), point_labels={"validation exact match %": [f"{r['exact']}/{n}" for r in rows]})
 
 
 def run(cmd: list[str], log: Path, cwd: Path = HERE) -> tuple[int, str]:
@@ -219,7 +286,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--data", required=True)
     parser.add_argument("--name", required=True)
-    parser.add_argument("--epochs", type=int, default=15)
+    parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--eval-batch-size", type=int, default=8)
     parser.add_argument("--eval-every", type=int, help="validate every N steps (default: once per epoch)")
@@ -229,7 +296,9 @@ def main() -> None:
     parser.add_argument("--subset-train", type=int, help="use N training items (short check)")
     parser.add_argument("--subset-val", type=int, help="use N validation items (short check)")
     parser.add_argument("--eval-list", help="formula list for the final comparison (default: <data>/test.txt)")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=1024,
+                        help="PaddleOCR's Global.seed (its default) and the subset draw; augmentation and GPU kernels"
+                             " can still make two runs differ")
     parser.add_argument("--cpu", action="store_true", help="train on the CPU (plumbing checks only; very slow)")
     args = parser.parse_args()
 
@@ -247,7 +316,9 @@ def main() -> None:
     print(f"Output: {out}")
 
     info["train"] = train(args, out, data)
-    print(json.dumps(info["train"], indent=1))
+    info["train"]["batch_size"] = args.batch_size
+    write_curves(out, info["train"])
+    print(json.dumps({k: v for k, v in info["train"].items() if k != "loss_history"}, indent=1))
     checkpoint = out / "model" / "best_accuracy"
     if not checkpoint.with_suffix(".pdparams").exists():
         checkpoint = out / "model" / "latest"
@@ -272,13 +343,19 @@ def main() -> None:
     t = info["train"]
     lines = [f"# Track A run `{out.name}`", "", f"- Data: `{data}` ({t['train_items']} train, {t['val_items']} val)",
              f"- Batch {args.batch_size}, lr {args.lr}, warmup {args.warmup_steps} steps, up to {args.epochs} epochs,"
-             f" patience {args.patience}; fp32; Snow skipped",
+             f" patience {args.patience}, seed {args.seed}; fp32; Snow skipped",
+             "- Charts: `loss_curve.png`, `validation_history.png` (data in the .csv files)",
              f"- Outcome: {t['outcome']}{' (' + t['stopped_early'] + ')' if t['stopped_early'] else ''};"
              f" {t['last_step']} steps in {t['seconds']} s, {t['seconds_per_step']} s/step",
              f"- Memory: trainer reserved {t['max_mem_reserved_mb']} MB, nvidia-smi peak {t['nvidia_smi_peak_mb']} MB"
-             f" of {t['gpu_total_mb']} MB", "", "| validation | exp_rate | other |", "|---|---|---|"]
-    for i, m in enumerate(t["validations"], 1):
-        lines.append(f"| {i} | {m.get('exp_rate')} | " + ", ".join(f"{k} {v}" for k, v in m.items() if k != "exp_rate") + " |")
+             f" of {t['gpu_total_mb']} MB", "", "| validation | step | exact match | edit distance | BLEU |",
+             "|---|---|---|---|---|"]
+    n = t["val_items"]
+    base = [("original", 0, t["baseline_validation"])] if t.get("baseline_validation") else []
+    for i, step, m in base + [(i, s, m) for i, (s, m) in enumerate(zip(t["validation_steps"], t["validations"]), 1)]:
+        rate = m.get("exp_rate", 0)
+        lines.append(f"| {i} | {step} | {100 * rate:.1f}% ({round(rate * n)}/{n}) | {m.get('edit distance', 0):.4f}"
+                     f" | {m.get('bleu_score', 0):.4f} |")
     lines += ["", f"- Exported: `{info.get('exported_checkpoint', '-')}`, export {info.get('export', '-')}",
               f"- Comparison on `{eval_list.name}`: {info.get('comparison', info.get('result', '-'))}"]
     if info.get("comparison", "").endswith(".md"):

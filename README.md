@@ -155,7 +155,7 @@ are in [docs/setup.md](docs/setup.md#environment-variables).
 | Android (Kotlin) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` | 4 passed |
 | VL tools | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed |
 | Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-09) |
-| Formula comparison (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula` (`paddle_onnx_env`) | 5 passed (2026-11-09) |
+| Formula comparison (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula` (`paddle_onnx_env`) | 6 passed (2026-11-09) |
 
 Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9
 with PaddleOCR 3.7.0, Node 22.18, Flutter 3.44.7). The skipped Python

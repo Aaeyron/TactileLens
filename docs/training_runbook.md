@@ -230,28 +230,116 @@ quadratic_equations 62.5%, inequalities 20.0%; simple (at most 20
 tokens) 54.2%. Many misses are notation variants the strict comparison
 counts as wrong (`\left(` vs `(`, `'` vs `\prime`, `\le` vs `\leq`).
 
-**Proposed full preliminary run (waiting for approval):**
+**Preliminary run `20261109_163905_prelim` (2026-11-09, approved; a
+first experiment on public data, not a model for the app):**
 
-- Data: `im2latex_algebra_lf`, all 945 train / 104 val; test only for
-  the final comparison.
-- Batch 4, fp32, lr 2e-5 (a fifth of the config's 1e-4: small data, a
-  converged model), warmup 100 steps, cosine decay, up to 20 epochs (the
-  config's), 237 steps per epoch.
-- Selection: PaddleOCR's `best_accuracy` (highest val exp_rate; one val
-  item is about 1%).
-- Early stopping: after 3 validations (epochs) without a higher val
-  exp_rate.
-- Time (estimated from measurements, not measured for this run): 0.19
-  s/step at batch 4 in the memory trial, 1.2 s/step averaged over the
-  check's first 10 steps (includes start-up); validation of 104 items at
-  about 4 items/s on the GPU (check: 3.97) is about 30 s. So 1-5 minutes
-  per epoch, about 20-100 minutes for 20 epochs, less with early stopping.
-- Disk: about 2.5 GB per run (best and latest checkpoints with optimizer
-  state, 720 MB each, plus the 448 MB export).
-- Report: per topic and per length, original vs fine-tuned on the test
-  split, and every item that was exact before and not after. Suggested
-  bar for "simple formulas didn't get worse": at most 1 of the 24 simple
-  test items exact before and not after, and overall exact not lower.
+- Settings: 945 train / 104 val formulas, batch 4, lr 2e-5, warmup 100,
+  up to 20 epochs, seed 1024 (PaddleOCR's `Global.seed`; augmentation and
+  GPU kernels can still make two runs differ), fp32, Snow skipped.
+- Speed (measured): 0.13-0.17 s/step, about 1 minute per epoch with
+  validation and saving; 2,479 MB reserved (2,613 MB nvidia-smi peak) of
+  6,141 MB. Epoch 4 ran at 0.8-0.9 s/step for about 3 minutes, then
+  returned to normal; cause not found (the charger was connected around
+  then). Whole run: 9 minutes of training plus about 5 minutes for export
+  and the two test scorings.
+- Validation (PaddleOCR's exact match, 104 formulas): original 41
+  (39.4%); after epochs 1-7: 49, 50, 51, **53**, 53, 50, 46. Early
+  stopping after epoch 7 (no higher score than epoch 4 for 3 epochs).
+  Exported checkpoint: epoch 5 (PaddleOCR keeps the later of two equal
+  scores). Charts: `loss_curve.png`, `validation_history.png` in the run
+  folder.
+- **Test split (120 formulas, the app's preprocessing, our strict
+  comparison):**
+
+  | group | items | original | fine-tuned | got worse | got better |
+  |---|---|---|---|---|---|
+  | all | 120 | 48.3% (58) | 50.8% (61) | 11 | 14 |
+  | exponents | 17 | 82.4% (14) | 88.2% (15) | 1 | 2 |
+  | fractions | 54 | 38.9% (21) | 38.9% (21) | 6 | 6 |
+  | function_notation | 3 | 100% (3) | 66.7% (2) | 1 | 0 |
+  | inequalities | 10 | 20.0% (2) | 30.0% (3) | 1 | 2 |
+  | linear_equations | 15 | 53.3% (8) | 46.7% (7) | 2 | 1 |
+  | polynomials | 1 | 0% (0) | 100% (1) | 0 | 1 |
+  | quadratic_equations | 8 | 62.5% (5) | 75.0% (6) | 0 | 1 |
+  | radicals | 12 | 41.7% (5) | 50.0% (6) | 0 | 1 |
+  | simple (at most 20 tokens) | 24 | 54.2% (13) | 58.3% (14) | **3** | 4 |
+  | 21-40 tokens | 62 | 50.0% (31) | 56.5% (35) | 3 | 7 |
+  | more than 40 tokens | 34 | 41.2% (14) | 35.3% (12) | 5 | 3 |
+
+- **Pass bar: not passed.** 3 of the 24 simple formulas got worse (the
+  bar allows 1); overall 58 -> 61. The 3: `b \geq a r , \qquad ...`
+  read with `\;` instead of `\qquad` (spacing); `\{ F , G \} =` read with
+  an extra `\,` (spacing); `d f = - [ \theta , f ] ,` read as
+  `d f\,--[\theta,f],` (a real error). Of the 11 that got worse overall,
+  several differ only in spacing commands or extra braces
+  (`{\frac{...}{...}}`); others are real errors (a duplicated `y` in a
+  fraction, a misplaced brace).
+- Per-topic differences are 1-2 formulas on 1-54 items: too small to
+  call a gain or a loss. The test split is very likely close to the base
+  model's training data.
+- Outputs: `tactilelens-training\outputs\formula_runs\20261109_163905_prelim\`
+  (`summary.md`, `run.json`, charts, `eval\comparison.md`; checkpoints and
+  export 2.5 GB).
+
+**Filtering report for the panel:** `tactilelens-training\reports\im2latex_filter\`
+(`report.md`, `chart_funnel.png`, `chart_topics.png`, `chart_looser.png`,
+`examples_kept.png`, `examples_rejected.png`, `examples\`), made by
+`tools/dataset/im2latex_filter_report.py`.
+
+**Looser filters (counts only, before the leak guard):**
+
+| variant | train | val | test |
+|---|---|---|---|
+| current | 953 | 104 | 120 |
+| + subscripts (x_n, a_i, x_{n+1}) | 2,643 | 259 | 304 |
+| + 8 Greek letters | 1,659 | 178 | 195 |
+| + both | 4,456 | 458 | 522 |
+
+Per topic (train) for "+ both": fractions 1,722, exponents 884,
+linear_equations 669, quadratic_equations 432, inequalities 331, radicals
+327, function_notation 60, polynomials 31 (current: 407, 149, 98, 89, 85,
+92, 28, 5).
+
+**Proposal (not built): synthetic algebra formulas for Track A training**
+
+- What: formulas generated from templates for the 8 topics (fractions,
+  exponents, radicals, linear and quadratic equations, inequalities,
+  polynomials, function notation) with random numbers and letters, at
+  worksheet level (e.g. `\frac{3x+1}{4}=2`, `\sqrt{x+9}=5`,
+  `f(x)=2x^{2}-3x+1`, `-3<2x+1\le 7`). Labels in the same spaced LaTeX
+  style as im2latex.
+- Rendering: no LaTeX renderer is installed. Proposed: matplotlib's
+  mathtext (renders \frac, \sqrt, \sqrt[3], powers, subscripts, \le, \ge,
+  \neq, \pm, \cdot, \times, \left( \right)), with its 5 built-in font sets
+  (Computer Modern, STIX, STIX sans, DejaVu Sans, DejaVu Serif) plus
+  serif / sans fonts from our Track B font folder. Install into
+  `paddle_formula_env`: matplotlib 3.11.2 (8.9 MB wheel) + fonttools (1.6
+  MB), kiwisolver, pyparsing, cycler, contourpy (an older version with a
+  Python 3.11 wheel, about 0.2 MB), python-dateutil 2.9.0.post0: about 11
+  MB in total (sizes from PyPI; not downloaded).
+- Phone-photo effects: Track B's `render.augment_v2` (blur, noise, JPEG,
+  uneven light, perspective, paper and ink colour). Measured on this PC:
+  67 images/s at 120 x 600 px and 21 images/s at 200 x 900 px, one
+  process; 12 CPU cores.
+- How many: a pilot of 300 per topic (2,400), then up to 1,500 per topic
+  (12,000), more for the weak topics (fractions, inequalities, radicals).
+  Mixed with the 945 im2latex formulas so that synthetic is at most about
+  half of each batch (a weighted list), to limit drift towards one
+  rendering style.
+- Time: rendering speed not measured (no renderer installed). With
+  effects at 21-67 images/s per process and rendering assumed to be of the
+  same order, 12,000 images on 8 processes would take roughly 2-15
+  minutes (estimate). Training cost: 12,945 items at batch 4 is 3,237
+  steps, about 8 minutes per epoch at the measured 0.15 s/step.
+- Kept separate from every eval set: synthetic items only ever go into a
+  training list; a leak guard drops any synthetic LaTeX (spaces removed)
+  equal to an im2latex val/test formula or to a target in our frozen eval
+  registry; synthetic images are named `<topic>_syn_<n>.png` so the
+  evaluator can never mistake them for `cap` items. Validation stays
+  im2latex val (and our own val captures when they exist).
+- Limits: rendered formulas with simulated photo effects are still not
+  phone photos of real worksheets; mathtext layout differs slightly from
+  LaTeX. The gain has to be shown on our own `cap` eval set.
 
 ## Track C: PaddleOCR-VL partial fine-tuning
 
@@ -405,12 +493,13 @@ test; our own held-out phone captures are.
 - `train_formula.py` tells `tools/program.py` the platform is Linux so
   that every training batch and every validation item is used (the
   Windows last-batch skip exists for data-loader workers; we use 0).
-- **2026-11-09, about 12:30: the RTX 4050 disappeared from Windows**
+- **2026-11-09, about 12:30-16:30: the RTX 4050 disappeared from Windows**
   (device status `CM_PROB_PHANTOM`, `nvidia-smi`: "insufficient
   permissions", Paddle: "no CUDA-capable device"); the laptop was on
   battery (47%). The GPU checks before that ran on it. Usually the
   dedicated GPU is switched off by a power / graphics mode (e.g. on
-  battery) or needs a restart; not diagnosed further.
+  battery) or needs a restart; not diagnosed further. It was back at
+  16:30 (after you plugged in / restarted) and the preliminary run used it.
 - On Windows, PaddleOCR's `tools/program.py` skips the last batch of every
   validation pass and of every training epoch (`max_iter = len(loader) - 1`).
   With a single validation batch nothing is scored (acc 0, edit distance
@@ -456,14 +545,16 @@ Done after approval: 2026-11-08: the Track A environment copy and
 packages, the checkpoint, the official inference model, the demo set,
 im2latex-100k (download). 2026-11-09: `pyarrow` 26.0.1; deleting the
 dry-run checkpoints and Track A verification exports (weights only, about
-6 GB; logs, configs and results kept). Declined: UniMER-Test SPE.
+6 GB; logs, configs and results kept); the Track A preliminary run;
+deleting the check runs' checkpoints and the CRLF subset (about 5 GB).
+Declined: UniMER-Test SPE.
 
 Still needed:
 
 | item | size | why |
 |---|---|---|
-| Track A preliminary run on the im2latex algebra subset (proposal in Track A) | about 2.5 GB disk per run; 20-100 min estimated, not measured | first fine-tuned formula model |
-| Delete superseded outputs: `im2latex_algebra\` (CRLF) and the checkpoints of the three check runs | frees about 5 GB | disk |
+| matplotlib 3.11.2 + dependencies into `paddle_formula_env` | about 11 MB (PyPI sizes) | render synthetic formulas (proposal in Track A) |
+| Build the synthetic formula generator and a pilot (2,400 images) | about 0.1 GB disk (estimate) | Track A training data |
 | ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
 | WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
 | `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |

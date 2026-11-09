@@ -20,6 +20,13 @@ class CompareTest(unittest.TestCase):
         self.assertEqual(result["groups"]["ALL"]["got_better"], 1)
         self.assertEqual(result["groups"]["length <=20 (simple)"]["items"], 2)
         self.assertEqual([i["image"] for i in result["got_worse"]], ["a"])
+        self.assertTrue(result["pass_bar"]["passed"])  # 1 simple worse, overall 1 -> 1
+
+    def test_pass_bar_fails_when_two_simple_items_get_worse(self):
+        before = {k: row(k, "x = 1", "x = 1", True, 0) for k in "abc"}
+        after = {"a": row("a", "x = 1", "x = 2", False, 0.2), "b": row("b", "x = 1", "x = 2", False, 0.2),
+                 "c": row("c", "x = 1", "x = 1", True, 0)}
+        self.assertFalse(compare(before, after)["pass_bar"]["passed"])
 
     def test_refuses_different_images(self):
         with self.assertRaises(SystemExit):

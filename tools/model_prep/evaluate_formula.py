@@ -121,7 +121,8 @@ def main() -> None:
         predictions.append((image, topic_of(image), target, latex, score[0], round(score[1], 4)))
 
     def row(name, scores):
-        return {"group": name, "items": len(scores), "exact_pct": round(100 * sum(s[0] for s in scores) / len(scores), 1),
+        return {"group": name, "items": len(scores), "exact": sum(s[0] for s in scores),
+                "exact_pct": round(100 * sum(s[0] for s in scores) / len(scores), 1),
                 "mean_ned": round(sum(s[1] for s in scores) / len(scores), 4)}
 
     table = ([row("ALL", overall)] + [row(t, s) for t, s in sorted(by_topic.items())]
@@ -146,7 +147,8 @@ def main() -> None:
              f"- CPU, {args.threads} threads: median {sorted(times)[len(times) // 2]:.0f} ms per formula",
              "- Comparison: delimiters and spaces ignored (as evaluate_vl.py).", "",
              "| Group | Items | Exact % | Mean NED |", "|---|---|---|---|"]
-    lines += [f"| {r['group']} | {r['items']} | {r['exact_pct']} | {r['mean_ned']} |" for r in table]
+    lines += [f"| {r['group']} | {r['items']} | {r['exact_pct']} ({r['exact']}/{r['items']}) | {r['mean_ned']} |"
+              for r in table]
     (out / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
     print(f"\nWritten to {out}")

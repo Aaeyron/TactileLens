@@ -118,6 +118,21 @@ whose image or LaTeX is also in test (and train ones also in val), and
 writes `images/<topic>_pub_i2l-<split>_<n>.png`, `train.txt`, `val.txt`,
 `test.txt` and `report.md`. Result on 2026-11-09: 945 / 104 / 120 kept
 of 55,033 / 6,072 / 6,810; per topic in `docs/training_runbook.md`.
+Label lists are written with LF line ends (PaddleOCR leaves "\r" in the
+label otherwise).
+
+Filtering report for the panel (reads only):
+
+```
+python -I im2latex_filter_report.py --src <parquet folder> --subset <prepare_im2latex.py output> --out <new folder>
+```
+
+Writes `report.md` (source, licence, rules in plain words, formulas left
+after each rule per split, per topic, the leak-guard duplicates, kept and
+rejected examples with the reason, limits, and counts for looser filter
+variants), the example images, two example sheets and three charts
+(`chart_funnel.png`, `chart_topics.png`, `chart_looser.png`). Charts are
+drawn with Pillow (`tools/model_prep/charts.py`).
 
 Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
 root, never the real one).

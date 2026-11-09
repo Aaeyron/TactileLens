@@ -44,6 +44,8 @@ def compare(before: dict[str, dict], after: dict[str, dict]) -> dict:
     def summary(items: list[dict]) -> dict:
         n = len(items)
         return {"items": n,
+                "exact_before": sum(i["exact_before"] for i in items),
+                "exact_after": sum(i["exact_after"] for i in items),
                 "exact_before_pct": round(100 * sum(i["exact_before"] for i in items) / n, 1),
                 "exact_after_pct": round(100 * sum(i["exact_after"] for i in items) / n, 1),
                 "ned_before": round(sum(i["ned_before"] for i in items) / n, 4),
@@ -55,7 +57,16 @@ def compare(before: dict[str, dict], after: dict[str, dict]) -> dict:
         g for g in groups if g.startswith("length"))
     worse = [i for i in groups["ALL"] if i["exact_before"] and not i["exact_after"]]
     worse.sort(key=lambda i: (not length_group(i["target"]).endswith("(simple)"), i["image"]))
-    return {"groups": {g: summary(groups[g]) for g in order}, "got_worse": worse}
+    table = {g: summary(groups[g]) for g in order}
+    simple = next((s for g, s in table.items() if g.endswith("(simple)")), None)
+    bar = {"simple_got_worse": simple["got_worse"] if simple else 0, "simple_items": simple["items"] if simple else 0,
+           "all_exact_before": table["ALL"]["exact_before"], "all_exact_after": table["ALL"]["exact_after"]}
+    bar["passed"] = bar["simple_got_worse"] <= PASS_SIMPLE_WORSE_MAX and bar["all_exact_after"] >= bar["all_exact_before"]
+    return {"groups": table, "got_worse": worse, "pass_bar": bar}
+
+
+# Agreed bar: at most 1 simple item exact before and not after, overall exact not lower.
+PASS_SIMPLE_WORSE_MAX = 1
 
 
 def main() -> None:
@@ -74,8 +85,13 @@ def main() -> None:
              "| group | items | exact before % | exact after % | NED before | NED after | got worse | got better |",
              "|---|---|---|---|---|---|---|---|"]
     for g, s in result["groups"].items():
-        lines.append(f"| {g} | {s['items']} | {s['exact_before_pct']} | {s['exact_after_pct']} | {s['ned_before']}"
+        lines.append(f"| {g} | {s['items']} | {s['exact_before_pct']} ({s['exact_before']}/{s['items']})"
+                     f" | {s['exact_after_pct']} ({s['exact_after']}/{s['items']}) | {s['ned_before']}"
                      f" | {s['ned_after']} | {s['got_worse']} | {s['got_better']} |")
+    b = result["pass_bar"]
+    lines += ["", f"Pass bar (at most {PASS_SIMPLE_WORSE_MAX} simple item got worse, overall exact not lower): "
+              f"**{'passed' if b['passed'] else 'not passed'}** (simple got worse {b['simple_got_worse']}/"
+              f"{b['simple_items']}; overall exact {b['all_exact_before']} -> {b['all_exact_after']})"]
     lines += ["", f"Items exact before and not after: {len(result['got_worse'])}", ""]
     for i in result["got_worse"][:30]:
         lines.append(f"- `{Path(i['image']).name}` ({length_group(i['target'])}): target `{i['target']}`;"
