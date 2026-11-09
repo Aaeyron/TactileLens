@@ -18,6 +18,35 @@ The app is not changed by any of this. Data stays in
 model into the app is a separate, reviewed step, and any change that
 affects Braille output goes to the Braille expert first.
 
+## Adoption rule for our own data (decided 2026-11-10, before any run on it)
+
+Written down before any model is trained or scored on our own dataset,
+so the rule cannot be fitted to the results.
+
+- **Applies to** every model that outputs LaTeX formulas and could
+  replace the app's: Track A (PP-FormulaNet_plus-S) and the formula
+  blocks of Track C. Track B (text lines) keeps its own rule (Day 3).
+- **Evaluation set:** the frozen eval registry of our own data
+  (`splits\frozen_eval.jsonl`), mainly phone captures (`cap`). The
+  registry is created by the first split of our data
+  (`split_dataset.py`, Day 1) and only ever grows; its items are never
+  trained on or used to choose settings or checkpoints.
+- **Main metric:** spacing-normalized exact match on that set (the rule
+  in Track A: LaTeX spacing commands, whitespace and math delimiters
+  ignored, nothing else). Reported overall, per topic and per source
+  (ss / cap), with counts.
+- **Simple formulas must not get worse:** no simple formula (at most 20
+  LaTeX tokens) that the app's current model reads correctly on the
+  spacing-normalized score may become wrong with the new model (0
+  allowed).
+- **A model is proposed for the app only if** its spacing-normalized
+  exact match on the frozen eval set is higher than the app's model,
+  **and** no simple formula got worse. The **strict** score is always
+  reported next to it and never replaces it. Then the Braille check
+  (Day 3) before any change to the app.
+- Checkpoints and settings are chosen on validation only; the frozen eval
+  set is scored once per candidate model.
+
 ## Day 1: intake, split, baselines
 
 **You**
@@ -39,8 +68,9 @@ affects Braille output goes to the Braille expert first.
    topic x source x kind, errors, flags, duplicates).
 2. After your answers: `python tools\dataset\split_dataset.py --intake ...`
    (add `--allow-flagged` only for items you cleared). Held-out eval comes
-   mainly from labelled phone captures; the frozen eval registry keeps them
-   out of training for good.
+   mainly from labelled phone captures; this first split **creates the
+   frozen eval registry** (`splits\frozen_eval.jsonl`), which keeps them
+   out of training for good (see "Adoption rule for our own data").
 3. Zip `splits\<id>\images` + `labels.csv` for Drive and tell you its size.
 4. Baselines of today's models on the held-out eval (nothing trained yet):
    - recognizer: `tools\training\evaluate.py --labels splits\<id>\rec_eval.txt`
@@ -95,9 +125,11 @@ approval.
 
 **Me**: evaluate every new model on the same held-out eval as day 1 and
 write one comparison (app model vs new, per topic, per source ss/cap).
-Only measured numbers. A model is proposed for the app only if it beats
-the current one on the held-out phone captures, and then only after its
-Braille output is checked.
+Only measured numbers. Formula models: the "Adoption rule for our own
+data" above decides (spacing-normalized exact match on the frozen eval
+set, no simple formula worse, strict reported alongside). Track B: a
+model is proposed only if it beats the current one on the held-out phone
+captures. Either way, only after its Braille output is checked.
 
 **You**: download `runs/<run id>/` from Drive if Track C produced a merged
 model (about 1.8 GiB; only if it beat the base model), and decide.
