@@ -729,13 +729,15 @@ deleting the check runs' checkpoints and the CRLF subset (about 5 GB).
 (2,400); the follow-up run; keeping only the preliminary run's epoch-5
 checkpoint and ONNX; the workspace reorganisation; deleting the follow-up
 run's other checkpoints and the `check_mix` run's checkpoints (about
-3.8 GB). Declined: UniMER-Test SPE, the looser filter.
+3.8 GB). 2026-11-11: the simple-formula rule for our own data (1 per
+100, minimum 1); deleting the layout check run's checkpoints and export
+(about 2.5 GB; its logs, charts, configs and results kept, 5.5 MB).
+Declined: UniMER-Test SPE, the looser filter.
 
 Still needed:
 
 | item | size | why |
 |---|---|---|
-| Delete the layout check run's checkpoints and export (`runs\20261110-011959_trackA_im2latex+synthetic_layout-check`) | frees about 2.5 GB | disk |
 | ImageMagick for Windows (Wand) | not checked | the Snow augmentation (skipped for now) |
 | WSL2 env: `paddlepaddle-gpu` 3.2.x + ERNIEKit + requirements | not checked (several GB) | Track C laptop memory test (on hold) |
 | `PaddlePaddle/PaddleOCR-VL` (0.9B) to the laptop | 2.00 GiB | Track C laptop test (on hold) |
