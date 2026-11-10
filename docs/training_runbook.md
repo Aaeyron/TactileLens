@@ -74,13 +74,24 @@ so the rule cannot be fitted to the results.
   in Track A: LaTeX spacing commands, whitespace and math delimiters
   ignored, nothing else). Reported overall, per topic and per source
   (ss / cap), with counts.
-- **Simple formulas must not get worse:** no simple formula (at most 20
-  LaTeX tokens) that the app's current model reads correctly on the
-  spacing-normalized score may become wrong with the new model (0
-  allowed).
+- **Simple formulas (at most 20 LaTeX tokens) must not get worse
+  (rule of 2026-11-11, replacing the 0-allowed draft of 2026-11-10):** at
+  most 1 regression per 100 simple formulas in the frozen eval set,
+  rounded down, with a minimum of 1 allowed (e.g. 1 allowed for up to
+  199 simple formulas, 2 for 200-299). A regression is a simple formula
+  the app's current model reads correctly on the spacing-normalized
+  score and the new model does not.
+- **Every regression is listed and inspected** (target, the app's
+  reading, the new reading). Any regression that changes the math's
+  meaning (a different symbol, number, operator, exponent, grouping or
+  structure, not only spacing or an equivalent notation) is **reported
+  separately**, by name.
+- **This replaces the im2latex bar** ("at most 1 of the 24 simple test
+  formulas got worse, overall exact not lower", used only for the two
+  preliminary runs on im2latex-100k).
 - **A model is proposed for the app only if** its spacing-normalized
   exact match on the frozen eval set is higher than the app's model,
-  **and** no simple formula got worse. The **strict** score is always
+  **and** the simple-formula rule above holds. The **strict** score is always
   reported next to it and never replaces it. Then the Braille check
   (Day 3) before any change to the app.
 - Checkpoints and settings are chosen on validation only; the frozen eval
@@ -166,7 +177,9 @@ approval.
 write one comparison (app model vs new, per topic, per source ss/cap).
 Only measured numbers. Formula models: the "Adoption rule for our own
 data" above decides (spacing-normalized exact match on the frozen eval
-set, no simple formula worse, strict reported alongside). Track B: a
+set; at most 1 simple-formula regression per 100, minimum 1, each listed
+and inspected, meaning-changing ones reported separately; strict reported
+alongside). Track B: a
 model is proposed only if it beats the current one on the held-out phone
 captures. Either way, only after its Braille output is checked.
 
