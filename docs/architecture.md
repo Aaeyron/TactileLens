@@ -62,7 +62,11 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
 ## Online pipeline (signed-in users, "Online")
 
 1. **App**: sends the image once to `POST /api/scan-document` with an
-   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`).
+   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`). An
+   image larger than 2000 px on its long side is first scaled down to
+   2000 px (lossless PNG; `AIService.onlineUploadMaxDimension`, the same
+   size the AI service scales to, checked by a test); on-device scans are
+   never scaled.
 2. **Backend** (`backend/src/routes/scan/`, `services/scan/`): login
    required; image type and size checked (20 MB); one scan in flight per
    user; 30 scans per hour and 100 per day per user (in memory, reset on
@@ -125,6 +129,30 @@ kept in a local SQLite database.
 | flagged for a check (Braille kept) | — | low OCR confidence, a formula that failed or did not finish, fallback blocks |
 | where the image goes | backend, AI service and, with the hosted engine, Baidu | nowhere |
 | history | PostgreSQL, per account | SQLite on the phone |
+
+## Image orientation
+
+The scan screen stays portrait; turning the phone rotates the preview,
+the crop box and the messages, not the layout.
+
+- **Once, on the phone, right after capture or pick**
+  (`frontend/lib/services/scan/image_orientation_service.dart`): the EXIF
+  orientation is applied to the pixels, then all EXIF is removed
+  (orientation, location, camera make), and the image is saved as a PNG.
+  For the camera only, when the camera wrote no rotation, a photo taken
+  sideways with portrait pixels is turned 90 degrees and one taken
+  upside-down 180 degrees, from how the phone was held. If the camera
+  wrote a rotation, it is trusted. Camera behaviour differs between
+  phones; these rules are tested with generated images, not verified on
+  every device.
+- **Crop:** the teacher's crop is kept in image pixels, so rotating the
+  phone keeps it; sideways the preview shows the part that fits.
+- **Server, again before OCR** (`_prepare_image` in
+  `ai_service/services/ocr/paddleocr_vl_service.py`): `ImageOps.exif_transpose`,
+  since any client can send a rotated image. All 8 EXIF orientations are
+  tested (`services/ocr/test_prepare_image_orientation.py`, generated
+  images). The on-device pipeline also
+  applies EXIF before its models.
 
 ## Braille 1 and Braille 2
 
