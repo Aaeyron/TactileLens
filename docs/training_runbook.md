@@ -92,7 +92,21 @@ so the rule cannot be fitted to the results.
 - **A model is proposed for the app only if** its spacing-normalized
   exact match on the frozen eval set is higher than the app's model,
   **and** the simple-formula rule above holds. The **strict** score is always
-  reported next to it and never replaces it. Then the Braille check
+  reported next to it and never replaces it. **Automatic check**
+  (2026-11-11): `tools/model_prep/compare_formula.py` decides this rule
+  on the spacing-normalized score (allowed regressions = 1 per 100 simple
+  formulas, rounded down, minimum 1; exact match must be higher), lists
+  every regression with the target, the app's reading and the new reading,
+  and sorts them: spacing only / same meaning, different notation (a fixed
+  list of safe rewrites: `\le`/`\leq`, `\dfrac`/`\frac`, `\left(`/`(`,
+  braces around a single exponent or a whole group) / meaning-changing
+  (everything else, conservative: a missing final comma counts). The
+  meaning-changing ones are reported in their own section. Tested at 24,
+  100 and 250 simple formulas and on each kind (19 tests). Rerun on the
+  im2latex follow-up run's saved predictions (no model run): rule not met
+  (exact 84 -> 83), 0 of 24 simple regressions, 8 regressions = 6
+  meaning-changing + 2 notation-only; output in that run's
+  `evaluation\comparison_adoption-rule_20261111\`. Then the Braille check
   (Day 3) before any change to the app.
 - Checkpoints and settings are chosen on validation only; the frozen eval
   set is scored once per candidate model.
@@ -379,8 +393,10 @@ prediction before comparing: `\,` `\:` `\;` `\!` `\ ` (backslash-space)
 `~` `\quad` `\qquad` `\enspace` `\thinspace` `\medspace` `\thickspace`
 `\negthinspace` `\negmedspace` `\negthickspace` `\hspace{...}`. Nothing
 else changes (braces, `\left`/`\right`, `\le` vs `\leq` still count).
-**The pass bar is decided on the strict score**; the other is reported
-alongside (`compare_formula.py`, 10 tests).
+For the two im2latex runs **the pass bar was decided on the strict
+score**; the other was reported alongside. Since 2026-11-11
+`compare_formula.py` applies the adoption rule for our own data instead
+(see "Adoption rule for our own data" and "Automatic check" there).
 
 **Synthetic pilot (built 2026-11-10, approved)**:
 `tools/dataset/make_synthetic_formulas.py`, output

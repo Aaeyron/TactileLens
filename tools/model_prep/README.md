@@ -16,7 +16,7 @@ README).
 |---|---|
 | `train_formula.py` | fine-tune from the official checkpoint, early stopping on validation, export, score the app's and the new ONNX on the evaluation list, compare; writes `runs/<date>-<time>_trackA_<data>_<name>/` and sorts it at the end |
 | `evaluate_formula.py` | score one ONNX on a formula list with the app's preprocessing: exact match and edit distance, per topic and per formula length |
-| `compare_formula.py` | before vs after on the same list: strict and spacing-normalized scores, items that got worse, the pass bar |
+| `compare_formula.py` | before vs after on the same list: applies the adoption rule for our own data (spacing-normalized exact match higher; at most 1 simple-formula regression per 100, minimum 1), lists every regression sorted into spacing only / same meaning, different notation / meaning-changing (reported separately); strict score alongside |
 | `export_formula.py` | checkpoint -> Paddle inference model -> ONNX (works around `masked_fill` for paddle2onnx) |
 | `compare_onnx.py` | two ONNX files: inputs/outputs, operators, weights, token ids on the same images |
 | `formula_memory_trial.py` | which batch size fits the 6 GB GPU (reserved memory, speed) |
