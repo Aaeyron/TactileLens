@@ -8,7 +8,7 @@ Rows: ALL, controls (no superscript), negative exponents, each topic, and
 each worksheet sheet (real photos). Columns per model: exact %, exponent
 exact % (lines with a superscript). Same comparison as evaluate.py.
 Writes comparison.md and comparison.csv to
-<root>/outputs/compare/<date>_<a sha8>_vs_<b sha8>_<set>/.
+<root>/evaluations/trackB_recognizer/compare/<date>_<a sha8>_vs_<b sha8>_<set>/.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def main() -> None:
     order = ["ALL", "controls (no superscript)", "negative exponents"]
     keys = order + sorted(k for k in groups if k.startswith("topic: ")) + sorted(k for k in groups if k.startswith("sheet: "))
     hashes = {name: sha256_of(Path(path))[:8] for name, path in ((args.a_name, args.a), (args.b_name, args.b))}
-    out = layout.outputs / "compare" / f"{dt.date.today().isoformat()}_{hashes[args.a_name]}_vs_{hashes[args.b_name]}_{args.set}"
+    out = layout.evaluations("trackB_recognizer") / "compare" / f"{dt.date.today().isoformat()}_{hashes[args.a_name]}_vs_{hashes[args.b_name]}_{args.set}"
     out.mkdir(parents=True, exist_ok=True)
 
     a, b = args.a_name, args.b_name
