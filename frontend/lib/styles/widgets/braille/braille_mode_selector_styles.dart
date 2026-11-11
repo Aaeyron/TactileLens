@@ -15,7 +15,13 @@ abstract final class BrailleModeSelectorStyles {
   static const String mathOnlyNote =
       'This scan has only math (Nemeth Braille).';
   static const String fallbackNote =
-      'Braille 1 could not be created. Showing Braille 2.';
+      'Braille 1 could not be created for this page. '
+      'Showing Braille 2 (Contracted) instead.';
+  static const IconData fallbackIcon = Icons.info_outline_rounded;
+
+  /// "Saved in Braille 2 (Contracted)" on a saved record.
+  static const String savedInPrefix = 'Saved in';
+  static const IconData savedIcon = Icons.bookmark_outline_rounded;
   static const String copyMenuTooltip = 'Copy text or Braille';
   static const String copyTextLabel = 'Copy text';
   static const String copyBrailleLabel = 'Copy Braille';
@@ -42,6 +48,21 @@ abstract final class BrailleModeSelectorStyles {
 
   static const double chipSpacing = 8;
   static const double noteSpacing = 6;
+
+  // Fallback banner: clearly visible, not only a grey line.
+  static const Color fallbackBackgroundColor = Color(0xFFFFF4E5);
+  static const Color fallbackBorderColor = Color(0xFFF2C185);
+  static const Color fallbackForegroundColor = Color(0xFF7A4100);
+  static const EdgeInsets fallbackPadding = EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 10,
+  );
+  static const BorderRadius fallbackRadius = BorderRadius.all(
+    Radius.circular(10),
+  );
+  static const double fallbackIconSize = 20;
+  static const double fallbackIconSpacing = 8;
+  static const double savedIconSize = 16;
 
   // ============================================================
   // BUTTONS (scan result and material preview)
@@ -95,5 +116,21 @@ abstract final class BrailleModeSelectorStyles {
     fontSize: 12,
     height: 1.35,
     color: mutedColor,
+  );
+
+  static const TextStyle fallbackStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    height: 1.35,
+    fontWeight: FontWeight.w600,
+    color: fallbackForegroundColor,
+  );
+
+  static const TextStyle savedStyle = TextStyle(
+    fontFamily: 'Poppins',
+    fontSize: 12.5,
+    height: 1.35,
+    fontWeight: FontWeight.w600,
+    color: textColor,
   );
 }

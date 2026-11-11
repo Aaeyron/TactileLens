@@ -24,7 +24,13 @@ class BrailleModeSelector extends StatelessWidget {
     this.availability = BrailleModeAvailability.available,
     this.showFallbackNote = false,
     this.layout = BrailleModeSelectorLayout.chips,
+    this.savedMode,
   });
+
+  /// Finds the fallback banner in tests.
+  static const Key fallbackBannerKey = ValueKey<String>(
+    'braille_mode_fallback_banner',
+  );
 
   final BrailleMode selected;
   final ValueChanged<BrailleMode> onChanged;
@@ -33,6 +39,10 @@ class BrailleModeSelector extends StatelessWidget {
 
   /// Braille 1 was requested but could not be created.
   final bool showFallbackNote;
+
+  /// The grade a saved record was saved in (History, Materials). Null for
+  /// a result that is not a saved record.
+  final BrailleMode? savedMode;
 
   String? get _note {
     switch (availability) {
@@ -43,13 +53,25 @@ class BrailleModeSelector extends StatelessWidget {
       case BrailleModeAvailability.mathOnly:
         return BrailleModeSelectorStyles.mathOnlyNote;
       case BrailleModeAvailability.available:
-        return showFallbackNote ? BrailleModeSelectorStyles.fallbackNote : null;
+        return null;
     }
+  }
+
+  bool get _showFallbackBanner =>
+      showFallbackNote && availability == BrailleModeAvailability.available;
+
+  static String savedLabelFor(BrailleMode mode) {
+    final String grade = mode == BrailleMode.uncontracted
+        ? BrailleModeSelectorStyles.uncontractedLabel
+        : BrailleModeSelectorStyles.contractedLabel;
+
+    return '${BrailleModeSelectorStyles.savedInPrefix} $grade';
   }
 
   @override
   Widget build(BuildContext context) {
     final String? note = _note;
+    final BrailleMode? savedMode = this.savedMode;
     final bool canUseBraille1 =
         availability == BrailleModeAvailability.available;
 
@@ -82,6 +104,30 @@ class BrailleModeSelector extends StatelessWidget {
             const SizedBox(height: BrailleModeSelectorStyles.noteSpacing),
             Text(note, style: BrailleModeSelectorStyles.noteStyle),
           ],
+          if (_showFallbackBanner) ...<Widget>[
+            const SizedBox(height: BrailleModeSelectorStyles.noteSpacing),
+            const _FallbackBanner(key: fallbackBannerKey),
+          ],
+          if (savedMode != null) ...<Widget>[
+            const SizedBox(height: BrailleModeSelectorStyles.noteSpacing),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Icon(
+                  BrailleModeSelectorStyles.savedIcon,
+                  size: BrailleModeSelectorStyles.savedIconSize,
+                  color: BrailleModeSelectorStyles.mutedColor,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    savedLabelFor(savedMode),
+                    style: BrailleModeSelectorStyles.savedStyle,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -104,6 +150,53 @@ class BrailleModeSelector extends StatelessWidget {
         onPressed: onSelected,
       ),
     };
+  }
+}
+
+/// Shown when Braille 1 was requested but Braille 2 is on screen: a
+/// clearly visible banner, announced by screen readers when it appears.
+class _FallbackBanner extends StatelessWidget {
+  const _FallbackBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: BrailleModeSelectorStyles.fallbackBackgroundColor,
+        borderRadius: BrailleModeSelectorStyles.fallbackRadius,
+        border: Border.all(
+          color: BrailleModeSelectorStyles.fallbackBorderColor,
+        ),
+      ),
+      child: Padding(
+        padding: BrailleModeSelectorStyles.fallbackPadding,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const ExcludeSemantics(
+              child: Icon(
+                BrailleModeSelectorStyles.fallbackIcon,
+                size: BrailleModeSelectorStyles.fallbackIconSize,
+                color: BrailleModeSelectorStyles.fallbackForegroundColor,
+              ),
+            ),
+            const SizedBox(
+              width: BrailleModeSelectorStyles.fallbackIconSpacing,
+            ),
+            Expanded(
+              child: Semantics(
+                container: true,
+                liveRegion: true,
+                child: const Text(
+                  BrailleModeSelectorStyles.fallbackNote,
+                  style: BrailleModeSelectorStyles.fallbackStyle,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
