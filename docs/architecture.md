@@ -53,8 +53,15 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   running scan or an invalid image gets only a message.
 - **Every result screen** states how the page was processed: "Processed
   online (PaddleOCR-VL).", "Processed on this device." or "Processed on
-  this device, because the online scan did not finish." (The label is on
-  the result screen after a scan; History does not show it.)
+  this device, because the online scan did not finish."
+- **History** shows each saved scan as **Online** or **On this device**
+  (and "Processed online" / "Processed on this device" in its details).
+  It is read from the saved `pipeline_version`: on-device scans save
+  `offline-onnx-v1` (`OfflineOcrService.pipelineVersion`), anything else
+  came from the server (`ScanProcessingMode.fromPipelineVersion`). No
+  database change; records saved without a version show no label. Whether
+  an on-device scan was a fallback after a failed online scan is not
+  saved, so History does not say so.
 - `AI_SCAN_MODE` (`--dart-define`) is read by `AIService`, but the scan
   screen creates its `AIService` with `session` explicitly, so the define
   does not change these rules.

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
@@ -20,6 +21,11 @@ import 'paddle_onnx_native_service.dart';
 /// Returns the same [ScanDocumentResult] shape as before, so the scan,
 /// result and history screens work unchanged.
 class OfflineOcrService {
+  /// Saved with every on-device scan; History reads it to show
+  /// "On this device" (see [ScanProcessingMode.fromPipelineVersion]).
+  static const String pipelineVersion =
+      '${ScanProcessingMode.onDevicePipelinePrefix}onnx-v1';
+
   /// Same text as ROOT_REASON in the AI service's formula_braille_guard.py.
   static const String rootReviewReason =
       'contains a root (√): Nemeth radical not yet confirmed';
@@ -238,7 +244,7 @@ class OfflineOcrService {
 
       return ScanDocumentResult(
         model: 'PP-DocLayoutV3+PP-OCRv6+PP-FormulaNet_plus-S+liblouis-3.38.0',
-        pipelineVersion: 'offline-onnx-v1',
+        pipelineVersion: pipelineVersion,
         device: 'mobile-cpu',
         pageCount: 1,
         processingTimeMs: stopwatch.elapsedMicroseconds / 1000,

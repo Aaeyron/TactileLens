@@ -73,15 +73,11 @@ abstract final class HistoryScreenStyles {
   // FULL-WIDTH HEADER
   // ============================================================
 
-  
-static const LinearGradient headerGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: <Color>[
-    Color(0xFF165CC4),
-    Color(0xFF003797),
-  ],
-);
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
+  );
 
   static const double headerHorizontalPadding = 15;
   static const double headerTopPadding = 20;
@@ -330,6 +326,27 @@ static const LinearGradient headerGradient = LinearGradient(
     color: textMutedColor,
     fontSize: 10.5,
     height: 1.2,
+    fontWeight: FontWeight.w500,
+  );
+
+  // Where a scan was processed (Online / On this device).
+  static const IconData onlineSourceIcon = Icons.cloud_outlined;
+  static const IconData onDeviceSourceIcon = Icons.smartphone_rounded;
+  static const double sourceIconSize = 13;
+  static const double sourceIconSpacing = 4;
+  static const double cardSourceSpacing = 4;
+
+  static const TextStyle cardSourceStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 10.5,
+    height: 1.2,
+    fontWeight: FontWeight.w600,
+  );
+
+  static const TextStyle detailSourceStyle = TextStyle(
+    color: textSecondaryColor,
+    fontSize: 13,
+    height: 1.3,
     fontWeight: FontWeight.w500,
   );
 

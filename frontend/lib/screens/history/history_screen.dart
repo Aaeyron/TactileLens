@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_processing_mode.dart';
 import '../../models/braille/braille_mode.dart';
 import '../../models/history/history_model.dart';
 import '../../services/braille/braille_mode_translator.dart';
@@ -14,6 +15,7 @@ import '../../styles/screens/history/history_screen_styles.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
+import '../../widgets/history/history_scan_source.dart';
 import '../../utils/form_keyboard.dart';
 import '../main/tab_data_cache.dart';
 
@@ -699,6 +701,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     record.title,
                     style: HistoryScreenStyles.detailTitleStyle,
                   ),
+                  if (record.processingMode
+                      case final ScanProcessingMode mode) ...<Widget>[
+                    const SizedBox(
+                      height: HistoryScreenStyles.cardMetadataSpacing,
+                    ),
+                    HistoryScanSource(mode: mode, detailed: true),
+                  ],
                   const SizedBox(height: HistoryScreenStyles.sectionSpacing),
                   const Text(
                     _HistoryText.recognizedContentTitle,
@@ -1238,6 +1247,13 @@ class _HistoryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: HistoryScreenStyles.cardDateStyle,
                     ),
+                    if (record.processingMode
+                        case final ScanProcessingMode mode) ...<Widget>[
+                      const SizedBox(
+                        height: HistoryScreenStyles.cardSourceSpacing,
+                      ),
+                      HistoryScanSource(mode: mode),
+                    ],
                     const SizedBox(
                       height: HistoryScreenStyles.braillePreviewSpacing,
                     ),

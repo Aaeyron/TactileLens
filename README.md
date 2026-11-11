@@ -21,7 +21,8 @@ copy and keep.
   rows.
 - **Held for review**: formulas the Braille path cannot handle safely are
   shown as text with a reason instead of possibly wrong Braille.
-- **History** of scans and **Materials** (folders of saved results and
+- **History** of scans, each marked **Online** or **On this device**, and
+  **Materials** (folders of saved results and
   uploaded PDF/JPG/PNG files).
 - **Guest mode**: no account; scans run on the device and everything stays
   on the phone.
