@@ -470,6 +470,32 @@ the last run on im2latex: after this we wait for our own data).**
   (`20261109_234813_check_mix`, 40 + 48 items, 22 steps, test split not
   scored) is 2.5 GB too.
 
+**What changed during fine-tuning (follow-up run, 2026-11-11, read-only).**
+`tools/model_prep/finetune_changes.py` (weights, confidence, report);
+no training, test split not scored again (saved predictions only).
+Output: the run's `analysis\finetune_changes_20261111\`; section on the
+panel page.
+
+- Weights, epoch-3 checkpoint vs the official one: 0.95% overall
+  (||after - before|| / ||before||). Image encoder 1.7-2.2% per stage
+  (most in stage 4), decoder layers 1.2-1.7%, bridge 1.4%, token inputs
+  0.45%, output layer 0.62%. The encoder's `last_conv` and `fc` did not
+  change at all: the formula model never uses them. Batch-norm running
+  averages moved 4.6-9.8%.
+- Output tokens: 167 of 50,000 occur in the training labels; they moved
+  a median 0.88%, the rest 0.44%. The most-moved tokens are pieces that
+  never occur in the labels (`displaystyle`, `small`, `smash`, ...);
+  neither model wrote any of them in the 120 test readings.
+- Strictly wrong test readings, original -> fine-tuned: spacing only
+  26 -> 12, same meaning/other notation 13 -> 13, symbols left out 2 -> 3,
+  extra symbols 10 -> 8, wrong symbols 4 -> 5, several kinds 7 -> 8.
+  The original model never wrote `\,` (target: 24 formulas); the
+  fine-tuned one does in 18. That is most of the strict gain.
+- Confidence (validation, 104; it chose the checkpoint), weakest-symbol
+  probability: original 83.5% when right vs 63.4% when wrong; fine-tuned
+  84.2% vs 70.6%. Below 0.50: original 14 wrong / 0 right, fine-tuned
+  6 wrong / 2 right. The strict counts (41 and 54) match training's log.
+
 **Filtering report for the panel:** `tactilelens-training\reports\im2latex_filter\`
 (`report.md`, `chart_funnel.png`, `chart_topics.png`, `chart_looser.png`,
 `examples_kept.png`, `examples_rejected.png`, `examples\`), made by
@@ -623,7 +649,7 @@ never trained on or used for model selection.
 the source formulas come from physics papers** (`tools/dataset/prepare_im2latex.py`,
 2026-11-09): `tactilelens-training\datasets\public\im2latex-100k\filtered_general_algebra\` (7.9 MB).
 Not a worksheet algebra dataset. Panel page (filter rules, counts,
-examples, limits, both runs' charts):
+examples, limits, both runs' charts, what changed during fine-tuning):
 https://claude.ai/artifact/RzYqVDqxHiLboEnVZjzdVv (private until you share it),
 local copy `tactilelens-training\reports\im2latex_filter\im2latex_filter_report.html`.
 
