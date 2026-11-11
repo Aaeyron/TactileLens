@@ -496,6 +496,22 @@ panel page.
   84.2% vs 70.6%. Below 0.50: original 14 wrong / 0 right, fine-tuned
   6 wrong / 2 right. The strict counts (41 and 54) match training's log.
 
+**Online vs offline model on the 120 im2latex test formulas (2026-11-11).**
+PaddleOCR-VL-1.6 (`evaluate_vl.py --engine local --mode prompt`, laptop
+GPU, scored once) against the shipped offline model's saved run;
+`tools/training_vl/compare_online_offline.py`. No labelled captures
+exist yet, so nothing was run on our own data.
+
+- Strict: offline 58, online 50. Spacing-normalized: 84 and 84. Simple
+  formulas (spacing-normalized): 19 and 16 of 24.
+- Time per formula: offline median 655 ms (laptop CPU, 4 threads);
+  online median 4,225 ms (laptop GPU), plus 33 s to load the model once.
+  Different hardware; the phone was not timed.
+- Agreement (spacing-normalized): the readings agree on 88 of 120; right
+  on 71 of those 88. A "flag when they disagree" rule flags 32: it catches
+  19 of the offline model's 36 errors, misses 17 (both models made the same
+  mistake) and flags 13 of its 84 right readings.
+
 **Filtering report for the panel:** `tactilelens-training\reports\im2latex_filter\`
 (`report.md`, `chart_funnel.png`, `chart_topics.png`, `chart_looser.png`,
 `examples_kept.png`, `examples_rejected.png`, `examples\`), made by

@@ -93,6 +93,25 @@ guard would hold the block (prediction, and target for reference).
 Output: `tactilelens-training\evaluations\trackC_vl\<time>_<engine>_<hash>\`
 (`results.md`, `results.csv`, `predictions.tsv`, `run.json`).
 
+### Online vs offline formula model on the same formulas
+
+```
+python formula_list_to_eval.py --labels <Track A list.txt> --out <eval folder>
+python evaluate_vl.py --eval <eval folder> --engine local
+python compare_online_offline.py --offline <evaluate_formula.py folder> --online <evaluate_vl.py folder> [--page <html>]
+```
+
+`formula_list_to_eval.py` turns a Track A formula list
+(`<image><TAB><latex>`) into this eval format, so the online model reads
+exactly the images and targets the offline model was scored on.
+`compare_online_offline.py` (`paddle_onnx_env`) works from the two saved
+`predictions.tsv` only: strict and spacing-normalized exact match per
+topic and length, how each reading differs from the target, time per
+formula, and agreement as a review signal (when the readings agree, how
+often they are right; what a "flag when they disagree" rule catches and
+wrongly flags). It stops if its strict score differs from either tool's
+own count. `--page` puts the section into a page between markers.
+
 ## 3. Fine-tuning (not run)
 
 Feasibility and memory estimates: [docs/vl_finetuning_feasibility.md](../../docs/vl_finetuning_feasibility.md).
