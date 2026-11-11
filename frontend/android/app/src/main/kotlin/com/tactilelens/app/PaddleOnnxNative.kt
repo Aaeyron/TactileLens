@@ -7,18 +7,20 @@ import java.io.File
 
 object PaddleOnnxNative {
     private const val ASSET_ROOT = "paddle_onnx"
-    private const val MODEL_CACHE_VERSION = "1"
+    // "2": the unused PP-DocLayout-S and PP-FormulaNet-plus-S folders were
+    // removed from the assets; a new version clears an old copy of them.
+    private const val MODEL_CACHE_VERSION = "2"
 
     private data class ModelDefinition(
         val name: String,
         val directory: String,
     )
 
+    // Models in "inference.onnx" folders that validateModels() checks (the
+    // benchmark screen). The layout and formula models used by scans
+    // (PP-DocLayoutV3, PP-FormulaNet_plus-S) are loaded by
+    // PaddleOnnxLayoutDetector and PaddleOnnxFormulaRecognizer instead.
     private val models = listOf(
-        ModelDefinition(
-            name = "layout",
-            directory = "PP-DocLayout-S-onnx",
-        ),
         ModelDefinition(
             name = "text_detector",
             directory = "PP-OCRv6-tiny-det-onnx",
@@ -26,10 +28,6 @@ object PaddleOnnxNative {
         ModelDefinition(
             name = "text_recognizer",
             directory = "PP-OCRv6-small-rec-onnx",
-        ),
-        ModelDefinition(
-            name = "formula_recognizer",
-            directory = "PP-FormulaNet-plus-S-onnx",
         ),
     )
 

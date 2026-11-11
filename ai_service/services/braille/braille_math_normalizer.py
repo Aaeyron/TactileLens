@@ -29,6 +29,37 @@ class BrailleMathNormalizer:
     # A private-use character survives the whitespace clean-up below.
     _row_separator: Final[str] = "\ue000"
 
+    # Unicode superscripts (x², 10⁻³, xⁿ⁺¹), as OCR or text can write
+    # them. Liblouis's Nemeth table has none of these characters, so each
+    # run becomes ^{...} and is then handled like the caret form.
+    _superscript_digits: Final[dict[str, str]] = {
+        "⁰": "0",
+        "¹": "1",
+        "²": "2",
+        "³": "3",
+        "⁴": "4",
+        "⁵": "5",
+        "⁶": "6",
+        "⁷": "7",
+        "⁸": "8",
+        "⁹": "9",
+        "ⁿ": "n",
+        "⁺": "+",
+        "⁻": "-",
+    }
+
+    _superscript_run = re.compile("[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺⁻]+")
+
+    # Spaces or tabs around an operator. Liblouis's Nemeth table drops an
+    # ASCII minus followed by a space ("x - 5" -> x 5), misreads "x != 5"
+    # and doubles the spaces around "=" or "<". Spaces after an operator
+    # always go; spaces before one only after an operand, so a sign that
+    # starts a table cell ("x; -3") or a group keeps its place. Line breaks
+    # (aligned rows) are never touched.
+    _operator = r"(?:<=|>=|!=|~=|[+\-−=<>≤≥≠≈×÷·±∓*/])"
+    _space_after_operator = re.compile(rf"({_operator})[ \t]+")
+    _space_before_operator = re.compile(rf"(?<=[^\s;:,(\[{{])[ \t]+(?={_operator})")
+
     _grouped_exponent = re.compile(r"\^\s*\{\s*([^{}]+?)\s*\}")
 
     _grouped_subscript = re.compile(r"_\s*\{\s*([^{}]+?)\s*\}")
@@ -158,6 +189,17 @@ class BrailleMathNormalizer:
     )
 
     @classmethod
+    def tighten_operators(
+        cls,
+        content: str,
+    ) -> str:
+        """Remove spaces around operators; the last step before Nemeth."""
+
+        tightened = cls._space_after_operator.sub(r"\1", content)
+
+        return cls._space_before_operator.sub("", tightened)
+
+    @classmethod
     def replace_stacked_fractions(
         cls,
         content: str,
@@ -180,6 +222,11 @@ class BrailleMathNormalizer:
 
         if not normalized:
             return ""
+
+        normalized = cls._superscript_run.sub(
+            cls._replace_superscript_run,
+            normalized,
+        )
 
         normalized = cls._replace_stacked_fractions(normalized)
 
@@ -433,6 +480,15 @@ class BrailleMathNormalizer:
         )
 
         return f"^{normalized_exponent}"
+
+    @classmethod
+    def _replace_superscript_run(
+        cls,
+        match: re.Match[str],
+    ) -> str:
+        exponent = "".join(cls._superscript_digits[c] for c in match.group(0))
+
+        return f"^{{{exponent}}}"
 
     @classmethod
     def _replace_stacked_fractions(
