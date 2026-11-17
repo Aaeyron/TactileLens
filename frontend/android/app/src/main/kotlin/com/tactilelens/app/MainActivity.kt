@@ -798,6 +798,29 @@ private fun loadPaddleOcrVlModels(
     }
 }
 
+    /**
+     * The on-device models stay loaded between scans while the app is in
+     * use. When Android reports the app is in the background, they are
+     * freed (several hundred MB), queued behind any running scan. The next
+     * scan loads them again on demand.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+
+        @Suppress("DEPRECATION")
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND &&
+            !paddleOnnxExecutor.isShutdown
+        ) {
+            paddleOnnxExecutor.execute {
+                runBlocking {
+                    PaddleOnnxOcrEngine.release()
+                    PaddleOnnxLayoutDetector.release()
+                    PaddleOnnxFormulaRecognizer.release()
+                }
+            }
+        }
+    }
+
         override fun onDestroy() {
         if (isFinishing) {
             // Queue the release behind any running scan so it never

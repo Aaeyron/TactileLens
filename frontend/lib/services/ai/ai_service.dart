@@ -20,7 +20,7 @@ class AIService {
     String? scanMode,
     this.requestTimeout = const Duration(minutes: 3),
   }) : _client = client ?? http.Client(),
-       _offlineOcrService = offlineOcrService ?? OfflineOcrService(),
+       _offlineOcrService = offlineOcrService ?? OfflineOcrService.shared,
        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl),
        _scanMode = _normalizeScanMode(scanMode ?? _configuredScanMode);
 
@@ -460,7 +460,12 @@ class AIService {
     _disposed = true;
     _client.close();
 
-    unawaited(_offlineOcrService.dispose());
+    // The app-wide on-device scanner keeps its models loaded when the Scan
+    // screen closes, so the next scan does not load them again. Android
+    // frees them when the app goes to the background (MainActivity).
+    if (!identical(_offlineOcrService, OfflineOcrService.shared)) {
+      unawaited(_offlineOcrService.dispose());
+    }
   }
 }
 

@@ -64,6 +64,11 @@ class OfflineOcrService {
   @visibleForTesting
   static bool containsRoot(String content) => _root.hasMatch(content);
 
+  /// The on-device scanner the app uses. Shared, so its loaded models
+  /// survive the Scan screen closing (each visit used to load them again).
+  /// Replaced only in tests.
+  static OfflineOcrService shared = OfflineOcrService();
+
   OfflineOcrService({
     PaddleOnnxNativeService? onnxService,
     OfflineBrailleService? brailleService,
