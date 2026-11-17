@@ -1,0 +1,667 @@
+{
+ "about": "Short examples from the Rules of Unified English Braille, Third Edition 2024 (International Council on English Braille), with the Braille exactly as printed there. The rulebook's examples are contracted (Braille 2). braille1 is given only for examples with no contractions: per RUEB 2.5.5 and 5.11.1, uncontracted text uses no grade 1 indicators except where required (e.g. a-j right after digits). The PDF's text gives the blank cell between Braille words as an ordinary space; it is stored here as U+2800, the blank cell Liblouis writes. The two RUEB 5.11.1 examples are grade 1 text, so they have no Braille 2 form here.",
+ "document": "Rules of Unified English Braille, Third Edition 2024, ICEB",
+ "url": "https://iceb.org/wp-content/uploads/2025/10/Rules-of-Unified-English-Braille-2024.pdf",
+ "items": [
+  {
+   "id": "r01",
+   "category": "capitals",
+   "print": "His name is Thomas.",
+   "braille2": "⠠⠦⠀⠐⠝⠀⠊⠎⠀⠠⠹⠕⠍⠁⠎⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "8.3.2",
+    "page": 90
+   }
+  },
+  {
+   "id": "r02",
+   "category": "capitals",
+   "print": "Hush. Keep Quiet!",
+   "braille2": "⠠⠓⠥⠩⠲⠀⠠⠅⠑⠑⠏⠀⠠⠟⠥⠊⠑⠞⠖",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "8.3.1",
+    "page": 89
+   }
+  },
+  {
+   "id": "r03",
+   "category": "capitals",
+   "print": "Mrs X and Mr O",
+   "braille2": "⠠⠍⠗⠎⠀⠰⠠⠭⠀⠯⠀⠠⠍⠗⠀⠠⠕",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "5.2.1",
+    "page": 57
+   }
+  },
+  {
+   "id": "r04",
+   "category": "all caps",
+   "print": "PARLIAMENT",
+   "braille2": "⠠⠠⠏⠜⠇⠊⠁⠰⠞",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "8.4.2",
+    "page": 90
+   }
+  },
+  {
+   "id": "r05",
+   "category": "all caps",
+   "print": "NEW YORK",
+   "braille2": "⠠⠠⠝⠑⠺⠀⠠⠠⠽⠕⠗⠅",
+   "braille1": "⠠⠠⠝⠑⠺⠀⠠⠠⠽⠕⠗⠅",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "8.4.2",
+    "page": 91
+   }
+  },
+  {
+   "id": "r06",
+   "category": "all caps",
+   "print": "DON'T",
+   "braille2": "⠠⠠⠙⠕⠝⠄⠠⠞",
+   "braille1": "⠠⠠⠙⠕⠝⠄⠠⠞",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "8.4.2",
+    "page": 91
+   }
+  },
+  {
+   "id": "r07",
+   "category": "all caps",
+   "print": "ANGLO-SAXON",
+   "braille2": "⠠⠠⠁⠝⠛⠇⠕⠤⠠⠠⠎⠁⠭⠕⠝",
+   "braille1": "⠠⠠⠁⠝⠛⠇⠕⠤⠠⠠⠎⠁⠭⠕⠝",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "8.4.2",
+    "page": 91
+   }
+  },
+  {
+   "id": "r08",
+   "category": "all caps",
+   "print": "GIVE MORE THAN ENOUGH",
+   "braille2": "⠠⠠⠠⠛⠊⠧⠑⠀⠍⠀⠹⠁⠝⠀⠢⠠⠄",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.5.2",
+    "page": 124
+   }
+  },
+  {
+   "id": "r09",
+   "category": "numbers",
+   "print": "1959",
+   "braille2": "⠼⠁⠊⠑⠊",
+   "braille1": "⠼⠁⠊⠑⠊",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.2.1",
+    "page": 66
+   }
+  },
+  {
+   "id": "r10",
+   "category": "numbers",
+   "print": "3,500",
+   "braille2": "⠼⠉⠂⠑⠚⠚",
+   "braille1": "⠼⠉⠂⠑⠚⠚",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.2.1",
+    "page": 66
+   }
+  },
+  {
+   "id": "r11",
+   "category": "numbers",
+   "print": "0.7",
+   "braille2": "⠼⠚⠲⠛",
+   "braille1": "⠼⠚⠲⠛",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.2.1",
+    "page": 66
+   }
+  },
+  {
+   "id": "r12",
+   "category": "numbers",
+   "print": "7:30 a.m.",
+   "braille2": "⠼⠛⠒⠼⠉⠚⠀⠁⠲⠍⠲",
+   "braille1": "⠼⠛⠒⠼⠉⠚⠀⠁⠲⠍⠲",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.3.1",
+    "page": 67
+   }
+  },
+  {
+   "id": "r13",
+   "category": "numbers",
+   "print": "9-10",
+   "braille2": "⠼⠊⠤⠼⠁⠚",
+   "braille1": "⠼⠊⠤⠼⠁⠚",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.3.1",
+    "page": 67
+   }
+  },
+  {
+   "id": "r14",
+   "category": "numbers",
+   "print": "1/4 cup",
+   "braille2": "⠼⠁⠸⠌⠼⠙⠀⠉⠥⠏",
+   "braille1": "⠼⠁⠸⠌⠼⠙⠀⠉⠥⠏",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.3.1",
+    "page": 67
+   }
+  },
+  {
+   "id": "r15",
+   "category": "numbers",
+   "print": "2.5%",
+   "braille2": "⠼⠃⠲⠑⠨⠴",
+   "braille1": "⠼⠃⠲⠑⠨⠴",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "7.1.1",
+    "page": 76
+   }
+  },
+  {
+   "id": "r16",
+   "category": "numbers",
+   "print": "The score was 4–3",
+   "braille2": "⠠⠮⠀⠎⠉⠕⠗⠑⠀⠴⠀⠼⠙⠠⠤⠼⠉",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "6.3.1",
+    "page": 67
+   }
+  },
+  {
+   "id": "r17",
+   "category": "letters next to numbers",
+   "print": "3b",
+   "braille2": "⠼⠉⠰⠃",
+   "braille1": "⠼⠉⠰⠃",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.5.2",
+    "page": 68
+   }
+  },
+  {
+   "id": "r18",
+   "category": "letters next to numbers",
+   "print": "3B",
+   "braille2": "⠼⠉⠠⠃",
+   "braille1": "⠼⠉⠠⠃",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.5.2",
+    "page": 68
+   }
+  },
+  {
+   "id": "r19",
+   "category": "letters next to numbers",
+   "print": "3m",
+   "braille2": "⠼⠉⠍",
+   "braille1": "⠼⠉⠍",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "6.5.2",
+    "page": 29
+   }
+  },
+  {
+   "id": "r20",
+   "category": "letters next to numbers",
+   "print": "Question 3c",
+   "braille2": null,
+   "braille1": "⠠⠟⠥⠑⠎⠞⠊⠕⠝⠀⠼⠉⠰⠉",
+   "braille1_basis": "RUEB 5.11.1 example (grade 1 text)",
+   "source": {
+    "rule": "5.11.1",
+    "page": 63
+   }
+  },
+  {
+   "id": "r21",
+   "category": "letters next to numbers",
+   "print": "He came 4th in the race.",
+   "braille2": "⠠⠓⠑⠀⠉⠁⠍⠑⠀⠼⠙⠞⠓⠀⠔⠀⠮⠀⠗⠁⠉⠑⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "6.5.3",
+    "page": 68
+   }
+  },
+  {
+   "id": "r22",
+   "category": "letters next to numbers",
+   "print": "houses4lease",
+   "braille2": "⠓⠳⠎⠑⠎⠼⠙⠇⠑⠁⠎⠑",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "6.5.3",
+    "page": 68
+   }
+  },
+  {
+   "id": "r23",
+   "category": "letters next to numbers",
+   "print": "20-yr period",
+   "braille2": "⠼⠃⠚⠤⠰⠽⠗⠀⠏⠻⠊⠕⠙",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "6.5.4",
+    "page": 69
+   }
+  },
+  {
+   "id": "r24",
+   "category": "single letters",
+   "print": "C is for candy.",
+   "braille2": null,
+   "braille1": "⠠⠉⠀⠊⠎⠀⠋⠕⠗⠀⠉⠁⠝⠙⠽⠲",
+   "braille1_basis": "RUEB 5.11.1 example (grade 1 text)",
+   "source": {
+    "rule": "5.11.1",
+    "page": 63
+   }
+  },
+  {
+   "id": "r25",
+   "category": "single letters",
+   "print": "the vowels are: a, e, i, o and u",
+   "braille2": "⠮⠀⠧⠪⠑⠇⠎⠀⠜⠑⠒⠀⠁⠂⠀⠰⠑⠂⠀⠊⠂⠀⠕⠀⠯⠀⠰⠥",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "5.2.1",
+    "page": 57
+   }
+  },
+  {
+   "id": "r26",
+   "category": "single letters",
+   "print": "p's and q's.",
+   "braille2": "⠰⠏⠄⠎⠀⠯⠀⠰⠟⠄⠎⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "5.7.1",
+    "page": 60
+   }
+  },
+  {
+   "id": "r27",
+   "category": "single letters",
+   "print": "p. 7",
+   "braille2": "⠰⠏⠲⠀⠼⠛",
+   "braille1": "⠏⠲⠀⠼⠛",
+   "braille1_basis": "no contractions; grade 1 indicator dropped (RUEB 5.11.1)",
+   "source": {
+    "rule": "5.7.1",
+    "page": 60
+   }
+  },
+  {
+   "id": "r28",
+   "category": "lists",
+   "print": "in b) and f)",
+   "braille2": "⠔⠀⠰⠃⠐⠜⠀⠯⠀⠰⠋⠐⠜",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 76
+   }
+  },
+  {
+   "id": "r29",
+   "category": "lists",
+   "print": "Sections (h) and (i).",
+   "braille2": "⠠⠎⠑⠉⠰⠝⠎⠀⠐⠣⠰⠓⠐⠜⠀⠯⠀⠐⠣⠊⠐⠜⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "5.7.1",
+    "page": 60
+   }
+  },
+  {
+   "id": "r30",
+   "category": "contractions",
+   "print": "grandmother",
+   "braille2": "⠛⠗⠯⠐⠍",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.3.1",
+    "page": 19
+   }
+  },
+  {
+   "id": "r31",
+   "category": "contractions",
+   "print": "without",
+   "braille2": "⠾⠳⠞",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.3.1",
+    "page": 117
+   }
+  },
+  {
+   "id": "r32",
+   "category": "contractions",
+   "print": "When will Will meet us?",
+   "braille2": "⠠⠱⠢⠀⠺⠀⠠⠺⠀⠍⠑⠑⠞⠀⠥⠦",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.1.1",
+    "page": 113
+   }
+  },
+  {
+   "id": "r33",
+   "category": "contractions",
+   "print": "you'd",
+   "braille2": "⠽⠄⠙",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.1.2",
+    "page": 115
+   }
+  },
+  {
+   "id": "r34",
+   "category": "contractions",
+   "print": "In or out?",
+   "braille2": "⠠⠔⠀⠕⠗⠀⠳⠦",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.5.3",
+    "page": 125
+   }
+  },
+  {
+   "id": "r35",
+   "category": "contractions",
+   "print": "Take enough.",
+   "braille2": "⠠⠞⠁⠅⠑⠀⠢⠳⠣⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.5.4",
+    "page": 126
+   }
+  },
+  {
+   "id": "r36",
+   "category": "contractions",
+   "print": "become",
+   "braille2": "⠆⠉⠕⠍⠑",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.6.1",
+    "page": 127
+   }
+  },
+  {
+   "id": "r37",
+   "category": "contractions",
+   "print": "disaster",
+   "braille2": "⠲⠁⠌⠻",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.6.1",
+    "page": 127
+   }
+  },
+  {
+   "id": "r38",
+   "category": "contraction must not apply",
+   "print": "shallot",
+   "braille2": "⠩⠁⠇⠇⠕⠞",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.2.1",
+    "page": 117
+   }
+  },
+  {
+   "id": "r39",
+   "category": "contraction must not apply",
+   "print": "dishevel",
+   "braille2": "⠙⠊⠩⠑⠧⠑⠇",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.6.1",
+    "page": 127
+   }
+  },
+  {
+   "id": "r40",
+   "category": "contraction must not apply",
+   "print": "conch",
+   "braille2": "⠉⠕⠝⠡",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.6.1",
+    "page": 127
+   }
+  },
+  {
+   "id": "r41",
+   "category": "contraction must not apply",
+   "print": "benefit",
+   "braille2": "⠃⠢⠑⠋⠊⠞",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.6.1",
+    "page": 127
+   }
+  },
+  {
+   "id": "r42",
+   "category": "contraction must not apply",
+   "print": "anthill",
+   "braille2": "⠁⠝⠞⠓⠊⠇⠇",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.4.1",
+    "page": 121
+   }
+  },
+  {
+   "id": "r43",
+   "category": "contraction must not apply",
+   "print": "foghorn",
+   "braille2": "⠋⠕⠛⠓⠕⠗⠝",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.4.1",
+    "page": 121
+   }
+  },
+  {
+   "id": "r44",
+   "category": "punctuation",
+   "print": "Yes, please.",
+   "braille2": "⠠⠽⠑⠎⠂⠀⠏⠇⠂⠎⠑⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 76
+   }
+  },
+  {
+   "id": "r45",
+   "category": "punctuation",
+   "print": "Why?",
+   "braille2": "⠠⠱⠽⠦",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 76
+   }
+  },
+  {
+   "id": "r46",
+   "category": "punctuation",
+   "print": "What???",
+   "braille2": "⠠⠱⠁⠞⠦⠦⠦",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.5.1",
+    "page": 81
+   }
+  },
+  {
+   "id": "r47",
+   "category": "punctuation",
+   "print": "the play \"Hamlet\"",
+   "braille2": "⠮⠀⠏⠇⠁⠽⠀⠦⠠⠓⠁⠍⠇⠑⠞⠴",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.6.1",
+    "page": 82
+   }
+  },
+  {
+   "id": "r48",
+   "category": "punctuation",
+   "print": "he/she",
+   "braille2": "⠓⠑⠸⠌⠩⠑",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 77
+   }
+  },
+  {
+   "id": "r49",
+   "category": "abbreviations",
+   "print": "Dr J. F. Smith, M.D.",
+   "braille2": "⠠⠙⠗⠀⠰⠠⠚⠲⠀⠰⠠⠋⠲⠀⠠⠎⠍⠊⠹⠂⠀⠠⠍⠲⠠⠙⠲",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "5.7.1",
+    "page": 61
+   }
+  },
+  {
+   "id": "r50",
+   "category": "abbreviations",
+   "print": "U.S.A.",
+   "braille2": "⠠⠥⠲⠠⠎⠲⠠⠁⠲",
+   "braille1": "⠠⠥⠲⠠⠎⠲⠠⠁⠲",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "7.1.1",
+    "page": 76
+   }
+  },
+  {
+   "id": "r51",
+   "category": "abbreviations",
+   "print": "St.",
+   "braille2": "⠠⠎⠞⠲",
+   "braille1": "⠠⠎⠞⠲",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "10.4.2",
+    "page": 121
+   }
+  },
+  {
+   "id": "r52",
+   "category": "abbreviations",
+   "print": "B.C.",
+   "braille2": "⠠⠃⠲⠠⠉⠲",
+   "braille1": "⠠⠃⠲⠠⠉⠲",
+   "braille1_basis": "no contractions or grade 1 indicators: same in both",
+   "source": {
+    "rule": "8.3.1",
+    "page": 89
+   }
+  },
+  {
+   "id": "r53",
+   "category": "hyphenated",
+   "print": "self-control",
+   "braille2": "⠎⠑⠇⠋⠤⠒⠞⠗⠕⠇",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 77
+   }
+  },
+  {
+   "id": "r54",
+   "category": "hyphenated",
+   "print": "mother-in-law",
+   "braille2": "⠐⠍⠤⠔⠤⠇⠁⠺",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "10.5.3",
+    "page": 125
+   }
+  },
+  {
+   "id": "r55",
+   "category": "hyphenated",
+   "print": "tied 1-1",
+   "braille2": "⠞⠊⠫⠀⠼⠁⠤⠼⠁",
+   "braille1": null,
+   "braille1_basis": null,
+   "source": {
+    "rule": "7.1.1",
+    "page": 77
+   }
+  }
+ ]
+}

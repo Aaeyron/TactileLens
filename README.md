@@ -157,6 +157,7 @@ are in [docs/setup.md](docs/setup.md#environment-variables).
 | VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed (2026-11-10) |
 | Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-10) |
 | Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-10) |
+| Braille checker (UEB rulebook, round trip, 35-block baseline) | `python -m unittest discover -s tools/braille_check/tests -t .` (from the repo root, AI service venv) | 23 passed (2026-11-17) |
 | Formula comparison and fine-tuning analysis (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula test_finetune_changes` (`paddle_onnx_env`) | 33 passed (2026-11-11) |
 
 Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9

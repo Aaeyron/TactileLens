@@ -1,0 +1,424 @@
+{
+ "cases": [
+  {
+   "input": "His name is Thomas.",
+   "sent": "His name is Thomas."
+  },
+  {
+   "input": "Hush. Keep Quiet!",
+   "sent": "Hush. Keep Quiet!"
+  },
+  {
+   "input": "Mrs X and Mr O",
+   "sent": "Mrs X and Mr O"
+  },
+  {
+   "input": "PARLIAMENT",
+   "sent": "PARLIAMENT"
+  },
+  {
+   "input": "NEW YORK",
+   "sent": "NEW YORK"
+  },
+  {
+   "input": "DON'T",
+   "sent": "DON'T"
+  },
+  {
+   "input": "ANGLO-SAXON",
+   "sent": "ANGLO-SAXON"
+  },
+  {
+   "input": "GIVE MORE THAN ENOUGH",
+   "sent": "GIVE MORE THAN ENOUGH"
+  },
+  {
+   "input": "1959",
+   "sent": "1959"
+  },
+  {
+   "input": "3,500",
+   "sent": "3,500"
+  },
+  {
+   "input": "0.7",
+   "sent": "0.7"
+  },
+  {
+   "input": "7:30 a.m.",
+   "sent": "7:30 a.m."
+  },
+  {
+   "input": "9-10",
+   "sent": "9-10"
+  },
+  {
+   "input": "1/4 cup",
+   "sent": "1/4 cup"
+  },
+  {
+   "input": "2.5%",
+   "sent": "2.5%"
+  },
+  {
+   "input": "The score was 4–3",
+   "sent": "The score was 4-3"
+  },
+  {
+   "input": "3b",
+   "sent": "3b"
+  },
+  {
+   "input": "3B",
+   "sent": "3B"
+  },
+  {
+   "input": "3m",
+   "sent": "3m"
+  },
+  {
+   "input": "Question 3c",
+   "sent": "Question 3c"
+  },
+  {
+   "input": "He came 4th in the race.",
+   "sent": "He came 4th in the race."
+  },
+  {
+   "input": "houses4lease",
+   "sent": "houses4lease"
+  },
+  {
+   "input": "20-yr period",
+   "sent": "20-yr period"
+  },
+  {
+   "input": "C is for candy.",
+   "sent": "C is for candy."
+  },
+  {
+   "input": "the vowels are: a, e, i, o and u",
+   "sent": "the vowels are: a, e, i, o and u"
+  },
+  {
+   "input": "p's and q's.",
+   "sent": "p's and q's."
+  },
+  {
+   "input": "p. 7",
+   "sent": "p. 7"
+  },
+  {
+   "input": "in b) and f)",
+   "sent": "in b) and f)"
+  },
+  {
+   "input": "Sections (h) and (i).",
+   "sent": "Sections (h) and (i)."
+  },
+  {
+   "input": "grandmother",
+   "sent": "grandmother"
+  },
+  {
+   "input": "without",
+   "sent": "without"
+  },
+  {
+   "input": "When will Will meet us?",
+   "sent": "When will Will meet us?"
+  },
+  {
+   "input": "you'd",
+   "sent": "you'd"
+  },
+  {
+   "input": "In or out?",
+   "sent": "In or out?"
+  },
+  {
+   "input": "Take enough.",
+   "sent": "Take enough."
+  },
+  {
+   "input": "become",
+   "sent": "become"
+  },
+  {
+   "input": "disaster",
+   "sent": "disaster"
+  },
+  {
+   "input": "shallot",
+   "sent": "shallot"
+  },
+  {
+   "input": "dishevel",
+   "sent": "dishevel"
+  },
+  {
+   "input": "conch",
+   "sent": "conch"
+  },
+  {
+   "input": "benefit",
+   "sent": "benefit"
+  },
+  {
+   "input": "anthill",
+   "sent": "anthill"
+  },
+  {
+   "input": "foghorn",
+   "sent": "foghorn"
+  },
+  {
+   "input": "Yes, please.",
+   "sent": "Yes, please."
+  },
+  {
+   "input": "Why?",
+   "sent": "Why?"
+  },
+  {
+   "input": "What???",
+   "sent": "What???"
+  },
+  {
+   "input": "the play \"Hamlet\"",
+   "sent": "the play \"Hamlet\""
+  },
+  {
+   "input": "he/she",
+   "sent": "he/she"
+  },
+  {
+   "input": "Dr J. F. Smith, M.D.",
+   "sent": "Dr J. F. Smith, M.D."
+  },
+  {
+   "input": "U.S.A.",
+   "sent": "U.S.A."
+  },
+  {
+   "input": "St.",
+   "sent": "St."
+  },
+  {
+   "input": "B.C.",
+   "sent": "B.C."
+  },
+  {
+   "input": "self-control",
+   "sent": "self-control"
+  },
+  {
+   "input": "mother-in-law",
+   "sent": "mother-in-law"
+  },
+  {
+   "input": "tied 1-1",
+   "sent": "tied 1-1"
+  },
+  {
+   "input": "Solve for x.",
+   "sent": "Solve for x."
+  },
+  {
+   "input": "Read each question carefully and show your work.",
+   "sent": "Read each question carefully and show your work."
+  },
+  {
+   "input": "Answer the following questions (5 points each).",
+   "sent": "Answer the following questions (5 points each)."
+  },
+  {
+   "input": "Write your final answer on the line provided.",
+   "sent": "Write your final answer on the line provided."
+  },
+  {
+   "input": "There are 3 apples and 12 oranges in the basket.",
+   "sent": "There are 3 apples and 12 oranges in the basket."
+  },
+  {
+   "input": "The 2nd and 3rd rows are 10cm wide.",
+   "sent": "The 2nd and 3rd rows are 10cm wide."
+  },
+  {
+   "input": "1,000,000 people live in the city.",
+   "sent": "1,000,000 people live in the city."
+  },
+  {
+   "input": "Score: 45/50 (90%)",
+   "sent": "Score: 45/50 (90%)"
+  },
+  {
+   "input": "Time: 10:30 a.m. on Nov. 21, 2026",
+   "sent": "Time: 10:30 a.m. on Nov. 21, 2026"
+  },
+  {
+   "input": "Use 3.14 for pi and round to 2 decimal places.",
+   "sent": "Use 3.14 for pi and round to 2 decimal places."
+  },
+  {
+   "input": "The answer is -5.",
+   "sent": "The answer is -5."
+  },
+  {
+   "input": "Questions 1-10 are worth 2 points.",
+   "sent": "Questions 1-10 are worth 2 points."
+  },
+  {
+   "input": "Chapter 2: Linear Equations",
+   "sent": "Chapter 2: Linear Equations"
+  },
+  {
+   "input": "NOTE: Write your answers in the box.",
+   "sent": "NOTE: Write your answers in the box."
+  },
+  {
+   "input": "USE A PENCIL ONLY.",
+   "sent": "USE A PENCIL ONLY."
+  },
+  {
+   "input": "Do NOT write on the TEST PAPER.",
+   "sent": "Do NOT write on the TEST PAPER."
+  },
+  {
+   "input": "TactileLens McDonald iPhone",
+   "sent": "TactileLens McDonald iPhone"
+  },
+  {
+   "input": "It's the students' turn; don't forget!",
+   "sent": "It's the students' turn; don't forget!"
+  },
+  {
+   "input": "She said, \"Math is fun.\"",
+   "sent": "She said, \"Math is fun.\""
+  },
+  {
+   "input": "Name: ____________ Date: ________",
+   "sent": "Name: ____________ Date: ________"
+  },
+  {
+   "input": "What is the value of y?",
+   "sent": "What is the value of y?"
+  },
+  {
+   "input": "(Hint: draw a picture first.)",
+   "sent": "(Hint: draw a picture first.)"
+  },
+  {
+   "input": "e.g. the value is 3.5, i.e. three and a half.",
+   "sent": "e.g. the value is 3.5, i.e. three and a half."
+  },
+  {
+   "input": "Mr. Cruz gave Ms. Reyes 2 books.",
+   "sent": "Mr. Cruz gave Ms. Reyes 2 books."
+  },
+  {
+   "input": "Find the area in sq. cm (approx.).",
+   "sent": "Find the area in sq. cm (approx.)."
+  },
+  {
+   "input": "Let x be a number.",
+   "sent": "Let x be a number."
+  },
+  {
+   "input": "Is it a or b?",
+   "sent": "Is it a or b?"
+  },
+  {
+   "input": "Find the value of y when x is 4.",
+   "sent": "Find the value of y when x is 4."
+  },
+  {
+   "input": "Points A, B and C are on line l.",
+   "sent": "Points A, B and C are on line l."
+  },
+  {
+   "input": "Part A",
+   "sent": "Part A"
+  },
+  {
+   "input": "Item 3b and part 2a are optional.",
+   "sent": "Item 3b and part 2a are optional."
+  },
+  {
+   "input": "A1, B2 and C3",
+   "sent": "A1, B2 and C3"
+  },
+  {
+   "input": "Grade 7 Mathematics",
+   "sent": "Grade 7 Mathematics"
+  },
+  {
+   "input": "Q1. What is 5 times 6?",
+   "sent": "Q1. What is 5 times 6?"
+  },
+  {
+   "input": "1. Simplify each expression.",
+   "sent": "1. Simplify each expression."
+  },
+  {
+   "input": "a) Find x.",
+   "sent": "a) Find x."
+  },
+  {
+   "input": "1. Add the numbers.\n2. Subtract the smaller number.\n3. Check your answer.",
+   "sent": "1. Add the numbers.\n2. Subtract the smaller number.\n3. Check your answer."
+  },
+  {
+   "input": "a) Solve for x.\nb) Solve for y.",
+   "sent": "a) Solve for x.\nb) Solve for y."
+  },
+  {
+   "input": "(a) 12\n(b) 15",
+   "sent": "(a) 12\n(b) 15"
+  },
+  {
+   "input": "Directions:\n1. Read the problem.\n2. Show your solution.",
+   "sent": "Directions:\n1. Read the problem.\n2. Show your solution."
+  },
+  {
+   "input": "a well-known self-test with twenty-one items",
+   "sent": "a well-known self-test with twenty-one items"
+  },
+  {
+   "input": "x-axis and y-intercept",
+   "sent": "x-axis and y-intercept"
+  },
+  {
+   "input": "a two-step equation",
+   "sent": "a two-step equation"
+  },
+  {
+   "input": "Solve 2x + 3 = 7 for x.",
+   "sent": "Solve 2x + 3 = 7 for x."
+  },
+  {
+   "input": "Find x if 3x = 12.",
+   "sent": "Find x if 3x = 12."
+  },
+  {
+   "input": "If a = 2 and b = 5, find a + b.",
+   "sent": "If a = 2 and b = 5, find a + b."
+  },
+  {
+   "input": "Evaluate x^2 when x = 3.",
+   "sent": "Evaluate x^2 when x = 3."
+  },
+  {
+   "input": "Simplify 4(x - 2).",
+   "sent": "Simplify 4(x - 2)."
+  },
+  {
+   "input": "A rectangle has a length of 12 centimeters and a width of 5 centimeters. Find its perimeter and its area, and show every step of your solution.",
+   "sent": "A rectangle has a length of 12 centimeters and a width of 5 centimeters. Find its perimeter and its area, and show every step of your solution."
+  },
+  {
+   "input": "Page 12 of 20",
+   "sent": "Page 12 of 20"
+  }
+ ]
+}
