@@ -84,10 +84,50 @@ class OfflineOcrService {
   /// Whether the offline models are already loaded in memory.
   bool get isReady => _modelsLoaded;
 
+  /// Shown when the models could not be loaded for a reason the teacher
+  /// cannot act on (the native detail goes to the log only).
+  static const String modelsUnavailableMessage =
+      'On-device scanning could not start. Close TactileLens completely '
+      'and open it again.';
+
+  /// Shown when a page could not be read on the device.
+  static const String scanFailedMessage =
+      'This page could not be read on this device. Try again with the whole '
+      'page in view and good lighting.';
+
   /// Loads the offline models ahead of time (call when the scan screen
   /// opens). The very first run also copies ~350 MB of models into the
   /// app's storage, so it can take a while. Safe to call repeatedly.
   Future<void> prepare() => _ensureModelsLoaded();
+
+  /// Quick check of the on-device models for the Scan screen, or null when
+  /// it could not run (not Android, or the check itself failed). Never
+  /// throws.
+  Future<OfflineModelStatus?> checkModels() async {
+    if (!_onnxService.isSupported) {
+      return null;
+    }
+
+    try {
+      return await _onnxService.checkModels();
+    } catch (error) {
+      debugPrint('Offline model check failed: $error');
+      return null;
+    }
+  }
+
+  /// The message to show for a native failure: model, storage and similar
+  /// problems keep their own teacher-facing text; anything else gets
+  /// [fallback] and its detail goes to the log.
+  @visibleForTesting
+  static String messageFor(PaddleOnnxNativeException error, String fallback) {
+    if (error.isTeacherFacing) {
+      return error.message;
+    }
+
+    debugPrint('Offline native error (${error.code}): ${error.message}');
+    return fallback;
+  }
 
   Future<ScanDocumentResult> scanDocument(File imageFile) async {
     if (_disposed) {
@@ -254,7 +294,7 @@ class OfflineOcrService {
     } on PaddleOnnxNativeException catch (error, stackTrace) {
       debugPrint('Offline ONNX scan failed: ${error.message}');
       debugPrintStack(stackTrace: stackTrace);
-      throw OfflineOcrException(error.message);
+      throw OfflineOcrException(messageFor(error, scanFailedMessage));
     } on OfflineOcrException {
       rethrow;
     } catch (error, stackTrace) {
@@ -295,9 +335,7 @@ class OfflineOcrService {
       stopwatch.stop();
 
       if (result['success'] != true) {
-        throw const OfflineOcrException(
-          'The offline scanning models could not be loaded.',
-        );
+        throw const OfflineOcrException(modelsUnavailableMessage);
       }
 
       _modelsLoaded = true;
@@ -309,9 +347,7 @@ class OfflineOcrService {
         'formula ${result['formula_cold_load_time_ms']} ms].',
       );
     } on PaddleOnnxNativeException catch (error) {
-      throw OfflineOcrException(
-        'The offline scanning models could not be loaded: ${error.message}',
-      );
+      throw OfflineOcrException(messageFor(error, modelsUnavailableMessage));
     }
   }
 

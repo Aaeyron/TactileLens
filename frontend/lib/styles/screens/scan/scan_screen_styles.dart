@@ -439,4 +439,28 @@ abstract final class ScanScreenStyles {
     fontSize: 14,
     fontWeight: FontWeight.w500,
   );
+
+  // On-device model problem banner (dark amber, white text: 10.1:1).
+  static const Color modelProblemBackgroundColor = Color(0xFF5C3B00);
+  static const Color modelProblemTextColor = Colors.white;
+  static const IconData modelProblemIcon = Icons.error_outline_rounded;
+  static const EdgeInsets modelProblemPadding = EdgeInsets.fromLTRB(
+    16,
+    10,
+    16,
+    10,
+  );
+  static const double modelProblemIconSpacing = 10;
+
+  static const TextStyle modelProblemTitleStyle = TextStyle(
+    color: modelProblemTextColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+
+  static const TextStyle modelProblemTextStyle = TextStyle(
+    color: modelProblemTextColor,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+  );
 }

@@ -8,7 +8,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.SystemClock
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -32,14 +31,6 @@ import kotlinx.coroutines.withContext
  * - reading order from order_logits "votes"
  */
 object PaddleOnnxLayoutDetector {
-    private const val MODEL_ASSET =
-        "paddle_onnx/PP-DocLayoutV3/pp_doclayoutv3_nomask.onnx"
-
-    // Bump the version suffix if the model file ever changes,
-    // so the cached copy in internal storage is refreshed.
-    private const val MODEL_CACHE_FILE =
-        "paddle_onnx_models/pp_doclayoutv3_nomask.v1.onnx"
-
     private const val INPUT_SIZE = 800
     private const val NUM_QUERIES = 300
     private const val NUM_CLASSES = 25
@@ -214,7 +205,7 @@ object PaddleOnnxLayoutDetector {
 
         val loadStart = SystemClock.elapsedRealtime()
 
-        val modelFile = copyModelIfNeeded(context.applicationContext)
+        val modelFile = OfflineModelFiles.installedFile(context, OfflineModelFiles.LAYOUT)
         val env = environment
             ?: OrtEnvironment.getEnvironment().also { environment = it }
 
@@ -225,7 +216,15 @@ object PaddleOnnxLayoutDetector {
             )
         }
 
-        val created = env.createSession(modelFile.absolutePath, options)
+        val created = try {
+            env.createSession(modelFile.absolutePath, options)
+        } catch (error: Exception) {
+            // A copy ONNX Runtime cannot open is dropped, so the next
+            // attempt copies it again instead of failing every time.
+            options.close()
+            OfflineModelFiles.discardInstalled(context, OfflineModelFiles.LAYOUT)
+            throw OfflineModelFiles.loadFailed(OfflineModelFiles.LAYOUT, error)
+        }
 
         inputName = created.inputNames.firstOrNull() ?: "pixel_values"
         sessionOptions = options
@@ -243,35 +242,6 @@ object PaddleOnnxLayoutDetector {
         sessionOptions?.close()
         sessionOptions = null
         loadedThreadCount = 0
-    }
-
-    /**
-     * Copies the model from APK assets to internal storage once, so ONNX
-     * Runtime can load it from a file instead of one huge Java byte array
-     * (which can cause OutOfMemoryError on phones).
-     */
-    private fun copyModelIfNeeded(context: Context): File {
-        val target = File(context.filesDir, MODEL_CACHE_FILE)
-
-        if (target.isFile && target.length() > 0L) {
-            return target
-        }
-
-        target.parentFile?.mkdirs()
-
-        val temporary = File(target.parentFile, "${target.name}.tmp")
-
-        context.assets.open(MODEL_ASSET).use { input ->
-            FileOutputStream(temporary).use { output ->
-                input.copyTo(output, bufferSize = 1 shl 20)
-            }
-        }
-
-        check(temporary.renameTo(target)) {
-            "The layout model could not be prepared in internal storage."
-        }
-
-        return target
     }
 
     // ------------------------------------------------------------------
