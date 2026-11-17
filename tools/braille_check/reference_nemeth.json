@@ -1,0 +1,304 @@
+{
+ "document": "Nemeth Braille Code for Mathematics, 2022 (Braille Authority of North America)",
+ "url": "https://brailleauthority.org/sites/default/files/2024-02/Nemeth_2022.pdf",
+ "about": "Short examples from BANA's Nemeth Code 2022, chosen where the print is plain one-line text (no superscripts, subscripts, stacked fractions or typeforms, which the PDF's text loses). Braille is the example's ASCII braille (North American table; lowercase ` { | } ~ read as @ [ \\ ] ^) converted to Unicode cells, without the Nemeth opening and closing indicators (_% and _:) that the book puts around every example. Where the PDF prints the multiplication cross as a Symbol-font character (U+F0B4), the print is given as ×.",
+ "items": [
+  {
+   "id": "n3-4",
+   "title": "Numeric Comma",
+   "print": "1,478.00",
+   "ascii": "#1,478.00",
+   "nemeth": "⠼⠂⠠⠲⠶⠦⠨⠴⠴",
+   "source": {
+    "example": "3-4",
+    "pdf_page": 29
+   }
+  },
+  {
+   "id": "n3-5",
+   "title": "Numeric Decimal Point",
+   "print": ".35",
+   "ascii": "#.35",
+   "nemeth": "⠼⠨⠒⠢",
+   "source": {
+    "example": "3-5",
+    "pdf_page": 29
+   }
+  },
+  {
+   "id": "n3-6",
+   "title": "Numeric Decimal Point",
+   "print": "3.14",
+   "ascii": "#3.14",
+   "nemeth": "⠼⠒⠨⠂⠲",
+   "source": {
+    "example": "3-6",
+    "pdf_page": 30
+   }
+  },
+  {
+   "id": "n3-11",
+   "title": "Negative Number",
+   "print": "-1",
+   "ascii": "-#1",
+   "nemeth": "⠤⠼⠂",
+   "source": {
+    "example": "3-11",
+    "pdf_page": 30
+   }
+  },
+  {
+   "id": "n3-12",
+   "title": "Negative Decimal Number",
+   "print": "-.3",
+   "ascii": "-#.3",
+   "nemeth": "⠤⠼⠨⠒",
+   "source": {
+    "example": "3-12",
+    "pdf_page": 31
+   }
+  },
+  {
+   "id": "n3-13",
+   "title": "Number Not Requiring a Numeric Indicator",
+   "print": "+3",
+   "ascii": "+3",
+   "nemeth": "⠬⠒",
+   "source": {
+    "example": "3-13",
+    "pdf_page": 31
+   }
+  },
+  {
+   "id": "n3-14",
+   "title": "Numbers Preceded by a Space",
+   "print": "1 + x + y = 0",
+   "ascii": "#1+x+y .k #0",
+   "nemeth": "⠼⠂⠬⠭⠬⠽⠀⠨⠅⠀⠼⠴",
+   "source": {
+    "example": "3-14",
+    "pdf_page": 31
+   }
+  },
+  {
+   "id": "n3-24",
+   "title": "Equation within Grouping Symbols",
+   "print": "(x = 0)",
+   "ascii": "(x .k #0)",
+   "nemeth": "⠷⠭⠀⠨⠅⠀⠼⠴⠾",
+   "source": {
+    "example": "3-24",
+    "pdf_page": 32
+   }
+  },
+  {
+   "id": "n3-25",
+   "title": "Simple Equation",
+   "print": "0 = x",
+   "ascii": "#0 .k x",
+   "nemeth": "⠼⠴⠀⠨⠅⠀⠭",
+   "source": {
+    "example": "3-25",
+    "pdf_page": 32
+   }
+  },
+  {
+   "id": "n3-31",
+   "title": "Number Following a Left Grouping Symbol",
+   "print": "(0 = x)",
+   "ascii": "(0 .k x)",
+   "nemeth": "⠷⠴⠀⠨⠅⠀⠭⠾",
+   "source": {
+    "example": "3-31",
+    "pdf_page": 34
+   }
+  },
+  {
+   "id": "n3-67",
+   "title": "Enclosed List",
+   "print": "(1 + h, 2 + k, 0)",
+   "ascii": "(1+h, 2+k, 0)",
+   "nemeth": "⠷⠂⠬⠓⠠⠀⠆⠬⠅⠠⠀⠴⠾",
+   "source": {
+    "example": "3-67",
+    "pdf_page": 43
+   }
+  },
+  {
+   "id": "n6-23",
+   "title": "Single Letters in an Enclosed List",
+   "print": "(a, 2x, b)",
+   "ascii": "(a, 2x, b)",
+   "nemeth": "⠷⠁⠠⠀⠆⠭⠠⠀⠃⠾",
+   "source": {
+    "example": "6-23",
+    "pdf_page": 96
+   }
+  },
+  {
+   "id": "n6-24",
+   "title": "Single Letters in an Enclosed List",
+   "print": "(0, a, 1, b, 2)",
+   "ascii": "(0, a, 1, b, 2)",
+   "nemeth": "⠷⠴⠠⠀⠁⠠⠀⠂⠠⠀⠃⠠⠀⠆⠾",
+   "source": {
+    "example": "6-24",
+    "pdf_page": 96
+   }
+  },
+  {
+   "id": "n6-31",
+   "title": "Letters Next to a Comparison Sign",
+   "print": "a = b",
+   "ascii": "a .k b",
+   "nemeth": "⠁⠀⠨⠅⠀⠃",
+   "source": {
+    "example": "6-31",
+    "pdf_page": 97
+   }
+  },
+  {
+   "id": "n8-51",
+   "title": "Comma Between Two Letters",
+   "print": "(x, y)",
+   "ascii": "(x, y)",
+   "nemeth": "⠷⠭⠠⠀⠽⠾",
+   "source": {
+    "example": "8-51",
+    "pdf_page": 123
+   }
+  },
+  {
+   "id": "n8-52",
+   "title": "Comma Between Two Numbers",
+   "print": "(-3,2)",
+   "ascii": "(-3, 2)",
+   "nemeth": "⠷⠤⠒⠠⠀⠆⠾",
+   "source": {
+    "example": "8-52",
+    "pdf_page": 124
+   }
+  },
+  {
+   "id": "n11-11",
+   "title": "Ellipsis Used in Print",
+   "print": "(2, 4, 6, ..., 12)",
+   "ascii": "(2, 4, 6, ''', 12)",
+   "nemeth": "⠷⠆⠠⠀⠲⠠⠀⠖⠠⠀⠄⠄⠄⠠⠀⠂⠆⠾",
+   "source": {
+    "example": "11-11",
+    "pdf_page": 145
+   }
+  },
+  {
+   "id": "n19-10",
+   "title": "Parentheses and Square Brackets",
+   "print": "4 - 3[4 - 2(6 - 3)] ÷ 3",
+   "ascii": "#4-3`(4-2(6-3)`)./3",
+   "nemeth": "⠼⠲⠤⠒⠈⠷⠲⠤⠆⠷⠖⠤⠒⠾⠈⠾⠨⠌⠒",
+   "source": {
+    "example": "19-10",
+    "pdf_page": 255
+   }
+  },
+  {
+   "id": "n20-3",
+   "title": "Space Between an Ellipsis and Operation Sign",
+   "print": "1 + 2 + … + n",
+   "ascii": "#1+2+ ''' +n",
+   "nemeth": "⠼⠂⠬⠆⠬⠀⠄⠄⠄⠀⠬⠝",
+   "source": {
+    "example": "20-3",
+    "pdf_page": 268
+   }
+  },
+  {
+   "id": "n20-10",
+   "title": "No Space Between Numbers and Division Sign",
+   "print": "12 ÷ 3",
+   "ascii": "#12./3",
+   "nemeth": "⠼⠂⠆⠨⠌⠒",
+   "source": {
+    "example": "20-10",
+    "pdf_page": 269
+   }
+  },
+  {
+   "id": "n20-12",
+   "title": "Letters and Function Names and Minus Sign",
+   "print": "sin x − sin y",
+   "ascii": "sin x-sin y",
+   "nemeth": "⠎⠊⠝⠀⠭⠤⠎⠊⠝⠀⠽",
+   "source": {
+    "example": "20-12",
+    "pdf_page": 270
+   }
+  },
+  {
+   "id": "n20-40",
+   "title": "Plus and Minus Combined Vertically",
+   "print": "x ± y",
+   "ascii": "x+-y",
+   "nemeth": "⠭⠬⠤⠽",
+   "source": {
+    "example": "20-40",
+    "pdf_page": 274
+   }
+  },
+  {
+   "id": "n20-41",
+   "title": "Multiplication Cross",
+   "print": "3 × 10",
+   "ascii": "#3`*10",
+   "nemeth": "⠼⠒⠈⠡⠂⠴",
+   "source": {
+    "example": "20-41",
+    "pdf_page": 274
+   }
+  },
+  {
+   "id": "n21-1",
+   "title": "Oblique Negated Equals Sign",
+   "print": "≠",
+   "ascii": "/.k",
+   "nemeth": "⠌⠨⠅",
+   "source": {
+    "example": "21-1",
+    "pdf_page": 286
+   }
+  },
+  {
+   "id": "n21-26",
+   "title": "Equals sign",
+   "print": "x = y",
+   "ascii": "x .k y",
+   "nemeth": "⠭⠀⠨⠅⠀⠽",
+   "source": {
+    "example": "21-26",
+    "pdf_page": 291
+   }
+  },
+  {
+   "id": "n21-29",
+   "title": "Greater Than Sign",
+   "print": "x > y",
+   "ascii": "x .1 y",
+   "nemeth": "⠭⠀⠨⠂⠀⠽",
+   "source": {
+    "example": "21-29",
+    "pdf_page": 292
+   }
+  },
+  {
+   "id": "n21-40",
+   "title": "Less Than, Equal to, Greater Than",
+   "print": "(<, =, >)",
+   "ascii": "(\"k, .k, .1)",
+   "nemeth": "⠷⠐⠅⠠⠀⠨⠅⠠⠀⠨⠂⠾",
+   "source": {
+    "example": "21-40",
+    "pdf_page": 293
+   }
+  }
+ ]
+}
