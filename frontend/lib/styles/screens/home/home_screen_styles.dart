@@ -39,7 +39,6 @@
     static const IconData scanIcon = Icons.document_scanner_rounded;
     static const IconData cameraIcon = Icons.photo_camera_rounded;
 
-    static const IconData notificationIcon = Icons.notifications_none_rounded;
 
     static const IconData materialsIcon = Icons.folder_copy_outlined;
     static const IconData historyIcon = Icons.history_rounded;
@@ -93,6 +92,12 @@
 
     static const double quickScanCardTop = 200;
 
+    // Above this text scale the greeting header grows with its text and
+    // the Quick Scan card sits below it instead of overlapping it.
+    static const double stackedHeaderTextScale = 1.3;
+    static const double stackedHeaderBottomPadding = 24;
+    static const double stackedCardSpacing = 16;
+
     static const double greetingSubtitleSpacing = 6;
 
     static const double headerBrailleRight = 3;
@@ -105,8 +110,6 @@
     static const int heroDotCount = 12;
 
     static const double notificationButtonSize = 42;
-    static const double notificationIconSize = 25;
-    static const double notificationTapRadius = 25;
 
     // ============================================================
     // SHARED CARDS
