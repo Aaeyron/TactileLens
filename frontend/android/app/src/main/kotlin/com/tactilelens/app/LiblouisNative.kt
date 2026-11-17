@@ -143,15 +143,20 @@ object LiblouisNative {
         content: String,
         uncontracted: Boolean = false,
     ): String {
-        return translate(
-            context = context,
-            content = content,
-            translationTable = if (uncontracted) {
-                UEB_UNCONTRACTED_TABLE
-            } else {
-                UEB_TABLE
-            },
-        )
+        // Line by line, like the server's lou_translate and like Braille 1:
+        // one call for the whole block turned each line break (a list
+        // item, "1." "2." ...) into a blank cell.
+        return LiblouisLines.translateLineByLine(content) { line ->
+            translate(
+                context = context,
+                content = line,
+                translationTable = if (uncontracted) {
+                    UEB_UNCONTRACTED_TABLE
+                } else {
+                    UEB_TABLE
+                },
+            )
+        }
     }
 
     /**
