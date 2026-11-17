@@ -180,7 +180,7 @@ void main() {
 
     expect(
       tester.getSemantics(find.byType(OnDeviceModelProblem)),
-      containsSemantics(isLiveRegion: true),
+      isSemantics(isLiveRegion: true),
     );
 
     semantics.dispose();
