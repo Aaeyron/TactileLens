@@ -1,4 +1,4 @@
-# PaddleOCR-VL fine-tuning tools (online engine)
+# Track C: PaddleOCR-VL fine-tuning (online engine)
 
 Tooling only. **No model has been fine-tuned and there are no fine-tuning
 results.**
@@ -55,7 +55,7 @@ wrong, or an eval image leaks, nothing is written.**
 
 Leak guard: no train/val image may have the same bytes (sha256) as an
 eval image of the dataset or of the recognizer tools' eval sets
-(`tools/training`: `eval/real`, `eval/synthetic`), and no file name may
+(`tools/training`: `datasets/own/text_lines/eval`, `datasets/synthetic/text_lines/eval`), and no file name may
 be in two splits.
 
 ## 2. Evaluate engines on the held-out eval set
@@ -63,7 +63,7 @@ be in two splits.
 ```
 python evaluate_vl.py --eval D:\vl_data\sft --engine local                 # PaddleOCR-VL-1.6 on this PC
 python evaluate_vl.py --eval D:\vl_data\sft --engine local --mode layout   # with layout detection, as the app
-python evaluate_vl.py --eval D:\vl_data\sft --engine finetuned --model-dir D:\vl_ft\export
+python evaluate_vl.py --eval D:\vl_data\sft --engine finetuned --model-dir D:\vl_ft\export --vl-model-name PaddleOCR-VL-0.9B --pipeline-version v1
 python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-material --max-pages 50
 ```
 
@@ -71,7 +71,10 @@ python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-materi
   `paddleocr_vl_env` (used as is, nothing installed). **Stop the AI
   service first** so the 6 GB GPU is free. `--mode prompt` (default)
   reads the whole image with the task prompt; `--mode layout` runs layout
-  detection as the app does.
+  detection as the app does. `--vl-model-name` / `--pipeline-version`
+  choose the model: `PaddleOCR-VL-1.6-0.9B` with `v1.6` (default) or
+  `PaddleOCR-VL-0.9B` with `v1` (the model ERNIEKit fine-tunes; a
+  fine-tuned folder loaded this way is not verified).
 - `hosted` uses the AI service's client. The client reads
   `PADDLEOCR_ACCESS_TOKEN` from the environment; this script never reads,
   prints or stores it. **Images sent are stored by Baidu: only your own
@@ -79,7 +82,7 @@ python evaluate_vl.py --eval D:\vl_data\sft --engine hosted --confirm-own-materi
   the daily cap (`PADDLEOCR_DAILY_PAGE_CAP`, below 3000) and stops at the
   cap or `--max-pages`; failed jobs are not resubmitted. Set
   `PADDLEOCR_PAGE_COUNT_FILE` to the AI service's file to share its count
-  (otherwise `outputs/vl_eval/hosted_page_count.json`). The hosted API
+  (otherwise `evaluations/trackC_vl/hosted_page_count.json`). The hosted API
   always runs layout detection (no task prompt). Only label and text of
   each block are kept; image links are dropped.
 
@@ -87,8 +90,29 @@ Metrics overall and per task, topic, kind and source: exact match after
 normalisation (LaTeX delimiters and spaces ignored, tables compared as
 OTSL), mean normalised edit distance, and how often the app's formula
 guard would hold the block (prediction, and target for reference).
-Output: `tactilelens-training\outputs\vl_eval\<time>_<engine>_<hash>\`
+Output: `tactilelens-training\evaluations\trackC_vl\<time>_<engine>_<hash>\`
 (`results.md`, `results.csv`, `predictions.tsv`, `run.json`).
+
+## 3. Fine-tuning (not run)
+
+Feasibility and memory estimates: [docs/vl_finetuning_feasibility.md](../../docs/vl_finetuning_feasibility.md).
+In short: not on our 6 GB card or a free Colab T4; a Colab A100 is the
+realistic option. `colab_sft.ipynb` follows the ERNIEKit guide (full
+fine-tuning of PaddleOCR-VL-0.9B on `train.jsonl`, `val.jsonl` for eval,
+`eval.jsonl` never used); it stops on GPUs below compute 8.0 / 39 GB.
+**It has never been run.** Its data-check cell (absolute image links,
+hashes, eval leak guard) was run locally on the fake dataset.
+
+Partial fine-tuning (LoRA), the free-Colab path:
+`colab_lora_sft.ipynb` (**never run**). It trains the documented 0.9B
+model with `fine_tuning=LoRA` (stated by an ERNIE maintainer, no shipped
+config), stops on a T4 unless `EXPERIMENTAL_T4 = True` (a 20-step fp16
+test labelled "experimental, not the documented setup, not a usable
+model"; merge and evaluation refuse to run in that mode), checkpoints to Google Drive and resumes after a
+timeout, tries the LoRA merge (not verified) and evaluates the merged
+model and the base 0.9B with `evaluate_vl.py`. Sources, Drive layout,
+memory test plan and serving: [docs/training_runbook.md](../../docs/training_runbook.md).
+Data comes from `tools/dataset/split_dataset.py` (`labels.csv`).
 
 ## Tests and dry run
 

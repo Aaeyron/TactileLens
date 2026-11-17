@@ -21,7 +21,8 @@ copy and keep.
   rows.
 - **Held for review**: formulas the Braille path cannot handle safely are
   shown as text with a reason instead of possibly wrong Braille.
-- **History** of scans and **Materials** (folders of saved results and
+- **History** of scans, each marked **Online** or **On this device**, and
+  **Materials** (folders of saved results and
   uploaded PDF/JPG/PNG files).
 - **Guest mode**: no account; scans run on the device and everything stays
   on the phone.
@@ -153,7 +154,10 @@ are in [docs/setup.md](docs/setup.md#environment-variables).
 | Backend (Node) | `cd backend && npm test` | 31 passed |
 | App (Flutter) | `cd frontend && flutter test` | 241 passed |
 | Android (Kotlin) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` | 4 passed |
-| VL tools | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed |
+| VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed (2026-11-10) |
+| Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-10) |
+| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-10) |
+| Formula comparison and fine-tuning analysis (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula test_finetune_changes` (`paddle_onnx_env`) | 33 passed (2026-11-11) |
 
 Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9
 with PaddleOCR 3.7.0, Node 22.18, Flutter 3.44.7). The skipped Python
@@ -180,9 +184,10 @@ TactileLens/
 │   └── third_party/             Liblouis and llama.cpp (git submodules)
 ├── docs/                        architecture, setup, evaluation plan
 └── tools/
-    ├── model_prep/              inspect and test the ONNX exports
-    ├── training/                offline recognizer: synthetic data, worksheets, evaluation, trial training
-    └── training_vl/             PaddleOCR-VL: SFT data converter, evaluation harness
+    ├── dataset/                 datasets for all tracks: intake, split, public (im2latex) and synthetic formulas
+    ├── model_prep/              Track A: on-device formula model: ONNX checks, training, export, evaluation
+    ├── training/                Track B: on-device text-line recognizer; also the workspace layout (common.py)
+    └── training_vl/             Track C: PaddleOCR-VL: SFT data converter, evaluation harness, Colab notebooks
 ```
 
 ## Evaluation and training status
@@ -209,7 +214,13 @@ we trained.
 - **The hosted API cannot be fine-tuned.** Only our own copy of the
   open PaddleOCR-VL can, with ERNIEKit; its documented setup is an
   80 GB GPU, and a fine-tuned model would need our own GPU hosting.
-  This is future work.
+  This is future work. A LoRA notebook for free Colab is prepared (never
+  run; a free T4 is not a documented setup).
+- **Ready for the dataset** (dry-run on fake data only, nothing trained on
+  real data): intake audit and split ([tools/dataset/](tools/dataset/README.md)),
+  a full recognizer run with real-photo validation, and the plan for days
+  1-3, Google Drive and the approvals needed:
+  [docs/training_runbook.md](docs/training_runbook.md).
 - The evaluation dataset is planned, not finished:
   [docs/evaluation/DATASET_PLAN.md](docs/evaluation/DATASET_PLAN.md),
   [dataset card](docs/evaluation/dataset_card.md),

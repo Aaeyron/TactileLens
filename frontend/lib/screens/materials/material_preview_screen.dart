@@ -500,6 +500,7 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
       pages: _modePages,
       initialMode: _savedBrailleMode,
       selectorLayout: BrailleModeSelectorLayout.buttons,
+      savedMode: _savedBrailleMode,
       builder: (BuildContext context, BrailleModeView? view, Widget selector) {
         // In the saved mode, copy exactly what was saved.
         final String braille = view == null

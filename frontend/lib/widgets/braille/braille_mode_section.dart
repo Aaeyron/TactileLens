@@ -33,7 +33,12 @@ class BrailleModeSection extends StatefulWidget {
     this.onViewChanged,
     this.translator,
     this.selectorLayout = BrailleModeSelectorLayout.chips,
+    this.savedMode,
   });
+
+  /// The grade a saved record was saved in, shown under the selector
+  /// (History, Materials). Null for a fresh scan result.
+  final BrailleMode? savedMode;
 
   /// How the selector handed to [builder] is drawn.
   final BrailleModeSelectorLayout selectorLayout;
@@ -143,6 +148,7 @@ class _BrailleModeSectionState extends State<BrailleModeSection> {
           _requested == BrailleMode.uncontracted &&
           view != null &&
           view.fellBack,
+      savedMode: widget.savedMode,
       onChanged: _select,
     );
 

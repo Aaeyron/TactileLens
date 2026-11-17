@@ -7,6 +7,10 @@ jobs.json: [{"id": ..., "image": <path>, "prompt_label": "formula"|"table"|"ocr"
 The pipeline is built as the AI service builds it (pipeline v1.6,
 gpu:0, paddle engine, native VL backend, no orientation/unwarping, no
 queues). --model-dir points the VL model at a fine-tuned folder.
+--model-name is the registered VL model name: PaddleOCR-VL-1.6-0.9B
+(pipeline v1.6, the default) or PaddleOCR-VL-0.9B (pipeline v1, the
+model ERNIEKit fine-tunes). A fine-tuned folder with these names is
+not verified (no fine-tuned model yet).
 
 Modes:
   prompt  no layout detection; the whole image is read with the task's
@@ -38,6 +42,7 @@ def main() -> None:
     parser.add_argument("--jobs", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--model-dir")
+    parser.add_argument("--model-name", help="PaddleOCR-VL-1.6-0.9B or PaddleOCR-VL-0.9B")
     parser.add_argument("--mode", choices=["prompt", "layout"], default="prompt")
     parser.add_argument("--pipeline-version", default="v1.6")
     parser.add_argument("--device", default="gpu:0")
@@ -57,6 +62,8 @@ def main() -> None:
     )
     if args.model_dir:
         options["vl_rec_model_dir"] = args.model_dir
+    if args.model_name:
+        options["vl_rec_model_name"] = args.model_name
     started = time.perf_counter()
     pipeline = PaddleOCRVL(**options)
     load_seconds = time.perf_counter() - started

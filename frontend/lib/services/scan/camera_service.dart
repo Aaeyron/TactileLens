@@ -5,7 +5,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
+
+import 'image_orientation_service.dart';
 
 class CameraService {
   CameraService({
@@ -202,40 +203,21 @@ class CameraService {
   // Normalize Captured Orientation
   // ============================================================
 
+  /// The shared orientation step (also used for gallery images): EXIF
+  /// applied and removed, and the camera rules for a phone held sideways
+  /// or upside-down; saved as a metadata-free PNG. Runs off the UI isolate.
   Future<File> _normalizeCapturedImage({
     required File imageFile,
     required DeviceOrientation captureOrientation,
   }) async {
-    /*
-   * PNG does not retain the JPEG EXIF orientation that caused the
-   * later crop and preview stages to rotate the image again.
-   */
-    final String normalizedPath = <String>[
-      imageFile.parent.path,
-      'tactilelens_capture_'
-          '${DateTime.now().microsecondsSinceEpoch}.png',
-    ].join(Platform.pathSeparator);
-
-    /*
- * Some Android cameras return portrait pixel dimensions even
- * though the device was held sideways. Those pixels are rotated
- * once by this angle before saving the metadata-free PNG.
- */
-    final num? landscapeRotation = switch (captureOrientation) {
-      DeviceOrientation.landscapeLeft => -90,
-      DeviceOrientation.landscapeRight => 90,
-      _ => null,
-    };
-
-    // Decoding and PNG encoding are slow, so they run off the UI isolate.
-    final ({int width, int height})? dimensions =
-        await compute(_writeNormalizedCapture, (
+    final String? normalizedPath =
+        await compute(ImageOrientationService.writeNormalized, (
           sourcePath: imageFile.path,
-          outputPath: normalizedPath,
-          landscapeRotation: landscapeRotation,
+          outputDirectory: imageFile.parent.path,
+          capturedIn: captureOrientation,
         ));
 
-    if (dimensions == null) {
+    if (normalizedPath == null) {
       throw CameraException(
         'capture_decode_failed',
         'The captured image could not be decoded.',
@@ -250,12 +232,6 @@ class CameraService {
         'The normalized captured image could not be saved.',
       );
     }
-
-    debugPrint(
-      'Normalized PNG dimensions: '
-      '${dimensions.width}x'
-      '${dimensions.height}',
-    );
 
     return normalizedFile;
   }
@@ -349,34 +325,4 @@ class CameraService {
       release?.complete();
     }
   }
-}
-
-/// Runs in a background isolate: apply the camera JPEG's EXIF orientation
-/// exactly once (Android's camera plugin records the physical device
-/// direction there), rotate sideways captures that still have portrait
-/// pixels, and save the result as a metadata-free PNG.
-({int width, int height})? _writeNormalizedCapture(
-  ({String sourcePath, String outputPath, num? landscapeRotation}) job,
-) {
-  final img.Image? decodedImage = img.decodeImage(
-    File(job.sourcePath).readAsBytesSync(),
-  );
-
-  if (decodedImage == null) {
-    return null;
-  }
-
-  img.Image normalizedImage = img.bakeOrientation(decodedImage);
-
-  final num? rotationAngle = job.landscapeRotation;
-
-  if (rotationAngle != null && normalizedImage.height > normalizedImage.width) {
-    normalizedImage = img.copyRotate(normalizedImage, angle: rotationAngle);
-  }
-
-  File(
-    job.outputPath,
-  ).writeAsBytesSync(img.encodePng(normalizedImage), flush: true);
-
-  return (width: normalizedImage.width, height: normalizedImage.height);
 }

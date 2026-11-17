@@ -66,8 +66,15 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   [Full scan cancel (proposal)](#full-scan-cancel-proposal).
 - **Every result screen** states how the page was processed: "Processed
   online (PaddleOCR-VL).", "Processed on this device." or "Processed on
-  this device, because the online scan did not finish." (The label is on
-  the result screen after a scan; History does not show it.)
+  this device, because the online scan did not finish."
+- **History** shows each saved scan as **Online** or **On this device**
+  (and "Processed online" / "Processed on this device" in its details).
+  It is read from the saved `pipeline_version`: on-device scans save
+  `offline-onnx-v1` (`OfflineOcrService.pipelineVersion`), anything else
+  came from the server (`ScanProcessingMode.fromPipelineVersion`). No
+  database change; records saved without a version show no label. Whether
+  an on-device scan was a fallback after a failed online scan is not
+  saved, so History does not say so.
 - `AI_SCAN_MODE` (`--dart-define`) is read by `AIService`, but the scan
   screen creates its `AIService` with `session` explicitly, so the define
   does not change these rules.
@@ -75,7 +82,11 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
 ## Online pipeline (signed-in users, "Online")
 
 1. **App**: sends the image once to `POST /api/scan-document` with an
-   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`).
+   `Idempotency-Key` (`frontend/lib/services/ai/ai_service.dart`). An
+   image larger than 2000 px on its long side is first scaled down to
+   2000 px (lossless PNG; `AIService.onlineUploadMaxDimension`, the same
+   size the AI service scales to, checked by a test); on-device scans are
+   never scaled.
 2. **Backend** (`backend/src/routes/scan/`, `services/scan/`): login
    required; image type and size checked (20 MB); one scan in flight per
    user; 30 scans per hour and 100 per day per user (in memory, reset on
@@ -139,6 +150,30 @@ kept in a local SQLite database.
 | where the image goes | backend, AI service and, with the hosted engine, Baidu | nowhere |
 | history | PostgreSQL, per account | SQLite on the phone |
 
+## Image orientation
+
+The scan screen stays portrait; turning the phone rotates the preview,
+the crop box and the messages, not the layout.
+
+- **Once, on the phone, right after capture or pick**
+  (`frontend/lib/services/scan/image_orientation_service.dart`): the EXIF
+  orientation is applied to the pixels, then all EXIF is removed
+  (orientation, location, camera make), and the image is saved as a PNG.
+  For the camera only, when the camera wrote no rotation, a photo taken
+  sideways with portrait pixels is turned 90 degrees and one taken
+  upside-down 180 degrees, from how the phone was held. If the camera
+  wrote a rotation, it is trusted. Camera behaviour differs between
+  phones; these rules are tested with generated images, not verified on
+  every device.
+- **Crop:** the teacher's crop is kept in image pixels, so rotating the
+  phone keeps it; sideways the preview shows the part that fits.
+- **Server, again before OCR** (`_prepare_image` in
+  `ai_service/services/ocr/paddleocr_vl_service.py`): `ImageOps.exif_transpose`,
+  since any client can send a rotated image. All 8 EXIF orientations are
+  tested (`services/ocr/test_prepare_image_orientation.py`, generated
+  images). The on-device pipeline also
+  applies EXIF before its models.
+
 ## Braille 1 and Braille 2
 
 Both services produce UEB Grade 2 (contracted). The app can show text as
@@ -146,6 +181,14 @@ Both services produce UEB Grade 2 (contracted). The app can show text as
 every letter spelled out); it re-translates the source text on the phone
 with Liblouis (`frontend/lib/services/braille/braille_mode_translator.dart`).
 Nemeth math and tables are never changed by this setting.
+
+- If Braille 1 cannot be made, Braille 2 is shown with a visible banner
+  ("Braille 1 could not be created for this page. Showing Braille 2
+  (Contracted) instead."), which screen readers announce.
+- Saved records say which grade they were saved in, under the mode
+  buttons: History always saves Braille 2; a material saves the mode that
+  was on screen (`saved_braille_mode` in each block; missing means
+  Braille 2, the only grade before modes existed).
 
 ## Full scan cancel (proposal)
 

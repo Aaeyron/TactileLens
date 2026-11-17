@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
@@ -20,9 +21,42 @@ import 'paddle_onnx_native_service.dart';
 /// Returns the same [ScanDocumentResult] shape as before, so the scan,
 /// result and history screens work unchanged.
 class OfflineOcrService {
+  /// Saved with every on-device scan; History reads it to show
+  /// "On this device" (see [ScanProcessingMode.fromPipelineVersion]).
+  static const String pipelineVersion =
+      '${ScanProcessingMode.onDevicePipelinePrefix}onnx-v1';
+
   /// Same text as ROOT_REASON in the AI service's formula_braille_guard.py.
   static const String rootReviewReason =
       'contains a root (√): Nemeth radical not yet confirmed';
+
+  // Why the offline pipeline flagged a block (needs_review). Shown in the
+  // "Needs review" note; the block keeps its Braille.
+  static const String lowConfidenceReason = 'low OCR confidence';
+  static const String fallbackMathReason =
+      'math found in a text line and read by the formula model';
+  static const String formulaUnreadReason =
+      'the formula could not be read; this is the OCR text';
+  static const String unfinishedFormulaReason = 'the formula may be incomplete';
+  static const String possibleExponentReason =
+      'a small raised number (an exponent) may have been missed';
+
+  /// The reason for a block the offline pipeline flagged, from where it
+  /// came from (OfflineDocumentPipeline.kt "source"). Empty if not flagged.
+  @visibleForTesting
+  static String reviewReasonFor(OfflineDocumentBlock source) {
+    if (!source.needsReview) {
+      return '';
+    }
+
+    return switch (source.source) {
+      'formula_fallback' => fallbackMathReason,
+      'ocr_fallback' => formulaUnreadReason,
+      'formula' => unfinishedFormulaReason,
+      'exponent_check' => possibleExponentReason,
+      _ => lowConfidenceReason,
+    };
+  }
 
   static final RegExp _root = RegExp(r'\\sqrt(?![A-Za-z])|[√∛∜]');
 
@@ -177,7 +211,9 @@ class OfflineOcrService {
             brailleSuccess: brailleResult.success,
             brailleError: brailleResult.error ?? '',
             needsReview: heldForRoot || source.needsReview,
-            reviewReason: heldForRoot ? rootReviewReason : '',
+            reviewReason: heldForRoot
+                ? rootReviewReason
+                : reviewReasonFor(source),
           ),
         );
       }
@@ -208,7 +244,7 @@ class OfflineOcrService {
 
       return ScanDocumentResult(
         model: 'PP-DocLayoutV3+PP-OCRv6+PP-FormulaNet_plus-S+liblouis-3.38.0',
-        pipelineVersion: 'offline-onnx-v1',
+        pipelineVersion: pipelineVersion,
         device: 'mobile-cpu',
         pageCount: 1,
         processingTimeMs: stopwatch.elapsedMicroseconds / 1000,

@@ -20,4 +20,23 @@ enum ScanProcessingMode {
       orElse: () => ScanProcessingMode.online,
     );
   }
+
+  /// Start of the pipeline version on-device scans save
+  /// (`OfflineOcrService.pipelineVersion`, 'offline-onnx-v1').
+  static const String onDevicePipelinePrefix = 'offline-';
+
+  /// Where a saved scan was processed, from its stored pipeline version:
+  /// on-device versions start with [onDevicePipelinePrefix], any other
+  /// version came from the server. Null for records saved without one.
+  static ScanProcessingMode? fromPipelineVersion(String? pipelineVersion) {
+    final String version = pipelineVersion?.trim() ?? '';
+
+    if (version.isEmpty) {
+      return null;
+    }
+
+    return version.startsWith(onDevicePipelinePrefix)
+        ? ScanProcessingMode.onDevice
+        : ScanProcessingMode.online;
+  }
 }

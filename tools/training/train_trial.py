@@ -41,7 +41,7 @@ from common import Layout, check_no_eval_in_training, read_labels, read_manifest
 
 PADDLEOCR = Path(r"C:\Projects\Capstone\PaddleOCR-official")
 CONFIG = PADDLEOCR / "configs" / "rec" / "PP-OCRv6" / "PP-OCRv6_small_rec.yml"
-PRETRAINED = Path(r"C:\Projects\Capstone\tactilelens-training\pretrained\PP-OCRv6_small_rec_pretrained.pdparams")
+PRETRAINED = Layout(root_dir(None)).pretrained / "PP-OCRv6_small_rec_pretrained.pdparams"
 
 STEP_LINE = re.compile(
     r"epoch: \[(\d+)/(\d+)\], global_step: (\d+), lr: ([\d.e-]+), (.*?), avg_reader_cost: ([\d.]+) s, "
@@ -52,20 +52,22 @@ EVAL_LINE = re.compile(r"cur metric, (.*)")
 
 
 def build_lists(layout: Layout, run_dir: Path) -> dict:
-    """train_list.txt with paths relative to <root>/data; counts per source."""
+    """train_list.txt with paths relative to <root>/datasets; counts per source."""
 
     check_no_eval_in_training(layout)
-    data_dir = layout.root / "data"
+    data_dir = layout.datasets
     rows, counts = [], Counter()
-    sources = {"synthetic": layout.label_file("synthetic-train"), "real": layout.label_file("real-train")}
-    for name, label_file in sources.items():
-        for image, text in read_labels(label_file):
-            rows.append((f"{name}/{image}", text))
+    sources = {"synthetic": "synthetic-train", "real": "real-train"}
+    for name, set_name in sources.items():
+        prefix = layout.set_dir(set_name).relative_to(data_dir).as_posix()
+        for image, text in read_labels(layout.label_file(set_name)):
+            rows.append((f"{prefix}/{image}", text))
             counts[name] += 1
     with open(run_dir / "train_list.txt", "w", encoding="utf-8", newline="\n") as handle:
         for image, text in rows:
             handle.write(f"{image}\t{text}\n")
-    val = [(f"synthetic/{i}", t) for i, t in read_labels(layout.label_file("synthetic-val"))]
+    val_prefix = layout.set_dir("synthetic-val").relative_to(data_dir).as_posix()
+    val = [(f"{val_prefix}/{i}", t) for i, t in read_labels(layout.label_file("synthetic-val"))]
     with open(run_dir / "val_list.txt", "w", encoding="utf-8", newline="\n") as handle:
         for image, text in val:
             handle.write(f"{image}\t{text}\n")
@@ -210,7 +212,7 @@ def main() -> None:
 
     layout = Layout(root_dir(args.root))
     run_id = dt.datetime.now().strftime("%Y%m%d_%H%M%S") + "_trial"
-    run_dir = layout.outputs / "trials" / run_id
+    run_dir = layout.run_dir("trackB", "synthetic-lines", "trial")
     run_dir.mkdir(parents=True, exist_ok=True)
     data = build_lists(layout, run_dir)
 

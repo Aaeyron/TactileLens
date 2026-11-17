@@ -2,7 +2,7 @@
 
 How to get the phone's side:
   1. Copy a page image (PNG, so no camera rotation) to the phone, for
-     example <root>/worksheets/W001.png.
+     example <root>/datasets/synthetic/worksheets/W001.png.
   2. In TactileLens choose On-device, pick that file from the gallery and
      scan it WITHOUT drawing a selection box (the app then scans the file
      exactly as it is).

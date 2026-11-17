@@ -49,7 +49,7 @@ class ScanDocumentResult {
   final int pageCount;
   final double processingTimeMs;
   final List<DocumentBlock> blocks;
-    final List<DocumentPage> pages;
+  final List<DocumentPage> pages;
 
   // True when the backend already saved this scan to History.
   final bool historySavedByServer;
@@ -417,14 +417,21 @@ class DocumentBlock {
   /// default to false.
   final bool needsReview;
 
-  /// Why the AI service held this block for review instead of translating
-  /// it, for example unsupported LaTeX or English text inside a formula.
-  /// Set only by the online pipeline; empty otherwise.
+  /// Why this block needs review, shown to the teacher. Online: why the AI
+  /// service held it (unsupported LaTeX, English text in a formula, a
+  /// root). Offline: a root, low OCR confidence, or math read by the
+  /// fallback. Empty when there is nothing to say.
   final String reviewReason;
 
-  /// True when the AI service withheld this block's Braille. The raw OCR
-  /// text is shown with a note instead.
-  bool get isHeldForReview => needsReview && reviewReason.isNotEmpty;
+  /// True when this block's Braille was withheld. The readable text is
+  /// shown with a note instead.
+  bool get isHeldForReview =>
+      needsReview && reviewReason.isNotEmpty && !hasBraille;
+
+  /// True when this block has Braille but should be checked against the
+  /// printed page. It is shown as usual, with a note.
+  bool get isFlaggedForReview =>
+      needsReview && reviewReason.isNotEmpty && hasBraille;
 
   /// The Braille mode of the record's combined Braille string when it was
   /// saved, stored as `saved_braille_mode` in each block. [brailleContent]

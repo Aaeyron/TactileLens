@@ -180,6 +180,39 @@ class ImageCropService {
     );
   }
 
+  /// The inverse of [mapPreviewRegionToImage]: where an image region is
+  /// drawn on a cover-scaled preview of [previewSize]. Used to keep the
+  /// same part of the page selected when the preview changes shape (the
+  /// phone was rotated). The result may extend past the preview; callers
+  /// constrain it.
+  static Rect mapImageRegionToPreview({
+    required Rect imageRegion,
+    required Size previewSize,
+    required Size imageSize,
+  }) {
+    if (previewSize.isEmpty || imageSize.isEmpty) {
+      throw const FormatException('Invalid image or preview dimensions.');
+    }
+
+    final double widthScale = previewSize.width / imageSize.width;
+    final double heightScale = previewSize.height / imageSize.height;
+    final double coverScale = widthScale > heightScale
+        ? widthScale
+        : heightScale;
+
+    final Offset displayedImageOffset = Offset(
+      (previewSize.width - imageSize.width * coverScale) / 2,
+      (previewSize.height - imageSize.height * coverScale) / 2,
+    );
+
+    return Rect.fromLTRB(
+      imageRegion.left * coverScale + displayedImageOffset.dx,
+      imageRegion.top * coverScale + displayedImageOffset.dy,
+      imageRegion.right * coverScale + displayedImageOffset.dx,
+      imageRegion.bottom * coverScale + displayedImageOffset.dy,
+    );
+  }
+
   static void _validateCropRectangle(Rect cropRect) {
     final bool hasFiniteValues =
         cropRect.left.isFinite &&

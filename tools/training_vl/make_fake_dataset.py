@@ -18,7 +18,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-FONT = Path(r"C:\Projects\Capstone\tactilelens-training\fonts\dejavu\DejaVuSans.ttf")
+FONT = Path(r"C:\Projects\Capstone\tactilelens-training\resources\fonts\dejavu\DejaVuSans.ttf")
 
 # (filename, task, drawn text or table rows, target, split)
 ITEMS = [

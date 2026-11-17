@@ -3,6 +3,8 @@ import subprocess
 from pathlib import Path
 from typing import Final
 
+from services.braille.braille_math_normalizer import BrailleMathNormalizer
+
 
 class BrailleTranslationError(Exception):
     """Raised when Liblouis cannot translate recognized content."""
@@ -98,7 +100,8 @@ class BrailleTranslationService:
     ) -> str:
         """Translate normalized mathematical content into Nemeth."""
 
-        normalized_content = content
+        # Formulas and tables both pass here, whichever route they took.
+        normalized_content = BrailleMathNormalizer.tighten_operators(content)
 
         for symbol, replacement in self._NEMETH_INPUT_REPLACEMENTS.items():
             normalized_content = normalized_content.replace(

@@ -302,6 +302,16 @@ class _TextBrailleBlock extends StatelessWidget {
       return _HeldForReviewBlock(block: block);
     }
 
+    final Widget content = _buildContent();
+
+    if (block.isFlaggedForReview) {
+      return _FlaggedForReviewBlock(reason: block.reviewReason, child: content);
+    }
+
+    return content;
+  }
+
+  Widget _buildContent() {
     final String content = _ReadableDocumentPage.readableBlockContent(block);
     final String braille = block.hasBraille ? block.brailleContent.trim() : '';
 
@@ -405,6 +415,13 @@ const String heldForReviewNote =
     'Needs review: no Braille was produced for this part. '
     'Compare it with the printed page.';
 
+/// A block that has Braille but should be checked against the page (for
+/// example low OCR confidence offline). It is shown as usual, Braille
+/// included, with this note under it.
+@visibleForTesting
+const String flaggedForReviewNote =
+    'Needs review: check this part against the printed page.';
+
 @visibleForTesting
 const String showOriginalLabel = 'Show original';
 
@@ -465,46 +482,76 @@ class _HeldForReviewBlockState extends State<_HeldForReviewBlock> {
             ),
         ],
         const SizedBox(height: ScanResultScreenStyles.reviewNoteSpacing),
-        Container(
-          padding: ScanResultScreenStyles.reviewNotePadding,
-          decoration: const BoxDecoration(
-            color: ScanResultScreenStyles.reviewNoteBackgroundColor,
-            borderRadius: ScanResultScreenStyles.reviewNoteRadius,
-            border: ScanResultScreenStyles.reviewNoteBorder,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const Icon(
-                ScanResultScreenStyles.reviewNoteIcon,
-                size: ScanResultScreenStyles.reviewNoteIconSize,
-                color: ScanResultScreenStyles.primaryColor,
-              ),
-              const SizedBox(width: ScanResultScreenStyles.reviewNoteSpacing),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      heldForReviewNote,
-                      style: ScanResultScreenStyles.reviewNoteStyle,
-                    ),
-                    Text(
-                      'Reason: ${block.reviewReason}',
-                      style: ScanResultScreenStyles.reviewReasonStyle,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        _ReviewNote(note: heldForReviewNote, reason: block.reviewReason),
       ],
     );
   }
 }
 
 /// A block shown as one unit with its full Braille beneath it.
+/// [child] as usual, with the "Needs review" note and its reason under it.
+class _FlaggedForReviewBlock extends StatelessWidget {
+  const _FlaggedForReviewBlock({required this.reason, required this.child});
+
+  final String reason;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        child,
+        const SizedBox(height: ScanResultScreenStyles.reviewNoteSpacing),
+        _ReviewNote(note: flaggedForReviewNote, reason: reason),
+      ],
+    );
+  }
+}
+
+/// The "Needs review" box: an icon, [note] and the reason.
+class _ReviewNote extends StatelessWidget {
+  const _ReviewNote({required this.note, required this.reason});
+
+  final String note;
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: ScanResultScreenStyles.reviewNotePadding,
+      decoration: const BoxDecoration(
+        color: ScanResultScreenStyles.reviewNoteBackgroundColor,
+        borderRadius: ScanResultScreenStyles.reviewNoteRadius,
+        border: ScanResultScreenStyles.reviewNoteBorder,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            ScanResultScreenStyles.reviewNoteIcon,
+            size: ScanResultScreenStyles.reviewNoteIconSize,
+            color: ScanResultScreenStyles.primaryColor,
+          ),
+          const SizedBox(width: ScanResultScreenStyles.reviewNoteSpacing),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(note, style: ScanResultScreenStyles.reviewNoteStyle),
+                Text(
+                  'Reason: $reason',
+                  style: ScanResultScreenStyles.reviewReasonStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BlockWithBraille extends StatelessWidget {
   const _BlockWithBraille({required this.child, required this.braille});
 
@@ -662,6 +709,27 @@ class _ReadableDocumentPage extends StatelessWidget {
       }
 
       final String content = readableBlockContent(block);
+
+      // Kept on its own, so the note sits right under the part it is about.
+      if (block.isFlaggedForReview &&
+          (content.isNotEmpty || block.hasTableData)) {
+        flushPendingContent();
+
+        _addWithSpacing(
+          widgets,
+          _FlaggedForReviewBlock(
+            reason: block.reviewReason,
+            child: block.hasTableData
+                ? _ReadableDocumentTable(block: block, fallbackContent: content)
+                : isStandaloneFormula(block)
+                ? _ReadableFormula(content: content)
+                : _ReadableMixedMathContent(content: content),
+          ),
+        );
+
+        previousBlock = null;
+        continue;
+      }
 
       if (block.hasTableData) {
         flushPendingContent();

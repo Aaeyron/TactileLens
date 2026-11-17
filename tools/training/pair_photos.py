@@ -216,7 +216,7 @@ def main() -> None:
         print(f"{photo_path.name}: {len(rows)} rows, {len(accepted)} labelled -> {set_name}, {len(review)} to review")
 
     check_no_eval_in_training(layout)
-    append_manifest(layout.root / "manifests" / "pairing_runs.jsonl",
+    append_manifest(layout.manifest("pairing_runs"),
                     [{"sheet": args.sheet, "photos": [Path(p).name for p in args.photos],
                       "min_similarity": args.min_similarity, "min_margin": args.min_margin}])
 

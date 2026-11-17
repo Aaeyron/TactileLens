@@ -12,7 +12,7 @@ Metrics, overall and per topic (topic from the manifest):
   base exact           exact after superscripts are read as plain
                        characters (x² = x2): is the rest of the line right?
 
-Output: <root>/outputs/<tag>/<date>_<model sha256[:8]>_<set>/
+Output: <root>/evaluations/trackB_recognizer/<tag>/<date>_<model sha256[:8]>_<set>/ (or --out)
   results.md, results.csv, predictions.tsv
 The model hash, eval-set hash and date are in every file, so runs before
 and after training can be compared.
@@ -24,6 +24,7 @@ import argparse
 import csv
 import datetime as dt
 import hashlib
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -79,23 +80,37 @@ class Tally:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--set", choices=["synthetic-eval", "real-eval"], required=True)
+    which = parser.add_mutually_exclusive_group(required=True)
+    which.add_argument("--set", choices=["synthetic-eval", "real-eval"])
+    which.add_argument("--labels", help="any label file, e.g. a dataset split's rec_eval.txt (paths relative to it); "
+                                        "topic from names like topic_ss_T_001.png")
     parser.add_argument("--root")
     parser.add_argument("--rec", default=str(REC_MODEL), help="recognizer ONNX (default: the app's)")
     parser.add_argument("--rec-config", default=str(REC_CONFIG), help="inference.yml with the dictionary")
     parser.add_argument("--tag", default="baseline")
+    parser.add_argument("--out", help="output folder (default: <root>/evaluations/trackB_recognizer/<tag>/...)")
     args = parser.parse_args()
 
     layout = Layout(root_dir(args.root))
     check_no_eval_in_training(layout)
 
-    rows = read_labels(layout.label_file(args.set))
+    if args.labels:
+        label_file = Path(args.labels)
+        base = label_file.parent
+        set_name = f"labels-{base.name}-{label_file.stem}"
+    else:
+        label_file = layout.label_file(args.set)
+        base = layout.set_dir(args.set)
+        set_name = args.set
+    rows = read_labels(label_file)
     if not rows:
-        raise SystemExit(f"No eval lines in {layout.label_file(args.set)}")
-    topics = {r["path"]: r.get("topic", "unknown") for r in read_manifest(layout.manifest(args.set))}
+        raise SystemExit(f"No eval lines in {label_file}")
+    if args.labels:
+        topics = {image: re.split(r"_(?:ss|cap)_", Path(image).name)[0] for image, _ in rows}
+    else:
+        topics = {r["path"]: r.get("topic", "unknown") for r in read_manifest(layout.manifest(args.set))}
 
     ocr = AppOcr(rec_model=Path(args.rec), rec_config=Path(args.rec_config))
-    base = layout.set_dir(args.set)
 
     overall, by_topic, predictions = Tally(), defaultdict(Tally), []
     for image, label in rows:
@@ -106,15 +121,15 @@ def main() -> None:
         predictions.append((image, topic, label, text, round(confidence, 4), strict(label) == strict(text)))
 
     model_hash = sha256_of(Path(args.rec))
-    eval_hash = hashlib.sha256(layout.label_file(args.set).read_bytes()).hexdigest()
+    eval_hash = hashlib.sha256(label_file.read_bytes()).hexdigest()
     today = dt.date.today().isoformat()
-    out = layout.outputs / args.tag / f"{today}_{model_hash[:8]}_{args.set}"
+    out = Path(args.out) if args.out else layout.evaluations("trackB_recognizer") / args.tag / f"{today}_{model_hash[:8]}_{set_name}"
     out.mkdir(parents=True, exist_ok=True)
 
     table = [overall.row("ALL")] + [by_topic[t].row(t) for t in sorted(by_topic)]
     header = list(table[0])
     with open(out / "results.csv", "w", encoding="utf-8", newline="") as handle:
-        handle.write(f"# date={today} model={Path(args.rec).name} model_sha256={model_hash} eval_set={args.set} eval_labels_sha256={eval_hash}\n")
+        handle.write(f"# date={today} model={Path(args.rec).name} model_sha256={model_hash} eval_set={set_name} eval_labels_sha256={eval_hash}\n")
         writer = csv.DictWriter(handle, fieldnames=header)
         writer.writeheader()
         writer.writerows(table)
@@ -128,12 +143,12 @@ def main() -> None:
         return "-" if v is None else str(v)
 
     lines = [
-        f"# Recognizer results: {args.set}",
+        f"# Recognizer results: {set_name}",
         "",
         f"- Date: {today}",
         f"- Model: `{Path(args.rec).name}` sha256 `{model_hash}`",
         f"- Dictionary: `{Path(args.rec_config).name}`",
-        f"- Eval set: `{args.set}` ({len(rows)} lines), labels sha256 `{eval_hash}`",
+        f"- Eval set: `{set_name}` ({len(rows)} lines), labels sha256 `{eval_hash}`",
         "- Comparison: − and - are the same, spaces ignored.",
         "",
         "| Group | Lines | CER % | Exact % | Lines with superscript | Exponent exact % | Base exact % |",

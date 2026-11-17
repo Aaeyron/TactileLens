@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../ai/scan_processing_mode.dart';
+
 class HistoryRecord {
   const HistoryRecord({
     required this.id,
@@ -30,6 +32,12 @@ class HistoryRecord {
   final double? processingTimeMs;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  /// Online or on this device, from [pipelineVersion]; null for records
+  /// saved without one.
+  ScanProcessingMode? get processingMode {
+    return ScanProcessingMode.fromPipelineVersion(pipelineVersion);
+  }
 
   factory HistoryRecord.fromJson(Map<String, dynamic> json) {
     return HistoryRecord(

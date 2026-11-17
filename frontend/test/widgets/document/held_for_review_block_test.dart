@@ -121,6 +121,106 @@ void main() {
     });
   });
 
+  group('flagged offline blocks keep their Braille', () {
+    // An offline text line read with low confidence (written for this test).
+    DocumentBlock flagged({
+      String braille = '⠠⠞⠕⠞⠁⠇⠀⠙⠥⠑',
+      bool success = true,
+    }) {
+      return DocumentBlock(
+        id: 3,
+        order: 3,
+        type: 'text',
+        rawContent: 'Total due',
+        normalizedContent: 'Total due',
+        boundingBox: const <double>[],
+        polygonPoints: const <List<double>>[],
+        isText: true,
+        isFormula: false,
+        isTable: false,
+        tableRows: const <List<String>>[],
+        brailleContent: braille,
+        brailleCode: 'ueb',
+        brailleSuccess: success,
+        brailleError: '',
+        needsReview: true,
+        reviewReason: 'low OCR confidence',
+      );
+    }
+
+    test('a reason with Braille is flagged, not held', () {
+      expect(flagged().isFlaggedForReview, isTrue);
+      expect(flagged().isHeldForReview, isFalse);
+    });
+
+    test('a reason without Braille is still held', () {
+      final DocumentBlock failed = flagged(braille: '', success: false);
+
+      expect(failed.isHeldForReview, isTrue);
+      expect(failed.isFlaggedForReview, isFalse);
+      expect(_heldBlock().isHeldForReview, isTrue);
+      expect(_heldBlock().isFlaggedForReview, isFalse);
+    });
+
+    testWidgets('Text and Braille shows the text, its Braille and the note', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        _host(
+          TextBrailleLayoutView(
+            pages: _pages(<DocumentBlock>[_textBlock(), flagged()]),
+          ),
+        ),
+      );
+
+      expect(find.text('Total'), findsOneWidget);
+      expect(find.text('⠠⠞⠕⠞⠁⠇'), findsOneWidget);
+      expect(find.text(flaggedForReviewNote), findsOneWidget);
+      expect(find.text('Reason: low OCR confidence'), findsOneWidget);
+      expect(find.text(heldForReviewNote), findsNothing);
+      expect(
+        find.bySemanticsLabel(RegExp('^Needs review: check this part')),
+        findsOneWidget,
+      );
+
+      semantics.dispose();
+    });
+
+    testWidgets('the readable view shows the text and the note', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          DocumentLayoutView(
+            pages: _pages(<DocumentBlock>[_textBlock(), flagged()]),
+            useBraille: false,
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Total due'), findsOneWidget);
+      expect(find.text(flaggedForReviewNote), findsOneWidget);
+      expect(find.text('Reason: low OCR confidence'), findsOneWidget);
+    });
+
+    testWidgets('the Braille view still includes its Braille', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          DocumentLayoutView(
+            pages: _pages(<DocumentBlock>[flagged()]),
+            useBraille: true,
+          ),
+        ),
+      );
+
+      expect(find.text('⠠⠞⠕⠞⠁⠇⠀⠙⠥⠑'), findsOneWidget);
+    });
+  });
+
   group('display', () {
     testWidgets(
       'Text and Braille shows the readable text and the note, no Braille',
