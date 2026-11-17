@@ -145,19 +145,20 @@ class OfflineOcrService {
         final bool isFormula = source.isFormula;
 
         // What the user sees, copies, saves and hears: never LaTeX.
-        // Text: printed lines are rejoined into paragraphs.
+        // Text: printed lines are rejoined into paragraphs; dashes stay as
+        // printed (en dash and em dash have their own UEB signs).
         // Formulas: LaTeX becomes readable symbols, e.g. √(x + 9) = 5.
         final String normalizedContent = isFormula
             ? _readableFormula(rawContent)
             : MathTextFormatter.ensureReadable(
-                _normalizeContent(_reflowText(rawContent)),
+                _reflowText(rawContent).trim(),
               );
 
         // Formula Braille still starts from the model's LaTeX. The Kotlin
         // BrailleMathNormalizer converts it to Nemeth-ready math exactly
         // like the online server does. The LaTeX is never shown.
         final String brailleInput = isFormula
-            ? _normalizeContent(rawContent)
+            ? _normalizeMath(rawContent)
             : normalizedContent;
 
         // Liblouis has no Nemeth radical: a root would come out as an
@@ -383,7 +384,9 @@ class OfflineOcrService {
     return result;
   }
 
-  String _normalizeContent(String content) {
+  /// Formulas only: the minus sign and dashes the formula model can return
+  /// for a minus become "-" before Nemeth. Text blocks keep their dashes.
+  String _normalizeMath(String content) {
     return content
         .replaceAll('−', '-')
         .replaceAll('–', '-')

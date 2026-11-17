@@ -40,10 +40,10 @@ class CheckTests(unittest.TestCase):
 
 
 class TextPrepTests(unittest.TestCase):
-    """The port of the app's _reflowText and _normalizeContent."""
+    """The port of the app's text-block preparation (_reflowText, trim)."""
 
-    def test_dashes_become_hyphens_on_the_phone(self):
-        self.assertEqual(paths.offline_text("4–3 and −5 — done "), "4-3 and -5 - done")
+    def test_text_keeps_its_dashes_and_minus_signs(self):
+        self.assertEqual(paths.offline_text(" 4–3 and −5 — done "), "4–3 and −5 — done")
 
     def test_list_items_keep_their_lines_and_other_lines_join(self):
         self.assertEqual(

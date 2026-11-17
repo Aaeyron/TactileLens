@@ -14,9 +14,10 @@ const String _fixturePath =
     '../tools/braille_check/offline_text_prep_cases.json';
 
 class _TextBlocks extends PaddleOnnxNativeService {
-  const _TextBlocks(this.texts);
+  const _TextBlocks(this.texts, {this.type = 'text'});
 
   final List<String> texts;
+  final String type;
 
   @override
   bool get isSupported => true;
@@ -39,8 +40,9 @@ class _TextBlocks extends PaddleOnnxNativeService {
       'blocks': <Map<String, Object?>>[
         for (int i = 0; i < texts.length; i++)
           <String, Object?>{
-            'type': 'text',
-            'label': 'text',
+            'type': type,
+            'label': type == 'formula' ? 'display_formula' : 'text',
+            'latex': texts[i],
             'content': texts[i],
             'confidence': 0.99,
             'box': <String, double>{
@@ -105,5 +107,38 @@ void main() {
         (item as Map<String, dynamic>)['sent'] as String,
     ]);
     expect(braille.sent, hasLength(cases.length));
+  });
+
+  Future<List<String>> sentToLiblouis(List<String> texts, String type) async {
+    final Directory directory = await Directory.systemTemp.createTemp('dash');
+    addTearDown(() => directory.delete(recursive: true));
+    final File image = File('${directory.path}/page.png')
+      ..writeAsBytesSync(<int>[0x89, 0x50, 0x4E, 0x47]);
+    final _Recording braille = _Recording();
+
+    await OfflineOcrService(
+      onnxService: _TextBlocks(texts, type: type),
+      brailleService: braille,
+    ).scanDocument(image);
+
+    return braille.sent;
+  }
+
+  test('text blocks keep en dashes, em dashes and minus signs', () async {
+    expect(
+      await sentToLiblouis(<String>[
+        'The score was 4–3',
+        'Wait—stop.',
+        'The answer is −5.',
+      ], 'text'),
+      <String>['The score was 4–3', 'Wait—stop.', 'The answer is −5.'],
+    );
+  });
+
+  test('formulas still write a minus sign as "-" before Nemeth', () async {
+    expect(
+      await sentToLiblouis(<String>['x−5=2', 'x–5=2'], 'formula'),
+      <String>['x-5=2', 'x-5=2'],
+    );
   });
 }

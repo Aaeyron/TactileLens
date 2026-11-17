@@ -1,7 +1,7 @@
 """The text a block goes through before Liblouis, on the phone and online.
 
 On the phone (frontend/lib/services/ai/offline_ocr_service.dart):
-  text block -> _reflowText -> _normalizeContent -> (MathTextFormatter.
+  text block -> _reflowText -> trim -> (MathTextFormatter.
   ensureReadable, which leaves text without LaTeX alone) -> one Liblouis
   call for Braille 2. Braille 1 is made line by line from the same text
   (braille_mode_translator.dart).
@@ -10,7 +10,7 @@ Online (ai_service): OcrContentNormalizer.normalize(content, "text") ->
   Braille 1 of an online record is made on the phone, line by line, from
   the record's normalized text.
 
-The two Dart steps are ported here line for line;
+The Dart step is ported here line for line;
 frontend/test/services/ai/offline_text_prep_reference_test.dart checks
 the port against the real Dart code on the reference items.
 """
@@ -47,18 +47,10 @@ def reflow_text(content: str) -> str:
     return result
 
 
-def normalize_content(content: str) -> str:
-    """OfflineOcrService._normalizeContent."""
-
-    return (
-        content.replace("−", "-").replace("–", "-").replace("—", "-").strip()
-    )
-
-
 def offline_text(content: str) -> str:
-    """The text a phone text block sends to Liblouis."""
+    """The text a phone text block sends to Liblouis (dashes kept)."""
 
-    return normalize_content(reflow_text(content))
+    return reflow_text(content).strip()
 
 
 def lines_of(text: str) -> list[str]:

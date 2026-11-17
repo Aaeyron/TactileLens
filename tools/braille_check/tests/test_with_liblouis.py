@@ -27,18 +27,20 @@ class WithLiblouisTests(unittest.TestCase):
             for key, rows in results.items()
         }
 
-        # The only mismatch: the phone writes the en dash of "4–3" as a
-        # hyphen (our text preparation), RUEB 6.3.1.
+        # Every example matches. (Until the phone kept dashes in text, "4–3"
+        # came out with a hyphen there, RUEB 6.3.1.)
         self.assertEqual(
             found,
             {
-                "braille2/offline": ["r16"],
+                "braille2/offline": [],
                 "braille2/online": [],
                 "braille1/offline": [],
                 "braille1/online": [],
             },
         )
-        self.assertEqual(results["braille2/offline"][15]["result"], "our code")
+        self.assertEqual(
+            results["braille2/offline"][15]["ours"], "⠠⠮⠀⠎⠉⠕⠗⠑⠀⠴⠀⠼⠙⠠⠤⠼⠉"
+        )
 
     def test_round_trip_counts_measured_on_2026_11_17(self):
         counts = {
