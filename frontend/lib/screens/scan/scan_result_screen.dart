@@ -290,16 +290,24 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
                       style: ScanResultScreenStyles.appBarTitleStyle,
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.maybePop(context);
-                    },
-                    icon: const Icon(
-                      ScanResultScreenStyles.newScanIcon,
-                      size: ScanResultScreenStyles.actionIconSize,
+                  // Shrinks with large text instead of pushing the row
+                  // past the screen edge.
+                  Flexible(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.maybePop(context);
+                      },
+                      icon: const Icon(
+                        ScanResultScreenStyles.newScanIcon,
+                        size: ScanResultScreenStyles.actionIconSize,
+                      ),
+                      label: const Text(
+                        _ScanResultText.newScanLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: ScanResultScreenStyles.headerActionStyle,
                     ),
-                    label: const Text(_ScanResultText.newScanLabel),
-                    style: ScanResultScreenStyles.headerActionStyle,
                   ),
                 ],
               ),
