@@ -11,6 +11,7 @@ import 'package:mobile/models/ai/scan_document_result.dart';
 import 'package:mobile/models/ai/scan_processing_mode.dart';
 import 'package:mobile/services/ai/ai_service.dart';
 import 'package:mobile/services/ai/offline_ocr_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const String _serverService =
     '../ai_service/services/ocr/paddleocr_vl_service.py';
@@ -56,6 +57,8 @@ void main() {
   late Directory directory;
 
   setUp(() {
+    // Not a guest: AIService checks the session in every mode.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     FlutterSecureStorage.setMockInitialValues(<String, String>{
       'access_token': 'test-token',
     });

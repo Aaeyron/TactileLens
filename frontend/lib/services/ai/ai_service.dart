@@ -86,10 +86,12 @@ class AIService {
 
     String effectiveMode = _scanMode;
 
-    if (effectiveMode == sessionMode) {
-      if (await SessionManager.isGuest()) {
-        effectiveMode = offlineMode;
-      } else if (await SessionManager.isLoggedIn()) {
+    // Guests always scan on the device, whatever mode the app was built
+    // with (AI_SCAN_MODE) or asked for: a guest scan never uses the network.
+    if (await SessionManager.isGuest()) {
+      effectiveMode = offlineMode;
+    } else if (effectiveMode == sessionMode) {
+      if (await SessionManager.isLoggedIn()) {
         effectiveMode = remoteMode;
       } else {
         throw const AIServiceException(
