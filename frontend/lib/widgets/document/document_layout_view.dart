@@ -5,6 +5,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 
 import '../../models/ai/scan_document_result.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
+import '../../utils/braille_display.dart';
 import '../../utils/math_text_formatter.dart';
 
 /// Plain or mixed text: converts only the LaTeX parts, keeps normal text.
@@ -108,9 +109,11 @@ class DocumentLayoutView extends StatelessWidget {
       label: semanticLabel,
       child: Padding(
         padding: ScanResultScreenStyles.braillePreviewPadding,
+        // Wraps only between words; Copy gives the Braille unchanged.
         child: SelectableText(
-          content,
+          brailleForDisplay(content),
           style: ScanResultScreenStyles.brailleContentStyle,
+          contextMenuBuilder: brailleContextMenu,
         ),
       ),
     );
@@ -568,7 +571,8 @@ class _BlockWithBraille extends StatelessWidget {
           const SizedBox(height: ScanResultScreenStyles.wordBrailleSpacing),
           ExcludeSemantics(
             child: Text(
-              braille,
+              // Wraps only between words.
+              brailleForDisplay(braille),
               style: ScanResultScreenStyles.brailleContentStyle,
             ),
           ),

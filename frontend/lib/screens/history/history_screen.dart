@@ -12,6 +12,7 @@ import '../../services/braille/braille_mode_translator.dart';
 import '../../services/history/history_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
+import '../../utils/braille_display.dart';
 import '../../widgets/braille/braille_mode_section.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
@@ -1259,7 +1260,8 @@ class _HistoryCard extends StatelessWidget {
                     ),
                     if (_hasVisibleBraille)
                       Text(
-                        record.brailleContent,
+                        // Wraps only between words.
+                        brailleForDisplay(record.brailleContent),
                         maxLines: HistoryScreenStyles.brailleMaximumLines,
                         overflow: TextOverflow.ellipsis,
                         style: HistoryScreenStyles.brailleStyle,
