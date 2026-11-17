@@ -7,7 +7,7 @@ import '../../styles/screens/scan/scan_screen_styles.dart';
 
 abstract final class ScanModeText {
   static const String onlineLabel = 'Online';
-  static const String onDeviceLabel = 'On-device';
+  static const String onDeviceLabel = 'On this device';
 
   static const String selectorLabel = 'Where to scan';
 
@@ -26,10 +26,10 @@ abstract final class ScanModeText {
 
   static const String privacyMessage =
       'Online scans are processed by a third-party service. For sensitive '
-      'documents, use On-device.';
+      'documents, scan on this device.';
 
   static const String continueOnline = 'Continue online';
-  static const String useOnDevice = 'Use On-device';
+  static const String useOnDevice = 'Scan on this device';
 
   static const String processedOnline = 'Processed online (PaddleOCR-VL).';
 
@@ -43,8 +43,8 @@ abstract final class ScanModeText {
   static const String hostedQuotaTitle = 'Online scanning is unavailable today';
 
   static const String offerOnDevice =
-      'You can scan this page on this device instead. On-device results may '
-      'differ from online scans.';
+      'You can scan this page on this device instead. Results from this '
+      'device may differ from online scans.';
 
   static const String scanOnDevice = 'Scan on this device';
   static const String notNow = 'Not now';
