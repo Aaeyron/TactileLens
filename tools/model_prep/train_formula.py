@@ -284,7 +284,7 @@ def history(text: str) -> tuple[list[dict], list[int]]:
     return losses, val_steps
 
 
-def write_curves(out: Path, t: dict) -> None:
+def write_curves(out: Path, t: dict, data_note: str) -> None:
     import csv
 
     from charts import line_chart
@@ -306,8 +306,7 @@ def write_curves(out: Path, t: dict) -> None:
     if t["loss_history"]:
         line_chart({"training loss (smoothed, 10 steps)": [(r["step"], r["loss"]) for r in t["loss_history"]]},
                    "PP-FormulaNet_plus-S fine-tuning: training loss", "step", "loss", out / "loss_curve.png",
-                   note=f"{t['train_items']} im2latex-100k formulas (filtered to general-algebra notation; from physics "
-                        f"papers)" + (f" + {round(t['extra_train']['items'] * t['extra_ratio'])} synthetic per epoch"
+                   note=f"{t['train_items']} {data_note}" + (f" + {round(t['extra_train']['items'] * t['extra_ratio'])} synthetic per epoch"
                                       if t.get("extra_train") else "") + f"; batch {t.get('batch_size', '')}")
     if rows:
         line_chart({"validation exact match %": [(r["step"], r["exp_rate_pct"]) for r in rows]},
@@ -372,7 +371,8 @@ def main() -> None:
 
     info["train"] = train(args, out, data)
     info["train"]["batch_size"] = args.batch_size
-    write_curves(out, info["train"])
+    write_curves(out, info["train"], "im2latex-100k formulas (filtered to general-algebra notation; from physics papers)"
+                 if "im2latex" in str(data) else f"training formulas ({data.name})")
     print(json.dumps({k: v for k, v in info["train"].items() if k != "loss_history"}, indent=1))
     checkpoint = out / "model" / "best_accuracy"
     if not checkpoint.with_suffix(".pdparams").exists():
