@@ -70,17 +70,22 @@ so the rule cannot be fitted to the results.
   registry is created by the first split of our data
   (`split_dataset.py`, Day 1) and only ever grows; its items are never
   trained on or used to choose settings or checkpoints.
-- **Main metric:** spacing-normalized exact match on that set (the rule
-  in Track A: LaTeX spacing commands, whitespace and math delimiters
-  ignored, nothing else). Reported overall, per topic and per source
-  (ss / cap), with counts.
+- **Main metric (changed 2026-11-19, before any fine-tuned model was scored
+  on this set): notation-normalized exact match.** On top of the
+  spacing-normalized rule it treats equivalent notation as equal
+  (`\left(` = `(`, `\leq` = `\le`, `\dfrac` = `\frac`, redundant braces; the
+  list is `NOTATION_RULES` in `compare_formula.py`). Reason: 134 of the 140
+  labels accepted on the review page were PaddleOCR-VL's reading, so a
+  spacing-only score would reward a model for copying PaddleOCR-VL's notation
+  style. Spacing-normalized and strict are reported next to it, overall, per
+  topic and per source (ss / cap), with counts.
 - **Simple formulas (at most 20 LaTeX tokens) must not get worse
   (rule of 2026-11-11, replacing the 0-allowed draft of 2026-11-10):** at
   most 1 regression per 100 simple formulas in the frozen eval set,
   rounded down, with a minimum of 1 allowed (e.g. 1 allowed for up to
   199 simple formulas, 2 for 200-299). A regression is a simple formula
-  the app's current model reads correctly on the spacing-normalized
-  score and the new model does not.
+  the app's current model reads correctly on the main score and the new
+  model does not.
 - **Every regression is listed and inspected** (target, the app's
   reading, the new reading). Any regression that changes the math's
   meaning (a different symbol, number, operator, exponent, grouping or
@@ -89,12 +94,13 @@ so the rule cannot be fitted to the results.
 - **This replaces the im2latex bar** ("at most 1 of the 24 simple test
   formulas got worse, overall exact not lower", used only for the two
   preliminary runs on im2latex-100k).
-- **A model is proposed for the app only if** its spacing-normalized
-  exact match on the frozen eval set is higher than the app's model,
-  **and** the simple-formula rule above holds. The **strict** score is always
-  reported next to it and never replaces it. **Automatic check**
-  (2026-11-11): `tools/model_prep/compare_formula.py` decides this rule
-  on the spacing-normalized score (allowed regressions = 1 per 100 simple
+- **A model is proposed for the app only if** its main-score exact match
+  on the frozen eval set is higher than the app's model, **and** the
+  simple-formula rule above holds. The spacing-normalized and **strict**
+  scores are always reported next to it and never replace it. **Automatic
+  check** (2026-11-11, main score updated 2026-11-19):
+  `tools/model_prep/compare_formula.py` decides this rule
+  on the main score (allowed regressions = 1 per 100 simple
   formulas, rounded down, minimum 1; exact match must be higher), lists
   every regression with the target, the app's reading and the new reading,
   and sorts them: spacing only / same meaning, different notation (a fixed
@@ -110,6 +116,61 @@ so the rule cannot be fitted to the results.
   (Day 3) before any change to the app.
 - Checkpoints and settings are chosen on validation only; the frozen eval
   set is scored once per candidate model.
+- **Choosing between pseudo-label versions (decided 2026-11-19, before either
+  was trained):** version 1 (both models agree) and version 2 (version 1 plus
+  PaddleOCR-VL's reading on disagreements that pass the basic checks) are each
+  trained with batch 4, up to 10 epochs, patience 3, and as many synthetic
+  formulas per epoch as real ones. The one with the higher main score on all
+  140 validation formulas is chosen. A tie goes to the higher main score on
+  the 46 human-reviewed validation formulas, then to version 1, which has
+  fewer unchecked labels. Only the chosen model is scored on the frozen eval
+  set, once. The 94 AI-reviewed validation labels were checked by Claude, not
+  by a person, so results are reported for the 46, the 94 and the 140.
+
+### Result on the 2026-11-18 delivery (measured 2026-11-19)
+
+Offline formula model (PP-FormulaNet_plus-S), single-formula images only. **No
+model was put in the app.** Accuracy on the phone and the effect on the Braille
+output were not measured.
+
+- **Labels:** eval 84 (78 accepted on the review page as they were, 4 accepted
+  and then given a convention fix, 2 approved corrections; 7 images excluded). Validation
+  140 (46 human-reviewed, 94 AI-reviewed by Claude; 8 excluded). Lists, hashes
+  and sources: `datasets\own\working\20261118_all\labels\` (`frozen.json`,
+  `labels.csv`). Conventions: item markers as printed without `\text`, `\bullet`
+  and `\boxed` as in the image, plain `(` `)` instead of `\left(` `\right)`.
+- **Training pseudo-labels** (`train_sets\report.json`), of 2,512 images: 1,541
+  agreed, 743 PaddleOCR-VL readings on disagreements, 168 failed the basic
+  checks, 60 dropped because the label equals a held-out label. Version 1 =
+  1,541, version 2 = 2,284, each plus as many of the 2,399 synthetic formulas
+  per epoch. Leak checks: 0 labels, 0 images, 0 near-duplicate pairs (dhash)
+  against eval and validation.
+- **Runs:** `runs\20261119-053239_trackA_v1+synthetic_own-pseudo-v1` and
+  `runs\20261119-061018_trackA_v2+synthetic_own-pseudo-v2`. Batch 4, 10 epochs
+  (neither stopped early); best epoch by PaddleOCR's validation score.
+- **Validation, main score** (original / version 1 / version 2): all 140:
+  90 / 114 / **124**; 46 human-reviewed: 27 / 37 / 41; 94 AI-reviewed:
+  63 / 77 / 83. **Version 2 chosen.**
+- **Frozen eval, version 2, scored once** (`evaluation\comparison.md` in its run):
+
+  | score | original | fine-tuned |
+  |---|---:|---:|
+  | main (notation-normalized) | 48/84 (57.1%) | 73/84 (86.9%) |
+  | spacing-normalized | 48/84 | 73/84 |
+  | strict | 45/84 (53.6%) | 68/84 (81.0%) |
+  | main, the 82 labels accepted on the page | 48/82 | 73/82 |
+
+  28 formulas fixed, 3 broken. Simple-formula regressions: 1 of 74, 1 allowed.
+  **Adoption rule met.** All 3 regressions are meaning-changing:
+  `functions_ss_S_158`, `quadratic_cap_S_090`, `quadratic_cap_S_126`.
+  `[object Object]` readings: 3 -> 0 on eval, 5 -> 0 on validation.
+- **Limits:** 84 formulas, 6 to 15 per topic. 77 of the 84 eval labels equal
+  PaddleOCR-VL's reading, and version 2 learned from that model, so the score
+  cannot separate reading correctly from reading like PaddleOCR-VL on those. On
+  the 7 where its reading differs from the label: original right on 1, fine-tuned
+  on 2, fine-tuned repeats PaddleOCR-VL on 1.
+- **Report:** `tools/model_prep/own_dataset_report.py` writes the panel section
+  from these saved files (`analysis\finetune_changes_20261119\` in the run).
 
 ## Day 1: intake, split, baselines
 
