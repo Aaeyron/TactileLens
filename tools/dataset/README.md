@@ -150,8 +150,20 @@ synthetic data is never used to evaluate), `manifest.jsonl` and
 registry. Pilot on 2026-11-10: 2,400 images in 47 s; details in
 `docs/training_runbook.md` (Track A).
 
-Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
+Tests: `python -m unittest discover -s tests -t .` (33, on a temporary
 root, never the real one).
+
+## Freezing reviewed labels: `finalize_labels.py`
+
+```
+python finalize_labels.py --working <folder> --reviews <answers> --overrides overrides.csv --ai-labels ai_labels.csv --registry <frozen_eval.jsonl>
+```
+
+Applies approved fixes and exclusions and the label conventions, then writes
+`labels/eval.txt`, `val_human.txt`, `val_ai.txt`, `val_all.txt`, `labels.csv`
+(the source of every label) and `frozen.json` (counts and SHA-256), and adds the
+eval images to the frozen registry. AI-reviewed labels are accepted for
+validation only.
 
 ## A delivery without labels: `prepare_unlabeled.py`, `split_unlabeled.py`
 
