@@ -114,6 +114,17 @@ model and the base 0.9B with `evaluate_vl.py`. Sources, Drive layout,
 memory test plan and serving: [docs/training_runbook.md](../../docs/training_runbook.md).
 Data comes from `tools/dataset/split_dataset.py` (`labels.csv`).
 
+## Label suggestions that survive a crash: `suggest_vl_resumable.py`
+
+Runs PaddleOCR-VL locally on a list of images (`paddleocr_vl_env`), appends each
+reading to a JSONL file and skips images already there. `--supervise` restarts
+the reader after a native crash and skips an image that is next in line for two
+crashes in a row. Used for the 2026-11-18 delivery: 2,109 images, no errors.
+
+```
+python suggest_vl_resumable.py --supervise --jobs jobs.json --out suggest_vl.jsonl [--first ids.txt]
+```
+
 ## Tests and dry run
 
 ```
@@ -122,7 +133,7 @@ python make_fake_dataset.py --out C:\temp\vl_fake            # 12 generated imag
 python make_fake_dataset.py --out C:\temp\vl_fake_leak --leak  # + a planted leak
 ```
 
-Verified: the unit tests pass (15); the fake dataset converts (6 train,
+Verified: the unit tests pass (20); the fake dataset converts (6 train,
 2 val, 4 eval) and the planted leak is refused with nothing written; the
 local engine ran on the 4 fake eval images in both modes (prompt mode:
 2/4 exact, layout mode: 3/4; the table differed only in `n²` vs
