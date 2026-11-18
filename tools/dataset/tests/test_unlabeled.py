@@ -64,6 +64,72 @@ class Prepare(unittest.TestCase):
             self.assertTrue((intake / "extracted" / "a" / "linear_cap_M_002(1).png").exists())
 
 
+class DedupeIntake(unittest.TestCase):
+    def test_one_file_per_content(self):
+        import zipfile
+        import intake
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            incoming = tmp / "incoming"
+            incoming.mkdir()
+            with zipfile.ZipFile(incoming / "a.zip", "w") as z:
+                z.writestr("A/linear_cap_S_001.png", b"one")
+                z.writestr("A/linear_cap_S_002.png", b"two")
+            with zipfile.ZipFile(incoming / "b.zip", "w") as z:
+                z.writestr("B/linear_cap_S_001.png", b"one")         # same name, same bytes
+                z.writestr("B/fractions_cap_S_009.png", b"two")      # other name, same bytes
+                z.writestr("B/radicals_ss_S_003.png", b"three")
+            copied, plan = intake.copy_incoming(incoming, tmp / "x", dedupe=True)
+
+            files = sorted(p.name for p in (tmp / "x").rglob("*") if p.is_file())
+            self.assertEqual(files, ["fractions_cap_S_009.png", "linear_cap_S_001.png", "radicals_ss_S_003.png"])
+            self.assertEqual(len(plan), 5)
+            self.assertEqual(sum(r["kept"] for r in plan), 3)
+            self.assertEqual(intake.same_bytes_groups(plan), [["fractions_cap_S_009.png", "linear_cap_S_002.png"]])
+            self.assertEqual((incoming / "a.zip").exists(), True)
+
+    def test_unsafe_member_is_refused(self):
+        import zipfile
+        import intake
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "in").mkdir()
+            with zipfile.ZipFile(tmp / "in" / "bad.zip", "w") as z:
+                z.writestr("../evil.png", b"x")
+            with self.assertRaises(intake.IntakeError):
+                intake.copy_incoming(tmp / "in", tmp / "x", dedupe=True)
+
+
+class Extend(unittest.TestCase):
+    def test_old_sides_fixed_pairs_and_leak_guard(self):
+        import extend_unlabeled as eu
+        items = [
+            {"filename": "a_cap_S_001.png", "topic": "a", "source": "cap", "origin": "old"},   # eval
+            {"filename": "a_cap_S_002.png", "topic": "a", "source": "cap", "origin": "old"},   # val
+            {"filename": "a_ss_S_001.png", "topic": "a", "source": "ss", "origin": "new"},     # pair of eval
+            {"filename": "a_ss_S_002.png", "topic": "a", "source": "ss", "origin": "new"},     # pair of val
+            {"filename": "a_cap_S_050.png", "topic": "a", "source": "cap", "origin": "new"},   # near eval
+            {"filename": "a_cap_S_060.png", "topic": "a", "source": "cap", "origin": "new"},
+            {"filename": "a_ss_S_060.png", "topic": "a", "source": "ss", "origin": "new"},
+            {"filename": "a_cap_S_070.png", "topic": "a", "source": "cap", "origin": "new"},
+        ]
+        old = {"a_cap_S_001.png": "eval", "a_cap_S_002.png": "val"}
+        pairs = [("a_ss_S_001.png", "a_cap_S_001.png"), ("a_ss_S_002.png", "a_cap_S_002.png"),
+                 ("a_ss_S_060.png", "a_cap_S_060.png")]
+        near = [("a_cap_S_001.png", "a_cap_S_050.png")]
+        side, note = eu.extend_split(items, old, pairs, near, val_per_topic=1, seed=1)
+
+        self.assertEqual(side["a_cap_S_001.png"], "eval")
+        self.assertEqual(side["a_cap_S_002.png"], "val")
+        self.assertEqual(side["a_ss_S_001.png"], "")          # eval stays frozen
+        self.assertEqual(side["a_ss_S_002.png"], "val")
+        self.assertEqual(side["a_cap_S_050.png"], "")         # near-duplicate of eval
+        self.assertIn("near-duplicate", note["a_cap_S_050.png"])
+        self.assertEqual(side["a_ss_S_060.png"], side["a_cap_S_060.png"])
+        self.assertEqual(sorted(side[n] for n in ("a_cap_S_060.png", "a_cap_S_070.png")).count("val") in (1, 2), True)
+        self.assertNotIn("eval", {side[i["filename"]] for i in items if i["origin"] == "new"})
+
+
 class Split(unittest.TestCase):
     MAPPING = [
         {"original": "functions_ss_S_096.png", "working": "functions_ss_S_096.png", "action": "copied"},

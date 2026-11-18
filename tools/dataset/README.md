@@ -174,3 +174,26 @@ The 2026-11-18 delivery of our own images came without label files. After
 Note: all topics draw from one seeded random sequence, so a change in one
 topic's groups changes the draw of every later topic. Keep a split once it
 is used; check it with `--check` rather than regenerating it.
+
+## A later delivery on top: `intake.py --dedupe`, `extend_unlabeled.py`
+
+When the full delivery came as several zips that repeat each other (one
+per topic, plus overlapping parts of an earlier download):
+
+1. `intake.py --dedupe` hashes every file in every zip first and extracts
+   one file per distinct content (the alphabetically first name). Every
+   copy is listed in `<run>/same_bytes.csv`, and the report still counts
+   them as exact duplicates. Without this, the same name in two zips is an
+   error ("2 images with this name") and the item is never hashed.
+2. `extend_unlabeled.py --old <working> --intake <run> --out <new working>`
+   hard-links the old images (same names) and the new ones into a new
+   folder and extends split.csv: old sides never change (the eval set stays
+   frozen), new images go to validation (per-topic seed) or training, and
+   new images that are near-duplicates of an eval image, or numbered like
+   one, are left out.
+
+Finding (2026-11-18 delivery): ss and cap images with the same topic, kind
+and number were NOT the same formula in any of the 20 pairs checked by eye.
+Number-pairing is kept only as a cautious rule; the label check (no
+training label equal to an eval or validation label) is the guard that
+matters.
