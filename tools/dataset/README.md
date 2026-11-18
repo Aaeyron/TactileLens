@@ -152,3 +152,25 @@ registry. Pilot on 2026-11-10: 2,400 images in 47 s; details in
 
 Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
 root, never the real one).
+
+## A delivery without labels: `prepare_unlabeled.py`, `split_unlabeled.py`
+
+The 2026-11-18 delivery of our own images came without label files. After
+`intake.py`:
+
+1. `prepare_unlabeled.py --intake <intake run> --out <root>/datasets/own/working/<id>`
+   copies the intake's extracted images (never `incoming/`) to `images/`,
+   fixes topic spellings (`TOPIC_FIXES`), gives "(1)" names a free number,
+   keeps one image per group of byte-identical files and lists every change
+   in `mapping.csv`; `items.csv` lists the kept images.
+2. `split_unlabeled.py --working <working dir> --intake <intake run>` chooses
+   eval / validation / training from the kind S images, before any model
+   reading is looked at. Eval: per topic, groups that contain a phone
+   capture; an ss/cap pair is one group. A copy left out as a duplicate
+   follows the name that was kept, so its pair is not lost.
+   `--check split.csv` only checks that an existing split keeps every pair
+   on one side (exit 1 if not).
+
+Note: all topics draw from one seeded random sequence, so a change in one
+topic's groups changes the draw of every later topic. Keep a split once it
+is used; check it with `--check` rather than regenerating it.
