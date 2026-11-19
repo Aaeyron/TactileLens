@@ -136,6 +136,24 @@ checkpoint. Dry-run options (`--cpu`,
 `--allow-synthetic-val`, `--subset-train`, `--subset-val`) mark the run
 "DRY RUN (not a result)".
 
+## Text lines from our own pages
+
+Results and the checkpoint rule: docs/training_runbook.md, "Text model (Track B v1)".
+
+| step | tool |
+|---|---|
+| cut lines with the app's detector, skip formula boxes | `cut_text_lines.py --working <w>` |
+| choose the test images (by source image, per topic and ss/cap) | `pick_text_test_images.py` |
+| test candidates, PaddleOCR-VL jobs, suggested labels | `text_sets.py --working <w> select-test`, `finalize-test` |
+| training jobs (cap first), then the training list | `text_sets.py --working <w> select-train`, `build-train` |
+| apply the eval review, recheck leaks (eval frozen once) | `finalize_text_eval.py --working <w> --reviews <dir>` |
+| export and score each epoch on validation only | `score_epochs.py --run <run> --epochs 1 2 --val own=<val.txt> --val synthetic=<val.txt>` |
+| before vs after, adoption rule, Braille split | `compare_text.py --before <dir> --after <dir> --meta <rows.json>` |
+
+`compare_text.py` splits spacing/punctuation-only changes into "punctuation
+(changes the Braille)" (a mark differs with spaces removed, dashes and
+quotes not folded) and "spacing only".
+
 ## Real photos
 
 Targets per topic (see `topics.csv`): about 10 held-out (eval) and 20
