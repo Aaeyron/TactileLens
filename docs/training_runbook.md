@@ -211,6 +211,61 @@ app.** Phone accuracy and the Braille effect were not measured.
 - **Limits:** the crop labels come from PaddleOCR-VL and the offline model,
   not from people; eval differences between v2 and v3 are 2 formulas of 84.
 
+### Text model (Track B v1): text lines from our own pages (measured 2026-11-20)
+
+PP-OCRv6 small rec, `tools/training/train_full.py`. **No model was put in the
+app.** Phone accuracy and the Braille effect were not measured.
+
+- **Lines** (`cut_text_lines.py`, the app's PP-OCRv6 tiny det and crop): 4,937
+  images, 51,992 lines (T 12,940, W 38,722, M 330; cap 29,861, ss 22,131).
+  Dropped: 25,301 inside a formula (half the area in a display or standalone
+  formula box; the app's expandFormulaBox step is not replicated), 5,539 M
+  lines without a word, 3,633 tiny.
+- **Test sets, split by source image, fixed before training**
+  (`pick_text_test_images.py`, `text_sets.py`): eval 100 lines from 56 images
+  (50 cap, 50 ss), labels suggested by PaddleOCR-VL and verified by the user
+  (1 fixed, 0 excluded; `finalize_text_eval.py`); validation 150 lines from 75
+  images, PaddleOCR-VL plus AI review: 13 excluded, 1 fixed, 137 kept.
+- **Baseline** (original, 137 validation lines): CER 0.64%, exact 121/137
+  (88.3%); misses mostly superscripts as plain digits and minus as a dash.
+  Exact is under 95%, so training went ahead.
+- **Training lines** (`text_sets.py build-train`, `train_sets\text_v1`):
+  PaddleOCR-VL read 4,002 lines in 4 hours (cap first; 0 errors); 2,743 kept
+  from 871 images: 1,493 agreed with the original model, 1,250 PaddleOCR-VL
+  only; 689 with superscripts. All cap (the 4 hours ended before ss). Dropped
+  mostly labels the charset cannot write (582 stacked fractions, 325 LaTeX
+  left, 126 roots over several characters) and 12 equal to a test label.
+  Leak recheck against the verified eval: 0 labels, 0 bytes, 0 source images.
+- **Checkpoint rule (fixed 2026-11-20 during epoch 1, before any result):**
+  candidates are the end-of-epoch checkpoints; a candidate is allowed if its
+  exact match on the 600 synthetic validation lines is at most 0.5 points
+  below the original's; the allowed one with the lowest CER on the 137 own
+  lines wins (tie: earlier). `score_epochs.py`, then `compare_text.py`. The
+  synthetic validation images are rendered separately from training (seed 2
+  vs 1; 0 shared images), but 173 of its 600 texts also occur in training.
+- **Run** `runs\20261120-033852_trackB_split-text-v1_text-v1` (commit cc9319e):
+  `train_full.py --split ...\train_sets\text_v1 --max-minutes 180 --tag text-v1`
+  (batch 64, at most 8 epochs, patience 3, lr 1e-4); 14,743 lines per epoch
+  (12,000 synthetic + 2,743 own). Early stop in epoch 3 after 1,688 s: the
+  best trainer validation (0.971 exact, start of epoch 2) was followed by 3
+  validations without improvement (0.838, 0.831, 0.926). Short check first:
+  `runs\20261120-033419_..._dryrun` (1,000 lines, loss 15.6 -> 10.2, no errors).
+- **Per epoch** (own 137: CER / exact, cap / ss exact; synthetic 600: exact):
+  original 0.64% / 121, 61 / 60; 54.0%. Epoch 1 **0.48%** / 124, 61 / 63;
+  91.7%. Epoch 2 0.50% / 125, 63 / 62; 92.8%. **Epoch 1 chosen.** Model:
+  `candidates\epoch_1\onnx\inference.onnx` (not the trainer's own
+  `onnx\inference.onnx`, a mid-epoch checkpoint).
+- **Frozen eval, epoch 1, scored once (100 lines):** CER 0.72% -> **0.42%**,
+  exact 85 -> 89; cap 0.93 -> 0.62%, ss 0.52 -> 0.23%; exponents 3.96 ->
+  0.44%. Meaning-changing regressions **2 of 100, 2 allowed: adoption rule
+  met** (exactly at the limit): "g" read as "q", and "→ x" lost its arrow.
+  Spacing/punctuation only: 5, of which 4 change a punctuation mark and so
+  the Braille (two commas read as periods, an en dash as a hyphen, a dropped
+  "©" with a comma read as a period) and 1 is spacing only.
+- **Limits:** eval and training labels come from PaddleOCR-VL (eval verified
+  by the user, validation by AI review); no ss lines in training; eval has
+  100 lines, so the 2 regressions sit right at the limit.
+
 ## Day 1: intake, split, baselines
 
 **You**
