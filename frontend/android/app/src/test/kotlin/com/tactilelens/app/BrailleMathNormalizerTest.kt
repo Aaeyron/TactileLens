@@ -12,6 +12,33 @@ class BrailleMathNormalizerTest {
     private fun normalize(latex: String) = BrailleMathNormalizer.normalize(latex)
 
     @Test
+    fun quadAndOtherSpacingBecomeASpace() {
+        // The 8 frozen-eval labels (2026-11-20) whose Nemeth spelled "quad".
+        val labels = mapOf(
+            """27.\quad f(-3)""" to "27. f(-3)",
+            """t)\quad4(x-1)=7""" to "t) 4(x-1)=7",
+            """21. \quad 2x=8""" to "21. 2x=8",
+            """u)\quad5x=9""" to "u) 5x=9",
+            """j)\quad4x+3=9""" to "j) 4x+3=9",
+            """78.\quad7x^{3}-4x^{2}+1""" to "78. 7x^3-4x^2+1",
+            """g)\quad\frac{2}{3}x^{3}+3x+5""" to "g) (2)/(3)x^3+3x+5",
+            """7.\quad x^{2}=-100""" to "7. x^2=-100",
+        )
+        for ((latex, expected) in labels) {
+            val nemethInput = BrailleMathNormalizer.toNemethInput(normalize(latex))
+            assertEquals(latex, expected, nemethInput)
+            assertFalse(latex, nemethInput.contains("quad"))
+        }
+
+        for (spacing in listOf("""\quad""", """\qquad""", """\,""", """\;""", """\:""")) {
+            assertEquals(spacing, "x y", normalize("x${spacing} y"))
+            assertEquals(spacing, "x (y)", normalize("x${spacing}{y}"))
+        }
+        // A longer command that starts with "quad" is not spacing.
+        assertEquals("quadrant", normalize("""\quadrant"""))
+    }
+
+    @Test
     fun aCommandAfterABackslashIsNotAFraction() {
         // Previously "(x)/(right)" and "(x+1)/(right)^2".
         assertEquals("(x)", normalize("""\left(x\right)"""))

@@ -66,6 +66,10 @@ object BrailleMathNormalizer {
 
     private val SIMPLE_SCRIPT = Regex("""[A-Za-z0-9+-]+""")
     private val SPACING_COMMAND = Regex("""\\[,;:!]""")
+
+    // \quad and \qquad are spacing (Python: _spacing_command). Without this
+    // the command fallback below kept the name and Nemeth spelled "quad".
+    private val QUAD_COMMAND = Regex("""\\q?quad(?![A-Za-z])""")
     private val ENVIRONMENT_COMMAND = Regex("""\\(?:begin|end)\{[^\{\}]*\}""")
     private val ANY_COMMAND = Regex("""\\([A-Za-z]+)\b""")
     private val WHITESPACE = Regex("""\s+""")
@@ -124,6 +128,8 @@ object BrailleMathNormalizer {
         }
 
         normalized = replaceStackedFractions(normalized)
+        // Same place as Python: before fractions, roots and the command fallback.
+        normalized = QUAD_COMMAND.replace(normalized, " ")
         normalized = replaceFractions(normalized)
         normalized = replaceRadicals(normalized)
         normalized = unwrapFormattingCommands(normalized)
