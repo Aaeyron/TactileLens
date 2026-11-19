@@ -77,4 +77,18 @@ abstract final class ScanProgressOverlayStyles {
     fontSize: 13,
     fontWeight: FontWeight.w500,
   );
+
+  // Cancel (online scans): a quiet text button with a 48 dp target.
+  static const double cancelSpacing = 10;
+
+  static final ButtonStyle cancelButtonStyle = TextButton.styleFrom(
+    foregroundColor: ScanScreenStyles.surfaceColor,
+    minimumSize: const Size(96, 48),
+    tapTargetSize: MaterialTapTargetSize.padded,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    shape: const StadiumBorder(
+      side: BorderSide(color: ScanScreenStyles.activeControlBorderColor),
+    ),
+    textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+  );
 }

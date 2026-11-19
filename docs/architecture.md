@@ -51,6 +51,19 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   is sent online at most once, with its own `Idempotency-Key`; there is no
   automatic online retry and no switch without the teacher's choice. A
   running scan or an invalid image gets only a message.
+- **Cancelling a scan** (online only): the scanning overlay has a
+  **Cancel** button. It only stops the app waiting: the request is not
+  aborted, the server finishes the scan and saves it to History, and the
+  app shows "This scan will finish in the background; you can scan again in
+  up to 3 minutes. It may still appear in History when it finishes." A result or error that arrives later for the
+  cancelled scan is dropped (`ScanRun`). Until the server finishes, a new
+  online scan gets "A scan is already running…" (the server holds its
+  one-scan lock until the AI service answers, at most 170 s). On-device
+  scans have no Cancel: the native scan cannot be stopped and a second one
+  must not run beside it. The confirmation sheet before a scan states the
+  same limit: "Processing can take up to 3 minutes."
+  (`ScanRun.processingTimeMessage`). A full cancel is proposed in
+  [Full scan cancel (proposal)](#full-scan-cancel-proposal).
 - **Every result screen** states how the page was processed: "Processed
   online (PaddleOCR-VL).", "Processed on this device." or "Processed on
   this device, because the online scan did not finish."
@@ -176,6 +189,29 @@ Nemeth math and tables are never changed by this setting.
   buttons: History always saves Braille 2; a material saves the mode that
   was on screen (`saved_braille_mode` in each block; missing means
   Braille 2, the only grade before modes existed).
+
+## Full scan cancel (proposal)
+
+Not built. Today's Cancel (above) only stops the app waiting. A real
+cancel needs all three layers, in this order:
+
+1. **App**: abort the HTTP request (an `http.Client` per scan, closed on
+   Cancel) and send `DELETE /api/scan-document/{Idempotency-Key}` so the
+   server knows even if the connection drop is not noticed.
+2. **Backend (Node)**: on the delete or a client disconnect
+   (`req.on("close")`), abort the call to the AI service with an
+   `AbortController`, release the user's scan lock (`abandonScan`) and do
+   not save to History. The scan still counts toward the hourly and daily
+   limits, since it may already have reached the hosted service.
+3. **AI service (Python)**: a request that is cancelled stops between
+   steps (before OCR, before Braille). A hosted PaddleOCR call already
+   sent cannot be recalled and is still billed against the daily quota;
+   the local engine can stop between pages only.
+
+Open questions: whether a cancelled scan should count toward the limits
+(proposed: yes), and whether History should show a scan the teacher
+cancelled (proposed: no). On-device cancel would need a native stop flag
+in the ONNX pipeline (an Android native change).
 
 ## Not part of the app
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/ai/scan_processing_mode.dart';
+import 'package:mobile/services/scan/scan_run.dart';
 import 'package:mobile/widgets/scan/scan_progress_overlay.dart';
 
 const String _scanning = 'Scanning your document…';
@@ -263,11 +264,39 @@ void main() {
       'lib/screens/scan/scan_screen.dart',
     ).readAsStringSync().replaceAll('\r\n', '\n');
 
+    expect(source, contains('ScanProgressOverlay(\n'));
+    expect(source, contains('key: _progressKey,\n'));
+    expect(source, contains('mode: _processingMode,\n'));
+    // Cancel is offered for online scans only.
     expect(
       source,
-      contains('ScanProgressOverlay(key: _progressKey, mode: _processingMode)'),
+      contains(
+        'onCancel: _processingMode == ScanProcessingMode.online\n'
+        '                  ? _cancelScan\n'
+        '                  : null,',
+      ),
     );
     expect(source, contains('await _progressKey.currentState?.finish();'));
     expect(source, isNot(contains('_ProcessingOverlay')));
+  });
+
+  test('the confirmation sheet states the same time limit as Cancel', () {
+    final String source = File(
+      'lib/screens/scan/scan_screen.dart',
+    ).readAsStringSync();
+
+    expect(
+      ScanRun.processingTimeMessage,
+      'Processing can take up to 3 minutes.',
+    );
+    expect(ScanRun.cancelledOnlineMessage, contains('up to 3 minutes'));
+    expect(
+      source,
+      contains(
+        'static const String processingDetail = '
+        'ScanRun.processingTimeMessage;',
+      ),
+    );
+    expect(source, isNot(contains('2 minutes')));
   });
 }

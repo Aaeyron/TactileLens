@@ -13,6 +13,7 @@ import '../../services/history/history_service.dart';
 import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
 import '../../services/scan/image_orientation_service.dart';
+import '../../services/scan/scan_run.dart';
 import '../../services/scan/scan_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../services/settings/settings_service.dart';
@@ -87,7 +88,7 @@ abstract final class _ScanText {
   static const String brailleDetail =
       'Braille output will be generated when translation succeeds.';
 
-  static const String processingDetail = 'Processing can take up to 2 minutes.';
+  static const String processingDetail = ScanRun.processingTimeMessage;
 
   static const String adjustCropLabel = 'Adjust Crop';
 
@@ -138,6 +139,9 @@ class _ScanScreenState extends State<ScanScreen> {
 
   /// Where the running scan is processed; shown by the progress overlay.
   ScanProcessingMode _processingMode = ScanProcessingMode.online;
+
+  /// Which scan the screen is waiting for; Cancel stops waiting.
+  final ScanRun _scanRun = ScanRun();
 
   final GlobalKey<ScanProgressOverlayState> _progressKey =
       GlobalKey<ScanProgressOverlayState>();
@@ -465,6 +469,8 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
+    final int run = _scanRun.start();
+
     setState(() {
       _isProcessing = true;
       _processingMode = mode!;
@@ -475,17 +481,18 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       imageToScan = await _prepareImageForScanning(selectedImage);
 
-      if (!mounted) {
+      if (!mounted || !_scanRun.isCurrent(run)) {
         return;
       }
 
-      await _scanAndShowResult(imageToScan, mode);
+      await _scanAndShowResult(imageToScan, mode, run: run);
     } on AIServiceException catch (error, stackTrace) {
       debugPrint('AI service error: ${error.message}');
 
       debugPrintStack(stackTrace: stackTrace);
 
-      if (!mounted) {
+      // A cancelled scan's error is not shown; the teacher was told.
+      if (!mounted || !_scanRun.isCurrent(run)) {
         return;
       }
 
@@ -498,13 +505,14 @@ class _ScanScreenState extends State<ScanScreen> {
       debugPrint('Document scan failed: $error');
       debugPrintStack(stackTrace: stackTrace);
 
-      if (!mounted) {
+      if (!mounted || !_scanRun.isCurrent(run)) {
         return;
       }
 
       _showScanError(_ScanText.scanFailureMessage);
     } finally {
-      if (mounted) {
+      // After Cancel another scan may already be running.
+      if (mounted && _scanRun.isCurrent(run)) {
         setState(() {
           _isProcessing = false;
         });
@@ -538,6 +546,8 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
+    final int run = _scanRun.start();
+
     setState(() {
       _isProcessing = true;
       _processingMode = ScanProcessingMode.onDevice;
@@ -547,6 +557,7 @@ class _ScanScreenState extends State<ScanScreen> {
       await _scanAndShowResult(
         imageToScan,
         ScanProcessingMode.onDevice,
+        run: run,
         fellBackFromOnline: true,
       );
     } on AIServiceException catch (deviceError) {
@@ -567,6 +578,7 @@ class _ScanScreenState extends State<ScanScreen> {
   Future<void> _scanAndShowResult(
     File imageToScan,
     ScanProcessingMode mode, {
+    required int run,
     bool fellBackFromOnline = false,
   }) async {
     debugPrint(
@@ -586,7 +598,9 @@ class _ScanScreenState extends State<ScanScreen> {
       );
     }
 
-    if (!mounted) {
+    // Cancelled while waiting: drop the result (the server has already
+    // saved an online scan to History).
+    if (!mounted || !_scanRun.isCurrent(run)) {
       return;
     }
 
@@ -622,7 +636,7 @@ class _ScanScreenState extends State<ScanScreen> {
           BrailleModeSettings.defaultMode.value,
         );
 
-    if (!mounted) {
+    if (!mounted || !_scanRun.isCurrent(run)) {
       return;
     }
 
@@ -630,7 +644,7 @@ class _ScanScreenState extends State<ScanScreen> {
     // (none with reduce motion), then the result.
     await _progressKey.currentState?.finish();
 
-    if (!mounted) {
+    if (!mounted || !_scanRun.isCurrent(run)) {
       return;
     }
 
@@ -872,7 +886,29 @@ class _ScanScreenState extends State<ScanScreen> {
     });
   }
 
-  void _showScanError(String message) {
+  /// Stops waiting for the online scan and says honestly what happens:
+  /// the server keeps going, so a new online scan has to wait.
+  void _cancelScan() {
+    if (!_isProcessing) {
+      return;
+    }
+
+    _scanRun.cancel();
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    _showScanError(
+      ScanRun.cancelledOnlineMessage,
+      duration: ScanScreenStyles.cancelledSnackBarDuration,
+    );
+  }
+
+  void _showScanError(
+    String message, {
+    Duration duration = ScanScreenStyles.snackBarDuration,
+  }) {
     if (!mounted) {
       return;
     }
@@ -881,7 +917,7 @@ class _ScanScreenState extends State<ScanScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          duration: ScanScreenStyles.snackBarDuration,
+          duration: duration,
           behavior: SnackBarBehavior.floating,
           backgroundColor: ScanScreenStyles.primaryDarkColor,
           margin: ScanScreenStyles.snackBarMargin,
@@ -1153,7 +1189,16 @@ class _ScanScreenState extends State<ScanScreen> {
             ),
           ),
           if (_isProcessing)
-            ScanProgressOverlay(key: _progressKey, mode: _processingMode),
+            ScanProgressOverlay(
+              key: _progressKey,
+              mode: _processingMode,
+              // Only online scans can be left: the server finishes them.
+              // An on-device scan cannot be stopped, and a second one
+              // must not start beside it.
+              onCancel: _processingMode == ScanProcessingMode.online
+                  ? _cancelScan
+                  : null,
+            ),
         ],
       ),
     );
