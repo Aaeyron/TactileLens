@@ -154,7 +154,29 @@ def latex_key(label: str) -> str:
     return re.sub(r"\s+", "", label)
 
 
-def extra_training_list(folder: Path, held_out: list[Path], out: Path) -> dict:
+def epoch_lists(train_list: Path, n_train: int, extras: list[tuple[dict, float]]) -> tuple[list[Path], list[float], int]:
+    """PaddleOCR's label_file_list and ratio_list, and the items drawn per epoch."""
+
+    lists, ratios, per_epoch = [train_list], [1.0], n_train
+    for extra, ratio in extras:
+        lists.append(extra["list"])
+        ratios.append(ratio)
+        per_epoch += round(extra["items"] * ratio)
+    return lists, ratios, per_epoch
+
+
+def time_limit_note(elapsed_seconds: float, max_minutes: float | None, log_text: str) -> str | None:
+    """Why to stop at the time limit, once a validation has finished and its saves are done."""
+
+    last_validation = log_text.rfind("cur metric")
+    if not max_minutes or elapsed_seconds < max_minutes * 60 or last_validation < 0:
+        return None
+    if not STEP.search(log_text[last_validation:]):
+        return None
+    return f"time limit of {max_minutes:g} minutes reached"
+
+
+def extra_training_list(folder: Path, held_out: list[Path], out: Path, name: str = "extra_train.txt") -> dict:
     """Extra training data (e.g. the synthetic pilot): its train.txt with
     absolute image paths (PaddleOCR joins data_dir with a relative path; an
     absolute one is used as is), minus any formula that is also in the
@@ -175,7 +197,7 @@ def extra_training_list(folder: Path, held_out: list[Path], out: Path) -> dict:
             dropped += 1
             continue
         kept.append(f"{(folder / image).resolve()}\t{label}")
-    target = out / "extra_train.txt"
+    target = out / name
     with open(target, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(kept) + "\n")
     return {"list": target, "items": len(kept), "dropped_by_leak_guard": dropped, "source": str(folder)}
@@ -186,12 +208,12 @@ def train(args, out: Path, data: Path) -> dict:
     val_list = subset(data / "val.txt", args.subset_val, out / "val_subset.txt", args.seed)
     n_train = sum(1 for l in train_list.read_text(encoding="utf-8").splitlines() if l.strip())
     n_val = sum(1 for l in val_list.read_text(encoding="utf-8").splitlines() if l.strip())
-    lists, ratios, extra = [train_list], [1.0], None
-    if args.extra_train:
-        extra = extra_training_list(Path(args.extra_train), [val_list, Path(args.eval_list_resolved)], out)
-        lists.append(extra["list"])
-        ratios.append(args.extra_ratio)
-    per_epoch = n_train + (round(extra["items"] * args.extra_ratio) if extra else 0)
+    held_out = [val_list, Path(args.eval_list_resolved)]
+    extra = extra_training_list(Path(args.extra_train), held_out, out) if args.extra_train else None
+    extra_2 = (extra_training_list(Path(args.extra_train_2), held_out, out, "extra_train_2.txt")
+               if args.extra_train_2 else None)
+    lists, ratios, per_epoch = epoch_lists(train_list, n_train, ([(extra, args.extra_ratio)] if extra else [])
+                                           + ([(extra_2, args.extra_ratio_2)] if extra_2 else []))
     steps_per_epoch = -(-per_epoch // args.batch_size)
     eval_every = args.eval_every or steps_per_epoch
     overrides = [
@@ -234,6 +256,9 @@ def train(args, out: Path, data: Path) -> dict:
                         stopped_early = (f"no higher val exp_rate in the last {args.patience} validations"
                                          f" (best {rates[best_at]} at validation {best_at + 1})")
                         break
+            stopped_early = time_limit_note(time.time() - start, args.max_minutes, text)
+            if stopped_early:
+                break
         if process.poll() is None:
             subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True)
             process.wait()
@@ -260,6 +285,9 @@ def train(args, out: Path, data: Path) -> dict:
         "extra_train": {k: str(v) if isinstance(v, Path) else v for k, v in extra.items()} if extra else None,
         "extra_ratio": args.extra_ratio if extra else None, "items_per_epoch": per_epoch,
     }
+    if extra_2:
+        result["extra_train_2"] = {k: str(v) if isinstance(v, Path) else v for k, v in extra_2.items()}
+        result["extra_ratio_2"] = args.extra_ratio_2
     if result["max_mem_reserved_mb"] and gpu.total and result["max_mem_reserved_mb"] > gpu.total:
         result["memory_note"] = "reserved more than the card has: spilled into system memory (slower)"
     if "Traceback" in text and outcome not in ("finished", "stopped early"):
@@ -352,7 +380,13 @@ def main() -> None:
     parser.add_argument("--extra-train",help="folder with an extra train.txt (e.g. the synthetic pilot); training only")
     parser.add_argument("--extra-ratio", type=float, default=1.0,
                         help="share of the extra list drawn each epoch (PaddleOCR ratio_list; a new draw per epoch)")
+    parser.add_argument("--extra-train-2", help="a second extra folder with a train.txt; needs --extra-train")
+    parser.add_argument("--extra-ratio-2", type=float, default=1.0, help="share of the second extra list drawn each epoch")
+    parser.add_argument("--max-minutes", type=float,
+                        help="stop after the first finished validation past this time; the best checkpoint is kept")
     args = parser.parse_args()
+    if args.extra_train_2 and not args.extra_train:
+        parser.error("--extra-train-2 needs --extra-train")
 
     data = Path(args.data).resolve()
     eval_list = Path(args.eval_list).resolve() if args.eval_list else data / "test.txt"
@@ -363,6 +397,8 @@ def main() -> None:
     for f in (data / "train.txt", data / "val.txt", eval_list):
         check_label_file(f)
     data_tag = ("im2latex" if "im2latex" in str(data) else data.name) + ("+synthetic" if args.extra_train else "")
+    if args.extra_train_2:
+        data_tag += f"+{Path(args.extra_train_2).name}"
     out = LAYOUT.run_dir("trackA", data_tag, args.name)
     out.mkdir(parents=True)
     info = {"args": vars(args), "config": str(CONFIG), "pretrained": str(PRETRAINED), "precision": "fp32",
@@ -403,6 +439,9 @@ def main() -> None:
              (f"- Extra training data: `{extra['source']}` ({extra['items']} items, {extra['dropped_by_leak_guard']} "
               f"dropped by the leak guard), ratio {t['extra_ratio']} per epoch; {t['items_per_epoch']} items per epoch"
               if extra else "- Extra training data: none"),
+             *([f"- Second extra list: `{t['extra_train_2']['source']}` ({t['extra_train_2']['items']} items, "
+                f"{t['extra_train_2']['dropped_by_leak_guard']} dropped by the leak guard), ratio {t['extra_ratio_2']}"]
+               if t.get("extra_train_2") else []),
              f"- Batch {args.batch_size}, lr {args.lr}, warmup {args.warmup_steps} steps, up to {args.epochs} epochs,"
              f" patience {args.patience}, seed {args.seed}; fp32; Snow skipped",
              "- Charts: `loss_curve.png`, `validation_history.png` (data in the .csv files)",

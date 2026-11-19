@@ -35,9 +35,14 @@ C:\Projects\Capstone\paddle_formula_env\Scripts\python train_formula.py --data <
 C:\Projects\Capstone\paddle_onnx_env\Scripts\python evaluate_formula.py --labels <list.txt> [--model <onnx>] --tag <tag>
 ```
 
+`--extra-train-2 <folder> --extra-ratio-2 <share>` adds a second extra training
+list, and `--max-minutes <n>` stops after the first finished validation past
+that time, keeping the best checkpoint. Without these options a run is set up
+exactly as before.
+
 `--no-final-eval` runs a plumbing check without scoring the evaluation
 list (it stays reserved for the real run). Scores and the adoption rule
 for our own data: `docs/training_runbook.md` (Track A, and "Adoption rule
 for our own data").
 
-Tests: `python -m unittest test_compare_formula test_build_pseudo_labels test_finetune_changes test_own_dataset_report` (`paddle_onnx_env`).
+Tests: `python -m unittest test_compare_formula test_build_pseudo_labels test_finetune_changes test_own_dataset_report test_train_formula` (`paddle_onnx_env`).
