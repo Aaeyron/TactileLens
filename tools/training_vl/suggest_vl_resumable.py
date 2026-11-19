@@ -8,7 +8,10 @@ own default of 4096 lets a confused reading run for minutes).
 
 With --supervise the reading runs in a child process that is restarted when it
 crashes (Paddle can die in native code). An image that is next in line for two
-crashes in a row is recorded with an error and skipped.
+crashes in a row is recorded with an error and skipped. --min-free-gb restarts
+the reader when free disk space falls below the limit (the loaded model takes
+about 13 GB of Windows' page file; stopping it gives that back) and stops if
+space does not come back; --max-minutes stops the run after that long.
 
   <paddleocr_vl_env python> suggest_vl_resumable.py --jobs jobs.json --out suggest_vl.jsonl
       [--first val_ids.txt] [--supervise]
@@ -21,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -59,14 +63,42 @@ def after_crash(next_id: str, last_crash_id: str | None) -> tuple[bool, str]:
     return next_id == last_crash_id, next_id
 
 
+def disk_is_low(folder: Path, min_free_gb: float | None) -> bool:
+    return bool(min_free_gb) and shutil.disk_usage(folder).free < min_free_gb * 1024 ** 3
+
+
+def kill_tree(process: subprocess.Popen) -> None:
+    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True)
+    process.wait()
+
+
 def supervise(args, jobs: list[dict], first: set[str]) -> int:
     child = [sys.executable, str(Path(__file__).resolve()), "--jobs", str(args.jobs), "--out", str(args.out),
              "--device", args.device, "--max-new-tokens", str(args.max_new_tokens)]
     if args.first:
         child += ["--first", str(args.first)]
     last_crash = None
+    deadline = time.time() + args.max_minutes * 60 if args.max_minutes else None
     for restart in range(MAX_RESTARTS):
-        code = subprocess.run(child).returncode
+        process = subprocess.Popen(child)
+        low_disk = False
+        while process.poll() is None:
+            time.sleep(10)
+            if deadline and time.time() >= deadline:
+                kill_tree(process)
+                print(f"stopped at the time limit ({args.max_minutes:g} minutes)", flush=True)
+                return 0
+            if disk_is_low(args.out.parent, args.min_free_gb):
+                kill_tree(process)  # frees the reader's memory, so Windows can shrink its page file
+                low_disk = True
+        code = process.returncode
+        if low_disk:
+            print(f"reader restarted: less than {args.min_free_gb:g} GB free", flush=True)
+            time.sleep(30)
+            if disk_is_low(args.out.parent, args.min_free_gb):
+                print("still low on disk after stopping the reader; stopping", flush=True)
+                return 1
+            continue
         todo = pending(jobs, read_done(args.out), first)
         if not todo:
             print(f"finished after {restart} restarts", flush=True)
@@ -92,6 +124,9 @@ def main() -> int:
     parser.add_argument("--device", default="gpu:0")
     parser.add_argument("--max-new-tokens", type=int, default=300)
     parser.add_argument("--supervise", action="store_true", help="restart after a crash; skip an image that crashes twice")
+    parser.add_argument("--min-free-gb", type=float,
+                        help="with --supervise: restart the reader when the output disk has less free space")
+    parser.add_argument("--max-minutes", type=float, help="with --supervise: stop after this long")
     args = parser.parse_args()
 
     jobs = json.loads(args.jobs.read_text(encoding="utf-8"))
