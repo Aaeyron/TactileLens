@@ -2,21 +2,27 @@
 the adoption rule for our own data (docs/training_runbook.md).
 
   python compare_formula.py --before <results dir> --after <results dir> [--out <dir>]
+      [--meta labels.csv]
 
 Reads only the two runs' predictions.tsv (no model is run). Both runs must
 have scored the same images with the same targets.
 
-Two scores, applied the same way to both models:
+Three scores, applied the same way to both models:
 - strict: evaluate_formula.py's comparison (math delimiters and
   whitespace removed);
 - spacing-normalized: strict, and in addition these LaTeX spacing
   commands are removed from target and prediction (SPACING_RULE):
   \\, \\: \\; \\! \\  (backslash-space) ~ \\quad \\qquad \\enspace \\thinspace
   \\medspace \\thickspace \\negthinspace \\negmedspace \\negthickspace
-  \\hspace{...}. Nothing else changes.
+  \\hspace{...}. Nothing else changes;
+- notation-normalized: spacing-normalized, and in addition the safe rewrites
+  in NOTATION_RULES (e.g. \\leq = \\le, \\left( = ( ). This is the main score
+  for our own data (decided 2026-11-19, before any model was scored on it:
+  most labels started from PaddleOCR-VL's readings, so its notation style
+  must not decide which model wins).
 
-Adoption rule (decided 2026-11-11, before any run on our data), on the
-spacing-normalized score:
+Adoption rule (2026-11-11; main score 2026-11-19), on the notation-normalized
+score:
 - the new model's exact match is higher than the original's, and
 - at most allowed_regressions(n) simple formulas (at most 20 LaTeX tokens)
   get worse: 1 per 100 simple formulas, rounded down, minimum 1.
@@ -30,7 +36,10 @@ model does not. Every regression is listed and sorted (classify):
   anything not shown to be equal by those rewrites (including a missing
   final comma or full stop) counts as meaning-changing, and these are
   reported separately.
-The strict score is always reported next to it.
+The spacing-normalized and strict scores are always reported next to it.
+--meta (finalize_labels.py labels.csv) uses the reviewed topics and adds
+groups per source (ss / cap) and per label source. "[object Object]" written
+by each model is counted (the model generates that text itself).
 
 Writes comparison.md and comparison.json to --out (default: the --after
 folder).
@@ -58,8 +67,9 @@ SPACING = re.compile(r"\\hspace\*?\s*\{[^{}]*\}|\\(?:" + "|".join(SPACING_COMMAN
 SPACING_RULE = ("LaTeX spacing commands are ignored: \\, \\: \\; \\! \\(space) ~ \\quad \\qquad \\enspace "
                 "\\thinspace \\medspace \\thickspace \\negthinspace \\negmedspace \\negthickspace \\hspace{...}; "
                 "then math delimiters and whitespace are removed as in the strict score. Nothing else changes.")
-MODES = ("strict", "spacing-normalized")
-DECIDING_MODE = "spacing-normalized"
+MODES = ("notation-normalized", "spacing-normalized", "strict")
+DECIDING_MODE = "notation-normalized"
+OBJECT_OBJECT = re.compile(r"object\s*Object")
 SPACING_ONLY, SAME_MEANING, MEANING = "spacing only", "same meaning, different notation", "meaning-changing"
 NOTATION_RULES = [
     "\\leq = \\le, \\geq = \\ge, \\neq = \\ne",
@@ -85,6 +95,11 @@ def spacing_key(latex: str) -> str:
 
 def spacing_scores(target: str, prediction: str) -> tuple[bool, float]:
     a, b = spacing_key(target), spacing_key(prediction)
+    return a == b, vl_common.normalized_edit_distance(a, b)
+
+
+def notation_scores(target: str, prediction: str) -> tuple[bool, float]:
+    a, b = notation_key(target), notation_key(prediction)
     return a == b, vl_common.normalized_edit_distance(a, b)
 
 
@@ -145,7 +160,33 @@ def read(folder: Path) -> dict[str, dict]:
         return {r["image"]: r for r in csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)}
 
 
-def compare(before: dict[str, dict], after: dict[str, dict], mode: str = "strict") -> dict:
+def read_meta(path: Path) -> dict[str, dict]:
+    with open(path, encoding="utf-8", newline="") as handle:
+        return {r["filename"]: r for r in csv.DictReader(handle)}
+
+
+def label_groups(provenance: str) -> list[str]:
+    if provenance.startswith("AI"):
+        return ["labels: AI-reviewed (Claude)"]
+    groups = ["labels: human-reviewed"]
+    if provenance.startswith("human-verified"):
+        groups.append("labels: human-reviewed, accepted on the page")
+    return groups
+
+
+def extra_groups(image: str, meta: dict[str, dict]) -> tuple[str | None, list[str]]:
+    row = meta.get(Path(image).name)
+    if not row:
+        return None, []
+    return row["topic"], [f"source: {row['source']}", *label_groups(row["provenance"])]
+
+
+def object_object_count(rows: dict[str, dict]) -> int:
+    return sum(bool(OBJECT_OBJECT.search(r["prediction"])) for r in rows.values())
+
+
+def compare(before: dict[str, dict], after: dict[str, dict], mode: str = "strict",
+            meta: dict[str, dict] | None = None) -> dict:
     if before.keys() != after.keys():
         raise SystemExit(f"different images: {len(before.keys() ^ after.keys())} not in both runs")
     for image in before:
@@ -158,12 +199,14 @@ def compare(before: dict[str, dict], after: dict[str, dict], mode: str = "strict
             eb, nb = b["exact"] == "True", float(b["ned"])
             ea, na = a["exact"] == "True", float(a["ned"])
         else:
-            eb, nb = spacing_scores(b["target"], b["prediction"])
-            ea, na = spacing_scores(a["target"], a["prediction"])
+            score = notation_scores if mode == "notation-normalized" else spacing_scores
+            eb, nb = score(b["target"], b["prediction"])
+            ea, na = score(a["target"], a["prediction"])
         item = {"image": image, "target": b["target"], "before": b["prediction"], "after": a["prediction"],
                 "exact_before": eb, "exact_after": ea, "ned_before": nb, "ned_after": na,
                 "simple": length_group(b["target"]).endswith("(simple)")}
-        for group in ("ALL", b["topic"], length_group(b["target"])):
+        topic, extra = extra_groups(image, meta or {})
+        for group in ("ALL", topic or b["topic"], length_group(b["target"]), *extra):
             groups[group].append(item)
 
     def summary(items: list[dict]) -> dict:
@@ -178,8 +221,9 @@ def compare(before: dict[str, dict], after: dict[str, dict], mode: str = "strict
                 "got_worse": sum(i["exact_before"] and not i["exact_after"] for i in items),
                 "got_better": sum(i["exact_after"] and not i["exact_before"] for i in items)}
 
-    order = ["ALL"] + sorted(g for g in groups if g != "ALL" and not g.startswith("length")) + sorted(
-        g for g in groups if g.startswith("length"))
+    special = ("length", "source:", "labels:")
+    order = ["ALL"] + sorted(g for g in groups if g != "ALL" and not g.startswith(special)) + sorted(
+        g for g in groups if g.startswith(special))
     regressions = []
     for i in groups["ALL"]:
         if i["exact_before"] and not i["exact_after"]:
@@ -196,7 +240,8 @@ def compare(before: dict[str, dict], after: dict[str, dict], mode: str = "strict
     rule["simple_rule_met"] = simple_regressions <= rule["allowed_simple_regressions"]
     rule["higher_exact"] = rule["exact_after"] > rule["exact_before"]
     rule["passed"] = rule["simple_rule_met"] and rule["higher_exact"]
-    return {"mode": mode, "groups": table, "regressions": regressions, "rule": rule}
+    return {"mode": mode, "groups": table, "regressions": regressions, "rule": rule,
+            "object_object": {"before": object_object_count(before), "after": object_object_count(after)}}
 
 
 def regression_lines(regressions: list[dict]) -> list[str]:
@@ -212,6 +257,8 @@ def section(result: dict) -> list[str]:
     lines = [f"## {mode.capitalize()} score" + (" (decides)" if mode == DECIDING_MODE else " (reported alongside)"), ""]
     if mode != "strict":
         lines += [f"Rule: {SPACING_RULE}", ""]
+    if mode == "notation-normalized":
+        lines += ["Also treated as equal: " + "; ".join(NOTATION_RULES) + ".", ""]
     lines += ["| group | items | exact before | exact after | NED before | NED after | got worse | got better |",
               "|---|---|---|---|---|---|---|---|"]
     for g, s in result["groups"].items():
@@ -225,7 +272,7 @@ def section(result: dict) -> list[str]:
     regs = result["regressions"]
     for kind in (MEANING, SAME_MEANING, SPACING_ONLY):
         chosen = [r for r in regs if r["kind"] == kind]
-        if mode == DECIDING_MODE and kind == SPACING_ONLY and not chosen:
+        if mode == DECIDING_MODE and kind != MEANING and not chosen:
             continue  # cannot happen on this score
         lines += [f"### Regressions, {kind} ({mode}): {len(chosen)}", ""] + regression_lines(chosen) + [""]
     return lines
@@ -236,31 +283,36 @@ def main() -> None:
     parser.add_argument("--before", required=True, help="evaluate_formula.py output folder (original model)")
     parser.add_argument("--after", required=True, help="evaluate_formula.py output folder (fine-tuned model)")
     parser.add_argument("--out")
+    parser.add_argument("--meta", help="finalize_labels.py labels.csv: reviewed topics, source and label-source groups")
     args = parser.parse_args()
 
     before, after = read(Path(args.before)), read(Path(args.after))
-    results = {mode: compare(before, after, mode) for mode in MODES}
+    meta = read_meta(Path(args.meta)) if args.meta else None
+    results = {mode: compare(before, after, mode, meta) for mode in MODES}
     decide = results[DECIDING_MODE]["rule"]
     out = Path(args.out or args.after)
     out.mkdir(parents=True, exist_ok=True)
     (out / "comparison.json").write_text(json.dumps(
         {"before": args.before, "after": args.after, "spacing_rule": SPACING_RULE, "notation_rules": NOTATION_RULES,
-         "decision": f"adoption rule of 2026-11-11 on the {DECIDING_MODE} score", "passed": decide["passed"],
+         "decision": f"adoption rule on the {DECIDING_MODE} score", "passed": decide["passed"],
          **results}, indent=1, ensure_ascii=False), encoding="utf-8")
     meaning = [r for r in results[DECIDING_MODE]["regressions"] if r["kind"] == MEANING]
     lines = ["# Formula model: before vs after", "", f"- Before: `{args.before}`", f"- After: `{args.after}`", "",
-             "## Decision (adoption rule of 2026-11-11, spacing-normalized score)", "",
+             f"## Decision (adoption rule, {DECIDING_MODE} score)", "",
              f"- Exact match higher than the original: {decide['exact_before']} -> {decide['exact_after']} -> "
              f"**{'yes' if decide['higher_exact'] else 'no'}**",
              f"- Simple-formula regressions: {decide['simple_regressions']} of {decide['simple_items']}, allowed "
              f"{decide['allowed_simple_regressions']} -> **{'within the rule' if decide['simple_rule_met'] else 'over the limit'}**",
-             f"- **Rule {'met' if decide['passed'] else 'not met'}.** Strict score reported below; it does not decide.",
+             f"- **Rule {'met' if decide['passed'] else 'not met'}.** Spacing-normalized and strict scores are "
+             "reported below; they do not decide.",
+             f"- `[object Object]` written by the model: {results[DECIDING_MODE]['object_object']['before']} readings "
+             f"before, {results[DECIDING_MODE]['object_object']['after']} after.",
              "", f"### Meaning-changing regressions (reported separately): {len(meaning)} "
              f"({decide['meaning_changing_simple_regressions']} simple)", ""]
     lines += regression_lines(meaning)
     lines += ["", "\"Meaning-changing\" is conservative: any difference from the target not removed by the spacing "
               "rule or these notation rewrites counts: " + "; ".join(NOTATION_RULES) + ".", ""]
-    for mode in (DECIDING_MODE, "strict"):
+    for mode in MODES:
         lines += section(results[mode])
     (out / "comparison.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))

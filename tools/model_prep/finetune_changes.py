@@ -178,11 +178,11 @@ def error_type(target: str, prediction: str) -> dict:
 
 # ---------------------------------------------------------------- page
 
-def put_section(page: str, section: str) -> str:
+def put_section(page: str, section: str, start_mark: str = SECTION_START, end_mark: str = SECTION_END) -> str:
     """Replace the marked section, or insert it before <footer>."""
-    block = f"{SECTION_START}\n{section}\n{SECTION_END}"
-    if SECTION_START in page:
-        start, end = page.index(SECTION_START), page.index(SECTION_END) + len(SECTION_END)
+    block = f"{start_mark}\n{section}\n{end_mark}"
+    if start_mark in page:
+        start, end = page.index(start_mark), page.index(end_mark) + len(end_mark)
         return page[:start] + block + page[end:]
     at = page.find("<footer")
     if at < 0:
@@ -242,14 +242,14 @@ def cmd_weights(args) -> None:
               "learned_values": total[0], "overall_relative_change": relative_change(total[1], total[2]),
               "modules": table(modules), "statistics": table(stats),
               "top_parameters": sorted(learned, key=lambda r: -r["relative_change"])[:10],
-              "tokens": token_changes(before, after, paths)}
+              "tokens": token_changes(before, after, paths, args.train_list)}
     (out / "weights.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     for m in result["modules"]:
         print(f"{100 * m['relative_change']:8.3f}%  {m['values']:>12,}  {m['module']}")
     print(f"overall {100 * result['overall_relative_change']:.3f}% over {total[0]:,} learned values -> {out}")
 
 
-def token_changes(before, after, paths) -> dict:
+def token_changes(before, after, paths, train_lists=None) -> dict:
     """Which output tokens moved most, and whether tokens that occur in the
     training labels moved more than tokens that never occur."""
     import numpy as np
@@ -261,7 +261,8 @@ def token_changes(before, after, paths) -> dict:
     change = np.linalg.norm(w1 - w0, axis=0) / np.maximum(np.linalg.norm(w0, axis=0), 1e-12)
     seen = Counter()
     data = Layout(root_dir(None)).im2latex_filtered
-    lists = [data / "train.txt", paths["config"].parent / "extra_train.txt"]
+    lists = [Path(p) for p in train_lists] if train_lists else [data / "train.txt",
+                                                                paths["config"].parent / "extra_train.txt"]
     for path in lists:
         if path.exists():
             for line in path.read_text(encoding="utf-8").splitlines():
@@ -360,14 +361,15 @@ def data_uri(png: bytes) -> str:
     return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
 
 
-def gallery(before: dict, after: dict) -> dict[str, list[dict]]:
-    """Every test formula sorted by what fine-tuning did to it (spacing-normalized)."""
+def gallery(before: dict, after: dict, score=None) -> dict[str, list[dict]]:
+    """Every test formula sorted by what fine-tuning did to it (default score: spacing-normalized)."""
     from compare_formula import spacing_scores
+    score = score or spacing_scores
     groups = defaultdict(list)
     for image in sorted(before):
         target = before[image]["target"]
         b, a = before[image]["prediction"], after[image]["prediction"]
-        right_b, right_a = spacing_scores(target, b)[0], spacing_scores(target, a)[0]
+        right_b, right_a = score(target, b)[0], score(target, a)[0]
         key = ("fixed" if right_a and not right_b else "broken" if right_b and not right_a else
                "both right" if right_a else "both wrong")
         groups[key].append({"image": image, "target": target, "original": b, "fine-tuned": a,
@@ -396,15 +398,16 @@ def recorded_validation(meta: dict) -> dict:
             "fine-tuned": round(max(v["exp_rate"] for v in train["validations"]) * n)}
 
 
-def confidence_summary(confidence: dict) -> dict:
+def confidence_summary(confidence: dict, score=None) -> dict:
     import vl_common
     from compare_formula import spacing_scores
+    score = score or spacing_scores
     summary = {}
     for tag, data in confidence["models"].items():
         bins = {f"{lo:.2f}-{hi:.2f}": [0, 0] for lo, hi in CONFIDENCE_BINS}
         right, wrong = [], []
         for r in data["readings"]:
-            ok = spacing_scores(r["target"], r["prediction"])[0]
+            ok = score(r["target"], r["prediction"])[0]
             (right if ok else wrong).append(r)
             bins[confidence_bin(r["weakest"])][0 if ok else 1] += 1
 
@@ -689,6 +692,7 @@ def main() -> None:
         p.add_argument("--out", help="default: <run>/analysis/finetune_changes_<date>")
         if name != "report":
             p.add_argument("--before", help="original .pdparams (default: the run's pretrained checkpoint)")
+    sub.choices["weights"].add_argument("--train-list", nargs="+", help="training label files (default: the im2latex ones)")
     sub.choices["confidence"].add_argument("--labels", help="default: the im2latex validation list")
     sub.choices["confidence"].add_argument("--cpu", action="store_true")
     sub.choices["report"].add_argument("--page", help="HTML page to put the section into (before <footer>)")

@@ -162,10 +162,10 @@ are in [docs/setup.md](docs/setup.md#environment-variables).
 | Backend (Node) | `cd backend && npm test` | 31 passed |
 | App (Flutter) | `cd frontend && flutter test` | 241 passed |
 | Android (Kotlin) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` | 4 passed |
-| VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 15 passed (2026-11-10) |
-| Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-10) |
-| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 19 passed (2026-11-10) |
-| Formula comparison and fine-tuning analysis (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula test_finetune_changes` (`paddle_onnx_env`) | 33 passed (2026-11-11) |
+| VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 20 passed (2026-11-19) |
+| Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-19) |
+| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 33 passed (2026-11-19) |
+| Formula comparison, pseudo-labels and reports (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula test_build_pseudo_labels test_finetune_changes test_own_dataset_report` (`paddle_onnx_env`) | 51 passed (2026-11-19) |
 
 Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9
 with PaddleOCR 3.7.0, Node 22.18, Flutter 3.44.7). The skipped Python

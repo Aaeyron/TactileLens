@@ -34,7 +34,9 @@ Next step: split_dataset.py --intake <work>/<run>.
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
+import hashlib
 import os
 import shutil
 import zipfile
@@ -51,16 +53,22 @@ class IntakeError(RuntimeError):
     pass
 
 
-def safe_extract(archive: Path, target: Path) -> int:
-    """Extract a zip without letting any member escape `target`."""
+def member_path(archive: Path, member: zipfile.ZipInfo) -> PurePosixPath:
+    name = PurePosixPath(member.filename.replace("\\", "/"))
+    if name.is_absolute() or ".." in name.parts or (name.parts and ":" in name.parts[0]):
+        raise IntakeError(f"{archive.name}: unsafe path in zip: {member.filename!r}")
+    return name
+
+
+def safe_extract(archive: Path, target: Path, only: set[str] | None = None) -> int:
+    """Extract a zip without letting any member escape `target`. With
+    `only`, extract just those member names."""
 
     count = 0
     with zipfile.ZipFile(archive) as zf:
         for member in zf.infolist():
-            name = PurePosixPath(member.filename.replace("\\", "/"))
-            if name.is_absolute() or ".." in name.parts or (name.parts and ":" in name.parts[0]):
-                raise IntakeError(f"{archive.name}: unsafe path in zip: {member.filename!r}")
-            if member.is_dir():
+            name = member_path(archive, member)
+            if member.is_dir() or (only is not None and member.filename not in only):
                 continue
             out = target.joinpath(*name.parts)
             out.parent.mkdir(parents=True, exist_ok=True)
@@ -70,16 +78,63 @@ def safe_extract(archive: Path, target: Path) -> int:
     return count
 
 
-def copy_incoming(incoming: Path, extracted: Path) -> list[str]:
+def plan_dedupe(archives: list[Path]) -> list[dict]:
+    """Every file in the zips with its sha256, and which copy is kept: one
+    per distinct content, the alphabetically first file name (then the
+    first zip). The others are listed, never extracted. Several zips of
+    one delivery often repeat the same files (overlapping downloads)."""
+
+    rows = []
+    for archive in archives:
+        with zipfile.ZipFile(archive) as zf:
+            for member in zf.infolist():
+                path = member_path(archive, member)
+                if member.is_dir():
+                    continue
+                digest = hashlib.sha256()
+                with zf.open(member) as source:
+                    for chunk in iter(lambda: source.read(1 << 20), b""):
+                        digest.update(chunk)
+                rows.append({"zip": archive.name, "member": member.filename, "name": path.name,
+                             "sha256": digest.hexdigest()})
+    order = {archive.name: i for i, archive in enumerate(archives)}
+    first = {}
+    for row in sorted(rows, key=lambda r: (r["name"], order[r["zip"]], r["member"])):
+        first.setdefault(row["sha256"], row)
+    for row in rows:
+        kept = first[row["sha256"]]
+        row["kept"] = row is kept
+        row["kept_name"] = kept["name"]
+        row["kept_from"] = f"{kept['zip']}/{kept['member']}"
+    return rows
+
+
+def same_bytes_groups(rows: list[dict]) -> list[list[str]]:
+    """Groups of different file names with the same content."""
+    names = defaultdict(set)
+    for row in rows:
+        names[row["sha256"]].add(row["name"])
+    return [sorted(group) for group in names.values() if len(group) > 1]
+
+
+def copy_incoming(incoming: Path, extracted: Path, dedupe: bool = False) -> tuple[list[str], list[dict]]:
     """Copies every zip (extracted) and folder under `incoming`; returns
-    what was copied. Loose files at the top level are copied too."""
+    what was copied and, with `dedupe`, every zip file's row from
+    plan_dedupe (only one file per distinct content is extracted). Loose
+    files at the top level are copied too."""
 
     copied = []
     extracted.mkdir(parents=True, exist_ok=True)
-    for entry in sorted(incoming.iterdir()):
-        if entry.name.startswith("."):
-            continue
-        if entry.is_file() and entry.suffix.lower() == ".zip":
+    entries = [e for e in sorted(incoming.iterdir()) if not e.name.startswith(".")]
+    archives = [e for e in entries if e.is_file() and e.suffix.lower() == ".zip"]
+    plan = plan_dedupe(archives) if dedupe else []
+    for entry in entries:
+        if entry in archives and dedupe:
+            mine = [r for r in plan if r["zip"] == entry.name]
+            only = {r["member"] for r in mine if r["kept"]}
+            n = safe_extract(entry, extracted / entry.stem, only)
+            copied.append(f"{entry.name} (zip, {len(mine)} files, {n} extracted)")
+        elif entry in archives:
             n = safe_extract(entry, extracted / entry.stem)
             copied.append(f"{entry.name} (zip, {n} files)")
         elif entry.is_dir():
@@ -89,7 +144,7 @@ def copy_incoming(incoming: Path, extracted: Path) -> list[str]:
             (extracted / "_loose").mkdir(exist_ok=True)
             shutil.copy2(entry, extracted / "_loose" / entry.name)
             copied.append(entry.name)
-    return copied
+    return copied, plan
 
 
 def read_all_labels(extracted: Path) -> tuple[list[dict], list[str]]:
@@ -239,6 +294,17 @@ def duplicates_and_pairs(items: list[dict]) -> dict:
     return {"exact_duplicates": exact, "near_duplicates": near, "ss_cap_pairs": sorted(pairs)}
 
 
+def add_left_out_copies(result: dict, plan: list[dict]) -> None:
+    """With --dedupe, the copies that were not extracted still count as
+    exact duplicates of the kept file (same report as without --dedupe)."""
+    by_name = {i["filename"]: i for i in result["items"]}
+    for group in same_bytes_groups(plan):
+        result["exact_duplicates"].append(group)
+        kept = by_name.get(group[0])
+        if kept is not None:
+            kept["warnings"].append("same bytes as " + ", ".join(group[1:]) + " (not extracted)")
+
+
 def mark_eval_overlap(items: list[dict], root: Path, registry: Path | None = None) -> None:
     existing = dc.existing_eval_images(root, registry)
     eval_hashes = {v["dhash"]: (sha, v) for sha, v in existing.items() if v.get("dhash")}
@@ -322,6 +388,8 @@ def main() -> None:
     parser.add_argument("--work", help="where the copy and the report go (default <root>/intake)")
     parser.add_argument("--registry", help="frozen eval registry (default <root>/splits/frozen_eval.jsonl)")
     parser.add_argument("--config", default=str(vl_common.DEFAULT_CONFIG))
+    parser.add_argument("--dedupe", action="store_true",
+                        help="extract one file per distinct content from the zips; list every copy in same_bytes.csv")
     args = parser.parse_args()
 
     root = rec_common.root_dir(args.root)
@@ -336,8 +404,16 @@ def main() -> None:
 
     config = vl_common.load_config(Path(args.config))
     run = work / dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    copied = copy_incoming(incoming, run / "extracted")
+    copied, plan = copy_incoming(incoming, run / "extracted", dedupe=args.dedupe)
     result = audit(run / "extracted", root, config, registry=registry)
+    if plan:
+        add_left_out_copies(result, plan)
+        with (run / "same_bytes.csv").open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, ["zip", "member", "name", "sha256", "kept", "kept_name", "kept_from"])
+            writer.writeheader()
+            writer.writerows(plan)
+        copied.append(f"{len(plan)} files in zips, {sum(r['kept'] for r in plan)} distinct extracted"
+                      " (every copy listed in same_bytes.csv)")
     dc.write_items(run / "items.csv", result["items"])
     summary = write_report(run, result, copied, config)
 

@@ -150,5 +150,76 @@ synthetic data is never used to evaluate), `manifest.jsonl` and
 registry. Pilot on 2026-11-10: 2,400 images in 47 s; details in
 `docs/training_runbook.md` (Track A).
 
-Tests: `python -m unittest discover -s tests -t .` (19, on a temporary
+Tests: `python -m unittest discover -s tests -t .` (33, on a temporary
 root, never the real one).
+
+## Freezing reviewed labels: `finalize_labels.py`
+
+```
+python finalize_labels.py --working <folder> --reviews <answers> --overrides overrides.csv --ai-labels ai_labels.csv --registry <frozen_eval.jsonl>
+```
+
+Applies approved fixes and exclusions and the label conventions, then writes
+`labels/eval.txt`, `val_human.txt`, `val_ai.txt`, `val_all.txt`, `labels.csv`
+(the source of every label) and `frozen.json` (counts and SHA-256), and adds the
+eval images to the frozen registry. AI-reviewed labels are accepted for
+validation only.
+
+## Formula crops from page images: `crop_formulas.py`
+
+```
+<paddle_onnx_env python> crop_formulas.py --working <folder> [--workers 4 --threads 3] [--min-free-gb 3] [--report]
+```
+
+Finds display and inline formulas in the M, T and W images with the app's
+PP-DocLayoutV3 ONNX and the app's preprocessing, and saves each one as a crop
+with its source, topic, ss/cap, kind and box (`crops_mtw/crops.csv`). Tiny,
+cut-off, duplicate and nested boxes are dropped. Resumable per image; stops
+safely when the disk runs low. The report checks every crop against the held-out
+images (source name, SHA-256 and dhash). Results of 2026-11-19 in
+`docs/training_runbook.md` (version 3). Tests: `tests/test_crop_formulas.py`.
+
+## A delivery without labels: `prepare_unlabeled.py`, `split_unlabeled.py`
+
+The 2026-11-18 delivery of our own images came without label files. After
+`intake.py`:
+
+1. `prepare_unlabeled.py --intake <intake run> --out <root>/datasets/own/working/<id>`
+   copies the intake's extracted images (never `incoming/`) to `images/`,
+   fixes topic spellings (`TOPIC_FIXES`), gives "(1)" names a free number,
+   keeps one image per group of byte-identical files and lists every change
+   in `mapping.csv`; `items.csv` lists the kept images.
+2. `split_unlabeled.py --working <working dir> --intake <intake run>` chooses
+   eval / validation / training from the kind S images, before any model
+   reading is looked at. Eval: per topic, groups that contain a phone
+   capture; an ss/cap pair is one group. A copy left out as a duplicate
+   follows the name that was kept, so its pair is not lost.
+   `--check split.csv` only checks that an existing split keeps every pair
+   on one side (exit 1 if not).
+
+Note: all topics draw from one seeded random sequence, so a change in one
+topic's groups changes the draw of every later topic. Keep a split once it
+is used; check it with `--check` rather than regenerating it.
+
+## A later delivery on top: `intake.py --dedupe`, `extend_unlabeled.py`
+
+When the full delivery came as several zips that repeat each other (one
+per topic, plus overlapping parts of an earlier download):
+
+1. `intake.py --dedupe` hashes every file in every zip first and extracts
+   one file per distinct content (the alphabetically first name). Every
+   copy is listed in `<run>/same_bytes.csv`, and the report still counts
+   them as exact duplicates. Without this, the same name in two zips is an
+   error ("2 images with this name") and the item is never hashed.
+2. `extend_unlabeled.py --old <working> --intake <run> --out <new working>`
+   hard-links the old images (same names) and the new ones into a new
+   folder and extends split.csv: old sides never change (the eval set stays
+   frozen), new images go to validation (per-topic seed) or training, and
+   new images that are near-duplicates of an eval image, or numbered like
+   one, are left out.
+
+Finding (2026-11-18 delivery): ss and cap images with the same topic, kind
+and number were NOT the same formula in any of the 20 pairs checked by eye.
+Number-pairing is kept only as a cautious rule; the label check (no
+training label equal to an eval or validation label) is the guard that
+matters.

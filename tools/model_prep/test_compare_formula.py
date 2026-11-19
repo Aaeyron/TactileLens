@@ -2,7 +2,8 @@
 
 import unittest
 
-from compare_formula import MEANING, SAME_MEANING, SPACING_ONLY, allowed_regressions, classify, compare
+from compare_formula import (DECIDING_MODE, MEANING, SAME_MEANING, SPACING_ONLY, allowed_regressions, classify, compare,
+                             label_groups, notation_scores)
 from evaluate_formula import length_group, topic_of
 
 
@@ -140,6 +141,27 @@ class SpacingTest(unittest.TestCase):
         after = {"a": row("a", r"x = 1 \quad y", r"x=1\;y", False, 0.1)}
         self.assertEqual(compare(before, after, "strict")["groups"]["ALL"]["got_worse"], 1)
         self.assertEqual(compare(before, after, "spacing-normalized")["groups"]["ALL"]["got_worse"], 0)
+
+
+class NotationTest(unittest.TestCase):
+    def test_main_score_is_notation_normalized(self):
+        self.assertEqual(DECIDING_MODE, "notation-normalized")
+
+    def test_equivalent_notation_counts_as_right(self):
+        self.assertTrue(notation_scores(r"(x)\leq 1", r"\left(x\right)\le 1")[0])
+        self.assertFalse(notation_scores(r"x\leq 1", r"x<1")[0])
+
+    def test_notation_mode_decides_and_counts_object_object(self):
+        before = {"a": row("a", r"x\le1", r"x<1", False, 0.5), "b": row("b", "y", r"\sqrt[object Object]{y}", False, 1)}
+        after = {"a": row("a", r"x\le1", r"x\leq1", False, 0.1), "b": row("b", "y", "y", True, 0)}
+        result = compare(before, after, "notation-normalized")
+        self.assertEqual((result["rule"]["exact_before"], result["rule"]["exact_after"]), (0, 2))
+        self.assertEqual(result["object_object"], {"before": 1, "after": 0})
+
+    def test_label_groups(self):
+        self.assertEqual(label_groups("AI-reviewed (Claude), not human-verified"), ["labels: AI-reviewed (Claude)"])
+        self.assertEqual(label_groups("human-approved fix (proposed by Claude)"), ["labels: human-reviewed"])
+        self.assertIn("labels: human-reviewed, accepted on the page", label_groups("human-verified"))
 
 
 class GroupsTest(unittest.TestCase):
