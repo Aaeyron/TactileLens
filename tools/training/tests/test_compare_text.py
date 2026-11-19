@@ -2,7 +2,7 @@
 
 import unittest
 
-from compare_text import allowed, classify, meaning_key
+from compare_text import allowed, braille_kind, classify, meaning_key
 
 
 class Classify(unittest.TestCase):
@@ -25,6 +25,11 @@ class Classify(unittest.TestCase):
     def test_better_and_same(self):
         self.assertEqual(classify("x² + 1", "x2 + 1", "x² + 1"), "better")
         self.assertEqual(classify("abc", "abd", "abd"), "same")
+
+    def test_braille_split(self):
+        self.assertEqual(braille_kind("of 2, we", "of 2, we", "of 2. we"), "punctuation (changes the Braille)")
+        self.assertEqual(braille_kind("3 – Fraction", "3 – Fraction", "3-Fraction"), "punctuation (changes the Braille)")
+        self.assertEqual(braille_kind("a's (6)", "a's (6)", "a's(6)"), "spacing only")
 
     def test_allowed(self):
         self.assertEqual(allowed(100), 2)

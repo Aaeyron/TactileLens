@@ -62,6 +62,15 @@ def read(folder: Path) -> dict[str, dict]:
         return {r["image"]: r for r in csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)}
 
 
+def braille_kind(label: str, before: str, after: str) -> str:
+    """For a spacing/punctuation-only line: does a punctuation mark change (and so the Braille)?
+    Compared with spaces removed and no dash or quote folding (UEB writes - – — ' ’ " “ ” differently)."""
+    raw = lambda s: s.replace(" ", "")  # noqa: E731
+    if edit_distance(raw(label), raw(after)) > edit_distance(raw(label), raw(before)):
+        return "punctuation (changes the Braille)"
+    return "spacing only"
+
+
 def classify(label: str, before: str, after: str) -> str:
     d = lambda f, x: edit_distance(f(label), f(x))  # noqa: E731
     if d(meaning_key, after) > d(meaning_key, before):
@@ -99,7 +108,10 @@ def compare(before: dict, after: dict, meta: dict) -> dict:
             if kind in g:
                 g[kind] += 1
         if kind in ("meaning-changing", "spacing/punctuation only"):
-            changes.append({"image": image, "kind": kind, "label": label, "before": b, "after": a})
+            change = {"image": image, "kind": kind, "label": label, "before": b, "after": a}
+            if kind == "spacing/punctuation only":
+                change["braille"] = braille_kind(label, b, a)
+            changes.append(change)
     table = []
     for name, g in groups.items():
         table.append({"group": name, **{k: g[k] for k in ("lines", "exact_before", "exact_after")},
@@ -130,8 +142,11 @@ def markdown(result: dict, before: Path, after: Path) -> str:
     for t in result["table"]:
         lines.append(f"| {t['group']} | {t['lines']} | {t['cer_before']} | {t['cer_after']} | {t['exact_before']} | "
                      f"{t['exact_after']} | {t['worse_meaning']} | {t['worse_spacing_punctuation']} | {t['better']} |")
-    for kind in ("meaning-changing", "spacing/punctuation only"):
-        items = [c for c in result["changes"] if c["kind"] == kind]
+    groups = [("meaning-changing", lambda c: c["kind"] == "meaning-changing")]
+    for braille in ("punctuation (changes the Braille)", "spacing only"):
+        groups.append((f"spacing/punctuation only: {braille}", lambda c, b=braille: c.get("braille") == b))
+    for kind, wanted in groups:
+        items = [c for c in result["changes"] if wanted(c)]
         lines += ["", f"## Got worse, {kind}: {len(items)}", ""]
         lines += [f"- `{Path(c['image']).name}`: label `{c['label']}`; before `{c['before']}`; after `{c['after']}`"
                   for c in items] or ["- none"]
