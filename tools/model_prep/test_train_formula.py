@@ -44,5 +44,25 @@ class TimeLimit(unittest.TestCase):
         self.assertEqual(tf.time_limit_note(600, 1, self.finished), "time limit of 1 minutes reached")
 
 
+class LowDisk(unittest.TestCase):
+    finished = f"cur metric, exp_rate: 0.5\n{STEP_LINE}\n"
+    gb = 1024 ** 3
+
+    def test_off_by_default(self):
+        self.assertIsNone(tf.low_disk_note(0, None, self.finished))
+
+    def test_enough_space(self):
+        self.assertIsNone(tf.low_disk_note(4 * self.gb, 3, self.finished))
+
+    def test_stops_before_the_first_validation(self):
+        self.assertEqual(tf.low_disk_note(2 * self.gb, 3, STEP_LINE), "less than 3 GB free on the run's disk")
+
+    def test_waits_while_a_validation_saves(self):
+        self.assertIsNone(tf.low_disk_note(2 * self.gb, 3, "cur metric, exp_rate: 0.5\n"))
+
+    def test_stops_after_a_finished_validation(self):
+        self.assertIsNotNone(tf.low_disk_note(2 * self.gb, 3, self.finished))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -37,8 +37,10 @@ C:\Projects\Capstone\paddle_onnx_env\Scripts\python evaluate_formula.py --labels
 
 `--extra-train-2 <folder> --extra-ratio-2 <share>` adds a second extra training
 list, and `--max-minutes <n>` stops after the first finished validation past
-that time, keeping the best checkpoint. Without these options a run is set up
-exactly as before.
+that time, keeping the best checkpoint. `--min-free-gb <n>` stops when the
+disk has less free space (before the first validation at once, otherwise once
+the last validation's checkpoint is saved). Without these options a run is set
+up exactly as before.
 
 `--no-final-eval` runs a plumbing check without scoring the evaluation
 list (it stays reserved for the real run). Scores and the adoption rule

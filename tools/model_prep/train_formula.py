@@ -43,6 +43,7 @@ import json
 import os
 import random
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -176,6 +177,18 @@ def time_limit_note(elapsed_seconds: float, max_minutes: float | None, log_text:
     return f"time limit of {max_minutes:g} minutes reached"
 
 
+def low_disk_note(free_bytes: int, min_free_gb: float | None, log_text: str) -> str | None:
+    """Why to stop for low disk space: at once before the first validation, otherwise
+    once the last validation's saves are done (so the best checkpoint is whole)."""
+
+    if not min_free_gb or free_bytes >= min_free_gb * 1024 ** 3:
+        return None
+    last_validation = log_text.rfind("cur metric")
+    if last_validation >= 0 and not STEP.search(log_text[last_validation:]):
+        return None  # a validation is saving its checkpoint; wait for it
+    return f"less than {min_free_gb:g} GB free on the run's disk"
+
+
 def extra_training_list(folder: Path, held_out: list[Path], out: Path, name: str = "extra_train.txt") -> dict:
     """Extra training data (e.g. the synthetic pilot): its train.txt with
     absolute image paths (PaddleOCR joins data_dir with a relative path; an
@@ -256,7 +269,8 @@ def train(args, out: Path, data: Path) -> dict:
                         stopped_early = (f"no higher val exp_rate in the last {args.patience} validations"
                                          f" (best {rates[best_at]} at validation {best_at + 1})")
                         break
-            stopped_early = time_limit_note(time.time() - start, args.max_minutes, text)
+            stopped_early = (time_limit_note(time.time() - start, args.max_minutes, text)
+                             or low_disk_note(shutil.disk_usage(out).free, args.min_free_gb, text))
             if stopped_early:
                 break
         if process.poll() is None:
@@ -384,6 +398,8 @@ def main() -> None:
     parser.add_argument("--extra-ratio-2", type=float, default=1.0, help="share of the second extra list drawn each epoch")
     parser.add_argument("--max-minutes", type=float,
                         help="stop after the first finished validation past this time; the best checkpoint is kept")
+    parser.add_argument("--min-free-gb", type=float,
+                        help="stop when the run's disk has less free space; the best checkpoint is kept")
     args = parser.parse_args()
     if args.extra_train_2 and not args.extra_train:
         parser.error("--extra-train-2 needs --extra-train")
