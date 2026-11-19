@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
+import '../braille/formula_braille_guard.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
 
@@ -27,8 +28,7 @@ class OfflineOcrService {
       '${ScanProcessingMode.onDevicePipelinePrefix}onnx-v1';
 
   /// Same text as ROOT_REASON in the AI service's formula_braille_guard.py.
-  static const String rootReviewReason =
-      'contains a root (√): Nemeth radical not yet confirmed';
+  static const String rootReviewReason = FormulaBrailleGuard.rootReason;
 
   // Why the offline pipeline flagged a block (needs_review). Shown in the
   // "Needs review" note; the block keeps its Braille.
@@ -58,11 +58,10 @@ class OfflineOcrService {
     };
   }
 
-  static final RegExp _root = RegExp(r'\\sqrt(?![A-Za-z])|[√∛∜]');
-
   /// Whether formula [content] (LaTeX or Unicode) contains a root.
   @visibleForTesting
-  static bool containsRoot(String content) => _root.hasMatch(content);
+  static bool containsRoot(String content) =>
+      FormulaBrailleGuard.containsRoot(content);
 
   OfflineOcrService({
     PaddleOnnxNativeService? onnxService,
@@ -160,23 +159,44 @@ class OfflineOcrService {
             ? _normalizeContent(rawContent)
             : normalizedContent;
 
-        // Liblouis has no Nemeth radical: a root would come out as an
-        // escape written in Braille cells. Held until the expert confirms
-        // it, exactly like the online formula guard.
-        final bool heldForRoot = isFormula && containsRoot(rawContent);
+        // The same formula guard as online: unsupported LaTeX, alignment
+        // markup, English words in the math and roots (Liblouis has no
+        // Nemeth radical) are held for review, never sent to Liblouis.
+        FormulaReview review = isFormula
+            ? FormulaBrailleGuard.review(rawContent)
+            : FormulaReview.none;
 
-        final OfflineBrailleResult brailleResult = heldForRoot
-            ? const OfflineBrailleResult(
+        OfflineBrailleResult brailleResult = review.needsReview
+            ? OfflineBrailleResult(
                 success: false,
                 code: 'nemeth',
                 content: '',
-                error: 'Needs review: $rootReviewReason',
+                error: 'Needs review: ${review.reason}',
               )
             : await _brailleService.translateBlock(
                 brailleInput,
                 isFormula: isFormula,
                 isTable: false,
               );
+
+        // Catch-all for any block, as online: a symbol the Braille tables
+        // do not define comes out as an escape, never shown as Braille.
+        if (brailleResult.success &&
+            FormulaBrailleGuard.containsBrailleEscape(brailleResult.content)) {
+          review = const FormulaReview(
+            needsReview: true,
+            categories: <String>[FormulaBrailleGuard.unsupportedSymbol],
+            reason: FormulaBrailleGuard.unsupportedSymbolReason,
+          );
+          brailleResult = OfflineBrailleResult(
+            success: false,
+            code: brailleResult.code,
+            content: '',
+            error: 'Needs review: ${review.reason}',
+          );
+        }
+
+        final bool heldByGuard = review.needsReview;
 
         final int order = blocks.length;
 
@@ -210,9 +230,11 @@ class OfflineOcrService {
             brailleCode: brailleResult.code,
             brailleSuccess: brailleResult.success,
             brailleError: brailleResult.error ?? '',
-            needsReview: heldForRoot || source.needsReview,
-            reviewReason: heldForRoot
-                ? rootReviewReason
+            // A guard hold gives its own reason; otherwise the reason the
+            // pipeline flagged the block for (empty if not flagged).
+            needsReview: heldByGuard || source.needsReview,
+            reviewReason: heldByGuard
+                ? review.reason
                 : reviewReasonFor(source),
           ),
         );

@@ -70,21 +70,29 @@ user's history.
 text-line and formula models run on the phone's CPU with ONNX Runtime;
 Liblouis is compiled into the app. Nothing leaves the phone.
 
-What differs: online reads tables into rows and applies the full formula
-guard; on-device reads tables as text, holds only roots, and flags
-low-confidence blocks for a check.
+What differs: online reads tables into rows; on-device reads tables as
+text and flags low-confidence blocks for a check. Both apply the same
+formula guard.
 
 Details: [docs/architecture.md](docs/architecture.md).
 
 ## Safety and honesty
 
 - **Formula blocks held for review.** Before Braille, every formula is
-  checked (`ai_service/services/braille/formula_braille_guard.py`). It is
-  held, with no Braille and a reason shown, when it has unsupported
-  LaTeX, alignment or row markup, English words mixed into the math, a
-  root, or markup left after normalisation. Unknown LaTeX would otherwise
-  come out as Braille that looks right but is wrong. A false hold only
-  costs the teacher a check.
+  checked, online (`ai_service/services/braille/formula_braille_guard.py`)
+  and on-device (`frontend/lib/services/braille/formula_braille_guard.dart`,
+  kept in sync with the same test cases). It is held, with no Braille and
+  a reason shown, when it has unsupported LaTeX, alignment or row markup,
+  English words mixed into the math, or a root; online also when markup is
+  left after normalisation. Unknown LaTeX would otherwise come out as
+  Braille that looks right but is wrong. A false hold only costs the
+  teacher a check.
+- **Unsupported symbols are held** (online and on-device, any block:
+  text, formula or table). Liblouis writes a symbol its tables don't
+  define, such as ∛ in UEB text, as an escape code in Braille cells; any
+  output with a dot-7 or dot-8 cell is held with the reason "contains a
+  symbol our Braille tables don't support". Braille 1 falls back to
+  Braille 2 if a line would contain one.
 - **Roots are always held** (online and on-device). The Liblouis Nemeth
   table has no radical symbol, so a root would come out as an escape
   code. They stay held until a Braille expert confirms the Nemeth

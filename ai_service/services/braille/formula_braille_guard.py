@@ -37,6 +37,18 @@ ROOT: Final[str] = "root"
 ROOT_SYMBOLS: Final[str] = "√∛∜"
 ROOT_REASON: Final[str] = "contains a root (√): Nemeth radical not yet confirmed"
 
+# Any block, after translation: Liblouis writes a character its tables do
+# not define as an escape such as '\x221b' in Braille cells, whose
+# backslash is an 8-dot cell. UEB and Nemeth only use 6-dot cells, so a
+# cell with dot 7 or 8 (U+2840-U+28FF) means the Braille is not real.
+# The offline app uses the same check and reason text.
+UNSUPPORTED_SYMBOL: Final[str] = "unsupported_symbol"
+UNSUPPORTED_SYMBOL_REASON: Final[str] = (
+    "contains a symbol our Braille tables don't support"
+)
+_EIGHT_DOT_FIRST: Final[int] = 0x2840
+_EIGHT_DOT_LAST: Final[int] = 0x28FF
+
 # Wrappers whose contents are meant to be words, such as "\text{area}".
 _TEXT_WRAPPER = re.compile(
     r"\\(?:text|textrm|textbf|textit|mbox|mathrm|operatorname)\s*\{"
@@ -128,6 +140,25 @@ def review_table(table_text: str) -> FormulaReview:
 
 def contains_root(content: str) -> bool:
     return any(symbol in content for symbol in ROOT_SYMBOLS)
+
+
+def contains_braille_escape(braille: str) -> bool:
+    """Whether Liblouis output contains a cell with dot 7 or 8."""
+
+    return any(_EIGHT_DOT_FIRST <= ord(cell) <= _EIGHT_DOT_LAST for cell in braille)
+
+
+def review_braille_output(braille: str) -> FormulaReview:
+    """Check any block's Braille after translation (text, formula, table)."""
+
+    if not contains_braille_escape(braille):
+        return NO_REVIEW
+
+    return FormulaReview(
+        needs_review=True,
+        categories=(UNSUPPORTED_SYMBOL,),
+        reason=UNSUPPORTED_SYMBOL_REASON,
+    )
 
 
 def _unsupported_latex(structure: str) -> list[str]:

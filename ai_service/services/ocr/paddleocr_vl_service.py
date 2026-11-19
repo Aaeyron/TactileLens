@@ -20,6 +20,7 @@ from services.braille.braille_translation_service import (
 )
 from services.braille.formula_braille_guard import (
     NO_REVIEW,
+    review_braille_output,
     review_formula,
     review_table,
 )
@@ -135,11 +136,11 @@ class PaddleOcrVlService:
 
         self._braille_translator = BrailleTranslationService()
 
-        # How often the formula Braille guard holds a block for review,
-        # since the service started.
+        # How often the Braille guard holds a formula or table block for
+        # review, since the service started.
         self._guard_counts_lock = threading.Lock()
-        self._formulas_checked = 0
-        self._formulas_held = 0
+        self._blocks_checked = 0
+        self._blocks_held = 0
 
         if self.engine == self.OFFICIAL_API_ENGINE:
             # Fails at startup if the token or daily cap is missing or wrong.
@@ -535,6 +536,29 @@ class PaddleOcrVlService:
                 is_table=is_table,
             )
 
+            # Catch-all for any block: a symbol the Braille tables do not
+            # define comes out as an escape, never shown as Braille.
+            output_review = (
+                review_braille_output(braille_result["content"] or "")
+                if braille_result["success"]
+                else NO_REVIEW
+            )
+
+            if output_review.needs_review:
+                review = output_review
+
+                if is_formula:
+                    normalized_content = (
+                        readable_with_prose(raw_content) or raw_content
+                    )
+
+                braille_result = {
+                    "success": False,
+                    "code": braille_result["code"],
+                    "content": "",
+                    "error": f"Needs review: {review.reason}",
+                }
+
         bounding_box = self._normalized_bbox(block)
 
         polygon_points = self._normalized_polygon(
@@ -573,26 +597,44 @@ class PaddleOcrVlService:
         self,
         blocks: list[dict[str, Any]],
     ) -> None:
-        formulas = [block for block in blocks if block["is_formula"]]
+        """Log how many formula and table blocks the guard held.
 
-        if not formulas:
+        Text blocks are not checked by the formula guard, but one can be
+        held by the Braille escape check; those are listed separately.
+        """
+
+        formulas = [block for block in blocks if block["is_formula"]]
+        tables = [block for block in blocks if block["is_table"]]
+        held_formulas = [block for block in formulas if block["needs_review"]]
+        held_tables = [block for block in tables if block["needs_review"]]
+        held_text = [
+            block
+            for block in blocks
+            if block["is_text"] and block["needs_review"]
+        ]
+
+        checked = len(formulas) + len(tables)
+        held = held_formulas + held_tables
+
+        if not checked and not held_text:
             return
 
-        held = [block for block in formulas if block["needs_review"]]
-
         with self._guard_counts_lock:
-            self._formulas_checked += len(formulas)
-            self._formulas_held += len(held)
-            checked_total = self._formulas_checked
-            held_total = self._formulas_held
+            self._blocks_checked += checked
+            self._blocks_held += len(held)
+            checked_total = self._blocks_checked
+            held_total = self._blocks_held
+
+        text_note = f", text held {len(held_text)}" if held_text else ""
 
         print(
-            f"Formula Braille guard: held {len(held)} of {len(formulas)} "
-            f"formula blocks for review ({held_total} of {checked_total} "
-            "since start)."
+            f"Braille guard: held {len(held)} of {checked} blocks for review "
+            f"(formulas {len(held_formulas)} of {len(formulas)}, "
+            f"tables {len(held_tables)} of {len(tables)}{text_note}; "
+            f"{held_total} of {checked_total} since start)."
         )
 
-        for block in held:
+        for block in held + held_text:
             print(f"  Block {block['id']}: {block['review_reason']}")
 
     def _normalized_bbox(
