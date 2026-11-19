@@ -165,6 +165,20 @@ Applies approved fixes and exclusions and the label conventions, then writes
 eval images to the frozen registry. AI-reviewed labels are accepted for
 validation only.
 
+## Formula crops from page images: `crop_formulas.py`
+
+```
+<paddle_onnx_env python> crop_formulas.py --working <folder> [--workers 4 --threads 3] [--min-free-gb 3] [--report]
+```
+
+Finds display and inline formulas in the M, T and W images with the app's
+PP-DocLayoutV3 ONNX and the app's preprocessing, and saves each one as a crop
+with its source, topic, ss/cap, kind and box (`crops_mtw/crops.csv`). Tiny,
+cut-off, duplicate and nested boxes are dropped. Resumable per image; stops
+safely when the disk runs low. The report checks every crop against the held-out
+images (source name, SHA-256 and dhash). Results of 2026-11-19 in
+`docs/training_runbook.md` (version 3). Tests: `tests/test_crop_formulas.py`.
+
 ## A delivery without labels: `prepare_unlabeled.py`, `split_unlabeled.py`
 
 The 2026-11-18 delivery of our own images came without label files. After

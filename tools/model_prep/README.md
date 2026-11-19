@@ -20,6 +20,10 @@ README).
 | `build_pseudo_labels.py` | training lists from an unlabeled delivery: version 1 (offline model and PaddleOCR-VL agree), version 2 (plus PaddleOCR-VL's reading on disagreements that pass basic checks), the synthetic list, and a leak guard against eval and validation |
 | `own_dataset_report.py` | the panel section for our own dataset, from saved results only; also measures how close labels and model are to PaddleOCR-VL and looks for near-duplicates. Example images are left out of the page |
 | `finetune_changes.py` | what changed during fine-tuning, read-only: per-layer weight change grouped by module (`weights`), per-token confidence of both checkpoints on the validation list (`confidence`), then error types, a before/after gallery from the saved test predictions, charts and an HTML section that `--page` puts into a page (`report`) |
+| `suggest_crop_labels.py` | offline-model readings of formula crops (`--engine paddle` gives per-symbol confidence; resumable) |
+| `filter_crop_labels.py` | crop filter (several lines, words, trivial, near-duplicates, held-out labels) and the PaddleOCR-VL order |
+| `build_crop_train.py` | crop training list: PaddleOCR-VL labels first, offline-only above `--threshold` up to `--offline-share`; `--analyse` prints the threshold table |
+| `repeated_tokens.py` | count readings with repeated tokens (fracfrac, `^^`, extra `{{`/`}}`/`\\`) per model |
 | `export_formula.py` | checkpoint -> Paddle inference model -> ONNX (works around `masked_fill` for paddle2onnx) |
 | `compare_onnx.py` | two ONNX files: inputs/outputs, operators, weights, token ids on the same images |
 | `formula_memory_trial.py` | which batch size fits the 6 GB GPU (reserved memory, speed) |

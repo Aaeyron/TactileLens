@@ -172,6 +172,45 @@ output were not measured.
 - **Report:** `tools/model_prep/own_dataset_report.py` writes the panel section
   from these saved files (`analysis\finetune_changes_20261119\` in the run).
 
+### Version 3: formula crops from the M, T and W images (measured 2026-11-19)
+
+Same eval, validation and adoption rule as above. **No model was put in the
+app.** Phone accuracy and the Braille effect were not measured.
+
+- **Crops** (`tools/dataset/crop_formulas.py`, the app's PP-DocLayoutV3 and
+  preprocessing): 4,937 M/T/W images, 19,843 crops (display 9,868, inline
+  9,975); dropped boxes: 1,241 tiny, 118 duplicate, 90 cut off, 10 inside a
+  display formula. 1,584 images gave no crop. Leak check against the 224
+  held-out images: 0 sources, 0 near-duplicate sources or crops (dhash).
+- **Labels:** offline model (original checkpoint, Paddle, GPU) on all 19,843
+  with per-symbol confidence; filter (`filter_crop_labels.py`) kept 15,172
+  plus 1,944 offline failures for PaddleOCR-VL only. Local PaddleOCR-VL read
+  3,156 in 3.6 hours (0 errors; 1,263 = 40% from the failure group).
+  Offline-only threshold 0.95 (weakest symbol): PaddleOCR-VL agreed on 171 of
+  176 read crops at or above it; 5,767 unread crops pass.
+- **v3 crop list** (`build_crop_train.py`, `train_sets\crops_v3`): 4,510 crops
+  from 3,126 images: 698 agreed, 2,008 PaddleOCR-VL only (953 of them from
+  the failure group), 1,804 offline only (40%, the limit). 406 PaddleOCR-VL
+  readings rejected (203 do not render). 0 labels equal to a held-out label.
+- **Run** `runs\20261119-195814_trackA_v2+synthetic+crops-v3_own-pseudo-v3`
+  (commit 3aef081): v2's settings plus `--extra-train-2 train_sets\crops_v3
+  --extra-ratio-2 1.0 --max-minutes 170 --min-free-gb 3`; 9,078 items per
+  epoch (2,284 v2 + 2,284 synthetic + 4,510 crops). Early stopping after
+  epoch 8 (best epoch 5); 18,180 steps in 79 minutes. Short check first:
+  `runs\20261119-194722_..._own-v3-check` (8 minutes, loss 1.11 -> 0.14).
+- **Validation, main score** (original / v2 / v3): all 140: 90 / 124 /
+  **126**; 46 human-reviewed: 27 / 41 / 40; 94 AI-reviewed: 63 / 83 / 86;
+  cap 32 / 56 / 56; ss 58 / 68 / 70. Simple-formula regressions against the
+  original: 4 (v2), 2 (v3). Readings with repeated tokens
+  (`repeated_tokens.py`): 14 / 3 / 2 (the original's are mostly array
+  wrappers). **Version 3 chosen on validation.**
+- **Frozen eval, version 3, scored once:** main 48 -> **75/84 (89.3%)**,
+  strict 45 -> 70, the 82 accepted labels 48 -> 75. Simple-formula
+  regressions 1 of 74 (`functions_ss_S_158`), 1 allowed. **Adoption rule
+  met.** `[object Object]` 3 -> 0. (Version 2: 73/84.)
+- **Limits:** the crop labels come from PaddleOCR-VL and the offline model,
+  not from people; eval differences between v2 and v3 are 2 formulas of 84.
+
 ## Day 1: intake, split, baselines
 
 **You**
