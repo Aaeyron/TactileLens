@@ -15,37 +15,17 @@ abstract final class ScanProgressOverlayStyles {
   static const String completeAnnouncement = 'Scan complete';
 
   // Timing
-  /// One beam sweep plus the cells rising and settling.
-  static const Duration loopDuration = Duration(milliseconds: 3200);
-
-  /// The gentle pulse when the result is ready.
-  static const Duration finishDuration = Duration(milliseconds: 300);
-
   /// After this long the "Still working" line appears.
   static const Duration stillWorkingAfter = Duration(seconds: 20);
 
-  // Share of the loop: the beam sweeps down during [0, sweepEnd], the cells
-  // hold until settleStart, then sink back during [settleStart, 1].
-  static const double sweepEnd = 0.72;
-  static const double settleStart = 0.88;
-
   // Colors: the scan screen's palette.
   static const Color scrimColor = ScanScreenStyles.processingOverlayColor;
-  static const Color beamColor = Color(0xFF6FA8FF);
-  static const Color beamLineColor = ScanScreenStyles.primarySoftColor;
   static const Color cardColor = Color(0xE6020B16);
   static const Color cardBorderColor =
       ScanScreenStyles.activeControlBorderColor;
   static const Color raisedDotColor = ScanScreenStyles.surfaceColor;
   static const Color dotShadowColor = Color(0x66000000);
-  static const Color flatDotColor = Color(0x40D8E1ED);
   static const Color emptyDotColor = Color(0x1FD8E1ED);
-
-  // Beam
-  static const double beamHeight = 96;
-  static const double beamLineHeight = 2;
-  static const double beamMaxOpacity = 0.32;
-  static const double beamLineOpacity = 0.7;
 
   // Braille cells (a cell is 2 dots wide and 3 dots high)
   static const double dotRadius = 5;
@@ -53,14 +33,22 @@ abstract final class ScanProgressOverlayStyles {
   static const double dotSpacing = 15;
   static const double cellSpacing = 22;
   static const double dotLift = 2.5;
-  static const double finishPulseScale = 0.18;
+
+  // Progress bar (the only moving part; hidden with reduce motion)
+  static const double barHeight = 3;
+  static const BorderRadius barRadius = BorderRadius.all(Radius.circular(2));
+  static const Color barColor = ScanScreenStyles.primarySoftColor;
+  static const Color barTrackColor = Color(0x1FD8E1ED);
 
   // Card
   static const EdgeInsets screenPadding = EdgeInsets.all(20);
   static const EdgeInsets cardPadding = EdgeInsets.fromLTRB(24, 22, 24, 20);
   static const BorderRadius cardRadius = BorderRadius.all(Radius.circular(20));
   static const double cardMaxWidth = 340;
-  static const double cellsToTextSpacing = 18;
+  // cellsToBarSpacing + barHeight + barToTextSpacing = the old 18 between
+  // the cells and the text plus the bar, so the card keeps its layout.
+  static const double cellsToBarSpacing = 12;
+  static const double barToTextSpacing = 12;
   static const double lineSpacing = 6;
 
   static const TextStyle scanningTextStyle =
