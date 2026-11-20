@@ -7,6 +7,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 import '../../services/scan/camera_service.dart';
 import '../../styles/widgets/scan/scan_camera_preview_styles.dart';
+import 'scan_busy_indicator.dart';
 
 abstract final class _ScanCameraPreviewText {
   static const String cameraError = 'Unable to open camera.';
@@ -156,7 +157,7 @@ class _ScanCameraPreviewState extends State<ScanCameraPreview> {
       child: Center(
         child: SizedBox.square(
           dimension: ScanCameraPreviewStyles.loadingIndicatorSize,
-          child: CircularProgressIndicator(
+          child: ScanBusyIndicator(
             strokeWidth: ScanCameraPreviewStyles.loadingIndicatorStrokeWidth,
             color: ScanCameraPreviewStyles.loadingIndicatorColor,
           ),

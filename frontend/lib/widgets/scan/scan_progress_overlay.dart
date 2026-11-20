@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -7,15 +6,14 @@ import 'package:flutter/semantics.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../styles/widgets/scan/scan_progress_overlay_styles.dart';
 
-/// The wait while a page is scanned: a soft beam sweeps down the dimmed
-/// page and four Braille cells rise, dot by dot, to spell "scan" (⠎⠉⠁⠝),
-/// then settle and start again. It loops calmly for as long as the scan
-/// takes and shows no progress the app does not know.
+/// The wait while a page is scanned: a calm card over the dimmed page with
+/// four still Braille cells spelling "scan" (⠎⠉⠁⠝) and a thin progress bar,
+/// the only thing that moves. It shows no progress the app does not know.
 ///
 /// TalkBack hears "Scanning, please wait" once when it appears and "Scan
-/// complete" from [ScanProgressOverlayState.finish]; the animation itself
-/// is not in the semantics tree. With reduce motion the cells are shown
-/// raised and nothing moves.
+/// complete" from [ScanProgressOverlayState.finish]; the cells and the bar
+/// are not in the semantics tree. With reduce motion the bar is not shown
+/// and nothing moves.
 class ScanProgressOverlay extends StatefulWidget {
   const ScanProgressOverlay({super.key, required this.mode, this.onCancel});
 
@@ -33,19 +31,10 @@ class ScanProgressOverlay extends StatefulWidget {
   State<ScanProgressOverlay> createState() => ScanProgressOverlayState();
 }
 
-enum _Phase { looping, finishing, still }
-
-class ScanProgressOverlayState extends State<ScanProgressOverlay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: ScanProgressOverlayStyles.loopDuration,
-  );
-
+class ScanProgressOverlayState extends State<ScanProgressOverlay> {
   Timer? _stillWorkingTimer;
   bool _stillWorking = false;
   bool _finished = false;
-  _Phase _phase = _Phase.looping;
   bool _announcedStart = false;
 
   @override
@@ -63,18 +52,6 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    if (_phase != _Phase.finishing) {
-      if (MediaQuery.disableAnimationsOf(context)) {
-        _controller.stop();
-        _phase = _Phase.still;
-      } else {
-        _phase = _Phase.looping;
-        if (!_controller.isAnimating) {
-          unawaited(_controller.repeat());
-        }
-      }
-    }
-
     if (!_announcedStart) {
       _announcedStart = true;
       _announce(ScanProgressOverlayStyles.scanningAnnouncement);
@@ -84,13 +61,12 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
   @override
   void dispose() {
     _stillWorkingTimer?.cancel();
-    _controller.dispose();
     super.dispose();
   }
 
-  /// The result is ready: tell TalkBack and, unless reduce motion is on,
-  /// raise every dot in one gentle pulse. Completes when the result can be
-  /// shown. Calling it again returns the same pulse.
+  /// The result is ready: tell TalkBack and stop the progress bar.
+  /// Completes after one frame, when the result can be shown. Calling it
+  /// again returns the same future.
   Future<void> finish() {
     if (!mounted) {
       return Future<void>.value();
@@ -106,23 +82,9 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
     _stillWorkingTimer?.cancel();
     _announce(ScanProgressOverlayStyles.completeAnnouncement);
 
-    if (MediaQuery.disableAnimationsOf(context)) {
-      setState(() {});
-      // One frame, so the live region update reaches TalkBack.
-      await WidgetsBinding.instance.endOfFrame;
-      return;
-    }
-
-    setState(() => _phase = _Phase.finishing);
-    _controller
-      ..stop()
-      ..duration = ScanProgressOverlayStyles.finishDuration;
-
-    try {
-      await _controller.forward(from: 0).orCancel;
-    } on TickerCanceled {
-      // Disposed during the pulse; nothing left to show.
-    }
+    setState(() {});
+    // One frame, so the live region update reaches TalkBack.
+    await WidgetsBinding.instance.endOfFrame;
   }
 
   bool get _usesAnnouncements => MediaQuery.supportsAnnounceOf(context);
@@ -147,6 +109,7 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
     final String status = _finished
         ? ScanProgressOverlayStyles.completeAnnouncement
         : ScanProgressOverlayStyles.scanningAnnouncement;
+    final bool showBar = !_finished && !MediaQuery.disableAnimationsOf(context);
 
     return BlockSemantics(
       child: ColoredBox(
@@ -154,16 +117,6 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            ExcludeSemantics(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _BeamPainter(
-                    animation: _controller,
-                    visible: _phase == _Phase.looping,
-                  ),
-                ),
-              ),
-            ),
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
@@ -185,20 +138,43 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
-                            ExcludeSemantics(
-                              child: RepaintBoundary(
-                                child: CustomPaint(
-                                  size: _BrailleCellsPainter.size,
-                                  painter: _BrailleCellsPainter(
-                                    animation: _controller,
-                                    phase: _phase,
-                                  ),
-                                ),
+                            const ExcludeSemantics(
+                              child: CustomPaint(
+                                size: _BrailleCellsPainter.size,
+                                painter: _BrailleCellsPainter(),
                               ),
                             ),
                             const SizedBox(
                               height:
-                                  ScanProgressOverlayStyles.cellsToTextSpacing,
+                                  ScanProgressOverlayStyles.cellsToBarSpacing,
+                            ),
+                            // Same height with or without the bar, so the
+                            // card does not jump when the scan finishes.
+                            SizedBox(
+                              key: const ValueKey<String>('scan-progress-bar'),
+                              width: _BrailleCellsPainter.size.width,
+                              height: ScanProgressOverlayStyles.barHeight,
+                              child: showBar
+                                  ? const ExcludeSemantics(
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            ScanProgressOverlayStyles.barRadius,
+                                        child: LinearProgressIndicator(
+                                          minHeight: ScanProgressOverlayStyles
+                                              .barHeight,
+                                          color: ScanProgressOverlayStyles
+                                              .barColor,
+                                          backgroundColor:
+                                              ScanProgressOverlayStyles
+                                                  .barTrackColor,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(
+                              height:
+                                  ScanProgressOverlayStyles.barToTextSpacing,
                             ),
                             Semantics(
                               key: const ValueKey<String>('scan-status'),
@@ -268,78 +244,10 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
   }
 }
 
-/// A soft band of light moving down the page. Off screen between sweeps.
-class _BeamPainter extends CustomPainter {
-  _BeamPainter({required this.animation, required this.visible})
-    : super(repaint: animation);
-
-  final Animation<double> animation;
-  final bool visible;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (!visible) {
-      return;
-    }
-
-    final double t = animation.value;
-
-    if (t > ScanProgressOverlayStyles.sweepEnd) {
-      return;
-    }
-
-    const double band = ScanProgressOverlayStyles.beamHeight;
-    final double sweep = Curves.easeInOut.transform(
-      t / ScanProgressOverlayStyles.sweepEnd,
-    );
-    final double center = -band / 2 + sweep * (size.height + band);
-    final Rect rect = Rect.fromLTWH(0, center - band / 2, size.width, band);
-
-    final Color glow = ScanProgressOverlayStyles.beamColor.withValues(
-      alpha: ScanProgressOverlayStyles.beamMaxOpacity,
-    );
-
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            glow.withValues(alpha: 0),
-            glow,
-            glow.withValues(alpha: 0),
-          ],
-        ).createShader(rect),
-    );
-
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: Offset(size.width / 2, center),
-        width: size.width,
-        height: ScanProgressOverlayStyles.beamLineHeight,
-      ),
-      Paint()
-        ..color = ScanProgressOverlayStyles.beamLineColor.withValues(
-          alpha: ScanProgressOverlayStyles.beamLineOpacity,
-        ),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_BeamPainter oldDelegate) {
-    return oldDelegate.visible != visible || oldDelegate.animation != animation;
-  }
-}
-
-/// Four Braille cells spelling "scan". Dots numbered as in Braille: 1-3
-/// down the left column, 4-6 down the right.
+/// Four still Braille cells spelling "scan", every dot raised. Dots
+/// numbered as in Braille: 1-3 down the left column, 4-6 down the right.
 class _BrailleCellsPainter extends CustomPainter {
-  _BrailleCellsPainter({required this.animation, required this.phase})
-    : super(repaint: animation);
-
-  final Animation<double> animation;
-  final _Phase phase;
+  const _BrailleCellsPainter();
 
   /// s = 2 3 4, c = 1 4, a = 1, n = 1 3 4 5.
   static const List<Set<int>> _word = <Set<int>>[
@@ -356,7 +264,7 @@ class _BrailleCellsPainter extends CustomPainter {
   static const double _cellGap = ScanProgressOverlayStyles.cellSpacing;
   static const double _cellWidth = 2 * _dot + _step;
 
-  /// Room for the pulse and the dot shadow on every side.
+  /// Room for the dot shadow on every side.
   static const double _margin = _dot * 1.5;
 
   static const Size size = Size(
@@ -364,43 +272,16 @@ class _BrailleCellsPainter extends CustomPainter {
     2 * _dot + 2 * _step + 2 * _margin,
   );
 
-  /// How far dot [dotNumber] of cell [cell] is raised, 0 (flat) to 1.
-  double _raise(int cell, int dotNumber, double t) {
-    if (phase != _Phase.looping) {
-      return 1;
-    }
-
-    final double settle = t <= ScanProgressOverlayStyles.settleStart
-        ? 1
-        : 1 -
-              Curves.easeInOut.transform(
-                (t - ScanProgressOverlayStyles.settleStart) /
-                    (1 - ScanProgressOverlayStyles.settleStart),
-              );
-
-    // Cells wake up left to right while the beam passes, dots in order.
-    final double sweep = math.min(t / ScanProgressOverlayStyles.sweepEnd, 1);
-    final double start = 0.06 + cell * 0.13 + (dotNumber - 1) * 0.02;
-    final double rise = ((sweep - start) / 0.12).clamp(0.0, 1.0);
-
-    return Curves.easeOutCubic.transform(rise) * settle;
-  }
-
   @override
   void paint(Canvas canvas, Size canvasSize) {
-    final double t = animation.value;
-    final double pulse = phase == _Phase.finishing
-        ? math.sin(math.pi * t) * ScanProgressOverlayStyles.finishPulseScale
-        : 0;
-
     final Paint raisedPaint = Paint()
       ..color = ScanProgressOverlayStyles.raisedDotColor;
     final Paint shadowPaint = Paint()
       ..color = ScanProgressOverlayStyles.dotShadowColor;
-    final Paint flatPaint = Paint()
-      ..color = ScanProgressOverlayStyles.flatDotColor;
     final Paint emptyPaint = Paint()
       ..color = ScanProgressOverlayStyles.emptyDotColor;
+
+    const Offset lift = Offset(0, ScanProgressOverlayStyles.dotLift);
 
     for (int cell = 0; cell < _word.length; cell++) {
       final double left = _margin + cell * (_cellWidth + _cellGap) + _dot;
@@ -420,40 +301,12 @@ class _BrailleCellsPainter extends CustomPainter {
           continue;
         }
 
-        final double raise = _raise(cell, dotNumber, t);
-
-        if (raise <= 0) {
-          canvas.drawCircle(
-            center,
-            ScanProgressOverlayStyles.flatDotRadius,
-            flatPaint,
-          );
-          continue;
-        }
-
-        final double radius =
-            (ScanProgressOverlayStyles.flatDotRadius +
-                (_dot - ScanProgressOverlayStyles.flatDotRadius) * raise) *
-            (1 + pulse);
-        final double lift = ScanProgressOverlayStyles.dotLift * raise;
-
-        canvas.drawCircle(center + Offset(0, lift), radius, shadowPaint);
-        canvas.drawCircle(
-          center - Offset(0, lift / 2),
-          radius,
-          raisedPaint
-            ..color = Color.lerp(
-              ScanProgressOverlayStyles.flatDotColor,
-              ScanProgressOverlayStyles.raisedDotColor,
-              raise,
-            )!,
-        );
+        canvas.drawCircle(center + lift, _dot, shadowPaint);
+        canvas.drawCircle(center - lift / 2, _dot, raisedPaint);
       }
     }
   }
 
   @override
-  bool shouldRepaint(_BrailleCellsPainter oldDelegate) {
-    return oldDelegate.phase != phase || oldDelegate.animation != animation;
-  }
+  bool shouldRepaint(_BrailleCellsPainter oldDelegate) => false;
 }

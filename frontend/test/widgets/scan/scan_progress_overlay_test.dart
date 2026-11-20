@@ -96,14 +96,15 @@ void main() {
     expect(find.text(_scanning), findsOneWidget);
     expect(find.text('Online'), findsOneWidget);
     expect(find.text(_stillWorking), findsNothing);
-    // The loop is running.
+    // The progress bar is the only thing that moves.
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(tester.binding.hasScheduledFrame, isTrue);
 
     await tester.pumpWidget(host.build(mode: ScanProcessingMode.onDevice));
     expect(find.text('On this device'), findsOneWidget);
   });
 
-  testWidgets('loops for a long wait without stopping', (
+  testWidgets('the progress bar keeps going for a long wait', (
     WidgetTester tester,
   ) async {
     final _Host host = _Host();
@@ -136,15 +137,10 @@ void main() {
     await tester.pumpWidget(host.build());
     await tester.pump(const Duration(seconds: 2));
 
-    // The result is ready: a short pulse (about 300 ms), then the overlay
-    // goes away.
-    bool finished = false;
-    host.key.currentState!.finish().then((_) => finished = true);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 150));
-    expect(finished, isFalse);
-    expect(await _pumpUntilFinished(tester, host), lessThanOrEqualTo(350));
-    expect(finished, isTrue);
+    // The result is ready: no pulse, the bar stops within a frame and the
+    // overlay can go away.
+    expect(await _pumpUntilFinished(tester, host), lessThanOrEqualTo(50));
+    expect(find.byType(LinearProgressIndicator), findsNothing);
 
     host.showing.value = false;
     await tester.pump();
@@ -165,6 +161,9 @@ void main() {
 
     expect(find.text(_scanning), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(tester.binding.hasScheduledFrame, isFalse);
+    await tester.pump(const Duration(seconds: 5));
     expect(tester.binding.hasScheduledFrame, isFalse);
 
     bool finished = false;
@@ -257,6 +256,34 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the card keeps its size when the bar goes away', (
+    WidgetTester tester,
+  ) async {
+    final _Host host = _Host();
+    await tester.pumpWidget(host.build());
+    await tester.pump(const Duration(seconds: 1));
+    final Size before = tester.getSize(find.byType(DecoratedBox).last);
+
+    await _pumpUntilFinished(tester, host);
+    expect(tester.getSize(find.byType(DecoratedBox).last), before);
+  });
+
+  test('no decorative motion: no loop, beam or pulse in the overlay', () {
+    final String source = File(
+      'lib/widgets/scan/scan_progress_overlay.dart',
+    ).readAsStringSync();
+
+    for (final String gone in <String>[
+      'AnimationController',
+      '.repeat(',
+      '_BeamPainter',
+      'Ticker',
+      'finishPulse',
+    ]) {
+      expect(source, isNot(contains(gone)), reason: gone);
+    }
   });
 
   test('the scan screen uses this overlay', () {
