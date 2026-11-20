@@ -20,11 +20,9 @@ import kotlinx.coroutines.withContext
  * - A mutex ensures only one load/scan/release runs at a time.
  */
 object PaddleOnnxOcrEngine {
-    private const val DETECTOR_MODEL_ASSET =
-        "paddle_onnx/PP-OCRv6-tiny-det-onnx/inference.onnx"
+    private val DETECTOR_MODEL_ASSET = OfflineModelFiles.TEXT_DETECTION.asset
 
-    private const val RECOGNIZER_MODEL_ASSET =
-        "paddle_onnx/PP-OCRv6-small-rec-onnx/inference.onnx"
+    private val RECOGNIZER_MODEL_ASSET = OfflineModelFiles.TEXT_RECOGNITION.asset
 
     private const val RECOGNIZER_CONFIG_ASSET =
         "paddle_onnx/PP-OCRv6-small-rec-onnx/inference.yml"
@@ -146,6 +144,11 @@ object PaddleOnnxOcrEngine {
         check(OpenCVUtils.init(context.applicationContext)) {
             "OpenCV could not be initialized."
         }
+
+        // The SDK reads both text models straight from the APK: check
+        // their size and hash once, so a damaged file gives a clear message.
+        OfflineModelFiles.verifyAsset(context, OfflineModelFiles.TEXT_DETECTION)
+        OfflineModelFiles.verifyAsset(context, OfflineModelFiles.TEXT_RECOGNITION)
 
         val createdEngine = PaddleOCR.create(
             context = context.applicationContext,

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../services/ai/ai_service.dart';
+import '../../services/ai/paddle_onnx_native_service.dart';
 import '../../services/braille/braille_mode_translator.dart';
 import '../../services/braille/braille_save_payload.dart';
 import '../../services/history/history_service.dart';
@@ -107,6 +108,12 @@ abstract final class _ScanText {
 
   static const String historySaveFailureMessage =
       'The scan was completed, but it could not be added to History.';
+
+  static const String modelProblemTitle = 'On-device scanning is not ready';
+
+  static String firstOnDeviceScanDetail(int megabytes) =>
+      'First on-device scan: TactileLens first sets up its scanning models '
+      '(one time, about $megabytes MB of storage). This can take a minute.';
 }
 
 class ScanScreen extends StatefulWidget {
@@ -156,6 +163,10 @@ class _ScanScreenState extends State<ScanScreen> {
   bool _isGuest = true;
   ScanProcessingMode _scanMode = ScanProcessingMode.onDevice;
 
+  /// The on-device models, checked when the screen opens (null until then,
+  /// or when the check could not run).
+  OfflineModelStatus? _modelStatus;
+
   bool get _hasSelectedImage {
     return _selectedImage != null;
   }
@@ -164,6 +175,19 @@ class _ScanScreenState extends State<ScanScreen> {
   void initState() {
     super.initState();
     unawaited(_loadScanMode());
+    unawaited(_checkOnDeviceModels());
+  }
+
+  Future<void> _checkOnDeviceModels() async {
+    final OfflineModelStatus? status = await _aiService.checkOnDeviceModels();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _modelStatus = status;
+    });
   }
 
   Future<void> _loadScanMode() async {
@@ -669,6 +693,10 @@ class _ScanScreenState extends State<ScanScreen> {
     }
 
     _retakeImage();
+
+    if (_modelStatus?.needsInstall ?? false) {
+      unawaited(_checkOnDeviceModels());
+    }
   }
 
   /// The mode the teacher chose, or null to go back and adjust the crop.
@@ -796,6 +824,18 @@ class _ScanScreenState extends State<ScanScreen> {
                 icon: ScanScreenStyles.processingTimeIcon,
                 text: _ScanText.processingDetail,
               ),
+              if (selectedMode == ScanProcessingMode.onDevice &&
+                  (_modelStatus?.needsInstall ?? false)) ...<Widget>[
+                const SizedBox(
+                  height: ScanScreenStyles.confirmationDetailSpacing,
+                ),
+                _ScanConfirmationDetail(
+                  icon: ScanScreenStyles.processingTimeIcon,
+                  text: _ScanText.firstOnDeviceScanDetail(
+                    _modelStatus!.installMegabytes,
+                  ),
+                ),
+              ],
               const SizedBox(
                 height: ScanScreenStyles.confirmationButtonsSpacing,
               ),
@@ -1041,6 +1081,11 @@ class _ScanScreenState extends State<ScanScreen> {
               return Column(
                 children: <Widget>[
                   _buildHeader(compact: compact),
+                  if (_modelStatus != null && !_modelStatus!.ok)
+                    OnDeviceModelProblem(
+                      title: _ScanText.modelProblemTitle,
+                      problems: _modelStatus!.problems,
+                    ),
                   Expanded(child: _buildCameraArea()),
                   _buildBottomControls(compact: compact),
                 ],

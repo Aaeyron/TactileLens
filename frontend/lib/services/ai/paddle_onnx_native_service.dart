@@ -16,6 +16,13 @@ class PaddleOnnxNativeService {
     return _invokeMap('runtimeInfo');
   }
 
+  /// Quick check of the on-device models: present in the app, installed
+  /// copies the right size (OfflineModelFiles.kt). No hashing, so it is
+  /// cheap enough to run whenever the Scan screen opens.
+  Future<OfflineModelStatus> checkModels() async {
+    return OfflineModelStatus.fromMap(await _invokeMap('checkModels'));
+  }
+
   Future<Map<String, dynamic>> validateModels({int threadCount = 4}) {
     return _invokeMap('validateModels', <String, dynamic>{
       'threadCount': threadCount.clamp(1, 8),
@@ -683,11 +690,62 @@ int _toInt(Object? value) => value is num ? value.toInt() : 0;
 
 double _toDouble(Object? value) => value is num ? value.toDouble() : 0.0;
 
+/// Result of [PaddleOnnxNativeService.checkModels].
+class OfflineModelStatus {
+  const OfflineModelStatus({
+    required this.ok,
+    required this.needsInstall,
+    required this.installMegabytes,
+    required this.problems,
+  });
+
+  factory OfflineModelStatus.fromMap(Map<String, dynamic> map) {
+    final Object? rawProblems = map['problems'];
+
+    return OfflineModelStatus(
+      ok: map['ok'] == true,
+      needsInstall: map['needs_install'] == true,
+      installMegabytes: (map['install_megabytes'] as num?)?.toInt() ?? 0,
+      problems: rawProblems is List
+          ? rawProblems
+                .whereType<Map<Object?, Object?>>()
+                .map((Map<Object?, Object?> problem) => '${problem['message']}')
+                .toList(growable: false)
+          : const <String>[],
+    );
+  }
+
+  /// Every model is in the app and no installed copy is damaged.
+  final bool ok;
+
+  /// The next on-device scan first copies [installMegabytes] of models.
+  final bool needsInstall;
+  final int installMegabytes;
+
+  /// One message per missing or damaged model, written for a teacher.
+  final List<String> problems;
+}
+
 class PaddleOnnxNativeException implements Exception {
   const PaddleOnnxNativeException(this.message, {this.code});
 
+  /// Codes from OfflineModelFiles.kt; their messages are written for a
+  /// teacher and can be shown as they are.
+  static const String modelMissing = 'model_missing';
+  static const String modelDamaged = 'model_damaged';
+  static const String storageFull = 'storage_full';
+
+  static const Set<String> teacherFacingCodes = <String>{
+    modelMissing,
+    modelDamaged,
+    storageFull,
+  };
+
   final String message;
   final String? code;
+
+  /// Whether [message] can be shown to the teacher as it is.
+  bool get isTeacherFacing => teacherFacingCodes.contains(code);
 
   @override
   String toString() => message;

@@ -11,7 +11,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.SystemClock
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -36,15 +35,8 @@ import org.json.JSONObject
  * byte-level decode == Hugging Face tokenizer, "RESULT: MATCH").
  */
 object PaddleOnnxFormulaRecognizer {
-    private const val MODEL_ASSET =
-        "paddle_onnx/PP-FormulaNet_plus-S/pp-formulanet_plus-s.onnx"
-
     private const val VOCAB_ASSET =
         "paddle_onnx/PP-FormulaNet_plus-S/pp-formulanet_vocab.json"
-
-    // Bump the version suffix if the model file ever changes.
-    private const val MODEL_CACHE_FILE =
-        "paddle_onnx_models/pp-formulanet_plus-s.v1.onnx"
 
     private const val INPUT_SIZE = 384
     private const val MEAN = 0.7931f
@@ -200,7 +192,7 @@ object PaddleOnnxFormulaRecognizer {
             loadVocabulary(appContext)
         }
 
-        val modelFile = copyModelIfNeeded(appContext)
+        val modelFile = OfflineModelFiles.installedFile(context, OfflineModelFiles.FORMULA)
         val env = environment
             ?: OrtEnvironment.getEnvironment().also { environment = it }
 
@@ -211,7 +203,15 @@ object PaddleOnnxFormulaRecognizer {
             )
         }
 
-        val created = env.createSession(modelFile.absolutePath, options)
+        val created = try {
+            env.createSession(modelFile.absolutePath, options)
+        } catch (error: Exception) {
+            // A copy ONNX Runtime cannot open is dropped, so the next
+            // attempt copies it again instead of failing every time.
+            options.close()
+            OfflineModelFiles.discardInstalled(context, OfflineModelFiles.FORMULA)
+            throw OfflineModelFiles.loadFailed(OfflineModelFiles.FORMULA, error)
+        }
 
         inputName = created.inputNames.firstOrNull() ?: "x"
         sessionOptions = options
@@ -242,34 +242,6 @@ object PaddleOnnxFormulaRecognizer {
 
         vocabulary = Array(tokens.length()) { index -> tokens.getString(index) }
         specialIds = (0 until special.length()).map { index -> special.getInt(index) }.toSet()
-    }
-
-    /**
-     * Copies the model from APK assets to internal storage once, so ONNX
-     * Runtime loads it from a file instead of one huge Java byte array.
-     */
-    private fun copyModelIfNeeded(context: Context): File {
-        val target = File(context.filesDir, MODEL_CACHE_FILE)
-
-        if (target.isFile && target.length() > 0L) {
-            return target
-        }
-
-        target.parentFile?.mkdirs()
-
-        val temporary = File(target.parentFile, "${target.name}.tmp")
-
-        context.assets.open(MODEL_ASSET).use { input ->
-            FileOutputStream(temporary).use { output ->
-                input.copyTo(output, bufferSize = 1 shl 20)
-            }
-        }
-
-        check(temporary.renameTo(target)) {
-            "The formula model could not be prepared in internal storage."
-        }
-
-        return target
     }
 
     // ------------------------------------------------------------------

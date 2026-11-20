@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/services/ai/ai_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// A scan is sent to the server exactly once. After a 502/503, or a
 /// connection that drops mid-request, the image may already have reached
@@ -17,6 +18,8 @@ void main() {
   late File image;
 
   setUp(() async {
+    // Not a guest: AIService checks the session in every mode.
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     FlutterSecureStorage.setMockInitialValues(<String, String>{
       'access_token': 'test-token',
     });
