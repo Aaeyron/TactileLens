@@ -11,6 +11,7 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/session_manager.dart';
 import 'offline_ocr_service.dart';
+import 'paddle_onnx_native_service.dart';
 
 class AIService {
   AIService({
@@ -86,10 +87,12 @@ class AIService {
 
     String effectiveMode = _scanMode;
 
-    if (effectiveMode == sessionMode) {
-      if (await SessionManager.isGuest()) {
-        effectiveMode = offlineMode;
-      } else if (await SessionManager.isLoggedIn()) {
+    // Guests always scan on the device, whatever mode the app was built
+    // with (AI_SCAN_MODE) or asked for: a guest scan never uses the network.
+    if (await SessionManager.isGuest()) {
+      effectiveMode = offlineMode;
+    } else if (effectiveMode == sessionMode) {
+      if (await SessionManager.isLoggedIn()) {
         effectiveMode = remoteMode;
       } else {
         throw const AIServiceException(
@@ -130,6 +133,11 @@ class AIService {
         fellBackFromOnline: true,
       );
     }
+  }
+
+  /// Quick check of the on-device models (see [OfflineOcrService.checkModels]).
+  Future<OfflineModelStatus?> checkOnDeviceModels() {
+    return _offlineOcrService.checkModels();
   }
 
   Future<ScanDocumentResult> _scanOffline(File imageFile) async {

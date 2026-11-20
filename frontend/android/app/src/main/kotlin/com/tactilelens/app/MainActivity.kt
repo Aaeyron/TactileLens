@@ -163,6 +163,13 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
+            // Quick model check for the Scan screen (no hashing).
+            "checkModels" -> {
+                runPaddleOnnxTask(result) {
+                    OfflineModelFiles.check(applicationContext)
+                }
+            }
+
             "recognizeTestImage" -> {
     val threadCount =
         call.argument<Int>("threadCount") ?: 4
@@ -783,9 +790,13 @@ private fun loadPaddleOcrVlModels(
                 result.success(value)
             }
         } catch (error: Throwable) {
+            // A missing or damaged model, or a full phone: its own code
+            // and a message written for the teacher.
+            val modelError = error as? OfflineModelException
+
             mainHandler.post {
                 result.error(
-                    "PADDLE_ONNX_ERROR",
+                    modelError?.code ?: "PADDLE_ONNX_ERROR",
                     error.message
                         ?: "The offline ONNX runtime failed.",
                     mapOf(

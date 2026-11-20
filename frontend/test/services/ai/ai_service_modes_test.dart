@@ -125,6 +125,49 @@ void main() {
       },
     );
 
+    for (final String buildMode in <String>[
+      AIService.remoteMode,
+      AIService.hybridMode,
+    ]) {
+      test(
+        'a guest scan never uses the network, even in a "$buildMode" build',
+        () async {
+          SharedPreferences.setMockInitialValues(<String, Object>{
+            SessionManager.guestModeKey: true,
+          });
+          FlutterSecureStorage.setMockInitialValues(<String, String>{
+            // Even a stale token from an earlier sign-in is never used.
+            'access_token': 'stale-token',
+          });
+
+          final AIService ai = AIService(
+            client: MockClient((http.Request request) async {
+              requests.add(request);
+              return _success;
+            }),
+            offlineOcrService: offline,
+            baseUrl: 'http://backend.example.invalid',
+            scanMode: buildMode,
+          );
+
+          for (final ScanProcessingMode? mode in <ScanProcessingMode?>[
+            null,
+            ScanProcessingMode.online,
+            ScanProcessingMode.onDevice,
+          ]) {
+            final ScanDocumentResult result = await ai.scanDocument(
+              image,
+              mode: mode,
+            );
+            expect(result.processingMode, ScanProcessingMode.onDevice);
+          }
+
+          expect(requests, isEmpty);
+          expect(offline.scans, 3);
+        },
+      );
+    }
+
     test('a signed-in teacher can choose On-device', () async {
       signedIn();
 

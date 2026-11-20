@@ -221,3 +221,55 @@ Future<ScanProcessingMode?> showOnlinePrivacyNotice(BuildContext context) {
     },
   );
 }
+
+/// Shown under the Scan header when an on-device model is missing or
+/// damaged: what is wrong and what to do, instead of a failed scan later.
+/// Screen readers announce it when it appears.
+class OnDeviceModelProblem extends StatelessWidget {
+  const OnDeviceModelProblem({
+    super.key,
+    required this.title,
+    required this.problems,
+  });
+
+  final String title;
+
+  /// Messages from the model check, written for a teacher.
+  final List<String> problems;
+
+  @override
+  Widget build(BuildContext context) {
+    // Several damaged models share one remedy; show each message once.
+    final List<String> messages = problems.toSet().toList(growable: false);
+
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      child: Container(
+        width: double.infinity,
+        color: ScanScreenStyles.modelProblemBackgroundColor,
+        padding: ScanScreenStyles.modelProblemPadding,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Icon(
+              ScanScreenStyles.modelProblemIcon,
+              color: ScanScreenStyles.modelProblemTextColor,
+            ),
+            const SizedBox(width: ScanScreenStyles.modelProblemIconSpacing),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(title, style: ScanScreenStyles.modelProblemTitleStyle),
+                  for (final String message in messages)
+                    Text(message, style: ScanScreenStyles.modelProblemTextStyle),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
