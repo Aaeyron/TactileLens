@@ -24,6 +24,9 @@ from services.braille.formula_braille_guard import (
     review_formula,
     review_table,
 )
+from services.braille.meaning_holds import (
+    review_meaning,
+)
 from services.ocr.official_api_client import (
     OfficialApiClient,
 )
@@ -512,6 +515,14 @@ class PaddleOcrVlService:
             review = review_formula(raw_content, braille_source_content)
         else:
             braille_source_content = normalized_content
+
+        # Same as on the device: math whose Braille would read as another
+        # formula (≠ ≤ ≥ ≈, lost exponent braces, set braces). Tables are
+        # checked too: their rows also go through the Nemeth rewrite.
+        if (is_table or is_formula) and not review.needs_review:
+            review = review_meaning(
+                normalized_content if is_table else raw_content
+            )
 
         if review.needs_review:
             # Never produce Braille that may be wrong. Show readable text

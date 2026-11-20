@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/services/braille/formula_braille_guard.dart';
 import 'package:mobile/services/braille/offline_braille_holds.dart';
@@ -103,6 +106,34 @@ void main() {
     ]) {
       expect(reason, isNot(contains(r'\')));
       expect(reason, isNot(contains('^')));
+    }
+  });
+
+  test('same holds and reasons as the AI service (shared fixture)', () {
+    const String path =
+        '../ai_service/services/braille/fixtures/meaning_holds_shared.json';
+    final File file = File(path);
+    expect(file.existsSync(), isTrue, reason: 'Run from frontend/.');
+
+    final Map<String, dynamic> fixture =
+        jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+
+    expect(fixture['reasons'], <String, String>{
+      OfflineBrailleHolds.relationSign: OfflineBrailleHolds.relationSignReason,
+      OfflineBrailleHolds.scriptGrouping:
+          OfflineBrailleHolds.scriptGroupingReason,
+      OfflineBrailleHolds.setBraces: OfflineBrailleHolds.setBracesReason,
+    });
+
+    for (final dynamic raw in fixture['cases'] as List<dynamic>) {
+      final Map<String, dynamic> item = raw as Map<String, dynamic>;
+      final FormulaReview review = OfflineBrailleHolds.review(
+        item['input'] as String,
+      );
+
+      expect(review.needsReview, item['needs_review'], reason: item['input']);
+      expect(review.categories, item['categories'], reason: item['input']);
+      expect(review.reason, item['reason'], reason: item['input']);
     }
   });
 }
