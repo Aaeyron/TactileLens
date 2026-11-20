@@ -6,6 +6,7 @@ import 'package:mobile/models/braille/braille_mode.dart';
 import 'package:mobile/services/ai/offline_ocr_service.dart';
 import 'package:mobile/services/ai/paddle_onnx_native_service.dart';
 import 'package:mobile/services/braille/formula_braille_guard.dart';
+import 'package:mobile/services/braille/offline_braille_holds.dart';
 import 'package:mobile/services/braille/offline_braille_service.dart';
 
 class _FakeOnnxService extends PaddleOnnxNativeService {
@@ -152,5 +153,51 @@ void main() {
       expect(block.isHeldForReview, isFalse, reason: block.rawContent);
       expect(block.brailleSuccess, isTrue);
     }
+  });
+
+  test(
+    'on device, formulas whose Braille would read as another formula are '
+    'held with a plain reason',
+    () async {
+      final (
+        ScanDocumentResult result,
+        _RecordingBrailleService braille,
+      ) = await _scan(<Map<String, Object?>>[
+        _formula(r'a\neq 0'),
+        _formula(r'3x-5\leq 10'),
+        _formula(r'2^{x+1}=8'),
+        _formula(r'\{1,2,3\}'),
+        _formula(r'x^{2}-5x+6=0'),
+      ]);
+
+      // Only the last one reaches Liblouis.
+      expect(braille.calls, <String>[r'x^{2}-5x+6=0']);
+
+      final List<String> reasons = <String>[
+        for (final DocumentBlock block in result.blocks) block.reviewReason,
+      ];
+      expect(reasons, <String>[
+        OfflineBrailleHolds.relationSignReason,
+        OfflineBrailleHolds.relationSignReason,
+        OfflineBrailleHolds.scriptGroupingReason,
+        OfflineBrailleHolds.setBracesReason,
+        '',
+      ]);
+
+      for (final DocumentBlock block in result.blocks.take(4)) {
+        expect(block.isHeldForReview, isTrue, reason: block.rawContent);
+        expect(block.brailleContent, isEmpty);
+        expect(block.brailleError, 'Needs review: ${block.reviewReason}');
+      }
+      expect(result.blocks.last.isHeldForReview, isFalse);
+    },
+  );
+
+  test('a shared-guard hold keeps the shared reason', () async {
+    final (ScanDocumentResult result, _) = await _scan(<Map<String, Object?>>[
+      _formula(r'\sqrt{x}\leq 3'),
+    ]);
+
+    expect(result.blocks.single.reviewReason, FormulaBrailleGuard.rootReason);
   });
 }

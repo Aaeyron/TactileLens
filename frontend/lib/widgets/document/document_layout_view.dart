@@ -6,6 +6,7 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import '../../models/ai/scan_document_result.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 import '../../utils/math_text_formatter.dart';
+import '../../utils/review_reason_text.dart';
 
 /// Plain or mixed text: converts only the LaTeX parts, keeps normal text.
 String _toReadableMathText(String value) {
@@ -540,7 +541,7 @@ class _ReviewNote extends StatelessWidget {
               children: <Widget>[
                 Text(note, style: ScanResultScreenStyles.reviewNoteStyle),
                 Text(
-                  'Reason: $reason',
+                  'Reason: ${plainReviewReason(reason)}',
                   style: ScanResultScreenStyles.reviewReasonStyle,
                 ),
               ],
