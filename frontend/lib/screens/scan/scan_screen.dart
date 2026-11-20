@@ -24,6 +24,7 @@ import '../../widgets/scan/scan_camera_preview.dart';
 import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../widgets/scan/scan_preview.dart';
 import '../../widgets/scan/scan_progress_overlay.dart';
+import '../../widgets/scan/scan_busy_indicator.dart';
 import 'scan_result_screen.dart';
 
 abstract final class _ScanText {
@@ -1164,6 +1165,10 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Widget _buildCameraArea() {
+    final Duration orientationDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : ScanScreenStyles.orientationAnimationDuration;
+
     final String statusLabel = _hasSelectedImage
         ? _ScanText.imageReadyLabel
         : _ScanText.cameraReadyLabel;
@@ -1197,11 +1202,11 @@ class _ScanScreenState extends State<ScanScreen> {
           Padding(
             padding: ScanScreenStyles.cameraOverlayPadding,
             child: AnimatedAlign(
-              duration: ScanScreenStyles.orientationAnimationDuration,
+              duration: orientationDuration,
               curve: ScanScreenStyles.orientationAnimationCurve,
               alignment: _statusOverlayAlignment(_cameraOrientation),
               child: AnimatedRotation(
-                duration: ScanScreenStyles.orientationAnimationDuration,
+                duration: orientationDuration,
                 curve: ScanScreenStyles.orientationAnimationCurve,
                 turns: _cameraContentTurns(_cameraOrientation),
                 child: _CameraMessagePill(
@@ -1217,11 +1222,11 @@ class _ScanScreenState extends State<ScanScreen> {
           Padding(
             padding: ScanScreenStyles.cameraOverlayPadding,
             child: AnimatedAlign(
-              duration: ScanScreenStyles.orientationAnimationDuration,
+              duration: orientationDuration,
               curve: ScanScreenStyles.orientationAnimationCurve,
               alignment: _instructionOverlayAlignment(_cameraOrientation),
               child: AnimatedRotation(
-                duration: ScanScreenStyles.orientationAnimationDuration,
+                duration: orientationDuration,
                 curve: ScanScreenStyles.orientationAnimationCurve,
                 turns: _cameraContentTurns(_cameraOrientation),
                 child: _CameraMessagePill(
@@ -1413,7 +1418,9 @@ class _CameraControlButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
               width: ScanScreenStyles.sideControlSize,
               height: ScanScreenStyles.sideControlSize,
               decoration: BoxDecoration(
@@ -1549,7 +1556,7 @@ class _CaptureButtonState extends State<_CaptureButton> {
                   height: ScanScreenStyles.captureInnerSize,
                   child: Center(
                     child: widget.showProgress
-                        ? const CircularProgressIndicator(
+                        ? const ScanBusyIndicator(
                             strokeWidth:
                                 ScanScreenStyles.processingIndicatorWidth,
                             color: ScanScreenStyles.primaryColor,
