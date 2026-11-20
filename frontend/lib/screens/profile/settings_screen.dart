@@ -18,15 +18,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  AppTextSize _textSize = AppTextSize.defaultSize;
-
-  RecognitionPreference _recognitionPreference = RecognitionPreference.faster;
-
-  bool _highContrastEnabled = false;
-  bool _reduceAnimationsEnabled = false;
-  bool _hapticFeedbackEnabled = true;
-  bool _preserveLayoutEnabled = true;
-  bool _autoSaveScansEnabled = true;
   BrailleMode _brailleMode = BrailleMode.defaultMode;
 
   bool _isLoading = true;
@@ -41,26 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     try {
-      final AppTextSize textSize = await SettingsService.getTextSize();
-
-      final RecognitionPreference recognitionPreference =
-          await SettingsService.getRecognitionPreference();
-
-      final bool highContrastEnabled =
-          await SettingsService.getHighContrastEnabled();
-
-      final bool reduceAnimationsEnabled =
-          await SettingsService.getReduceAnimationsEnabled();
-
-      final bool hapticFeedbackEnabled =
-          await SettingsService.getHapticFeedbackEnabled();
-
-      final bool preserveLayoutEnabled =
-          await SettingsService.getPreserveLayoutEnabled();
-
-      final bool autoSaveScansEnabled =
-          await SettingsService.getAutoSaveScansEnabled();
-
       final BrailleMode brailleMode = await SettingsService.getBrailleMode();
 
       if (!mounted) {
@@ -68,13 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       setState(() {
-        _textSize = textSize;
-        _recognitionPreference = recognitionPreference;
-        _highContrastEnabled = highContrastEnabled;
-        _reduceAnimationsEnabled = reduceAnimationsEnabled;
-        _hapticFeedbackEnabled = hapticFeedbackEnabled;
-        _preserveLayoutEnabled = preserveLayoutEnabled;
-        _autoSaveScansEnabled = autoSaveScansEnabled;
         _brailleMode = brailleMode;
         _isLoading = false;
       });
@@ -88,174 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       });
 
       _showMessage(SettingsScreenStyles.loadErrorMessage);
-    }
-  }
-
-  Future<void> _changeTextSize(AppTextSize? value) async {
-    if (value == null || value == _textSize) {
-      return;
-    }
-
-    final AppTextSize previousValue = _textSize;
-
-    setState(() {
-      _textSize = value;
-    });
-
-    try {
-      await SettingsService.setTextSize(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _textSize = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changeRecognitionPreference(
-    RecognitionPreference? value,
-  ) async {
-    if (value == null || value == _recognitionPreference) {
-      return;
-    }
-
-    final RecognitionPreference previousValue = _recognitionPreference;
-
-    setState(() {
-      _recognitionPreference = value;
-    });
-
-    try {
-      await SettingsService.setRecognitionPreference(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _recognitionPreference = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changeHighContrast(bool value) async {
-    final bool previousValue = _highContrastEnabled;
-
-    setState(() {
-      _highContrastEnabled = value;
-    });
-
-    try {
-      await SettingsService.setHighContrastEnabled(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _highContrastEnabled = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changeReduceAnimations(bool value) async {
-    final bool previousValue = _reduceAnimationsEnabled;
-
-    setState(() {
-      _reduceAnimationsEnabled = value;
-    });
-
-    try {
-      await SettingsService.setReduceAnimationsEnabled(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _reduceAnimationsEnabled = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changeHapticFeedback(bool value) async {
-    final bool previousValue = _hapticFeedbackEnabled;
-
-    setState(() {
-      _hapticFeedbackEnabled = value;
-    });
-
-    try {
-      if (value) {
-        await HapticFeedback.selectionClick();
-      }
-
-      await SettingsService.setHapticFeedbackEnabled(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _hapticFeedbackEnabled = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changePreserveLayout(bool value) async {
-    final bool previousValue = _preserveLayoutEnabled;
-
-    setState(() {
-      _preserveLayoutEnabled = value;
-    });
-
-    try {
-      await SettingsService.setPreserveLayoutEnabled(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _preserveLayoutEnabled = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
-    }
-  }
-
-  Future<void> _changeAutoSaveScans(bool value) async {
-    final bool previousValue = _autoSaveScansEnabled;
-
-    setState(() {
-      _autoSaveScansEnabled = value;
-    });
-
-    try {
-      await SettingsService.setAutoSaveScansEnabled(value);
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _autoSaveScansEnabled = previousValue;
-      });
-
-      _showMessage(SettingsScreenStyles.saveErrorMessage);
     }
   }
 
@@ -338,13 +134,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       setState(() {
-        _textSize = AppTextSize.defaultSize;
-        _recognitionPreference = RecognitionPreference.faster;
-        _highContrastEnabled = false;
-        _reduceAnimationsEnabled = false;
-        _hapticFeedbackEnabled = true;
-        _preserveLayoutEnabled = true;
-        _autoSaveScansEnabled = true;
         _brailleMode = BrailleMode.defaultMode;
         _isResetting = false;
       });
@@ -380,26 +169,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
   }
 
-  String _textSizeLabel(AppTextSize value) {
-    switch (value) {
-      case AppTextSize.defaultSize:
-        return SettingsScreenStyles.defaultTextSizeLabel;
-      case AppTextSize.large:
-        return SettingsScreenStyles.largeTextSizeLabel;
-      case AppTextSize.extraLarge:
-        return SettingsScreenStyles.extraLargeTextSizeLabel;
-    }
-  }
-
-  String _recognitionPreferenceLabel(RecognitionPreference value) {
-    switch (value) {
-      case RecognitionPreference.faster:
-        return SettingsScreenStyles.fasterRecognitionLabel;
-      case RecognitionPreference.moreAccurate:
-        return SettingsScreenStyles.accurateRecognitionLabel;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -424,83 +193,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       )
                     : Column(
                         children: <Widget>[
-                          _SettingsSection(
+                          // Text size, contrast and animations come from
+                          // the phone's own settings (the app follows
+                          // them); the app has no separate controls.
+                          const _SettingsSection(
                             title: SettingsScreenStyles.accessibilityTitle,
                             children: <Widget>[
-                              _SettingsDropdownItem<AppTextSize>(
+                              _SettingsInformationItem(
                                 icon: SettingsScreenStyles.textSizeIcon,
-                                title: SettingsScreenStyles.textSizeTitle,
+                                title: SettingsScreenStyles.displayTitle,
                                 description:
-                                    SettingsScreenStyles.textSizeDescription,
-                                value: _textSize,
-                                values: AppTextSize.values,
-                                labelBuilder: _textSizeLabel,
-                                onChanged: _changeTextSize,
-                                showDivider: true,
-                              ),
-                              _SettingsSwitchItem(
-                                icon: SettingsScreenStyles.highContrastIcon,
-                                title: SettingsScreenStyles.highContrastTitle,
-                                description: SettingsScreenStyles
-                                    .highContrastDescription,
-                                value: _highContrastEnabled,
-                                onChanged: _changeHighContrast,
-                                showDivider: true,
-                              ),
-                              _SettingsSwitchItem(
-                                icon: SettingsScreenStyles.reduceAnimationsIcon,
-                                title:
-                                    SettingsScreenStyles.reduceAnimationsTitle,
-                                description: SettingsScreenStyles
-                                    .reduceAnimationsDescription,
-                                value: _reduceAnimationsEnabled,
-                                onChanged: _changeReduceAnimations,
-                                showDivider: true,
-                              ),
-                              _SettingsSwitchItem(
-                                icon: SettingsScreenStyles.hapticFeedbackIcon,
-                                title: SettingsScreenStyles.hapticFeedbackTitle,
-                                description: SettingsScreenStyles
-                                    .hapticFeedbackDescription,
-                                value: _hapticFeedbackEnabled,
-                                onChanged: _changeHapticFeedback,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: SettingsScreenStyles.sectionSpacing,
-                          ),
-                          _SettingsSection(
-                            title: SettingsScreenStyles.scanningTitle,
-                            children: <Widget>[
-                              _SettingsDropdownItem<RecognitionPreference>(
-                                icon: SettingsScreenStyles.recognitionIcon,
-                                title: SettingsScreenStyles
-                                    .recognitionPreferenceTitle,
-                                description: SettingsScreenStyles
-                                    .recognitionPreferenceDescription,
-                                value: _recognitionPreference,
-                                values: RecognitionPreference.values,
-                                labelBuilder: _recognitionPreferenceLabel,
-                                onChanged: _changeRecognitionPreference,
-                                showDivider: true,
-                              ),
-                              _SettingsSwitchItem(
-                                icon: SettingsScreenStyles.preserveLayoutIcon,
-                                title: SettingsScreenStyles.preserveLayoutTitle,
-                                description: SettingsScreenStyles
-                                    .preserveLayoutDescription,
-                                value: _preserveLayoutEnabled,
-                                onChanged: _changePreserveLayout,
-                                showDivider: true,
-                              ),
-                              _SettingsSwitchItem(
-                                icon: SettingsScreenStyles.autoSaveIcon,
-                                title: SettingsScreenStyles.autoSaveTitle,
-                                description:
-                                    SettingsScreenStyles.autoSaveDescription,
-                                value: _autoSaveScansEnabled,
-                                onChanged: _changeAutoSaveScans,
+                                    SettingsScreenStyles.displayDescription,
                               ),
                             ],
                           ),
@@ -648,54 +351,6 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-class _SettingsSwitchItem extends StatelessWidget {
-  const _SettingsSwitchItem({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.value,
-    required this.onChanged,
-    this.showDivider = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final bool showDivider;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: showDivider
-          ? const BoxDecoration(border: SettingsScreenStyles.itemDividerBorder)
-          : null,
-      child: SwitchListTile(
-        contentPadding: SettingsScreenStyles.settingItemPadding,
-        secondary: _SettingsIcon(icon: icon),
-        title: Text(title, style: SettingsScreenStyles.settingTitleStyle),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(
-            top: SettingsScreenStyles.settingDescriptionSpacing,
-          ),
-          child: Text(
-            description,
-            style: SettingsScreenStyles.settingDescriptionStyle,
-          ),
-        ),
-        value: value,
-        activeThumbColor: SettingsScreenStyles.primaryColor,
-        inactiveThumbColor: SettingsScreenStyles.switchInactiveThumbColor,
-        inactiveTrackColor: SettingsScreenStyles.switchInactiveTrackColor,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-/// The remembered default Braille mode, using the same selector as the
-/// result, material and History screens.
 class _SettingsBrailleModeItem extends StatelessWidget {
   const _SettingsBrailleModeItem({
     required this.value,
@@ -754,107 +409,18 @@ class _SettingsBrailleModeItem extends StatelessWidget {
   }
 }
 
-class _SettingsDropdownItem<T> extends StatelessWidget {
-  const _SettingsDropdownItem({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.value,
-    required this.values,
-    required this.labelBuilder,
-    required this.onChanged,
-    this.showDivider = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final T value;
-  final List<T> values;
-  final String Function(T value) labelBuilder;
-  final ValueChanged<T?> onChanged;
-  final bool showDivider;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: SettingsScreenStyles.settingItemPadding,
-      decoration: showDivider
-          ? const BoxDecoration(border: SettingsScreenStyles.itemDividerBorder)
-          : null,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          _SettingsIcon(icon: icon),
-          const SizedBox(width: SettingsScreenStyles.settingContentSpacing),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(title, style: SettingsScreenStyles.settingTitleStyle),
-                const SizedBox(
-                  height: SettingsScreenStyles.settingDescriptionSpacing,
-                ),
-                Text(
-                  description,
-                  style: SettingsScreenStyles.settingDescriptionStyle,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: SettingsScreenStyles.settingControlSpacing),
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: SettingsScreenStyles.dropdownMaximumWidth,
-            ),
-            child: Container(
-              padding: SettingsScreenStyles.dropdownPadding,
-              decoration: const BoxDecoration(
-                color: SettingsScreenStyles.primarySoftColor,
-                borderRadius: SettingsScreenStyles.dropdownRadius,
-                border: SettingsScreenStyles.dropdownBorder,
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<T>(
-                  value: value,
-                  isDense: true,
-                  style: SettingsScreenStyles.dropdownTextStyle,
-                  iconEnabledColor: SettingsScreenStyles.primaryColor,
-                  dropdownColor: SettingsScreenStyles.surfaceColor,
-                  items: values
-                      .map((T item) {
-                        return DropdownMenuItem<T>(
-                          value: item,
-                          child: Text(
-                            labelBuilder(item),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      })
-                      .toList(growable: false),
-                  onChanged: onChanged,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SettingsInformationItem extends StatelessWidget {
   const _SettingsInformationItem({
     required this.icon,
     required this.title,
     required this.description,
-    required this.value,
+    this.value,
   });
 
   final IconData icon;
   final String title;
   final String description;
-  final String value;
+  final String? value;
 
   @override
   Widget build(BuildContext context) {
@@ -879,8 +445,17 @@ class _SettingsInformationItem extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: SettingsScreenStyles.settingControlSpacing),
-          Text(value, style: SettingsScreenStyles.informationValueStyle),
+          if (value != null) ...<Widget>[
+            const SizedBox(width: SettingsScreenStyles.settingControlSpacing),
+            // Wraps instead of overflowing with large text.
+            Flexible(
+              child: Text(
+                value!,
+                textAlign: TextAlign.end,
+                style: SettingsScreenStyles.informationValueStyle,
+              ),
+            ),
+          ],
         ],
       ),
     );

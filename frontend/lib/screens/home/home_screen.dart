@@ -12,7 +12,6 @@ import '../../widgets/materials/material_file_image.dart';
 import '../main/tab_data_cache.dart';
 
 abstract final class _HomeText {
-  static const String notificationTooltip = 'Notifications';
   static const String greetingPrefix = 'Hi';
   static const String defaultUserName = 'Learner';
   static const String defaultRole = 'Student';
@@ -332,92 +331,112 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHeaderSection(BuildContext context) {
     final double statusBarHeight = MediaQuery.viewPaddingOf(context).top;
 
+    // With large text the greeting and the card do not fit the designed
+    // heights, so they are stacked instead of overlapping.
+    final bool largeText =
+        MediaQuery.textScalerOf(context).scale(10) >
+        HomeStyles.stackedHeaderTextScale * 10;
+
+    if (largeText) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _buildGreetingHeader(statusBarHeight, fixedHeight: false),
+          const SizedBox(height: HomeStyles.stackedCardSpacing),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: HomeStyles.headerHorizontalPadding,
+            ),
+            child: _buildQuickScanCard(),
+          ),
+        ],
+      );
+    }
+
     return SizedBox(
       height: statusBarHeight + HomeStyles.headerSectionHeight,
       child: Stack(
         clipBehavior: Clip.none,
         children: <Widget>[
-          Container(
-            width: double.infinity,
-            height: statusBarHeight + HomeStyles.blueHeaderHeight,
-            padding: EdgeInsets.fromLTRB(
-              HomeStyles.headerHorizontalPadding,
-              statusBarHeight + HomeStyles.headerTopPadding,
-              HomeStyles.headerHorizontalPadding,
-              HomeStyles.headerBottomPadding,
-            ),
-            decoration: const BoxDecoration(
-              gradient: HomeStyles.greetingGradient,
-              borderRadius: HomeStyles.blueHeaderRadius,
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: Color(0x22003797),
-                  blurRadius: 24,
-                  spreadRadius: -8,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: <Widget>[
-                const Positioned(
-                  right: HomeStyles.headerBrailleRight,
-                  bottom: HomeStyles.headerBrailleBottom,
-                  child: _BrailleDecoration(),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        const Spacer(),
-                        Semantics(
-                          button: true,
-                          label: _HomeText.notificationTooltip,
-                          child: InkResponse(
-                            onTap: () {},
-                            radius: HomeStyles.notificationTapRadius,
-                            child: const SizedBox(
-                              width: HomeStyles.notificationButtonSize,
-                              height: HomeStyles.notificationButtonSize,
-                              child: Icon(
-                                HomeStyles.notificationIcon,
-                                color: HomeStyles.surfaceColor,
-                                size: HomeStyles.notificationIconSize,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    if (_isLoading)
-                      const _GreetingSkeleton()
-                    else ...<Widget>[
-                      Text(
-                        '${_HomeText.greetingPrefix}, $_displayName!',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: HomeStyles.greetingStyle,
-                      ),
-                      const SizedBox(
-                        height: HomeStyles.greetingSubtitleSpacing,
-                      ),
-                      Text(
-                        _greetingDescription(),
-                        style: HomeStyles.greetingDescriptionStyle,
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
+          _buildGreetingHeader(statusBarHeight, fixedHeight: true),
           Positioned(
             left: HomeStyles.headerHorizontalPadding,
             right: HomeStyles.headerHorizontalPadding,
             top: statusBarHeight + HomeStyles.quickScanCardTop,
             child: _buildQuickScanCard(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The blue greeting header. With [fixedHeight] it has the designed
+  /// height and the Quick Scan card overlaps its bottom; without, it grows
+  /// with its text (large text sizes).
+  Widget _buildGreetingHeader(
+    double statusBarHeight, {
+    required bool fixedHeight,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: fixedHeight
+          ? statusBarHeight + HomeStyles.blueHeaderHeight
+          : null,
+      padding: EdgeInsets.fromLTRB(
+        HomeStyles.headerHorizontalPadding,
+        statusBarHeight + HomeStyles.headerTopPadding,
+        HomeStyles.headerHorizontalPadding,
+        fixedHeight
+            ? HomeStyles.headerBottomPadding
+            : HomeStyles.stackedHeaderBottomPadding,
+      ),
+      decoration: const BoxDecoration(
+        gradient: HomeStyles.greetingGradient,
+        borderRadius: HomeStyles.blueHeaderRadius,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Color(0x22003797),
+            blurRadius: 24,
+            spreadRadius: -8,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: HomeStyles.headerBrailleRight,
+            bottom: HomeStyles.headerBrailleBottom,
+            child: _BrailleDecoration(),
+          ),
+          Column(
+            mainAxisSize: fixedHeight
+                ? MainAxisSize.max
+                : MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Keeps the header's spacing. There is no
+              // notifications feature, so no bell button.
+              const SizedBox(height: HomeStyles.notificationButtonSize),
+              if (fixedHeight) const Spacer(),
+              if (_isLoading)
+                const _GreetingSkeleton()
+              else ...<Widget>[
+                Text(
+                  '${_HomeText.greetingPrefix}, $_displayName!',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: HomeStyles.greetingStyle,
+                ),
+                const SizedBox(
+                  height: HomeStyles.greetingSubtitleSpacing,
+                ),
+                Text(
+                  _greetingDescription(),
+                  style: HomeStyles.greetingDescriptionStyle,
+                ),
+              ],
+            ],
           ),
         ],
       ),

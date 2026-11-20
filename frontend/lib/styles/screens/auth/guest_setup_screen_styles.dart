@@ -95,7 +95,8 @@ abstract final class GuestStyles {
     vertical: screenVerticalPadding,
   );
 
-  static const double backButtonSize = 46;
+  // 48 dp: the minimum touch target.
+  static const double backButtonSize = 48;
   static const double backIconSize = 29;
 
   // ==========================================================
