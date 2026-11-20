@@ -8,6 +8,7 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
 import '../braille/formula_braille_guard.dart';
+import '../braille/offline_braille_holds.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
 
@@ -165,6 +166,12 @@ class OfflineOcrService {
         FormulaReview review = isFormula
             ? FormulaBrailleGuard.review(rawContent)
             : FormulaReview.none;
+
+        // On-device only, for now: formulas whose Braille would read as a
+        // different formula (≠ ≤ ≥ ≈, exponent braces, set braces).
+        if (isFormula && !review.needsReview) {
+          review = OfflineBrailleHolds.review(rawContent);
+        }
 
         OfflineBrailleResult brailleResult = review.needsReview
             ? OfflineBrailleResult(

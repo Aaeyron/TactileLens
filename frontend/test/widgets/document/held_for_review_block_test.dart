@@ -253,7 +253,14 @@ void main() {
           '${readableNode.label} ${readableNode.value}',
           isNot(contains(r'\begin')),
         );
-        expect(find.text('Reason: $_heldReason'), findsOneWidget);
+        // The stored reason is shown in plain words.
+        expect(
+          find.text(
+            'Reason: uses math notation that cannot be put into Braille yet; '
+            'has words mixed into the math (Add, three, Answer)',
+          ),
+          findsOneWidget,
+        );
 
         // TalkBack reads the note.
         expect(
