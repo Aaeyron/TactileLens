@@ -100,7 +100,7 @@ void main() {
       expect(
         find.text(
           'Online scans are processed by a third-party service. For '
-          'sensitive documents, use On-device.',
+          'sensitive documents, scan on this device.',
         ),
         findsOneWidget,
       );
@@ -121,7 +121,7 @@ void main() {
       );
     });
 
-    testWidgets('Use On-device returns On-device', (WidgetTester tester) async {
+    testWidgets('Scan on this device returns On-device', (WidgetTester tester) async {
       expect(
         await openAndChoose(
           tester,

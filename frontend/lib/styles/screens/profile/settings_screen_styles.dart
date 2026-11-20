@@ -8,44 +8,18 @@ abstract final class SettingsScreenStyles {
   static const String screenTitle = 'Settings';
 
   static const String screenDescription =
-      'Customize accessibility, scanning, recognition, and Braille '
-      'preferences.';
+      'Choose how Braille is shown when a scan opens.';
 
   static const String backTooltip = 'Return to Profile';
 
   static const String accessibilityTitle = 'Accessibility';
-  static const String scanningTitle = 'Scanning and Recognition';
   static const String brailleTitle = 'Braille Output';
   static const String resetTitle = 'Reset';
 
-  static const String textSizeTitle = 'Text Size';
-  static const String textSizeDescription =
-      'Adjust the size of text displayed throughout the application.';
-
-  static const String highContrastTitle = 'High Contrast';
-  static const String highContrastDescription =
-      'Increase visual contrast to make interface elements easier to read.';
-
-  static const String reduceAnimationsTitle = 'Reduce Animations';
-  static const String reduceAnimationsDescription =
-      'Minimize screen transitions and movement throughout the application.';
-
-  static const String hapticFeedbackTitle = 'Haptic Feedback';
-  static const String hapticFeedbackDescription =
-      'Use vibration feedback during supported actions.';
-
-  static const String recognitionPreferenceTitle = 'Recognition Preference';
-
-  static const String recognitionPreferenceDescription =
-      'Choose between faster processing and greater recognition accuracy.';
-
-  static const String preserveLayoutTitle = 'Preserve Document Layout';
-  static const String preserveLayoutDescription =
-      'Position recognized text and equations like the original document.';
-
-  static const String autoSaveTitle = 'Automatically Save Scans';
-  static const String autoSaveDescription =
-      'Add successful scans to the application history automatically.';
+  static const String displayTitle = 'Text Size and Display';
+  static const String displayDescription =
+      "TactileLens follows your phone's text size, display and animation "
+      "settings. Change them in your phone's Settings app.";
 
   static const String brailleModeTitle = 'Default Braille Mode';
   static const String brailleModeDescription =
@@ -60,23 +34,18 @@ abstract final class SettingsScreenStyles {
 
   static const String resetSettingsTitle = 'Reset All Settings';
   static const String resetSettingsDescription =
-      'Restore every preference to its original default value.';
+      'Braille mode goes back to Braille 2 (Contracted), and the online '
+      'privacy notice is shown again.';
 
   static const String resetDialogTitle = 'Reset settings?';
 
   static const String resetDialogDescription =
-      'All accessibility, scanning, recognition, and Braille preferences '
-      'will return to their default values.';
+      'The default Braille mode will go back to Braille 2 (Contracted), and '
+      'the online privacy notice will be shown again before the next online '
+      'scan.';
 
   static const String cancelLabel = 'Cancel';
   static const String resetLabel = 'Reset';
-
-  static const String defaultTextSizeLabel = 'Default';
-  static const String largeTextSizeLabel = 'Large';
-  static const String extraLargeTextSizeLabel = 'Extra large';
-
-  static const String fasterRecognitionLabel = 'Faster';
-  static const String accurateRecognitionLabel = 'More accurate';
 
   static const String loadErrorMessage = 'Unable to load your settings.';
   static const String saveErrorMessage =
@@ -105,9 +74,6 @@ abstract final class SettingsScreenStyles {
 
   static const Color outlineColor = Color(0xFFDDE5F0);
   static const Color dividerColor = Color(0xFFE5EBF3);
-
-  static const Color switchInactiveThumbColor = Color(0xFF94A3B8);
-  static const Color switchInactiveTrackColor = Color(0xFFDCE3EC);
 
   static const Color dangerColor = Color(0xFFD14343);
   static const Color dangerSoftColor = Color(0xFFFFEEEE);
@@ -217,21 +183,6 @@ abstract final class SettingsScreenStyles {
     Radius.circular(12),
   );
 
-  static const EdgeInsets dropdownPadding = EdgeInsets.symmetric(
-    horizontal: 11,
-    vertical: 2,
-  );
-
-  static const BorderRadius dropdownRadius = BorderRadius.all(
-    Radius.circular(10),
-  );
-
-  static const Border dropdownBorder = Border.fromBorderSide(
-    BorderSide(color: outlineColor, width: 1),
-  );
-
-  static const double dropdownMaximumWidth = 145;
-
   // ============================================================
   // RESET
   // ============================================================
@@ -253,16 +204,7 @@ abstract final class SettingsScreenStyles {
   // ============================================================
 
   static const IconData textSizeIcon = Icons.text_fields_rounded;
-  static const IconData highContrastIcon = Icons.contrast_rounded;
 
-  static const IconData reduceAnimationsIcon = Icons.motion_photos_off_rounded;
-
-  static const IconData hapticFeedbackIcon = Icons.vibration_rounded;
-  static const IconData recognitionIcon = Icons.speed_rounded;
-
-  static const IconData preserveLayoutIcon = Icons.dashboard_customize_rounded;
-
-  static const IconData autoSaveIcon = Icons.history_rounded;
   static const IconData brailleModeIcon = Icons.translate_rounded;
   static const IconData nemethIcon = Icons.functions_rounded;
   static const IconData resetIcon = Icons.restart_alt_rounded;
@@ -302,12 +244,6 @@ abstract final class SettingsScreenStyles {
     color: textSecondaryColor,
     fontSize: 12.5,
     height: 1.4,
-  );
-
-  static const TextStyle dropdownTextStyle = TextStyle(
-    color: textPrimaryColor,
-    fontSize: 12.5,
-    fontWeight: FontWeight.w700,
   );
 
   static const TextStyle informationValueStyle = TextStyle(

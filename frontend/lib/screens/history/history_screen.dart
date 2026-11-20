@@ -944,20 +944,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
       children: <Widget>[
         Expanded(child: _buildFilters()),
         const SizedBox(width: 8),
-        Tooltip(
-          message: _HistoryText.clearAllTooltip,
-          child: TextButton.icon(
-            onPressed: canClearHistory ? _clearAllHistory : null,
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFD92D20),
-              disabledForegroundColor: const Color(0x66728096),
-              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+        // Shrinks with large text instead of pushing the row past the
+        // screen edge.
+        Flexible(
+          child: Tooltip(
+            message: _HistoryText.clearAllTooltip,
+            child: TextButton.icon(
+              onPressed: canClearHistory ? _clearAllHistory : null,
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFD92D20),
+                disabledForegroundColor: const Color(0x66728096),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+              label: const Text(
+                _HistoryText.clearAllLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-            label: const Text(_HistoryText.clearAllLabel),
           ),
         ),
       ],
