@@ -5,6 +5,7 @@ import 'package:mobile/models/ai/scan_document_result.dart';
 import 'package:mobile/models/braille/braille_mode.dart';
 import 'package:mobile/services/braille/braille_mode_translator.dart';
 import 'package:mobile/services/braille/offline_braille_service.dart';
+import 'package:mobile/utils/braille_display.dart';
 import 'package:mobile/widgets/document/document_layout_view.dart';
 
 import '../../fixtures/braille_modes.dart';
@@ -217,7 +218,8 @@ void main() {
         ),
       );
 
-      expect(find.text('⠠⠞⠕⠞⠁⠇⠀⠙⠥⠑'), findsOneWidget);
+      // Drawn with a line-break mark after each blank cell.
+      expect(find.text(brailleForDisplay('⠠⠞⠕⠞⠁⠇⠀⠙⠥⠑')), findsOneWidget);
     });
   });
 

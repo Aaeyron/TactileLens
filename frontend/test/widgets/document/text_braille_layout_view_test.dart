@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/ai/scan_document_result.dart';
+import 'package:mobile/utils/braille_display.dart';
 import 'package:mobile/widgets/document/document_layout_view.dart';
 
 // Real Liblouis output (en-ueb-g2.ctb with unicode.dis), where each space
@@ -170,11 +171,14 @@ void main() {
       _host(<DocumentBlock>[_block(content: _sentence, braille: shortBraille)]),
     );
 
-    expect(find.text(shortBraille), findsOneWidget);
+    // Drawn with a line-break mark after each blank cell.
+    expect(find.text(brailleForDisplay(shortBraille)), findsOneWidget);
     expect(find.text('⠠⠎⠕⠇⠧⠑'), findsNothing);
 
     // The text is above its Braille.
-    final Rect braille = tester.getRect(find.text(shortBraille));
+    final Rect braille = tester.getRect(
+      find.text(brailleForDisplay(shortBraille)),
+    );
     final Rect text = tester.getRect(find.byType(SelectableText));
 
     expect(braille.top, greaterThanOrEqualTo(text.bottom));
@@ -198,11 +202,11 @@ void main() {
     );
 
     expect(find.byType(Math), findsOneWidget);
-    expect(find.text(nemeth), findsOneWidget);
+    expect(find.text(brailleForDisplay(nemeth)), findsOneWidget);
     expect(find.text('⠰⠭'), findsNothing);
 
     expect(
-      tester.getRect(find.text(nemeth)).top,
+      tester.getRect(find.text(brailleForDisplay(nemeth))).top,
       greaterThanOrEqualTo(tester.getRect(find.byType(Math)).bottom),
     );
   });
