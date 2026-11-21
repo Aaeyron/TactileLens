@@ -8,6 +8,7 @@ import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
 import '../braille/formula_braille_guard.dart';
+import '../braille/offline_agreement_holds.dart';
 import '../braille/offline_braille_holds.dart';
 import '../braille/offline_braille_service.dart';
 import 'paddle_onnx_native_service.dart';
@@ -213,6 +214,15 @@ class OfflineOcrService {
           review = OfflineBrailleHolds.review(rawContent);
         }
 
+        // Agreement check: shown only when both formula models give the
+        // same Braille; words read as single letters are held as well.
+        if (isFormula && !review.needsReview) {
+          review = OfflineAgreementHolds.review(
+            rawContent,
+            readingsAgree: source.readingsAgree,
+          );
+        }
+
         OfflineBrailleResult brailleResult = review.needsReview
             ? OfflineBrailleResult(
                 success: false,
@@ -280,9 +290,7 @@ class OfflineOcrService {
             // A guard hold gives its own reason; otherwise the reason the
             // pipeline flagged the block for (empty if not flagged).
             needsReview: heldByGuard || source.needsReview,
-            reviewReason: heldByGuard
-                ? review.reason
-                : reviewReasonFor(source),
+            reviewReason: heldByGuard ? review.reason : reviewReasonFor(source),
           ),
         );
       }

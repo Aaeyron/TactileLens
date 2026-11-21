@@ -618,6 +618,8 @@ class OfflineDocumentBlock {
     required this.needsReview,
     required this.source,
     required this.error,
+    this.checkLatex,
+    this.readingsAgree,
   });
 
   factory OfflineDocumentBlock.fromMap(Map<dynamic, dynamic> map) {
@@ -646,8 +648,19 @@ class OfflineDocumentBlock {
       needsReview: map['needs_review'] == true,
       source: (map['source'] as String?) ?? '',
       error: map['error'] as String?,
+      checkLatex: map['check_latex'] as String?,
+      readingsAgree: map['readings_agree'] is bool
+          ? map['readings_agree'] as bool
+          : null,
     );
   }
+
+  /// Formula blocks: the check model's reading of the same crop.
+  final String? checkLatex;
+
+  /// Formula blocks: whether both formula models give the same Braille
+  /// input. Null when the check did not run (text blocks, older builds).
+  final bool? readingsAgree;
 
   final int index;
 
