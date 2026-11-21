@@ -20,6 +20,7 @@ class AIService {
     String? baseUrl,
     String? scanMode,
     this.requestTimeout = const Duration(minutes: 3),
+    this.reachabilityTimeout = const Duration(seconds: 8),
   }) : _client = client ?? http.Client(),
        _offlineOcrService = offlineOcrService ?? OfflineOcrService(),
        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl),
@@ -42,8 +43,10 @@ class AIService {
   /// remote:
   /// Require PaddleOCR-VL and report connection failures.
   ///
-  /// session:
-  /// Guest users use offline. Signed-in users use remote.
+  /// session (the default):
+  /// Guest users use offline. Signed-in users scan online; when the server
+  /// cannot be reached or does not answer in time, the page is scanned on
+  /// the device instead, automatically, so the scan is never lost.
   static const String _configuredScanMode = String.fromEnvironment(
     'AI_SCAN_MODE',
     defaultValue: 'session',
@@ -70,14 +73,22 @@ class AIService {
   final String _scanMode;
   final Duration requestTimeout;
 
+  /// How long the quick check before an online scan waits for the server
+  /// to answer at all. No answer: the page is scanned on the device.
+  final Duration reachabilityTimeout;
+
   bool _disposed = false;
 
-  /// Scans [imageFile]. [mode] is the teacher's choice; guests always scan
-  /// on the device. Each call is one scan the teacher started, sent to the
-  /// server at most once with its own Idempotency-Key.
+  /// Scans [imageFile]. Signed-in teachers scan online and guests on the
+  /// device; [mode] forces on-device scanning (the hidden mode choice, or
+  /// the teacher's answer to the privacy notice). Each call is one scan the
+  /// teacher started, sent to the server at most once with its own
+  /// Idempotency-Key. [onFallbackToDevice] is called when an online scan
+  /// switches to the device because there is no connection.
   Future<ScanDocumentResult> scanDocument(
     File imageFile, {
     ScanProcessingMode? mode,
+    void Function()? onFallbackToDevice,
   }) async {
     _ensureAvailable();
 
@@ -86,6 +97,7 @@ class AIService {
     }
 
     String effectiveMode = _scanMode;
+    bool automaticFallback = false;
 
     // Guests always scan on the device, whatever mode the app was built
     // with (AI_SCAN_MODE) or asked for: a guest scan never uses the network.
@@ -94,6 +106,7 @@ class AIService {
     } else if (effectiveMode == sessionMode) {
       if (await SessionManager.isLoggedIn()) {
         effectiveMode = remoteMode;
+        automaticFallback = true;
       } else {
         throw const AIServiceException(
           'Please sign in or enter Guest Mode before scanning.',
@@ -111,6 +124,10 @@ class AIService {
 
     if (effectiveMode == offlineMode) {
       return _scanOffline(imageFile);
+    }
+
+    if (automaticFallback) {
+      return _scanOnlineOrOnDevice(imageFile, onFallbackToDevice);
     }
 
     try {
@@ -132,6 +149,69 @@ class AIService {
         ScanProcessingMode.onDevice,
         fellBackFromOnline: true,
       );
+    }
+  }
+
+  /// Online first; on the device when the server cannot be reached, the
+  /// connection drops, or the server does not answer in time. Errors the
+  /// server reports with a reason (scan limits, the daily quota, a bad
+  /// image) are passed on, so the app can say why.
+  Future<ScanDocumentResult> _scanOnlineOrOnDevice(
+    File imageFile,
+    void Function()? onFallbackToDevice,
+  ) async {
+    Future<ScanDocumentResult> onDevice(String why) async {
+      debugPrint('No connection ($why). Scanning on this device instead.');
+      onFallbackToDevice?.call();
+      final ScanDocumentResult result = await _scanOffline(imageFile);
+      return result.withProcessingMode(
+        ScanProcessingMode.onDevice,
+        noConnection: true,
+      );
+    }
+
+    if (!await _serverAnswers()) {
+      return onDevice('no answer within ${reachabilityTimeout.inSeconds} s');
+    }
+
+    try {
+      return await _scanRemotely(imageFile);
+    } on AIServiceException catch (error) {
+      if (!isNoConnection(error)) {
+        rethrow;
+      }
+      return onDevice(error.message);
+    }
+  }
+
+  /// True when [error] means the server could not be reached or did not
+  /// answer in time, rather than a refusal with a reason.
+  static bool isNoConnection(AIServiceException error) {
+    // The server can turn the fallback off.
+    if (!error.fallbackRecommended) {
+      return false;
+    }
+    if (error.code == 'app_timeout' || error.code == 'hosted_ocr_timeout') {
+      return true;
+    }
+    // Dropped connections, and Node's 502/503/504 when the AI server
+    // behind it does not answer, carry no server reason.
+    return error.code == null &&
+        (error is AIServiceConnectionException || error.statusCode == 504);
+  }
+
+  /// Whether the server answers at all within [reachabilityTimeout]. Any
+  /// HTTP answer counts; only no answer (no internet, server down) does not.
+  Future<bool> _serverAnswers() async {
+    try {
+      await _client.get(Uri.parse('$_baseUrl/')).timeout(reachabilityTimeout);
+      return true;
+    } on TimeoutException {
+      return false;
+    } on SocketException {
+      return false;
+    } on http.ClientException {
+      return false;
     }
   }
 

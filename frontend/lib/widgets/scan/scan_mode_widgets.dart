@@ -5,6 +5,11 @@ import '../../models/ai/scan_processing_mode.dart';
 import '../../services/ai/ai_service.dart';
 import '../../styles/screens/scan/scan_screen_styles.dart';
 
+/// Shows the Online / On-device choice on the scan sheet (and remembers it).
+/// Off by default: signed-in teachers scan online, guests on the device.
+/// Kept for testing: flutter run --dart-define=SCAN_MODE_CHOICE=true
+const bool showScanModeChoice = bool.fromEnvironment('SCAN_MODE_CHOICE');
+
 abstract final class ScanModeText {
   static const String onlineLabel = 'Online';
   static const String onDeviceLabel = 'On this device';
@@ -35,6 +40,24 @@ abstract final class ScanModeText {
 
   static const String processedOnDevice = 'Processed on this device.';
 
+  static const String processedNoConnection =
+      'No connection: scanned on-device.';
+
+  // The read-only mode label on the scan sheet.
+  static const String modeOnline = 'Scanning online';
+  static const String modeOnDevice = 'Scanning on this device';
+
+  static const String modeOnlineDetail =
+      'Signed in. Without a connection, this phone scans the page instead.';
+
+  static const String modeOnlineSemantics =
+      'Scan mode: online, because you are signed in. Without a connection, '
+      'this phone scans the page instead.';
+
+  static const String modeGuestSemantics =
+      'Scan mode: on this device. Guest scans are always processed on this '
+      'phone.';
+
   static const String processedOnDeviceAfterOnline =
       'Processed on this device, because the online scan did not finish.';
 
@@ -58,6 +81,10 @@ abstract final class ScanModeText {
 String processedByLabel(ScanDocumentResult result) {
   if (result.processingMode == ScanProcessingMode.online) {
     return ScanModeText.processedOnline;
+  }
+
+  if (result.noConnection) {
+    return ScanModeText.processedNoConnection;
   }
 
   return result.fellBackFromOnline
@@ -128,7 +155,56 @@ Future<bool> showOnlineFailedDialog(
   return scanOnDevice ?? false;
 }
 
-/// Online / On-device choice for signed-in teachers.
+/// Where this scan will be processed, read-only: online when signed in, on
+/// the device for guests. One label for screen readers.
+class ScanModeLabel extends StatelessWidget {
+  const ScanModeLabel({super.key, required this.isGuest});
+
+  final bool isGuest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: isGuest
+          ? ScanModeText.modeGuestSemantics
+          : ScanModeText.modeOnlineSemantics,
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  isGuest
+                      ? ScanScreenStyles.onDeviceModeIcon
+                      : ScanScreenStyles.onlineModeIcon,
+                  size: ScanScreenStyles.scanModeLabelIconSize,
+                  color: ScanScreenStyles.primaryColor,
+                ),
+                const SizedBox(width: ScanScreenStyles.scanModeLabelIconGap),
+                Text(
+                  isGuest ? ScanModeText.modeOnDevice : ScanModeText.modeOnline,
+                  style: ScanScreenStyles.scanModeLabelStyle,
+                ),
+              ],
+            ),
+            const SizedBox(height: ScanScreenStyles.scanModeSpacing),
+            Text(
+              isGuest ? ScanModeText.guestHint : ScanModeText.modeOnlineDetail,
+              textAlign: TextAlign.center,
+              style: ScanScreenStyles.scanModeHintStyle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Online / On-device choice for signed-in teachers; only shown with
+/// [showScanModeChoice].
 class ScanModeSelector extends StatelessWidget {
   const ScanModeSelector({
     super.key,
@@ -263,7 +339,10 @@ class OnDeviceModelProblem extends StatelessWidget {
                 children: <Widget>[
                   Text(title, style: ScanScreenStyles.modelProblemTitleStyle),
                   for (final String message in messages)
-                    Text(message, style: ScanScreenStyles.modelProblemTextStyle),
+                    Text(
+                      message,
+                      style: ScanScreenStyles.modelProblemTextStyle,
+                    ),
                 ],
               ),
             ),

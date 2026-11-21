@@ -21,36 +21,48 @@ only `/health` is open.
 | | Online | On-device |
 |---|---|---|
 | Guest (**Continue without an account**) | not available | always |
-| Signed-in user | chosen before each scan | chosen before each scan |
+| Signed-in user | always, when the server answers | automatically, when there is no connection |
 
 From `frontend/lib/screens/scan/scan_screen.dart`,
 `frontend/lib/widgets/scan/scan_mode_widgets.dart` and
 `frontend/lib/services/ai/ai_service.dart`:
 
-- **Guests** always scan on the device with the offline models. The
-  confirmation sheet shows "Guest scans are always processed on this
-  phone." instead of a choice, and `AIService` routes a guest to the
-  device even if Online were requested. There is no online option.
-- **Signed-in users** pick **Online** or **On-device** in the
-  confirmation sheet before each scan. The choice is saved
-  (`SettingsService.setScanMode`) and preselected next time; a new
-  install starts on Online.
+- **The mode is automatic**: there are no Online / On-device buttons.
+  The confirmation sheet shows a read-only label (`ScanModeLabel`):
+  "Scanning online" for a signed-in user, "Scanning on this device" for a
+  guest, each with one screen-reader label. The old choice
+  (`ScanModeSelector`, remembered with `SettingsService.setScanMode`) is
+  kept behind a build flag that is off by default:
+  `--dart-define=SCAN_MODE_CHOICE=true`.
+- **Guests** always scan on the device with the offline models, and
+  `AIService` routes a guest to the device even if Online were requested.
+  There is no online option.
+- **Signed-in users** scan online. Before the upload, `AIService` checks
+  that the backend answers at all (`GET /`, 8-second
+  `reachabilityTimeout`). No answer, a dropped connection, a 502/503/504
+  without a server reason, `hosted_ocr_timeout`, or no answer within the
+  3-minute `requestTimeout`: the page is scanned on the device instead,
+  automatically, and the result says "No connection: scanned on-device."
+  The scanning overlay switches to on-device when that happens. If the
+  online scan timed out, the server may still finish it and save it to
+  History, so the page can appear twice.
 - **Privacy notice**: before a signed-in user's first online scan the app
   shows "Online scanning: Online scans are processed by a third-party
-  service. For sensitive documents, use On-device." with **Continue
-  online** or **Use On-device**; closing it cancels the scan. Once Online
-  is accepted it is not shown again, until the settings are reset.
+  service. For sensitive documents, scan on this device." with **Continue
+  online** or **Scan on this device** (that scan only; the notice comes
+  back next time); closing it cancels the scan. Once Online is accepted it
+  is not shown again, until the settings are reset.
 - **Online path**: every online scan goes through the backend, which
   requires login and allows **one scan at a time per user** (a second one
   gets "A scan is already running…") and **30 scans per hour and 100 per
   day per user** (`SCAN_LIMIT_PER_HOUR`, `SCAN_LIMIT_PER_DAY`; counted in
   memory, reset when the backend restarts).
-- **When an online scan fails** (no connection, timeout, AI service or
-  hosted API error, hosted daily cap, or the user's scan limit), the app
-  shows why and offers **Scan on this device** or **Not now**. Each scan
-  is sent online at most once, with its own `Idempotency-Key`; there is no
-  automatic online retry and no switch without the teacher's choice. A
-  running scan or an invalid image gets only a message.
+- **When the server refuses an online scan with a reason** (hosted daily
+  cap, the user's scan limit, another hosted API error), the app shows why
+  and offers **Scan on this device** or **Not now**. Each scan is sent
+  online at most once, with its own `Idempotency-Key`; there is no
+  automatic online retry. A running scan or an invalid image gets only a
+  message.
 - **Cancelling a scan** (online only): the scanning overlay has a
   **Cancel** button. It only stops the app waiting: the request is not
   aborted, the server finishes the scan and saves it to History, and the
