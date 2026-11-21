@@ -73,9 +73,14 @@ void main() {
     });
   }
 
+  // The quick check before an online scan (GET /) answers; only scans
+  // (POST) are recorded.
   AIService service(http.Response Function() respond) {
     return AIService(
       client: MockClient((http.Request request) async {
+        if (request.method == 'GET') {
+          return _json(200, <String, Object?>{'success': true});
+        }
         requests.add(request);
         return respond();
       }),
@@ -268,23 +273,12 @@ void main() {
         ),
       );
 
+      // A refusal with a reason is shown (with its own offer), not
+      // switched silently.
       expect(quota, isA<AIServiceConnectionException>());
       expect(quota.code, 'hosted_ocr_quota');
       expect(quota.fallbackRecommended, isTrue);
-
-      final AIServiceException timeout = await scanError(
-        service(
-          () => _json(504, <String, Object?>{
-            'success': false,
-            'message': 'The online OCR service took too long.',
-            'code': 'hosted_ocr_timeout',
-            'fallback_recommended': true,
-          }),
-        ),
-      );
-
-      expect(timeout.code, 'hosted_ocr_timeout');
-      expect(timeout.fallbackRecommended, isTrue);
+      expect(offline.scans, 0);
     });
 
     test('the server can turn the fallback off', () async {
@@ -317,24 +311,191 @@ void main() {
       expect(error.code, 'invalid_image');
       expect(error.fallbackRecommended, isFalse);
     });
+  });
 
-    test('a dropped connection recommends the fallback', () async {
-      final AIService ai = AIService(
-        client: MockClient((http.Request request) async {
-          requests.add(request);
-          throw http.ClientException('Connection reset');
+  group('automatic scan mode: no connection means on this device', () {
+    setUp(signedIn);
+
+    AIService withClient(
+      Future<http.Response> Function(http.Request request) handler, {
+      Duration requestTimeout = const Duration(minutes: 3),
+      Duration reachabilityTimeout = const Duration(seconds: 8),
+    }) {
+      return AIService(
+        client: MockClient((http.Request request) {
+          if (request.method == 'POST') {
+            requests.add(request);
+          }
+          return handler(request);
         }),
         offlineOcrService: offline,
         baseUrl: 'http://backend.example.invalid',
         scanMode: AIService.sessionMode,
+        requestTimeout: requestTimeout,
+        reachabilityTimeout: reachabilityTimeout,
+      );
+    }
+
+    Future<void> expectScannedOnDevice(
+      AIService ai, {
+      required int onlineRequests,
+    }) async {
+      int switched = 0;
+      final ScanDocumentResult result = await ai.scanDocument(
+        image,
+        onFallbackToDevice: () => switched++,
       );
 
-      final AIServiceException error = await scanError(ai);
+      expect(result.processingMode, ScanProcessingMode.onDevice);
+      expect(result.noConnection, isTrue);
+      expect(result.fellBackFromOnline, isTrue);
+      expect(offline.scans, 1);
+      expect(switched, 1);
+      expect(requests, hasLength(onlineRequests));
+    }
 
-      expect(error, isA<AIServiceConnectionException>());
-      expect(error.fallbackRecommended, isTrue);
-      // Never resent, and never scanned on the device without asking.
+    test('signed in with a connection: scanned online', () async {
+      final ScanDocumentResult result = await withClient(
+        (http.Request request) async => _success,
+      ).scanDocument(image);
+
+      expect(result.processingMode, ScanProcessingMode.online);
+      expect(result.noConnection, isFalse);
       expect(requests, hasLength(1));
+      expect(offline.scans, 0);
+    });
+
+    test('guest: on this device, nothing is sent', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        SessionManager.guestModeKey: true,
+      });
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
+      int calls = 0;
+
+      final ScanDocumentResult result = await withClient((
+        http.Request request,
+      ) async {
+        calls++;
+        return _success;
+      }).scanDocument(image);
+
+      expect(result.processingMode, ScanProcessingMode.onDevice);
+      expect(result.noConnection, isFalse);
+      expect(calls, 0);
+    });
+
+    test(
+      'no internet: scanned on this device, the image is not sent',
+      () async {
+        await expectScannedOnDevice(
+          withClient((http.Request request) async {
+            throw const SocketException('Network is unreachable');
+          }),
+          onlineRequests: 0,
+        );
+      },
+    );
+
+    test('the server does not answer the quick check in time', () async {
+      await expectScannedOnDevice(
+        withClient((http.Request request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          return _success;
+        }, reachabilityTimeout: const Duration(milliseconds: 20)),
+        onlineRequests: 0,
+      );
+    });
+
+    test('the online scan times out: scanned on this device', () async {
+      await expectScannedOnDevice(
+        withClient((http.Request request) async {
+          if (request.method == 'POST') {
+            await Future<void>.delayed(const Duration(milliseconds: 200));
+          }
+          return _success;
+        }, requestTimeout: const Duration(milliseconds: 20)),
+        // Sent once and never again.
+        onlineRequests: 1,
+      );
+    });
+
+    test(
+      'the connection drops during the scan: scanned on this device',
+      () async {
+        await expectScannedOnDevice(
+          withClient((http.Request request) async {
+            if (request.method == 'POST') {
+              throw http.ClientException('Connection reset');
+            }
+            return _success;
+          }),
+          onlineRequests: 1,
+        );
+      },
+    );
+
+    for (final int status in <int>[502, 503, 504]) {
+      test(
+        'the AI server behind the backend does not answer ($status)',
+        () async {
+          await expectScannedOnDevice(
+            withClient((http.Request request) async {
+              return request.method == 'POST'
+                  ? _json(status, <String, Object?>{'success': false})
+                  : _success;
+            }),
+            onlineRequests: 1,
+          );
+        },
+      );
+    }
+
+    test('the hosted OCR times out (504 with its code)', () async {
+      await expectScannedOnDevice(
+        withClient((http.Request request) async {
+          return request.method == 'POST'
+              ? _json(504, <String, Object?>{
+                  'success': false,
+                  'code': 'hosted_ocr_timeout',
+                  'fallback_recommended': true,
+                })
+              : _success;
+        }),
+        onlineRequests: 1,
+      );
+    });
+
+    test('a scan limit is reported, not switched to the device', () async {
+      final AIServiceException error = await scanError(
+        withClient((http.Request request) async {
+          return request.method == 'POST'
+              ? _json(429, <String, Object?>{
+                  'success': false,
+                  'message': 'Limit reached.',
+                  'code': 'scan_hourly_limit',
+                  'fallback_recommended': true,
+                })
+              : _success;
+        }),
+      );
+
+      expect(error.isScanLimit, isTrue);
+      expect(offline.scans, 0);
+    });
+
+    test('the server can turn the automatic switch off', () async {
+      final AIServiceException error = await scanError(
+        withClient((http.Request request) async {
+          return request.method == 'POST'
+              ? _json(503, <String, Object?>{
+                  'success': false,
+                  'fallback_recommended': false,
+                })
+              : _success;
+        }),
+      );
+
+      expect(error.fallbackRecommended, isFalse);
       expect(offline.scans, 0);
     });
   });
