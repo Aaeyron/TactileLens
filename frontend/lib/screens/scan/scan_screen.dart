@@ -1265,6 +1265,8 @@ class _ScanScreenState extends State<ScanScreen> {
             ScanProgressOverlay(
               key: _progressKey,
               mode: _processingMode,
+              // The real step of the scan, from the scanning services.
+              stage: _aiService.stage,
               // Only online scans can be left: the server finishes them.
               // An on-device scan cannot be stopped, and a second one
               // must not start beside it.

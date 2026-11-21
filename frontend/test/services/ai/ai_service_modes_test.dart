@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mobile/models/ai/scan_document_result.dart';
 import 'package:mobile/models/ai/scan_processing_mode.dart';
+import 'package:mobile/models/ai/scan_stage.dart';
 import 'package:mobile/services/ai/ai_service.dart';
 import 'package:mobile/services/ai/offline_ocr_service.dart';
 import 'package:mobile/utils/session_manager.dart';
@@ -363,6 +364,32 @@ void main() {
       expect(result.noConnection, isFalse);
       expect(requests, hasLength(1));
       expect(offline.scans, 0);
+    });
+
+    test('reports the real steps of an online scan, in order', () async {
+      final AIService ai = withClient((http.Request request) async => _success);
+      final List<ScanStage?> steps = <ScanStage?>[];
+      ai.stage.addListener(() => steps.add(ai.stage.value));
+
+      await ai.scanDocument(image);
+
+      expect(steps, <ScanStage?>[
+        ScanStage.checkingConnection,
+        ScanStage.readingOnline,
+      ]);
+    });
+
+    test('no connection: the online steps stop at the check', () async {
+      final AIService ai = withClient((http.Request request) async {
+        throw const SocketException('Network is unreachable');
+      });
+      final List<ScanStage?> steps = <ScanStage?>[];
+      ai.stage.addListener(() => steps.add(ai.stage.value));
+
+      await ai.scanDocument(image);
+
+      // The device steps come from the on-device scanner (a fake here).
+      expect(steps, <ScanStage?>[ScanStage.checkingConnection]);
     });
 
     test('guest: on this device, nothing is sent', () async {

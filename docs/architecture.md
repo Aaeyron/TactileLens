@@ -74,6 +74,20 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   scans have no Cancel: the native scan cannot be stopped and a second one
   must not run beside it. The confirmation sheet before a scan states the
   same limit: "Processing can take up to 3 minutes."
+- **While a scan runs** (`ScanProgressOverlay`): four Braille cells
+  spelling "scan" are written dot by dot (gold on navy), fade, and repeat.
+  Under them, one line names the real step, reported by `AIService.stage`
+  (`ScanStage`):
+  - online: "Checking the connection…", then "Reading the page online…";
+  - on this device: "Preparing the scanner…" (first scan only), then
+    "Reading text and math…" (one native call, so text and math are not
+    separate steps), then "Converting to Braille…".
+
+  There are no percentages. When the result is ready, all dots fill and a
+  check mark is drawn (about 0.3 s), then the result opens. TalkBack reads
+  the step line when it changes and "Scan complete" at the end, never the
+  animation. With reduce motion the cells are still and only the step line
+  changes.
   (`ScanRun.processingTimeMessage`). A full cancel is proposed in
   [Full scan cancel (proposal)](#full-scan-cancel-proposal).
 - **Every result screen** states how the page was processed: "Processed

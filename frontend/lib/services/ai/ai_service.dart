@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
 import '../../models/ai/scan_processing_mode.dart';
+import '../../models/ai/scan_stage.dart';
 import '../../utils/session_manager.dart';
 import 'offline_ocr_service.dart';
 import 'paddle_onnx_native_service.dart';
@@ -24,7 +25,9 @@ class AIService {
   }) : _client = client ?? http.Client(),
        _offlineOcrService = offlineOcrService ?? OfflineOcrService(),
        _baseUrl = _normalizeBaseUrl(baseUrl ?? _configuredBaseUrl),
-       _scanMode = _normalizeScanMode(scanMode ?? _configuredScanMode);
+       _scanMode = _normalizeScanMode(scanMode ?? _configuredScanMode) {
+    _offlineOcrService.onStage = (ScanStage step) => stage.value = step;
+  }
 
   static const String _configuredBaseUrl = String.fromEnvironment(
     'AI_BASE_URL',
@@ -77,6 +80,10 @@ class AIService {
   /// to answer at all. No answer: the page is scanned on the device.
   final Duration reachabilityTimeout;
 
+  /// The real step the current scan is in, or null before the first one.
+  /// The Scan screen shows it under the Braille cells.
+  final ValueNotifier<ScanStage?> stage = ValueNotifier<ScanStage?>(null);
+
   bool _disposed = false;
 
   /// Scans [imageFile]. Signed-in teachers scan online and guests on the
@@ -91,6 +98,7 @@ class AIService {
     void Function()? onFallbackToDevice,
   }) async {
     _ensureAvailable();
+    stage.value = null;
 
     if (!await imageFile.exists()) {
       throw const AIServiceException('The selected image could not be found.');
@@ -170,6 +178,7 @@ class AIService {
       );
     }
 
+    stage.value = ScanStage.checkingConnection;
     if (!await _serverAnswers()) {
       return onDevice('no answer within ${reachabilityTimeout.inSeconds} s');
     }
@@ -246,6 +255,7 @@ class AIService {
   }
 
   Future<ScanDocumentResult> _scanRemotely(File imageFile) async {
+    stage.value = ScanStage.readingOnline;
     final int imageSize = await imageFile.length();
 
     debugPrint(
@@ -547,6 +557,7 @@ class AIService {
 
     _disposed = true;
     _client.close();
+    stage.dispose();
 
     unawaited(_offlineOcrService.dispose());
   }
