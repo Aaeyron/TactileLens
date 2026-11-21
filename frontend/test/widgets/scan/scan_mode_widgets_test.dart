@@ -121,7 +121,9 @@ void main() {
       );
     });
 
-    testWidgets('Scan on this device returns On-device', (WidgetTester tester) async {
+    testWidgets('Scan on this device returns On-device', (
+      WidgetTester tester,
+    ) async {
       expect(
         await openAndChoose(
           tester,
@@ -172,6 +174,47 @@ void main() {
       );
 
       semantics.dispose();
+    });
+  });
+
+  group('read-only scan mode label', () {
+    testWidgets('signed in: online, one label for screen readers', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(_host(const ScanModeLabel(isGuest: false)));
+
+      expect(find.text(ScanModeText.modeOnline), findsOneWidget);
+      expect(find.text(ScanModeText.modeOnlineDetail), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(ScanModeText.modeOnlineSemantics),
+        findsOneWidget,
+      );
+      // Read-only: nothing to tap.
+      expect(find.byType(SegmentedButton<ScanProcessingMode>), findsNothing);
+      expect(find.byType(InkWell), findsNothing);
+
+      semantics.dispose();
+    });
+
+    testWidgets('guest: on this device', (WidgetTester tester) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(_host(const ScanModeLabel(isGuest: true)));
+
+      expect(find.text(ScanModeText.modeOnDevice), findsOneWidget);
+      expect(find.text(ScanModeText.guestHint), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(ScanModeText.modeGuestSemantics),
+        findsOneWidget,
+      );
+
+      semantics.dispose();
+    });
+
+    test('the Online / On-device choice is hidden by default', () {
+      expect(showScanModeChoice, isFalse);
     });
   });
 }

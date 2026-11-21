@@ -72,6 +72,10 @@ abstract final class _ScanText {
   static const String printedMaterialTip =
       'Use clear printed text and equations whenever possible.';
 
+  static const String scanModeTip =
+      'Signed in, pages are scanned online; as a guest, on this phone. '
+      'Without a connection, this phone scans the page instead.';
+
   static const String closeLabel = 'Got it';
 
   static const String confirmationTitle = 'Ready to scan?';
@@ -201,7 +205,11 @@ class _ScanScreenState extends State<ScanScreen> {
 
     setState(() {
       _isGuest = isGuest;
-      _scanMode = isGuest ? ScanProcessingMode.onDevice : savedMode;
+      _scanMode = isGuest
+          ? ScanProcessingMode.onDevice
+          : showScanModeChoice
+          ? savedMode
+          : ScanProcessingMode.online;
     });
   }
 
@@ -235,6 +243,12 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mode == ScanProcessingMode.online) {
         await SettingsService.setOnlinePrivacyAccepted(true);
       }
+    }
+
+    // Without the (hidden) choice, the mode follows the sign-in; the
+    // privacy notice's "Scan on this device" applies to this scan only.
+    if (!showScanModeChoice) {
+      return mode;
     }
 
     // Remembered for the next scan.
@@ -614,6 +628,14 @@ class _ScanScreenState extends State<ScanScreen> {
     ScanDocumentResult scanResult = await _aiService.scanDocument(
       imageToScan,
       mode: mode,
+      // No connection: the page is scanned here instead, never lost.
+      onFallbackToDevice: () {
+        if (mounted && _scanRun.isCurrent(run)) {
+          setState(() {
+            _processingMode = ScanProcessingMode.onDevice;
+          });
+        }
+      },
     );
 
     if (fellBackFromOnline) {
@@ -789,14 +811,10 @@ class _ScanScreenState extends State<ScanScreen> {
               const SizedBox(
                 height: ScanScreenStyles.confirmationDetailsSpacing,
               ),
-              if (_isGuest)
-                const Text(
-                  ScanModeText.guestHint,
-                  textAlign: TextAlign.center,
-                  style: ScanScreenStyles.scanModeHintStyle,
-                )
+              if (showScanModeChoice && !_isGuest)
+                ScanModeSelector(mode: selectedMode, onChanged: onModeChanged)
               else
-                ScanModeSelector(mode: selectedMode, onChanged: onModeChanged),
+                ScanModeLabel(isGuest: _isGuest),
               const SizedBox(
                 height: ScanScreenStyles.confirmationDetailsSpacing,
               ),
@@ -1029,6 +1047,11 @@ class _ScanScreenState extends State<ScanScreen> {
                 const _ScanningTip(
                   icon: Icons.text_fields_rounded,
                   text: _ScanText.printedMaterialTip,
+                ),
+                const SizedBox(height: ScanScreenStyles.helpTipSpacing),
+                const _ScanningTip(
+                  icon: ScanScreenStyles.onlineModeIcon,
+                  text: _ScanText.scanModeTip,
                 ),
                 const SizedBox(height: ScanScreenStyles.helpButtonTopSpacing),
                 SizedBox(

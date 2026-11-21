@@ -15,19 +15,26 @@ class ScanDocumentResult {
     this.historySavedByServer = false,
     this.processingMode = ScanProcessingMode.online,
     this.fellBackFromOnline = false,
+    this.noConnection = false,
   });
 
   /// Which mode produced this result, so the app can always say so.
   final ScanProcessingMode processingMode;
 
-  /// True when an online scan did not finish and the teacher chose to scan
-  /// on the device instead.
+  /// True when this page was meant to be scanned online but was scanned on
+  /// the device instead.
   final bool fellBackFromOnline;
+
+  /// True when that happened automatically because the server could not be
+  /// reached or did not answer in time ("No connection: scanned
+  /// on-device").
+  final bool noConnection;
 
   /// This result as produced by [mode].
   ScanDocumentResult withProcessingMode(
     ScanProcessingMode mode, {
     bool fellBackFromOnline = false,
+    bool noConnection = false,
   }) {
     return ScanDocumentResult(
       model: model,
@@ -39,7 +46,8 @@ class ScanDocumentResult {
       pages: pages,
       historySavedByServer: historySavedByServer,
       processingMode: mode,
-      fellBackFromOnline: fellBackFromOnline,
+      fellBackFromOnline: fellBackFromOnline || noConnection,
+      noConnection: noConnection,
     );
   }
 

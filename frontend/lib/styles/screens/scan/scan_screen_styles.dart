@@ -390,6 +390,16 @@ abstract final class ScanScreenStyles {
     textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
   );
 
+  // Read-only mode label (the choice above is hidden by default).
+  static const double scanModeLabelIconSize = 18;
+  static const double scanModeLabelIconGap = 6;
+
+  static const TextStyle scanModeLabelStyle = TextStyle(
+    color: primaryColor,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+  );
+
   static const TextStyle scanModeHintStyle = TextStyle(
     color: confirmationBodyColor,
     fontSize: 13,

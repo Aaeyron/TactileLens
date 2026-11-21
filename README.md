@@ -14,8 +14,10 @@ copy and keep.
 
 - **Scan a page** with the camera or from the gallery, with an optional
   crop.
-- **Online or On-device** scanning. Online uses PaddleOCR-VL on a server;
-  On-device runs bundled models on the phone and needs no internet.
+- **Automatic scan mode**: signed in, pages are scanned online
+  (PaddleOCR-VL on a server); as a guest, on the phone with bundled models.
+  Without a connection, a signed-in scan runs on the phone instead and the
+  result says "No connection: scanned on-device."
 - **Braille 2 or Braille 1** for text: contracted UEB (default) or
   uncontracted (every letter spelled out). **Nemeth** for math and table
   rows.
@@ -50,11 +52,14 @@ flowchart LR
 | Signed-in user | chosen before each scan (remembered) | chosen before each scan (remembered) |
 
 - Signed-in users see a privacy notice before their first online scan and
-  can switch to On-device there.
+  can scan that page on the device instead.
 - Online scans go through the backend: 30 per hour and 100 per day per
   user, one at a time.
-- If an online scan fails, the app offers to scan on the device; it never
-  retries online or switches on its own.
+- No connection (no answer to an 8-second check before the upload, a
+  dropped connection, or no answer within the 3-minute scan timeout): the
+  page is scanned on the device automatically, so the scan is never lost.
+  An online scan is never retried. When the server refuses with a reason
+  (scan limit, daily quota), the app says why and offers the device.
 - The result screen says whether the page was processed online or on the
   device.
 

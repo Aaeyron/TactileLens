@@ -108,4 +108,28 @@ void main() {
 
     semantics.dispose();
   });
+
+  testWidgets('no connection: says it was scanned on this device', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle semantics = tester.ensureSemantics();
+
+    await _pump(
+      tester,
+      _result().withProcessingMode(
+        ScanProcessingMode.onDevice,
+        noConnection: true,
+      ),
+    );
+
+    expect(find.text(ScanModeText.processedNoConnection), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        RegExp(RegExp.escape(ScanModeText.processedNoConnection)),
+      ),
+      findsOneWidget,
+    );
+
+    semantics.dispose();
+  });
 }
