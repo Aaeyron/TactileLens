@@ -131,11 +131,6 @@ abstract final class AccountInformationStyles {
 
   static const double decorationRight = 18;
   static const double decorationTop = 65;
-  static const double decorationOpacity = 0.18;
-  static const double decorationWidth = 49;
-  static const double decorationDotSize = 4;
-  static const double decorationDotSpacing = 7;
-  static const int decorationDotCount = 12;
 
   static const double backIconSize = 25;
 

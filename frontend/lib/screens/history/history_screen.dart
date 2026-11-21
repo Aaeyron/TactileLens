@@ -19,6 +19,7 @@ import '../../widgets/document/document_layout_view.dart';
 import '../../widgets/history/history_scan_source.dart';
 import '../../utils/form_keyboard.dart';
 import '../main/tab_data_cache.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 abstract final class _HistoryText {
   static const String screenTitle = 'History';
@@ -855,7 +856,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           const Positioned(
             right: HistoryScreenStyles.headerDecorationRight,
             top: HistoryScreenStyles.headerDecorationTop,
-            child: _HistoryBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1107,36 +1108,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _HistoryBrailleDecoration extends StatelessWidget {
-  const _HistoryBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: HistoryScreenStyles.headerDecorationOpacity,
-      child: SizedBox(
-        width: HistoryScreenStyles.headerDecorationWidth,
-        child: Wrap(
-          spacing: HistoryScreenStyles.headerDotSpacing,
-          runSpacing: HistoryScreenStyles.headerDotSpacing,
-          children: List<Widget>.generate(
-            HistoryScreenStyles.headerDotCount,
-            (_) => Container(
-              width: HistoryScreenStyles.headerDotSize,
-              height: HistoryScreenStyles.headerDotSize,
-              decoration: const BoxDecoration(
-                color: HistoryScreenStyles.surfaceColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            growable: false,
-          ),
-        ),
       ),
     );
   }

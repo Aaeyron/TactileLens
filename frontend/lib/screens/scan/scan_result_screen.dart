@@ -19,6 +19,7 @@ import '../../widgets/braille/braille_mode_selector.dart';
 import '../../widgets/scan/scan_mode_widgets.dart';
 import '../../styles/screens/scan/scan_result_screen_styles.dart';
 import '../../utils/form_keyboard.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 abstract final class _ScanResultText {
   static const String appBarTitle = 'Scan Result';
@@ -261,7 +262,7 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
           const Positioned(
             right: ScanResultScreenStyles.headerDecorationRight,
             bottom: ScanResultScreenStyles.headerDecorationBottom,
-            child: _ScanResultHeaderDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,37 +467,6 @@ class _ScanResultScreenState extends State<ScanResultScreen> {
             style: ScanResultScreenStyles.emptyResultDescriptionStyle,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ScanResultHeaderDecoration extends StatelessWidget {
-  const _ScanResultHeaderDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: ScanResultScreenStyles.headerDecorationOpacity,
-      child: SizedBox(
-        width: ScanResultScreenStyles.headerDecorationWidth,
-        child: Wrap(
-          spacing: ScanResultScreenStyles.headerDotSpacing,
-          runSpacing: ScanResultScreenStyles.headerDotSpacing,
-          children: List<Widget>.generate(
-            ScanResultScreenStyles.headerDotCount,
-            (_) => const DecoratedBox(
-              decoration: BoxDecoration(
-                color: ScanResultScreenStyles.surfaceColor,
-                shape: BoxShape.circle,
-              ),
-              child: SizedBox.square(
-                dimension: ScanResultScreenStyles.headerDotSize,
-              ),
-            ),
-            growable: false,
-          ),
-        ),
       ),
     );
   }

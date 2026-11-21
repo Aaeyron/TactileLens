@@ -12,6 +12,7 @@ import 'account_information_screen.dart';
 import 'privacy_security_screen.dart';
 import 'settings_screen.dart';
 import 'terms_policy_screen.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 abstract final class _ProfileText {
   static const String loadingLabel = 'Loading your profile...';
@@ -429,75 +430,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
         gradient: ProfileStyles.headerGradient,
         borderRadius: ProfileStyles.headerRadius,
       ),
-      child: _isLoadingProfile
-          ? const _ProfileHeaderSkeleton()
-          : SizedBox(
-              height: ProfileStyles.headerContentHeight,
-              child: Stack(
-                children: <Widget>[
-                  Positioned(
-                    left: 0,
-                    right:
-                        ProfileStyles.headerAvatarSize +
-                        ProfileStyles.headerAvatarSpacing,
-                    bottom: ProfileStyles.headerIdentityBottom,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          _displayName,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProfileStyles.profileNameStyle,
-                        ),
-                        const SizedBox(
-                          height: ProfileStyles.profileRoleSpacing,
-                        ),
-                        Text(
-                          _displayRole,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: ProfileStyles.profileRoleStyle,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: ProfileStyles.headerAvatarBottom,
-                    child: Semantics(
-                      button: true,
-                      label: ProfileStyles.editProfileSemanticLabel,
-                      child: Material(
-                        color: Colors.transparent,
-                        shape: const CircleBorder(),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: _openAccountInformation,
-                          customBorder: const CircleBorder(),
-                          child: Container(
-                            width: ProfileStyles.headerAvatarSize,
-                            height: ProfileStyles.headerAvatarSize,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: ProfileStyles.profileAvatarBackgroundColor,
-                              shape: BoxShape.circle,
-                              border: ProfileStyles.avatarBorder,
-                              boxShadow: ProfileStyles.avatarShadow,
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            top: ProfileStyles.headerDotsTop,
+            right: ProfileStyles.headerDotsRight,
+            child: HeaderBrailleDots(),
+          ),
+          _isLoadingProfile
+              ? const _ProfileHeaderSkeleton()
+              : SizedBox(
+                  height: ProfileStyles.headerContentHeight,
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned(
+                        left: 0,
+                        right:
+                            ProfileStyles.headerAvatarSize +
+                            ProfileStyles.headerAvatarSpacing,
+                        bottom: ProfileStyles.headerIdentityBottom,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              _displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: ProfileStyles.profileNameStyle,
                             ),
-                            child: const Icon(
-                              ProfileStyles.profileAvatarIcon,
-                              size: ProfileStyles.headerAvatarIconSize,
-                              color: ProfileStyles.profileAvatarIconColor,
+                            const SizedBox(
+                              height: ProfileStyles.profileRoleSpacing,
+                            ),
+                            Text(
+                              _displayRole,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ProfileStyles.profileRoleStyle,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: ProfileStyles.headerAvatarBottom,
+                        child: Semantics(
+                          button: true,
+                          label: ProfileStyles.editProfileSemanticLabel,
+                          child: Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: _openAccountInformation,
+                              customBorder: const CircleBorder(),
+                              child: Container(
+                                width: ProfileStyles.headerAvatarSize,
+                                height: ProfileStyles.headerAvatarSize,
+                                alignment: Alignment.center,
+                                decoration: const BoxDecoration(
+                                  color: ProfileStyles
+                                      .profileAvatarBackgroundColor,
+                                  shape: BoxShape.circle,
+                                  border: ProfileStyles.avatarBorder,
+                                  boxShadow: ProfileStyles.avatarShadow,
+                                ),
+                                child: const Icon(
+                                  ProfileStyles.profileAvatarIcon,
+                                  size: ProfileStyles.headerAvatarIconSize,
+                                  color: ProfileStyles.profileAvatarIconColor,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+        ],
+      ),
     );
   }
 }

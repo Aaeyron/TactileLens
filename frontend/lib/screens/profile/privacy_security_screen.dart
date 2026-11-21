@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../styles/screens/profile/privacy_security_screen_styles.dart';
 import '../../utils/session_manager.dart';
 import 'change_password_screen.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 enum _AccountSecurityType { guest, password, google, unknown }
 
@@ -202,7 +203,7 @@ class PrivacySecurityScreen extends StatelessWidget {
           const Positioned(
             right: PrivacySecurityScreenStyles.decorationRight,
             bottom: PrivacySecurityScreenStyles.decorationBottom,
-            child: _HeaderBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,40 +845,6 @@ class _PrivacyIcon extends StatelessWidget {
         icon,
         color: PrivacySecurityScreenStyles.primaryColor,
         size: PrivacySecurityScreenStyles.iconSize,
-      ),
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: PrivacySecurityScreenStyles.decorationOpacity,
-      child: SizedBox(
-        width: PrivacySecurityScreenStyles.decorationWidth,
-        child: Wrap(
-          spacing: PrivacySecurityScreenStyles.decorationDotSpacing,
-          runSpacing: PrivacySecurityScreenStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            PrivacySecurityScreenStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: PrivacySecurityScreenStyles.surfaceColor,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: PrivacySecurityScreenStyles.decorationDotSize,
-                  height: PrivacySecurityScreenStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
       ),
     );
   }

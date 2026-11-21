@@ -17,6 +17,7 @@ import '../../styles/screens/materials/material_preview_screen_styles.dart';
 
 import '../../utils/session_manager.dart';
 import '../../widgets/materials/material_file_image.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class MaterialDetailScreen extends StatefulWidget {
   const MaterialDetailScreen({super.key, required this.material});
@@ -233,46 +234,55 @@ class _MaterialDetailScreenState extends State<MaterialDetailScreen> {
         gradient: MaterialDetailScreenStyles.headerGradient,
         borderRadius: MaterialDetailScreenStyles.headerRadius,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            IconButton(
-              tooltip: MaterialDetailScreenStyles.backTooltip,
-              onPressed: () {
-                Navigator.maybePop(context);
-              },
-              style: MaterialDetailScreenStyles.headerBackButtonStyle,
-              icon: const Icon(
-                MaterialDetailScreenStyles.backIcon,
-                size: MaterialDetailScreenStyles.headerIconSize,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    MaterialDetailScreenStyles.screenTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: MaterialDetailScreenStyles.headerTitleStyle,
+      child: Stack(
+        children: <Widget>[
+          const Positioned(
+            right: MaterialDetailScreenStyles.headerDotsRight,
+            bottom: MaterialDetailScreenStyles.headerDotsBottom,
+            child: HeaderBrailleDots(),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                  tooltip: MaterialDetailScreenStyles.backTooltip,
+                  onPressed: () {
+                    Navigator.maybePop(context);
+                  },
+                  style: MaterialDetailScreenStyles.headerBackButtonStyle,
+                  icon: const Icon(
+                    MaterialDetailScreenStyles.backIcon,
+                    size: MaterialDetailScreenStyles.headerIconSize,
                   ),
-                  SizedBox(height: 5),
-                  Text(
-                    MaterialDetailScreenStyles.screenSubtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: MaterialDetailScreenStyles.headerSubtitleStyle,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        MaterialDetailScreenStyles.screenTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: MaterialDetailScreenStyles.headerTitleStyle,
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        MaterialDetailScreenStyles.screenSubtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: MaterialDetailScreenStyles.headerSubtitleStyle,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

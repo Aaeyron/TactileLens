@@ -93,11 +93,6 @@ abstract final class ScanResultScreenStyles {
 
   static const double headerDecorationRight = 18;
   static const double headerDecorationBottom = 20;
-  static const double headerDecorationOpacity = 0.18;
-  static const double headerDecorationWidth = 49;
-  static const double headerDotSize = 4;
-  static const double headerDotSpacing = 7;
-  static const int headerDotCount = 12;
 
   static const IconData backIcon = Icons.arrow_back_rounded;
 

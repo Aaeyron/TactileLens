@@ -7,6 +7,7 @@ import '../../utils/form_keyboard.dart';
 import '../../utils/session_manager.dart';
 import '../auth/auth_screen.dart';
 import 'privacy_security_screen.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class AccountInformationScreen extends StatefulWidget {
   const AccountInformationScreen({super.key});
@@ -331,7 +332,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
                 const Positioned(
                   right: AccountInformationStyles.decorationRight,
                   top: AccountInformationStyles.decorationTop,
-                  child: _HeaderBrailleDecoration(),
+                  child: HeaderBrailleDots(),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1370,40 +1371,6 @@ class _NoticeCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: AccountInformationStyles.decorationOpacity,
-      child: SizedBox(
-        width: AccountInformationStyles.decorationWidth,
-        child: Wrap(
-          spacing: AccountInformationStyles.decorationDotSpacing,
-          runSpacing: AccountInformationStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            AccountInformationStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: AccountInformationStyles.decorationDotSize,
-                  height: AccountInformationStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
       ),
     );
   }

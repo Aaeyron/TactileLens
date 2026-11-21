@@ -103,11 +103,6 @@
     static const double headerBrailleRight = 3;
     static const double headerBrailleBottom = 25;
 
-    static const double heroDecorationOpacity = 0.18;
-    static const double heroDecorationWidth = 45;
-    static const double heroDotSize = 4;
-    static const double heroDotSpacing = 7;
-    static const int heroDotCount = 12;
 
     static const double notificationButtonSize = 42;
 

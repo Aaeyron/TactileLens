@@ -134,11 +134,6 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
 
   static const double headerDecorationRight = 2;
   static const double headerDecorationTop = 25;
-  static const double headerDecorationOpacity = 0.18;
-  static const double headerDecorationWidth = 47;
-  static const double headerDotSize = 4;
-  static const double headerDotSpacing = 7;
-  static const int headerDotCount = 12;
 
   // ============================================================
   // SEARCH
