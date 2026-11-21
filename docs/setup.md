@@ -102,7 +102,7 @@ allows plain HTTP (`usesCleartextTraffic`), which is for local
 development only.
 
 On-device scanning needs the ONNX models, which are **not in git**
-(about 390 MB): `frontend/android/app/src/main/assets/paddle_onnx/` is
+(about 620 MB): `frontend/android/app/src/main/assets/paddle_onnx/` is
 gitignored, so a fresh clone fails to scan offline until they are added.
 The app needs exactly these files (sizes in bytes):
 
@@ -113,8 +113,9 @@ The app needs exactly these files (sizes in bytes):
 | `PP-OCRv6-small-rec-onnx/inference.onnx` + `inference.yml` | 21,154,056 + 150,579 | PaddleOCR PP-OCRv6_small_rec, ONNX export; `inference.yml` holds the character dictionary | `PaddleOnnxOcrEngine.kt` |
 | `PP-FormulaNet_plus-S/pp-formulanet_plus-s.onnx` | 231,878,904 | PaddleX PP-FormulaNet_plus-S, exported to ONNX | `PaddleOnnxFormulaRecognizer.kt` |
 | `PP-FormulaNet_plus-S/pp-formulanet_vocab.json` | 574,189 | Generated from the model's `pp-formulanet-tokenizer.json` by `tools/model_prep/export_formula_vocab.py` | `PaddleOnnxFormulaRecognizer.kt` |
+| `PP-FormulaNet_plus-S-own-v3/pp-formulanet_plus-s-own-v3.onnx` | 231,875,332 | PP-FormulaNet_plus-S fine-tuned on our own worksheets (Track A v3, run `20261119-195814_trackA_v2+synthetic+crops-v3_own-pseudo-v3`, `onnx/inference.onnx`, sha256 `be438695…f7f`); the check model of the agreement check | `PaddleOnnxFormulaRecognizer.kt` (`OfflineModelFiles.FORMULA_CHECK`) |
 
-All are pretrained models; none is fine-tuned. Keep the folder and file
+All are pretrained models except the check model (`PP-FormulaNet_plus-S-own-v3`), which is fine-tuned on our own worksheets. Agreement check: every formula is read by both formula models and shown only when both give the same Braille input; otherwise it is held for review (`FormulaAgreement.kt`, `offline_agreement_holds.dart`). Keep the folder and file
 names exactly as above: the Kotlin code loads them by these paths. The
 exact export commands were not recorded; record them here when a model is
 re-exported. (`PP-DocLayout-S-onnx` and `PP-FormulaNet-plus-S-onnx` were

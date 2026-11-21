@@ -44,10 +44,11 @@ class OfflineModelFilesTest {
     }
 
     @Test
-    fun theFourModelsAreDistinctAndTheCopiedOnesHaveAPath() {
-        assertEquals(4, OfflineModelFiles.ALL.map { it.asset }.toSet().size)
+    fun theFiveModelsAreDistinctAndTheCopiedOnesHaveAPath() {
+        // Five since the agreement check: the formula check model (Track A v3).
+        assertEquals(5, OfflineModelFiles.ALL.map { it.asset }.toSet().size)
         assertEquals(
-            listOf("page layout", "formula"),
+            listOf("page layout", "formula", "formula check"),
             OfflineModelFiles.ALL.filter { it.installedPath != null }.map { it.name },
         )
     }

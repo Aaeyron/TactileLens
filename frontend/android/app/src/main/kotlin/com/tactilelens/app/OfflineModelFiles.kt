@@ -66,6 +66,19 @@ object OfflineModelFiles {
         installedPath = "paddle_onnx_models/pp-formulanet_plus-s.v1.onnx",
     )
 
+    /**
+     * Second formula model for the agreement check: PP-FormulaNet_plus-S
+     * fine-tuned on our own worksheets (Track A v3). A formula is shown only
+     * when both models give the same Braille input; otherwise it is held.
+     */
+    val FORMULA_CHECK = Model(
+        name = "formula check",
+        asset = "paddle_onnx/PP-FormulaNet_plus-S-own-v3/pp-formulanet_plus-s-own-v3.onnx",
+        size = 231_875_332L,
+        sha256 = "be4386954968b6045ae6646228de6e93cbe5b881c0945b5c4176e2eef2130f7f",
+        installedPath = "paddle_onnx_models/pp-formulanet_plus-s-own-v3.v1.onnx",
+    )
+
     val TEXT_DETECTION = Model(
         name = "text detection",
         asset = "paddle_onnx/PP-OCRv6-tiny-det-onnx/inference.onnx",
@@ -82,7 +95,7 @@ object OfflineModelFiles {
         installedPath = null,
     )
 
-    val ALL = listOf(LAYOUT, FORMULA, TEXT_DETECTION, TEXT_RECOGNITION)
+    val ALL = listOf(LAYOUT, FORMULA, FORMULA_CHECK, TEXT_DETECTION, TEXT_RECOGNITION)
 
     /** Small files the models need next to them (vocabulary, configs). */
     private val SUPPORT_ASSETS = listOf(

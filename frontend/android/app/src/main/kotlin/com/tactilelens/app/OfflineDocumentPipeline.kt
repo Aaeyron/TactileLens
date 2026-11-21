@@ -1151,22 +1151,28 @@ object OfflineDocumentPipeline {
         val split = if (splitLabel) splitListLabel(box, lines) else LabelledBox(box, null)
 
         return try {
-            val result = PaddleOnnxFormulaRecognizer.recognizeFile(
+            // Both formula models read the same crop (agreement check).
+            val result = PaddleOnnxFormulaRecognizer.recognizeFileWithCheck(
                 context = context,
                 imagePath = imagePath,
                 threadCount = threadCount,
                 box = split.box.toFloatArray(),
             )
 
-            val cleaned = cleanLatex(result["latex"] as? String ?: "")
-            val latex = if (cleaned.isNotBlank() && split.label != null) {
+            fun withLabel(cleaned: String) = if (cleaned.isNotBlank() && split.label != null) {
                 "\\text{${split.label}}\\ $cleaned"
             } else {
                 cleaned
             }
+
+            val latex = withLabel(cleanLatex(result["latex"] as? String ?: ""))
+            val checkLatex = (result["check_latex"] as? String)?.let { withLabel(cleanLatex(it)) }
             val reachedEnd = result["reached_end"] == true
 
             mapOf(
+                "check_latex" to checkLatex,
+                "readings_agree" to FormulaAgreement.agrees(latex, checkLatex),
+                "check_time_ms" to result["check_time_ms"],
                 "type" to "formula",
                 "label" to label,
                 "content" to latex,

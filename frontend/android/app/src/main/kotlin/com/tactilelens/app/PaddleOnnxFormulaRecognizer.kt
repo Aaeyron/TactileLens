@@ -48,14 +48,20 @@ object PaddleOnnxFormulaRecognizer {
 
     private val lock = Mutex()
 
+    /** One loaded model: the app's formula model, or the agreement check model. */
+    private class Slot(val model: OfflineModelFiles.Model) {
+        var options: OrtSession.SessionOptions? = null
+        var session: OrtSession? = null
+        var inputName: String = "x"
+        var threads = 0
+        var coldLoadTimeMs = 0L
+    }
+
     // Guarded by lock. The OrtEnvironment is a process-wide singleton
     // shared with other ONNX sessions, so it is never closed here.
     private var environment: OrtEnvironment? = null
-    private var sessionOptions: OrtSession.SessionOptions? = null
-    private var session: OrtSession? = null
-    private var inputName: String = "x"
-    private var loadedThreadCount = 0
-    private var coldLoadTimeMs = 0L
+    private val main = Slot(OfflineModelFiles.FORMULA)
+    private val check = Slot(OfflineModelFiles.FORMULA_CHECK)
 
     private var vocabulary: Array<String>? = null
     private var specialIds: Set<Int> = emptySet()
@@ -69,13 +75,14 @@ object PaddleOnnxFormulaRecognizer {
         val safeThreadCount = threadCount.coerceIn(MIN_THREADS, MAX_THREADS)
 
         lock.withLock {
-            getOrCreateSessionLocked(context, safeThreadCount)
+            getOrCreateSessionLocked(context, safeThreadCount, main)
+            getOrCreateSessionLocked(context, safeThreadCount, check)
 
             mapOf(
                 "success" to true,
                 "loaded" to true,
                 "thread_count" to safeThreadCount,
-                "cold_load_time_ms" to coldLoadTimeMs,
+                "cold_load_time_ms" to main.coldLoadTimeMs + check.coldLoadTimeMs,
             )
         }
     }
@@ -93,6 +100,30 @@ object PaddleOnnxFormulaRecognizer {
         threadCount: Int,
         box: FloatArray? = null,
     ): Map<String, Any?> = withContext(Dispatchers.Default) {
+        recognizeLocked(context, imagePath, threadCount, box, withCheck = false)
+    }
+
+    /**
+     * Like [recognizeFile], and the same crop is also read by the check model
+     * (one preprocessing, two models). Adds "check_latex",
+     * "check_reached_end" and "check_time_ms".
+     */
+    suspend fun recognizeFileWithCheck(
+        context: Context,
+        imagePath: String,
+        threadCount: Int,
+        box: FloatArray? = null,
+    ): Map<String, Any?> = withContext(Dispatchers.Default) {
+        recognizeLocked(context, imagePath, threadCount, box, withCheck = true)
+    }
+
+    private suspend fun recognizeLocked(
+        context: Context,
+        imagePath: String,
+        threadCount: Int,
+        box: FloatArray?,
+        withCheck: Boolean,
+    ): Map<String, Any?> {
         val normalizedPath = imagePath.trim()
 
         require(normalizedPath.isNotEmpty()) {
@@ -111,8 +142,9 @@ object PaddleOnnxFormulaRecognizer {
 
         val safeThreadCount = threadCount.coerceIn(MIN_THREADS, MAX_THREADS)
 
-        lock.withLock {
-            val ortSession = getOrCreateSessionLocked(context, safeThreadCount)
+        return lock.withLock {
+            val ortSession = getOrCreateSessionLocked(context, safeThreadCount, main)
+            val checkSession = if (withCheck) getOrCreateSessionLocked(context, safeThreadCount, check) else null
             val env = checkNotNull(environment) {
                 "ONNX Runtime environment is not available."
             }
@@ -132,18 +164,36 @@ object PaddleOnnxFormulaRecognizer {
                 pixels,
                 longArrayOf(1, 1, INPUT_SIZE.toLong(), INPUT_SIZE.toLong()),
             ).use { input ->
-                ortSession.run(mapOf(inputName to input)).use { outputs ->
+                ortSession.run(mapOf(main.inputName to input)).use { outputs ->
                     readTokenIds(outputs)
                 }
             }
             val inferenceMs = SystemClock.elapsedRealtime() - inferenceStart
+
+            // The check model reads the very same pixels.
+            val checkStart = SystemClock.elapsedRealtime()
+            val checkIds = checkSession?.let { second ->
+                pixels.rewind()
+                OnnxTensor.createTensor(
+                    env,
+                    pixels,
+                    longArrayOf(1, 1, INPUT_SIZE.toLong(), INPUT_SIZE.toLong()),
+                ).use { input ->
+                    second.run(mapOf(check.inputName to input)).use { outputs ->
+                        readTokenIds(outputs)
+                    }
+                }
+            }
+            val checkDecoded = checkIds?.let { decodeTokens(it) }
+            val checkLatex = checkDecoded?.let { normalizeLatex(it.text) }
+            val checkMs = SystemClock.elapsedRealtime() - checkStart
 
             val decodeStart = SystemClock.elapsedRealtime()
             val decoded = decodeTokens(tokenIds)
             val latex = normalizeLatex(decoded.text)
             val decodeMs = SystemClock.elapsedRealtime() - decodeStart
 
-            mapOf(
+            val result = mutableMapOf<String, Any?>(
                 "success" to latex.isNotBlank(),
                 "latex" to latex,
                 "raw_latex" to decoded.text,
@@ -153,16 +203,23 @@ object PaddleOnnxFormulaRecognizer {
                 "inference_time_ms" to inferenceMs,
                 "decode_time_ms" to decodeMs,
                 "total_time_ms" to (preprocessMs + inferenceMs + decodeMs),
-                "cold_load_time_ms" to coldLoadTimeMs,
+                "cold_load_time_ms" to main.coldLoadTimeMs,
                 "thread_count" to safeThreadCount,
             )
+            if (checkLatex != null) {
+                result["check_latex"] = checkLatex
+                result["check_reached_end"] = checkDecoded.reachedEnd
+                result["check_time_ms"] = checkMs
+            }
+            result
         }
     }
 
     suspend fun release() {
         withContext(Dispatchers.Default) {
             lock.withLock {
-                closeSessionLocked()
+                closeSessionLocked(main)
+                closeSessionLocked(check)
             }
         }
     }
@@ -175,14 +232,15 @@ object PaddleOnnxFormulaRecognizer {
     private fun getOrCreateSessionLocked(
         context: Context,
         threadCount: Int,
+        slot: Slot,
     ): OrtSession {
-        val current = session
+        val current = slot.session
 
-        if (current != null && loadedThreadCount == threadCount) {
+        if (current != null && slot.threads == threadCount) {
             return current
         }
 
-        closeSessionLocked()
+        closeSessionLocked(slot)
 
         val loadStart = SystemClock.elapsedRealtime()
 
@@ -192,7 +250,7 @@ object PaddleOnnxFormulaRecognizer {
             loadVocabulary(appContext)
         }
 
-        val modelFile = OfflineModelFiles.installedFile(context, OfflineModelFiles.FORMULA)
+        val modelFile = OfflineModelFiles.installedFile(context, slot.model)
         val env = environment
             ?: OrtEnvironment.getEnvironment().also { environment = it }
 
@@ -209,26 +267,26 @@ object PaddleOnnxFormulaRecognizer {
             // A copy ONNX Runtime cannot open is dropped, so the next
             // attempt copies it again instead of failing every time.
             options.close()
-            OfflineModelFiles.discardInstalled(context, OfflineModelFiles.FORMULA)
-            throw OfflineModelFiles.loadFailed(OfflineModelFiles.FORMULA, error)
+            OfflineModelFiles.discardInstalled(context, slot.model)
+            throw OfflineModelFiles.loadFailed(slot.model, error)
         }
 
-        inputName = created.inputNames.firstOrNull() ?: "x"
-        sessionOptions = options
-        session = created
-        loadedThreadCount = threadCount
-        coldLoadTimeMs = SystemClock.elapsedRealtime() - loadStart
+        slot.inputName = created.inputNames.firstOrNull() ?: "x"
+        slot.options = options
+        slot.session = created
+        slot.threads = threadCount
+        slot.coldLoadTimeMs = SystemClock.elapsedRealtime() - loadStart
 
         return created
     }
 
     /** Must only be called while holding [lock]. */
-    private fun closeSessionLocked() {
-        session?.close()
-        session = null
-        sessionOptions?.close()
-        sessionOptions = null
-        loadedThreadCount = 0
+    private fun closeSessionLocked(slot: Slot) {
+        slot.session?.close()
+        slot.session = null
+        slot.options?.close()
+        slot.options = null
+        slot.threads = 0
     }
 
     private fun loadVocabulary(context: Context) {
