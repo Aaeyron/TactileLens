@@ -16,6 +16,7 @@ import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
 import '../../utils/form_keyboard.dart';
 import '../main/tab_data_cache.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 abstract final class _MaterialText {
   static const String pageTitle = 'Materials';
@@ -1540,7 +1541,7 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
           const Positioned(
             right: MaterialScreenStyles.headerDecorationRight,
             top: MaterialScreenStyles.headerDecorationTop,
-            child: _MaterialBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1811,36 +1812,6 @@ class _MaterialsScreenState extends State<MaterialsScreen> {
     final String type = material.fileType.toLowerCase();
 
     return type.contains('pdf');
-  }
-}
-
-class _MaterialBrailleDecoration extends StatelessWidget {
-  const _MaterialBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: MaterialScreenStyles.headerDecorationOpacity,
-      child: SizedBox(
-        width: MaterialScreenStyles.headerDecorationWidth,
-        child: Wrap(
-          spacing: MaterialScreenStyles.headerDotSpacing,
-          runSpacing: MaterialScreenStyles.headerDotSpacing,
-          children: List<Widget>.generate(
-            MaterialScreenStyles.headerDotCount,
-            (_) => Container(
-              width: MaterialScreenStyles.headerDotSize,
-              height: MaterialScreenStyles.headerDotSize,
-              decoration: const BoxDecoration(
-                color: MaterialScreenStyles.surfaceColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            growable: false,
-          ),
-        ),
-      ),
-    );
   }
 }
 

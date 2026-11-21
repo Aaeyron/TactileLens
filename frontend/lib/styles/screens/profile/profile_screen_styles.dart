@@ -110,6 +110,10 @@ abstract final class ProfileStyles {
   );
 
   static const double headerAvatarSize = 91;
+
+  // Braille dots (HeaderBrailleDots), top-right above the avatar.
+  static const double headerDotsTop = 0;
+  static const double headerDotsRight = 0;
   static const double headerAvatarIconSize = 59;
   static const double headerAvatarSpacing = 14;
   static const double headerAvatarBottom = 10;

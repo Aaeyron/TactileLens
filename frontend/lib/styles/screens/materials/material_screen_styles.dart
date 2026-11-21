@@ -43,7 +43,6 @@ abstract final class MaterialScreenStyles {
   static const Color addFolderOutlineColor = Color(0xFFCCD7EA);
   static const Color selectedFolderBackgroundColor = Color(0xFFEDF3FB);
 
-
   static const Color dangerColor = Color(0xFFDC2626);
   static const Color dangerBackgroundColor = Color(0xFFFFF5F5);
   static const Color dangerBorderColor = Color(0xFFFECACA);
@@ -92,16 +91,11 @@ abstract final class MaterialScreenStyles {
   // FULL-WIDTH HEADER
   // ============================================================
 
-  
-static const LinearGradient pageHeaderGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: <Color>[
-    Color(0xFF165CC4),
-    Color(0xFF003797),
-  ],
-);
-
+  static const LinearGradient pageHeaderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[Color(0xFF165CC4), Color(0xFF003797)],
+  );
 
   static const EdgeInsets pageHeaderPadding = EdgeInsets.zero;
 
@@ -116,16 +110,14 @@ static const LinearGradient pageHeaderGradient = LinearGradient(
 
   static const Border pageHeaderBorder = Border();
 
-  
-static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
-  BoxShadow(
-    color: Color(0x22003797),
-    blurRadius: 24,
-    spreadRadius: -8,
-    offset: Offset(0, 10),
-  ),
-];
-
+  static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x22003797),
+      blurRadius: 24,
+      spreadRadius: -8,
+      offset: Offset(0, 10),
+    ),
+  ];
 
   static const Color pageHeaderBackgroundColor = primaryColor;
 
@@ -134,11 +126,6 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
 
   static const double headerDecorationRight = 2;
   static const double headerDecorationTop = 25;
-  static const double headerDecorationOpacity = 0.18;
-  static const double headerDecorationWidth = 47;
-  static const double headerDotSize = 4;
-  static const double headerDotSpacing = 7;
-  static const int headerDotCount = 12;
 
   // ============================================================
   // SEARCH
@@ -237,8 +224,8 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
       blurRadius: 16,
       spreadRadius: -3,
       offset: Offset(0, 5),
-    ), 
-    BoxShadow(color: Color(0x08003797), blurRadius: 5, offset: Offset(0, 1))
+    ),
+    BoxShadow(color: Color(0x08003797), blurRadius: 5, offset: Offset(0, 1)),
   ];
 
   static const Color warmFolderBackgroundColor = surfaceColor;
@@ -371,9 +358,8 @@ static const List<BoxShadow> pageHeaderShadow = <BoxShadow>[
       spreadRadius: -5,
       offset: Offset(0, 9),
     ),
-    
-BoxShadow(color: Color(0x0A003797), blurRadius: 7, offset: Offset(0, 2)),
 
+    BoxShadow(color: Color(0x0A003797), blurRadius: 7, offset: Offset(0, 2)),
   ];
 
   static const List<BoxShadow> subtleCardShadow = <BoxShadow>[
@@ -461,8 +447,7 @@ BoxShadow(color: Color(0x0A003797), blurRadius: 7, offset: Offset(0, 2)),
   );
 
   static const Color folderPickerBackgroundColor = Color(0xFFF8FAFC);
-static const Color folderPickerSelectedColor = Color(0xFFEDF3FB);
-
+  static const Color folderPickerSelectedColor = Color(0xFFEDF3FB);
 
   // ============================================================
   // SNACKBAR

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/about_tactilelens_screen_styles.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class AboutTactileLensScreen extends StatelessWidget {
   const AboutTactileLensScreen({super.key});
@@ -158,7 +159,7 @@ class AboutTactileLensScreen extends StatelessWidget {
           const Positioned(
             right: AboutTactileLensScreenStyles.decorationRight,
             bottom: AboutTactileLensScreenStyles.decorationBottom,
-            child: _HeaderBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -582,40 +583,6 @@ class _IconContainer extends StatelessWidget {
         size: compact
             ? AboutTactileLensScreenStyles.compactIconSize
             : AboutTactileLensScreenStyles.informationIconSize,
-      ),
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: AboutTactileLensScreenStyles.decorationOpacity,
-      child: SizedBox(
-        width: AboutTactileLensScreenStyles.decorationWidth,
-        child: Wrap(
-          spacing: AboutTactileLensScreenStyles.decorationDotSpacing,
-          runSpacing: AboutTactileLensScreenStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            AboutTactileLensScreenStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AboutTactileLensScreenStyles.surfaceColor,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: AboutTactileLensScreenStyles.decorationDotSize,
-                  height: AboutTactileLensScreenStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
       ),
     );
   }

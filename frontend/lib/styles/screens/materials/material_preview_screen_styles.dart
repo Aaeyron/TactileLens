@@ -28,6 +28,10 @@ abstract final class MaterialDetailScreenStyles {
 
   static const EdgeInsets headerPadding = EdgeInsets.fromLTRB(14, 10, 20, 24);
 
+  // Braille dots (HeaderBrailleDots), bottom-right inside the padding.
+  static const double headerDotsRight = 12;
+  static const double headerDotsBottom = 0;
+
   static const BorderRadius headerRadius = BorderRadius.only(
     bottomLeft: Radius.circular(28),
     bottomRight: Radius.circular(28),

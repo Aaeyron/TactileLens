@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../styles/screens/profile/terms_policy_screen_styles.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class TermsPolicyScreen extends StatefulWidget {
   const TermsPolicyScreen({super.key});
@@ -223,7 +224,7 @@ class _TermsPolicyScreenState extends State<TermsPolicyScreen> {
           const Positioned(
             right: TermsPolicyScreenStyles.decorationRight,
             bottom: TermsPolicyScreenStyles.decorationBottom,
-            child: _HeaderBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,40 +710,6 @@ class _PolicyIcon extends StatelessWidget {
         color: highlighted
             ? TermsPolicyScreenStyles.surfaceColor
             : TermsPolicyScreenStyles.primaryColor,
-      ),
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: TermsPolicyScreenStyles.decorationOpacity,
-      child: SizedBox(
-        width: TermsPolicyScreenStyles.decorationWidth,
-        child: Wrap(
-          spacing: TermsPolicyScreenStyles.decorationDotSpacing,
-          runSpacing: TermsPolicyScreenStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            TermsPolicyScreenStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: TermsPolicyScreenStyles.surfaceColor,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: TermsPolicyScreenStyles.decorationDotSize,
-                  height: TermsPolicyScreenStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
       ),
     );
   }

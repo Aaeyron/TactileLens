@@ -10,6 +10,7 @@ import '../../utils/session_manager.dart';
 import '../../widgets/common/skeleton.dart';
 import '../../widgets/materials/material_file_image.dart';
 import '../main/tab_data_cache.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 abstract final class _HomeText {
   static const String greetingPrefix = 'Hi';
@@ -407,12 +408,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const Positioned(
             right: HomeStyles.headerBrailleRight,
             bottom: HomeStyles.headerBrailleBottom,
-            child: _BrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
-            mainAxisSize: fixedHeight
-                ? MainAxisSize.max
-                : MainAxisSize.min,
+            mainAxisSize: fixedHeight ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               // Keeps the header's spacing. There is no
@@ -428,9 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: HomeStyles.greetingStyle,
                 ),
-                const SizedBox(
-                  height: HomeStyles.greetingSubtitleSpacing,
-                ),
+                const SizedBox(height: HomeStyles.greetingSubtitleSpacing),
                 Text(
                   _greetingDescription(),
                   style: HomeStyles.greetingDescriptionStyle,
@@ -621,36 +618,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           );
         }, growable: false),
-      ),
-    );
-  }
-}
-
-class _BrailleDecoration extends StatelessWidget {
-  const _BrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: HomeStyles.heroDecorationOpacity,
-      child: SizedBox(
-        width: HomeStyles.heroDecorationWidth,
-        child: Wrap(
-          spacing: HomeStyles.heroDotSpacing,
-          runSpacing: HomeStyles.heroDotSpacing,
-          children: List<Widget>.generate(
-            HomeStyles.heroDotCount,
-            (_) => Container(
-              width: HomeStyles.heroDotSize,
-              height: HomeStyles.heroDotSize,
-              decoration: const BoxDecoration(
-                color: HomeStyles.surfaceColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            growable: false,
-          ),
-        ),
       ),
     );
   }

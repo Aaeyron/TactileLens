@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../services/auth/auth_service.dart';
 import '../../styles/screens/profile/change_password_screen_styles.dart';
 import '../../utils/form_keyboard.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -346,7 +347,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           const Positioned(
             right: ChangePasswordScreenStyles.decorationRight,
             bottom: ChangePasswordScreenStyles.decorationBottom,
-            child: _HeaderBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -688,40 +689,6 @@ class _RequirementRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: ChangePasswordScreenStyles.decorationOpacity,
-      child: SizedBox(
-        width: ChangePasswordScreenStyles.decorationWidth,
-        child: Wrap(
-          spacing: ChangePasswordScreenStyles.decorationDotSpacing,
-          runSpacing: ChangePasswordScreenStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            ChangePasswordScreenStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: ChangePasswordScreenStyles.surfaceColor,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: ChangePasswordScreenStyles.decorationDotSize,
-                  height: ChangePasswordScreenStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
-      ),
     );
   }
 }

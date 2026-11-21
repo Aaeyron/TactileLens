@@ -7,6 +7,7 @@ import '../../services/braille/braille_mode_translator.dart';
 import '../../services/settings/settings_service.dart';
 import '../../styles/screens/profile/settings_screen_styles.dart';
 import '../../widgets/braille/braille_mode_selector.dart';
+import '../../widgets/common/header_braille_dots.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -271,7 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Positioned(
             right: SettingsScreenStyles.decorationRight,
             bottom: SettingsScreenStyles.decorationBottom,
-            child: _HeaderBrailleDecoration(),
+            child: HeaderBrailleDots(),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,40 +552,6 @@ class _SettingsIcon extends StatelessWidget {
         color: isDanger
             ? SettingsScreenStyles.dangerColor
             : SettingsScreenStyles.primaryColor,
-      ),
-    );
-  }
-}
-
-class _HeaderBrailleDecoration extends StatelessWidget {
-  const _HeaderBrailleDecoration();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: SettingsScreenStyles.decorationOpacity,
-      child: SizedBox(
-        width: SettingsScreenStyles.decorationWidth,
-        child: Wrap(
-          spacing: SettingsScreenStyles.decorationDotSpacing,
-          runSpacing: SettingsScreenStyles.decorationDotSpacing,
-          children: List<Widget>.generate(
-            SettingsScreenStyles.decorationDotCount,
-            (int index) {
-              return const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: SettingsScreenStyles.surfaceColor,
-                  shape: BoxShape.circle,
-                ),
-                child: SizedBox(
-                  width: SettingsScreenStyles.decorationDotSize,
-                  height: SettingsScreenStyles.decorationDotSize,
-                ),
-              );
-            },
-            growable: false,
-          ),
-        ),
       ),
     );
   }
