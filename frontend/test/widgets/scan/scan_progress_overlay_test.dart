@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/ai/scan_processing_mode.dart';
 import 'package:mobile/models/ai/scan_stage.dart';
 import 'package:mobile/services/scan/scan_run.dart';
+import 'package:mobile/styles/widgets/scan/scan_progress_overlay_styles.dart';
 import 'package:mobile/widgets/scan/scan_progress_overlay.dart';
 
 const String _scanning = 'Scanning your document…';
@@ -401,6 +403,34 @@ void main() {
           lessThan(0.35),
           reason: 't = $t',
         );
+      }
+    });
+
+    test('white dots and the gold check stand out on the navy card', () {
+      double contrast(Color a, Color b) {
+        final double la = a.computeLuminance(), lb = b.computeLuminance();
+        return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+      }
+
+      // The card is slightly see-through; judge it at its darkest-likely
+      // backdrop (black) and the brightest one (white camera frame).
+      const Color card = ScanProgressOverlayStyles.cardColor;
+      for (final Color backdrop in <Color>[Colors.black, Colors.white]) {
+        final Color cardOn = Color.alphaBlend(card, backdrop);
+        expect(
+          contrast(ScanProgressOverlayStyles.raisedDotColor, cardOn),
+          greaterThan(7),
+        );
+        expect(
+          contrast(ScanProgressOverlayStyles.checkColor, cardOn),
+          greaterThan(4.5),
+        );
+        // Unraised positions are a faint hint, clearly below the raised dots.
+        final Color empty = Color.alphaBlend(
+          ScanProgressOverlayStyles.emptyDotColor,
+          cardOn,
+        );
+        expect(contrast(empty, cardOn), lessThan(3));
       }
     });
 

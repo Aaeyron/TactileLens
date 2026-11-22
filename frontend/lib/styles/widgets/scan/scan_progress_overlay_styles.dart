@@ -32,18 +32,22 @@ abstract final class ScanProgressOverlayStyles {
   /// The check mark when the result is ready.
   static const Duration checkDuration = Duration(milliseconds: 320);
 
-  // Colors: navy and gold on the scan screen's dark card.
+  // Colors: white dots on the scan screen's navy card; gold only for the
+  // finish check mark.
   static const Color scrimColor = ScanScreenStyles.processingOverlayColor;
   static const Color cardColor = Color(0xE6020B16);
   static const Color cardBorderColor =
       ScanScreenStyles.activeControlBorderColor;
 
-  /// Raised dots and the check mark (gold; about 11:1 on the card).
-  static const Color raisedDotColor = Color(0xFFF2B84B);
+  /// Raised dots (white).
+  static const Color raisedDotColor = Color(0xFFFFFFFF);
   static const Color dotShadowColor = Color(0x66000000);
 
-  /// Unraised positions (navy).
-  static const Color emptyDotColor = Color(0x80165CC4);
+  /// Unraised positions (faint white, 20%).
+  static const Color emptyDotColor = Color(0x33FFFFFF);
+
+  /// The finish check mark (gold).
+  static const Color checkColor = Color(0xFFF2B84B);
 
   // Braille cells (a cell is 2 dots wide and 3 dots high)
   static const double dotRadius = 5;
