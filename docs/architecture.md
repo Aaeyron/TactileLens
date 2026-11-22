@@ -75,7 +75,7 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   must not run beside it. The confirmation sheet before a scan states the
   same limit: "Processing can take up to 3 minutes."
 - **While a scan runs** (`ScanProgressOverlay`): four Braille cells
-  spelling "scan" are written dot by dot (gold on navy), fade, and repeat.
+  spelling "scan" are written dot by dot (white on the navy card; the finish check mark is gold), fade, and repeat.
   Under them, one line names the real step, reported by `AIService.stage`
   (`ScanStage`):
   - online: "Checking the connection…", then "Reading the page online…";

@@ -322,8 +322,8 @@ class ScanProgressOverlayState extends State<ScanProgressOverlay>
 
 /// Four Braille cells spelling "scan", written dot by dot. Dots are
 /// numbered as in Braille: 1-3 down the left column, 4-6 down the right.
-/// Unraised positions stay as small navy dots. Painted from the animation
-/// values only (no widget rebuilds per frame).
+/// Unraised positions stay as small faint white dots. Painted from the
+/// animation values only (no widget rebuilds per frame).
 @visibleForTesting
 class BrailleWritingPainter extends CustomPainter {
   BrailleWritingPainter({
@@ -460,7 +460,7 @@ class BrailleWritingPainter extends CustomPainter {
     }
   }
 
-  /// A gold check mark in its slot, drawn on as [amount] goes 0..1.
+  /// The gold check mark in its slot, drawn on as [amount] goes 0..1.
   void _paintCheck(Canvas canvas, double amount) {
     if (amount <= 0) {
       return;
@@ -475,7 +475,7 @@ class BrailleWritingPainter extends CustomPainter {
       ..lineTo(x0 + s * 0.90, cy - s * 0.26);
 
     final Paint stroke = Paint()
-      ..color = ScanProgressOverlayStyles.raisedDotColor
+      ..color = ScanProgressOverlayStyles.checkColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = ScanProgressOverlayStyles.checkStroke
       ..strokeCap = StrokeCap.round
