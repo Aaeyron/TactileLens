@@ -35,6 +35,9 @@ class HistoryService {
     String? modelName,
     String? pipelineVersion,
     double? processingTimeMs,
+    // Signed in only: a repeat of a save with the same key is not stored
+    // twice by the server (an offline scan that syncs later).
+    String? idempotencyKey,
   }) async {
     final String cleanTitle = title.trim();
 
@@ -65,7 +68,10 @@ class HistoryService {
     final http.Response response = await _send(
       () async => _client.post(
         uri,
-        headers: await _authorizedHeaders(),
+        headers: <String, String>{
+          ...await _authorizedHeaders(),
+          'Idempotency-Key': ?idempotencyKey,
+        },
         body: jsonEncode(<String, dynamic>{
           'title': cleanTitle,
           'recognized_content': recognizedContent.trim(),

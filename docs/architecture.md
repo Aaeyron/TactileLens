@@ -101,6 +101,21 @@ From `frontend/lib/screens/scan/scan_screen.dart`,
   database change; records saved without a version show no label. Whether
   an on-device scan was a fallback after a failed online scan is not
   saved, so History does not say so.
+- **Saving without a connection (signed in).** The app saves on-device
+  results to History itself (online scans are saved by the server). When
+  that save does not reach the server (no connection, a server error, an
+  expired session), the scan is kept on the phone instead
+  (`HistoryOutbox`, JSON files in the app's private storage) and the app
+  says "Saved on this phone. It will sync when you're online." It syncs on
+  app start and resume and when History opens, oldest first; History lists
+  it meanwhile, marked "Not synced yet" (rename and delete act on the phone
+  copy). Every save carries an `Idempotency-Key`, the same one on every
+  retry, and `POST /api/history` keeps the first answer for a key (in
+  memory, 24 hours, like the scan keys), so a save whose answer was lost is
+  not stored twice. A refusal of the content (for example 400) is not
+  kept. Waiting scans belong to the account that made them. The scanned
+  image is not kept (signed-in History has no image). Guests are
+  unchanged: their History is already on the phone.
 - `AI_SCAN_MODE` (`--dart-define`) is read by `AIService`, but the scan
   screen creates its `AIService` with `session` explicitly, so the define
   does not change these rules.
