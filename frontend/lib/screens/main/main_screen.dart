@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import '../../services/history/history_outbox.dart';
 
 import '../../styles/screens/main/main_screen_styles.dart';
 import '../history/history_screen.dart';
@@ -17,7 +21,7 @@ class MainScreen extends StatefulWidget {
   }
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int currentIndex = 0;
   int previousIndex = 0;
 
@@ -33,6 +37,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Scans kept on this phone (signed in, saved without a connection) sync
+    // on app start and whenever the app comes back to the front.
+    WidgetsBinding.instance.addObserver(this);
+    _syncPendingScans();
 
     pages = <Widget>[
       HomeScreen(
@@ -55,7 +64,30 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncPendingScans();
+    }
+  }
+
+  void _syncPendingScans() {
+    unawaited(
+      HistoryOutbox.instance.sync().then<void>(
+        (int synced) {
+          if (synced > 0) {
+            debugPrint('Synced $synced scan(s) saved on this phone.');
+          }
+        },
+        onError: (Object error) {
+          debugPrint('Pending scans did not sync: $error');
+        },
+      ),
+    );
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tabDataCache.clear();
     super.dispose();
   }

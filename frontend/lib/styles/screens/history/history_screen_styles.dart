@@ -48,6 +48,16 @@ abstract final class HistoryScreenStyles {
 
   static const double moreActionIconSize = 22;
 
+  // A scan kept on this phone until it syncs ("Not synced yet").
+  static const IconData notSyncedIcon = Icons.cloud_upload_outlined;
+  static const double notSyncedIconSize = 16;
+  static const Color notSyncedColor = Color(0xFFB54708);
+  static const TextStyle notSyncedTextStyle = TextStyle(
+    color: notSyncedColor,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w600,
+  );
+
   // ============================================================
   // LAYOUT
   // ============================================================

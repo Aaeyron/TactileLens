@@ -11,6 +11,7 @@ import '../../services/ai/paddle_onnx_native_service.dart';
 import '../../services/braille/braille_mode_translator.dart';
 import '../../services/braille/braille_save_payload.dart';
 import '../../services/history/history_service.dart';
+import '../../services/history/history_outbox.dart';
 import '../../services/scan/camera_service.dart';
 import '../../services/scan/image_crop_service.dart';
 import '../../services/scan/image_orientation_service.dart';
@@ -446,17 +447,29 @@ class _ScanScreenState extends State<ScanScreen> {
     final BrailleSavePayload braille = BrailleSavePayload.forHistory(result);
 
     try {
-      await _historyService.createHistory(
-        title: _createAutomaticHistoryTitle(result),
-        recognizedContent: recognizedContent,
-        brailleContent: braille.brailleContent,
-        documentBlocks: braille.documentBlocks,
-        documentPages: braille.documentPages,
-        sourceImagePath: scannedImage.path,
-        modelName: result.model,
-        pipelineVersion: result.pipelineVersion,
-        processingTimeMs: result.processingTimeMs,
-      );
+      // Signed in without a connection: kept on this phone, synced later.
+      final HistorySaveOutcome outcome =
+          await HistoryOutbox(historyService: _historyService).save(
+            title: _createAutomaticHistoryTitle(result),
+            recognizedContent: recognizedContent,
+            brailleContent: braille.brailleContent,
+            documentBlocks: braille.documentBlocks,
+            documentPages: braille.documentPages,
+            sourceImagePath: scannedImage.path,
+            modelName: result.model,
+            pipelineVersion: result.pipelineVersion,
+            processingTimeMs: result.processingTimeMs,
+          );
+
+      if (outcome == HistorySaveOutcome.savedOnPhone) {
+        debugPrint(
+          'History save did not reach the server; kept on this phone.',
+        );
+        if (mounted) {
+          _showScanError(HistoryOutbox.savedOnPhoneMessage);
+        }
+        return;
+      }
 
       debugPrint('Scan was automatically added to History.');
     } on HistoryServiceException catch (error, stackTrace) {

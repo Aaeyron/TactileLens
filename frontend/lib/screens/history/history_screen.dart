@@ -9,6 +9,7 @@ import '../../models/ai/scan_processing_mode.dart';
 import '../../models/braille/braille_mode.dart';
 import '../../models/history/history_model.dart';
 import '../../services/braille/braille_mode_translator.dart';
+import '../../services/history/history_outbox.dart';
 import '../../services/history/history_service.dart';
 import '../../services/settings/braille_mode_settings.dart';
 import '../../styles/screens/history/history_screen_styles.dart';
@@ -100,6 +101,9 @@ abstract final class _HistoryText {
   /// Tooltip and TalkBack label of the trash button.
   static const String clearAllTooltip = 'Clear all history';
 
+  /// On a scan kept on this phone because its save did not reach the server.
+  static const String notSyncedLabel = 'Not synced yet';
+
   static const String clearAllDialogTitle = 'Clear all history?';
 
   /// Signed in: history is kept on the server, per account.
@@ -131,11 +135,16 @@ class HistoryScreen extends StatefulWidget {
     required this.cache,
     required this.onBack,
     this.historyService,
+    this.historyOutbox,
   });
 
   /// Tests pass a fake; the app uses the default service.
   @visibleForTesting
   final HistoryService? historyService;
+
+  /// Tests pass one with a temporary folder; the app uses the default.
+  @visibleForTesting
+  final HistoryOutbox? historyOutbox;
 
   /// Shown at once on return visits while fresh data loads.
   final TabDataCache cache;
@@ -152,6 +161,11 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   late final HistoryService _historyService =
       widget.historyService ?? HistoryService();
+  late final HistoryOutbox _outbox =
+      widget.historyOutbox ?? HistoryOutbox(historyService: _historyService);
+
+  /// Cards of scans waiting on this phone: display id (negative) -> outbox id.
+  final Map<int, String> _pendingIds = <int, String>{};
   final TextEditingController _searchController = TextEditingController();
 
   List<HistoryRecord> _records = <HistoryRecord>[];
@@ -209,7 +223,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   void _storeInCache() {
     if (!_isLoading && _errorMessage == null) {
-      widget.cache.history = _records;
+      // Waiting scans are read again from the phone on every visit.
+      widget.cache.history = _records
+          .where((HistoryRecord record) => !_isPending(record))
+          .toList(growable: false);
     }
   }
 
@@ -349,6 +366,47 @@ class _HistoryScreenState extends State<HistoryScreen> {
         : _HistoryText.uebLabel;
   }
 
+  /// Sends scans kept on this phone first, then loads History. Scans still
+  /// waiting are listed too, marked "Not synced yet"; when the server cannot
+  /// be reached they are still shown, with the error as a message.
+  Future<List<HistoryRecord>> _fetchRecords() async {
+    try {
+      await _outbox.sync();
+    } catch (error) {
+      debugPrint('Pending scans did not sync: $error');
+    }
+
+    List<PendingHistoryScan> pending = <PendingHistoryScan>[];
+    try {
+      pending = await _outbox.pending();
+    } catch (error) {
+      debugPrint('Pending scans could not be read: $error');
+    }
+
+    _pendingIds.clear();
+    final List<HistoryRecord> local = <HistoryRecord>[];
+    for (int i = 0; i < pending.length; i++) {
+      final int displayId = -(i + 1);
+      _pendingIds[displayId] = pending[i].id;
+      local.add(pending[i].toRecord(displayId));
+    }
+
+    try {
+      final HistoryPage page = await _historyService.getHistory(limit: 100);
+      return <HistoryRecord>[...local, ...page.records];
+    } on HistoryServiceException catch (error) {
+      if (local.isEmpty) {
+        rethrow;
+      }
+      if (mounted) {
+        _showMessage(error.message);
+      }
+      return local;
+    }
+  }
+
+  bool _isPending(HistoryRecord record) => _pendingIds.containsKey(record.id);
+
   Future<void> _loadHistory() async {
     setState(() {
       _isLoading = true;
@@ -356,7 +414,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     try {
-      final HistoryPage page = await _historyService.getHistory(limit: 100);
+      final List<HistoryRecord> fetched = await _fetchRecords();
 
       if (!mounted) {
         return;
@@ -364,7 +422,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       setState(() {
         _imageExistsCache.clear();
-        _records = page.records;
+        _records = fetched;
         _isLoading = false;
       });
 
@@ -408,7 +466,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _refreshHistory() async {
     try {
-      final HistoryPage page = await _historyService.getHistory(limit: 100);
+      final List<HistoryRecord> fetched = await _fetchRecords();
 
       if (!mounted) {
         return;
@@ -416,7 +474,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       setState(() {
         _imageExistsCache.clear();
-        _records = page.records;
+        _records = fetched;
         _errorMessage = null;
       });
 
@@ -499,10 +557,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     try {
-      final HistoryRecord updatedRecord = await _historyService.renameHistory(
-        historyId: record.id,
-        title: newTitle,
-      );
+      final HistoryRecord updatedRecord;
+      if (_isPending(record)) {
+        await _outbox.rename(_pendingIds[record.id]!, newTitle);
+        updatedRecord = record.copyWith(title: newTitle.trim());
+      } else {
+        updatedRecord = await _historyService.renameHistory(
+          historyId: record.id,
+          title: newTitle,
+        );
+      }
 
       if (!mounted) {
         return;
@@ -552,7 +616,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
 
     try {
-      await _historyService.deleteHistory(record.id);
+      await _deleteFromWhereItIs(record);
 
       if (!mounted) {
         return;
@@ -580,6 +644,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       _showMessage(error.message);
     }
+  }
+
+  /// A waiting scan is removed from this phone; a saved one from History.
+  Future<void> _deleteFromWhereItIs(HistoryRecord record) async {
+    final String? pendingId = _pendingIds[record.id];
+    if (pendingId != null) {
+      await _outbox.remove(pendingId);
+      _pendingIds.remove(record.id);
+      return;
+    }
+    await _historyService.deleteHistory(record.id);
   }
 
   Future<void> _clearAllHistory() async {
@@ -615,7 +690,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
 
       for (final HistoryRecord record in recordsToDelete) {
-        await _historyService.deleteHistory(record.id);
+        await _deleteFromWhereItIs(record);
       }
 
       if (!mounted) {
@@ -1112,6 +1187,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             child: _HistoryCard(
               record: record,
+              isPending: _isPending(record),
               hasImage: _hasImageFile(record.sourceImagePath),
               badge: _recordBadge(record),
               brailleCode: _brailleCode(record),
@@ -1201,6 +1277,7 @@ class _HistoryFilterButton extends StatelessWidget {
 class _HistoryCard extends StatelessWidget {
   const _HistoryCard({
     required this.record,
+    this.isPending = false,
     required this.hasImage,
     required this.badge,
     required this.brailleCode,
@@ -1211,6 +1288,9 @@ class _HistoryCard extends StatelessWidget {
   });
 
   final HistoryRecord record;
+
+  /// Kept on this phone, not on the server yet.
+  final bool isPending;
   final bool hasImage;
   final String badge;
   final String brailleCode;
@@ -1281,6 +1361,27 @@ class _HistoryCard extends StatelessWidget {
                         height: HistoryScreenStyles.cardSourceSpacing,
                       ),
                       HistoryScanSource(mode: mode),
+                    ],
+                    if (isPending) ...<Widget>[
+                      const SizedBox(
+                        height: HistoryScreenStyles.cardSourceSpacing,
+                      ),
+                      const Row(
+                        children: <Widget>[
+                          Icon(
+                            HistoryScreenStyles.notSyncedIcon,
+                            size: HistoryScreenStyles.notSyncedIconSize,
+                            color: HistoryScreenStyles.notSyncedColor,
+                          ),
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              _HistoryText.notSyncedLabel,
+                              style: HistoryScreenStyles.notSyncedTextStyle,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                     const SizedBox(
                       height: HistoryScreenStyles.braillePreviewSpacing,
