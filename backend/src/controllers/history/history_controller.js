@@ -1,13 +1,45 @@
 const historyService = require("../../services/history/history_service");
+const {
+  HistoryIdempotencyStore,
+} = require("../../services/history/history_idempotency");
+
+// One store per server process (see history_idempotency.js).
+const historyIdempotency = new HistoryIdempotencyStore();
 
 // ==========================
 // Create History
 // ==========================
 
 const createHistory = async (req, res) => {
+  const userId = req.user.id;
+  const key = req.get ? req.get("Idempotency-Key") : undefined;
+
+  if (key !== undefined) {
+    if (!HistoryIdempotencyStore.isValidKey(key)) {
+      return res.status(400).json({
+        success: false,
+        message: "The Idempotency-Key is not valid.",
+      });
+    }
+
+    const decision = historyIdempotency.begin({ userId, key });
+
+    // Already saved with this key: the same answer, nothing stored again.
+    if (decision.outcome === "done") {
+      return res.status(decision.statusCode).json(decision.body);
+    }
+
+    if (decision.outcome === "in_progress") {
+      return res.status(409).json({
+        success: false,
+        message: "This scan is already being saved. Please try again.",
+      });
+    }
+  }
+
   try {
     const record = await historyService.createHistory({
-      userId: req.user.id,
+      userId,
       title: req.body.title,
       recognizedContent: req.body.recognized_content,
       brailleContent: req.body.braille_content,
@@ -18,12 +50,23 @@ const createHistory = async (req, res) => {
       processingTimeMs: req.body.processing_time_ms,
     });
 
-    return res.status(201).json({
+    const body = {
       success: true,
       message: "Scan history saved successfully.",
       data: record,
-    });
+    };
+
+    if (key !== undefined) {
+      historyIdempotency.complete({ userId, key, statusCode: 201, body });
+    }
+
+    return res.status(201).json(body);
   } catch (error) {
+    // Not saved: the key is freed, so a retry can save it.
+    if (key !== undefined) {
+      historyIdempotency.complete({ userId, key, statusCode: 500 });
+    }
+
     return handleHistoryError(error, res, "Failed to save scan history.");
   }
 };
@@ -153,6 +196,7 @@ const handleHistoryError = (error, res, fallbackMessage) => {
 // ==========================
 
 module.exports = {
+  historyIdempotency,
   createHistory,
   listHistory,
   getHistory,
