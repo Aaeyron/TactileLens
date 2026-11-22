@@ -139,7 +139,22 @@ abstract final class HistoryScreenStyles {
   // FILTERS
   // ============================================================
 
+  /// Minimum chip height; chips grow with large text instead of clipping.
   static const double filterHeight = 38;
+
+  /// Touch area around each chip (Android's 48 dp minimum).
+  static const double filterTapTarget = 48;
+
+  // Clear-all action at the end of the filter row: a trash icon button,
+  // set apart from the filters by a short divider.
+  static const IconData clearAllIcon = Icons.delete_outline_rounded;
+  static const double clearAllIconSize = 24;
+  static const double clearAllTapTarget = 48;
+  static const Color clearAllColor = Color(0xFFD92D20);
+  static const Color clearAllDisabledColor = Color(0x66728096);
+  static const double actionDividerHeight = 24;
+  static const double actionDividerGap = 6;
+  static const Color actionDividerColor = outlineColor;
 
   static const EdgeInsets filterPadding = EdgeInsets.symmetric(horizontal: 18);
 
