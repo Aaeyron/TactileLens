@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/models/ai/scan_processing_mode.dart';
+import 'package:mobile/models/ai/scan_stage.dart';
 import 'package:mobile/services/scan/scan_run.dart';
 import 'package:mobile/widgets/scan/scan_progress_overlay.dart';
 
@@ -16,6 +17,7 @@ const String _doneAnnouncement = 'Scan complete';
 /// [showing] is true, inside the camera area.
 class _Host {
   final ValueNotifier<bool> showing = ValueNotifier<bool>(true);
+  final ValueNotifier<ScanStage?> stage = ValueNotifier<ScanStage?>(null);
   final GlobalKey<ScanProgressOverlayState> key =
       GlobalKey<ScanProgressOverlayState>();
 
@@ -42,7 +44,8 @@ class _Host {
               fit: StackFit.expand,
               children: <Widget>[
                 const ColoredBox(color: Colors.white),
-                if (show) ScanProgressOverlay(key: key, mode: mode),
+                if (show)
+                  ScanProgressOverlay(key: key, mode: mode, stage: stage),
               ],
             );
           },
@@ -96,15 +99,16 @@ void main() {
     expect(find.text(_scanning), findsOneWidget);
     expect(find.text('Online'), findsOneWidget);
     expect(find.text(_stillWorking), findsNothing);
-    // The progress bar is the only thing that moves.
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    // The Braille cells are being written; the old progress bar is gone.
+    expect(find.byKey(const ValueKey<String>('scan-cells')), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(tester.binding.hasScheduledFrame, isTrue);
 
     await tester.pumpWidget(host.build(mode: ScanProcessingMode.onDevice));
     expect(find.text('On this device'), findsOneWidget);
   });
 
-  testWidgets('the progress bar keeps going for a long wait', (
+  testWidgets('the Braille writing keeps going for a long wait', (
     WidgetTester tester,
   ) async {
     final _Host host = _Host();
@@ -137,10 +141,9 @@ void main() {
     await tester.pumpWidget(host.build());
     await tester.pump(const Duration(seconds: 2));
 
-    // The result is ready: no pulse, the bar stops within a frame and the
-    // overlay can go away.
-    expect(await _pumpUntilFinished(tester, host), lessThanOrEqualTo(50));
-    expect(find.byType(LinearProgressIndicator), findsNothing);
+    // The result is ready: every dot filled and a short check mark (under
+    // 0.4 s), then the overlay can go away.
+    expect(await _pumpUntilFinished(tester, host), lessThanOrEqualTo(400));
 
     host.showing.value = false;
     await tester.pump();
@@ -258,7 +261,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('the card keeps its size when the bar goes away', (
+  testWidgets('the card keeps its size when the scan finishes', (
     WidgetTester tester,
   ) async {
     final _Host host = _Host();
@@ -270,20 +273,145 @@ void main() {
     expect(tester.getSize(find.byType(DecoratedBox).last), before);
   });
 
-  test('no decorative motion: no loop, beam or pulse in the overlay', () {
+  test('no leftover effects: no beam or pulse in the overlay', () {
     final String source = File(
       'lib/widgets/scan/scan_progress_overlay.dart',
     ).readAsStringSync();
 
     for (final String gone in <String>[
-      'AnimationController',
-      '.repeat(',
       '_BeamPainter',
-      'Ticker',
       'finishPulse',
+      'LinearProgressIndicator',
     ]) {
       expect(source, isNot(contains(gone)), reason: gone);
     }
+  });
+
+  group('real steps', () {
+    testWidgets('shows each step the scan reports, and TalkBack hears it', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+      final _Host host = _Host();
+      await tester.pumpWidget(host.build(mode: ScanProcessingMode.onDevice));
+      await tester.pump();
+
+      // Before the first step: the general line.
+      expect(find.text(_scanning), findsOneWidget);
+
+      for (final ScanStage step in <ScanStage>[
+        ScanStage.preparingScanner,
+        ScanStage.readingOnDevice,
+        ScanStage.convertingToBraille,
+      ]) {
+        host.stage.value = step;
+        await tester.pump();
+
+        expect(find.text(step.label), findsOneWidget);
+        final SemanticsNode status = tester.getSemantics(
+          find.byKey(const ValueKey<String>('scan-status')),
+        );
+        expect(status.label, step.label);
+        // Android: a live region, read whenever the step changes.
+        expect(status.flagsCollection.isLiveRegion, isTrue);
+      }
+
+      // Only the step line is read; the cells are not in the tree.
+      expect(_labels(tester).where((String l) => l.contains('⠎')), isEmpty);
+
+      await _pumpUntilFinished(tester, host);
+      expect(
+        tester
+            .getSemantics(find.byKey(const ValueKey<String>('scan-status')))
+            .label,
+        _doneAnnouncement,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('where announcements are supported, each step is sent once', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle semantics = tester.ensureSemantics();
+      final _Host host = _Host();
+      await tester.pumpWidget(host.build(supportsAnnounce: true));
+      await tester.pump();
+
+      host.stage.value = ScanStage.checkingConnection;
+      await tester.pump();
+      // The same step again is not repeated.
+      host.stage.value = ScanStage.checkingConnection;
+      await tester.pump();
+      host.stage.value = ScanStage.readingOnline;
+      await tester.pump(const Duration(seconds: 3));
+
+      expect(tester.takeAnnouncements().map((a) => a.message), <String>[
+        _startAnnouncement,
+        ScanStage.checkingConnection.label,
+        ScanStage.readingOnline.label,
+      ]);
+      semantics.dispose();
+    });
+
+    testWidgets('reduce motion: still cells, the step line still changes', (
+      WidgetTester tester,
+    ) async {
+      final _Host host = _Host();
+      await tester.pumpWidget(host.build(reduceMotion: true));
+      await tester.pump();
+      expect(tester.binding.hasScheduledFrame, isFalse);
+
+      host.stage.value = ScanStage.readingOnline;
+      await tester.pump();
+      expect(find.text(ScanStage.readingOnline.label), findsOneWidget);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+  });
+
+  group('Braille writing', () {
+    test('cells are written left to right, dot by dot, then fade out', () {
+      double at(int cell, int dot, double t) =>
+          BrailleWritingPainter.dotAmount(cell, dot, t);
+
+      // Nothing at the start of a cycle.
+      expect(at(0, 0, 0), 0);
+      // The first cell starts before the second, and the second before the
+      // last.
+      expect(at(0, 0, 0.08), greaterThan(0));
+      expect(at(1, 0, 0.08), 0);
+      expect(at(3, 3, 0.4), 0);
+      // Every dot is fully written during the hold.
+      for (int cell = 0; cell < 4; cell++) {
+        for (
+          int dot = 0;
+          dot < BrailleWritingPainter.word[cell].length;
+          dot++
+        ) {
+          expect(at(cell, dot, 0.70), closeTo(1, 1e-9));
+        }
+      }
+      // Soft fade out, then nothing before the next cycle.
+      expect(at(0, 0, 0.83), allOf(greaterThan(0), lessThan(1)));
+      expect(at(0, 0, 0.95), 0);
+      // Smooth: no jump between neighbouring frames (60 fps).
+      const double frame = 1 / (2.8 * 60);
+      for (double t = 0; t < 1 - frame; t += frame) {
+        expect(
+          (at(1, 1, t + frame) - at(1, 1, t)).abs(),
+          lessThan(0.35),
+          reason: 't = $t',
+        );
+      }
+    });
+
+    test('the word is "scan" in Braille (s c a n)', () {
+      expect(BrailleWritingPainter.word, <List<int>>[
+        <int>[2, 3, 4],
+        <int>[1, 4],
+        <int>[1],
+        <int>[1, 3, 4, 5],
+      ]);
+    });
   });
 
   test('the scan screen uses this overlay', () {
@@ -294,6 +422,8 @@ void main() {
     expect(source, contains('ScanProgressOverlay(\n'));
     expect(source, contains('key: _progressKey,\n'));
     expect(source, contains('mode: _processingMode,\n'));
+    // The real steps come from the scanning services.
+    expect(source, contains('stage: _aiService.stage,'));
     // Cancel is offered for online scans only.
     expect(
       source,

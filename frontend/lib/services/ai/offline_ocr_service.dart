@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 import '../../models/ai/scan_document_result.dart';
+import '../../models/ai/scan_stage.dart';
 import '../../models/ai/scan_processing_mode.dart';
 import '../../utils/math_text_formatter.dart';
 import '../braille/formula_braille_guard.dart';
@@ -85,6 +86,9 @@ class OfflineOcrService {
   /// Whether the offline models are already loaded in memory.
   bool get isReady => _modelsLoaded;
 
+  /// Called as each real step of a scan starts (see [ScanStage]).
+  void Function(ScanStage stage)? onStage;
+
   /// Shown when the models could not be loaded for a reason the teacher
   /// cannot act on (the native detail goes to the log only).
   static const String modelsUnavailableMessage =
@@ -151,10 +155,14 @@ class OfflineOcrService {
     File? uprightCopy;
 
     try {
+      if (!_modelsLoaded) {
+        onStage?.call(ScanStage.preparingScanner);
+      }
       await _ensureModelsLoaded();
 
       uprightCopy = await _uprightCopyIfRotated(imageFile);
 
+      onStage?.call(ScanStage.readingOnDevice);
       final OfflineDocumentResult result = await _onnxService
           .scanDocumentResult(
             imagePath: (uprightCopy ?? imageFile).path,
@@ -167,6 +175,8 @@ class OfflineOcrService {
           'view, in good lighting, and try again.',
         );
       }
+
+      onStage?.call(ScanStage.convertingToBraille);
 
       final int pageWidth = math.max(result.imageWidth, 1);
       final int pageHeight = math.max(result.imageHeight, 1);
