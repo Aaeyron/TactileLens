@@ -18,6 +18,7 @@ import '../../widgets/common/skeleton.dart';
 import '../../widgets/document/document_layout_view.dart';
 import '../../widgets/history/history_scan_source.dart';
 import '../../utils/form_keyboard.dart';
+import '../../utils/session_manager.dart';
 import '../main/tab_data_cache.dart';
 import '../../widgets/common/header_braille_dots.dart';
 
@@ -96,15 +97,22 @@ abstract final class _HistoryText {
 
   static const String deleteSuccessMessage = 'Scan removed from history.';
 
-  static const String clearAllLabel = 'Clear All';
-  static const String clearAllTooltip = 'Clear all scan history';
+  /// Tooltip and TalkBack label of the trash button.
+  static const String clearAllTooltip = 'Clear all history';
 
-  static const String clearAllDialogTitle = 'Clear All History?';
+  static const String clearAllDialogTitle = 'Clear all history?';
 
-  static const String clearAllDialogDescription =
-      'Every saved scan in your history will be permanently removed.';
+  /// Signed in: history is kept on the server, per account.
+  static const String clearAllDialogDescriptionSignedIn =
+      'Every scan listed here will be deleted from your account on the '
+      'server, so it is gone on all your devices. This can\'t be undone.';
 
-  static const String confirmClearAllLabel = 'Clear All';
+  /// Guest: history is kept only on this phone.
+  static const String clearAllDialogDescriptionGuest =
+      'Every scan listed here will be deleted from this phone. '
+      'This can\'t be undone.';
+
+  static const String confirmClearAllLabel = 'Clear';
 
   static const String clearAllSuccessMessage = 'All scan history was removed.';
 
@@ -118,7 +126,16 @@ enum _HistoryAction { rename, delete }
 enum _HistorySort { newest, oldest, title }
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key, required this.cache, required this.onBack});
+  const HistoryScreen({
+    super.key,
+    required this.cache,
+    required this.onBack,
+    this.historyService,
+  });
+
+  /// Tests pass a fake; the app uses the default service.
+  @visibleForTesting
+  final HistoryService? historyService;
 
   /// Shown at once on return visits while fresh data loads.
   final TabDataCache cache;
@@ -133,7 +150,8 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final HistoryService _historyService = HistoryService();
+  late final HistoryService _historyService =
+      widget.historyService ?? HistoryService();
   final TextEditingController _searchController = TextEditingController();
 
   List<HistoryRecord> _records = <HistoryRecord>[];
@@ -569,9 +587,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return;
     }
 
+    final bool isGuest = await SessionManager.isGuest();
+
+    if (!mounted) {
+      return;
+    }
+
     final bool confirmed = await _showConfirmationDialog(
       title: _HistoryText.clearAllDialogTitle,
-      description: _HistoryText.clearAllDialogDescription,
+      description: isGuest
+          ? _HistoryText.clearAllDialogDescriptionGuest
+          : _HistoryText.clearAllDialogDescriptionSignedIn,
       confirmationLabel: _HistoryText.confirmClearAllLabel,
     );
 
@@ -635,6 +661,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           actions: <Widget>[
             TextButton(
+              // Cancel is the safe default: it has focus first.
+              autofocus: true,
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
@@ -941,34 +969,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildHistoryToolbar() {
     final bool canClearHistory = _records.isNotEmpty && !_isUpdating;
 
+    // Filters take the free space and wrap onto a second line when they
+    // don't fit (small phones, large text). The trash action keeps its
+    // place at the end, set apart by a short divider.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Expanded(child: _buildFilters()),
-        const SizedBox(width: 8),
-        // Shrinks with large text instead of pushing the row past the
-        // screen edge.
-        Flexible(
-          child: Tooltip(
-            message: _HistoryText.clearAllTooltip,
-            child: TextButton.icon(
-              onPressed: canClearHistory ? _clearAllHistory : null,
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFD92D20),
-                disabledForegroundColor: const Color(0x66728096),
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-              label: const Text(
-                _HistoryText.clearAllLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+        const SizedBox(width: HistoryScreenStyles.actionDividerGap),
+        Container(
+          width: 1,
+          height: HistoryScreenStyles.actionDividerHeight,
+          color: HistoryScreenStyles.actionDividerColor,
+        ),
+        const SizedBox(width: HistoryScreenStyles.actionDividerGap),
+        IconButton(
+          onPressed: canClearHistory ? _clearAllHistory : null,
+          tooltip: _HistoryText.clearAllTooltip,
+          // TalkBack reads this label (the tooltip is for long press).
+          icon: const Icon(
+            HistoryScreenStyles.clearAllIcon,
+            semanticLabel: _HistoryText.clearAllTooltip,
           ),
+          iconSize: HistoryScreenStyles.clearAllIconSize,
+          color: HistoryScreenStyles.clearAllColor,
+          disabledColor: HistoryScreenStyles.clearAllDisabledColor,
+          constraints: const BoxConstraints.tightFor(
+            width: HistoryScreenStyles.clearAllTapTarget,
+            height: HistoryScreenStyles.clearAllTapTarget,
+          ),
+          padding: EdgeInsets.zero,
         ),
       ],
     );
@@ -981,36 +1011,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _HistoryFilter.math,
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List<Widget>.generate(visibleFilters.length, (int index) {
-          final _HistoryFilter filter = visibleFilters[index];
-
-          final String label = switch (filter) {
-            _HistoryFilter.all => _HistoryText.allFilterLabel,
-            _HistoryFilter.text => _HistoryText.textFilterLabel,
-            _HistoryFilter.math => _HistoryText.mathFilterLabel,
-          };
-
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index == visibleFilters.length - 1
-                  ? 0
-                  : HistoryScreenStyles.filterSpacing,
-            ),
-            child: _HistoryFilterButton(
-              label: label,
-              isSelected: _selectedFilter == filter,
-              onPressed: () {
-                setState(() {
-                  _selectedFilter = filter;
-                });
-              },
-            ),
-          );
-        }, growable: false),
-      ),
+    // Each chip's 48 dp touch area already leaves 10 dp between wrapped
+    // lines, close to the 9 dp between chips.
+    return Wrap(
+      spacing: HistoryScreenStyles.filterSpacing,
+      children: <Widget>[
+        for (final _HistoryFilter filter in visibleFilters)
+          _HistoryFilterButton(
+            label: switch (filter) {
+              _HistoryFilter.all => _HistoryText.allFilterLabel,
+              _HistoryFilter.text => _HistoryText.textFilterLabel,
+              _HistoryFilter.math => _HistoryText.mathFilterLabel,
+            },
+            isSelected: _selectedFilter == filter,
+            onPressed: () {
+              setState(() {
+                _selectedFilter = filter;
+              });
+            },
+          ),
+      ],
     );
   }
 
@@ -1126,7 +1146,7 @@ class _HistoryFilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final Widget chip = Material(
       color: isSelected
           ? HistoryScreenStyles.primaryColor
           : HistoryScreenStyles.filterBackgroundColor,
@@ -1135,14 +1155,42 @@ class _HistoryFilterButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: HistoryScreenStyles.filterRadius,
         child: Container(
-          height: HistoryScreenStyles.filterHeight,
+          constraints: const BoxConstraints(
+            minHeight: HistoryScreenStyles.filterHeight,
+          ),
           padding: HistoryScreenStyles.filterPadding,
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: isSelected
-                ? HistoryScreenStyles.selectedFilterTextStyle
-                : HistoryScreenStyles.unselectedFilterTextStyle,
+          // As wide as the label (not the whole row), centred vertically.
+          child: Align(
+            widthFactor: 1,
+            child: Text(
+              label,
+              style: isSelected
+                  ? HistoryScreenStyles.selectedFilterTextStyle
+                  : HistoryScreenStyles.unselectedFilterTextStyle,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // The chip looks 38 dp tall but takes taps over 48 dp (like Material
+    // chips): the margin above and below also selects it. TalkBack sees
+    // one 48 dp button with its selected state.
+    return Semantics(
+      container: true,
+      button: true,
+      selected: isSelected,
+      label: label,
+      onTap: onPressed,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          onTap: onPressed,
+          behavior: HitTestBehavior.opaque,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: HistoryScreenStyles.filterTapTarget,
+            ),
+            child: Align(widthFactor: 1, heightFactor: 1, child: chip),
           ),
         ),
       ),
