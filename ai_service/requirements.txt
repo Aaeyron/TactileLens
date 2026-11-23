@@ -1,6 +1,8 @@
 fastapi==0.141.1
 uvicorn==0.52.1
 python-multipart==0.0.32
+Pillow>=10.4.0
+numpy>=1.26.0
 
 # PaddleOCR-VL runtime packages are installed separately because the
 # PaddlePaddle build must match the deployment device and CUDA version.
