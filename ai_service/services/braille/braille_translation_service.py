@@ -66,7 +66,14 @@ class BrailleTranslationService:
             configured_path=os.getenv("LIBLOUIS_TRANSLATE"),
         )
 
-        self._tables_directory = self._liblouis_root / "share" / "liblouis" / "tables"
+        configured_tables = os.getenv("LIBLOUIS_TABLES")
+
+        if configured_tables:
+            self._tables_directory = Path(configured_tables).resolve()
+        else:
+            self._tables_directory = (
+                self._liblouis_root / "share" / "liblouis" / "tables"
+            )
 
         self._display_table = self._tables_directory / "unicode.dis"
 

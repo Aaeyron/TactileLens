@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: tactilelens-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PADDLEOCR_ENGINE
+        value: official_api
+      - key: PADDLEOCR_ACCESS_TOKEN
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: PASSWORD_RESET_SECRET
+        generateValue: true
+      - key: PASSWORD_RESET_CODE_TTL_MINUTES
+        value: "10"
+      - key: PASSWORD_RESET_REQUEST_COOLDOWN_SECONDS
+        value: "60"
+      - key: AI_SERVICE_SECRET
+        generateValue: true
+      - key: AI_SCAN_TIMEOUT_MS
+        value: "92000"
+      - key: PADDLEOCR_API_DEADLINE_SECONDS
+        value: "85"
+      - key: PADDLEOCR_DAILY_PAGE_CAP
+        value: "2500"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: TactileLens
+      - key: GOOGLE_CLIENT_ID
+        sync: false
