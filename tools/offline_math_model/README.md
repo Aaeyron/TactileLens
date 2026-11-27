@@ -1,4 +1,4 @@
-# Offline math model tools
+# Offline math model
 
 These tools train and test the model that reads **math formulas on the
 phone** (PaddleOCR's PP-FormulaNet_plus-S).
@@ -7,29 +7,16 @@ They never change the app by themselves. A new model only goes into the
 app after it has been tested and shows fewer wrong formulas than the
 current app.
 
-**Python:**
-- `C:\Projects\Capstone\paddle_formula_env` for training and exporting
-- `C:\Projects\Capstone\paddle_onnx_env` for testing
-
-Run the scripts from this folder. Every script explains its options with
-`--help`.
-
 ## The usual steps
 
-1. **Build a training list:** `build_crop_train.py` collects formula
-   pictures from our own worksheets with the labels the online model gave
-   them.
-2. **Train:** `train_formula.py` trains a new version, keeps the best one,
-   and turns it into a file the phone can use.
-3. **Test:** `evaluate_formula.py` scores a model on a list of formulas,
+1. **Build a training list** (`build_crop_train.py`): formula pictures
+   from our own worksheets, labeled by the online model.
+2. **Train** (`train_formula.py`): train a new version, keep the best
+   one, and turn it into a file the phone can use.
+3. **Test** (`evaluate_formula.py`): score a model on a list of formulas,
    reading them the same way the app does.
-4. **Compare:** `compare_formula.py` puts the old and new model side by
-   side and lists every formula that got worse.
-
-```
-C:\Projects\Capstone\paddle_formula_env\Scripts\python train_formula.py --data <dataset folder> --name <short name>
-C:\Projects\Capstone\paddle_onnx_env\Scripts\python evaluate_formula.py --labels <list.txt> --model <model.onnx> --tag <short name>
-```
+4. **Compare** (`compare_formula.py`): put the old and new model side by
+   side and list every formula that got worse.
 
 ## All tools
 
@@ -50,12 +37,6 @@ C:\Projects\Capstone\paddle_onnx_env\Scripts\python evaluate_formula.py --labels
 | `formula_memory_trial.py` | check how much the graphics card can handle |
 | `own_dataset_report.py`, `finetune_changes.py`, `charts.py` | reports and charts for the panel |
 
-## Tests
-
-```
-python -m unittest test_compare_formula test_build_pseudo_labels test_build_crop_train test_filter_crop_labels test_finetune_changes test_own_dataset_report test_train_formula
-```
-
-Use `paddle_onnx_env`.
-
-Results and decisions: [docs/training_runbook.md](../../docs/training_runbook.md).
+Each tool explains its options with `--help`, and the folder has its own
+automatic tests. Results and decisions:
+[docs/training_runbook.md](../../docs/training_runbook.md).

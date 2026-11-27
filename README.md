@@ -69,63 +69,30 @@ You can check the result, copy it, and save it for later.
 
 ## Try it in 5 minutes
 
-You need an Android build of the app that includes the offline models.
-Steps 1 to 4 work without a server.
-
-1. Open the app and tap **Continue without an account**.
+1. Open the app and tap **Continue without an account**. Everything runs
+   on the phone.
 2. Scan a printed page with a short paragraph and an equation like
    `x² + 3x − 5 = 0`.
 3. On the result, switch between **Braille 1** and **Braille 2** for the
    text. The math stays in Nemeth.
 4. Scan `√(x + 9) = 5`. It is **held for review** with a reason instead
    of being turned into Braille.
-5. With the server running, sign in, choose **Online**, scan again, then
-   open **History** and **Materials**.
+5. Sign in, choose **Online**, scan again, then open **History** and
+   **Materials**.
 
-## Running it yourself
+## How it is built
 
-The project has three parts that work together:
+TactileLens has three parts:
 
-1. **App:** the Android app (built with Flutter).
-2. **Backend:** handles accounts, History and Materials, and passes
-   online scans along (Node.js with a PostgreSQL database).
-3. **AI service:** reads the page and makes the Braille (Python).
+1. **The app** on the phone (Android, built with Flutter). It also reads
+   pages by itself in offline mode.
+2. **The backend** for accounts, History and Materials (Node.js). Its
+   database is on Supabase.
+3. **The AI service** that reads pages online and makes the Braille
+   (Python, with PaddleOCR and Liblouis).
 
-The step-by-step guide, including every setting, is in
-**[docs/setup.md](docs/setup.md)**. The short version:
-
-```
-git submodule update --init --recursive
-
-# 1. Backend (needs PostgreSQL and a backend/.env file)
-cd backend && npm install && npm run dev
-
-# 2. AI service
-cd ai_service && pip install -r requirements.txt
-python -m uvicorn app:app --host 127.0.0.1 --port 8000
-
-# 3. App on a phone connected by USB
-adb reverse tcp:5000 tcp:5000
-cd frontend && flutter run --dart-define=AI_BASE_URL=http://127.0.0.1:5000 --dart-define=BACKEND_BASE_URL=http://127.0.0.1:5000
-```
-
-- Offline scanning needs the model files (about 390 MB). They are not in
-  this repository; [docs/setup.md](docs/setup.md) explains where they go.
-- The backend and AI service can be put online together with the included
-  `Dockerfile` and `render.yaml` (for Render).
-- Never put passwords, keys or tokens in the repository.
-
-## Running the tests
-
-| Part | Command |
-|---|---|
-| App | `cd frontend && flutter test` |
-| Android (offline scanning) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` |
-| Backend | `cd backend && npm test` |
-| AI service | `cd ai_service && python -m unittest discover -s services -t . -p "test_*.py"` |
-| Training tools | see the README in each `tools/` folder |
-
-No test sends anything to Baidu's hosted service.
+The backend and AI service run online together on Render. Each part has
+its own automatic tests, and none of them sends anything to Baidu.
 
 ## What's in this repository
 
@@ -134,7 +101,7 @@ TactileLens/
 ├── frontend/      the Android app (Flutter), including offline scanning
 ├── backend/       accounts, History, Materials and online scan limits
 ├── ai_service/    reads pages and makes Braille
-├── docs/          setup guide, how the parts connect, training notes
+├── docs/          how the parts connect, training notes
 └── tools/         tools for preparing data and training the models
     ├── data_preparation/     get new photos ready: check, sort and split them
     ├── offline_math_model/   train and test the offline math model
