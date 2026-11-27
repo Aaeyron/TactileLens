@@ -2,7 +2,7 @@
 
 Status (2026-10-26): **estimate only. Nothing has been trained or measured
 for training**; every memory and time figure below is calculated, not
-observed. Tools: `tools/training_vl/` (converter, evaluation harness,
+observed. Tools: `tools/online_model/` (converter, evaluation harness,
 Colab notebook `colab_sft.ipynb`, never run).
 
 Update 2026-11-07: this page covers **full** fine-tuning. Partial

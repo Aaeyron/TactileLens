@@ -4,14 +4,14 @@ Status 2026-11-07: tools ready and dry-run on FAKE data; **nothing has been
 trained on real data and there are no training results.** Everything
 marked "not measured" is not measured.
 
-Three tracks share one intake and one split (`tools/dataset/`), so an item
+Three tracks share one intake and one split (`tools/data_preparation/`), so an item
 held out for one model is never trained on by another:
 
 | track | model | where it runs | tools |
 |---|---|---|---|
-| B | offline text recognizer, PP-OCRv6 small rec | laptop GPU (RTX 4050 6 GB) | `tools/training/train_full.py` |
-| A | offline formula model, PP-FormulaNet_plus-S | laptop GPU, after a memory trial | official PaddleOCR config; `tools/model_prep/evaluate_formula.py` |
-| C | PaddleOCR-VL, partial fine-tuning (LoRA) | free Colab (experimental) or laptop via WSL2 (memory test first) | `tools/training_vl/colab_lora_sft.ipynb`, `convert_to_sft.py`, `evaluate_vl.py` |
+| B | offline text recognizer, PP-OCRv6 small rec | laptop GPU (RTX 4050 6 GB) | `tools/offline_text_model/train_full.py` |
+| A | offline formula model, PP-FormulaNet_plus-S | laptop GPU, after a memory trial | official PaddleOCR config; `tools/offline_math_model/evaluate_formula.py` |
+| C | PaddleOCR-VL, partial fine-tuning (LoRA) | free Colab (experimental) or laptop via WSL2 (memory test first) | `tools/online_model/colab_lora_sft.ipynb`, `convert_to_sft.py`, `evaluate_vl.py` |
 
 The app is not changed by any of this. Data stays in
 `C:\Projects\Capstone\tactilelens-training` (never in git). Swapping a
@@ -36,11 +36,11 @@ each top-level folder):
 | `reports\` | im2latex filtering report and panel page, notes, the move list |
 | `resources\fonts\`, `colab\upload\` | fonts; files for Google Drive / Colab |
 
-All tools take these paths from `Layout` in `tools/training/common.py`.
+All tools take these paths from `Layout` in `tools/offline_text_model/common.py`.
 `train_formula.py`, `train_full.py` and `formula_memory_trial.py` sort a
 finished run with `common.tidy_run`.
 
-Reorganisation (2026-11-10, approved): `tools/training/reorganize_workspace.py`;
+Reorganisation (2026-11-10, approved): `tools/offline_text_model/reorganize_workspace.py`;
 the move list (54 renames, nothing deleted) is
 `reports\workspace_move_list_20261110.md`. 19 earlier training runs were
 sorted the same way; the Track A ONNX verification and the Track C
@@ -99,7 +99,7 @@ so the rule cannot be fitted to the results.
   simple-formula rule above holds. The spacing-normalized and **strict**
   scores are always reported next to it and never replace it. **Automatic
   check** (2026-11-11, main score updated 2026-11-19):
-  `tools/model_prep/compare_formula.py` decides this rule
+  `tools/offline_math_model/compare_formula.py` decides this rule
   on the main score (allowed regressions = 1 per 100 simple
   formulas, rounded down, minimum 1; exact match must be higher), lists
   every regression with the target, the app's reading and the new reading,
@@ -169,7 +169,7 @@ output were not measured.
   cannot separate reading correctly from reading like PaddleOCR-VL on those. On
   the 7 where its reading differs from the label: original right on 1, fine-tuned
   on 2, fine-tuned repeats PaddleOCR-VL on 1.
-- **Report:** `tools/model_prep/own_dataset_report.py` writes the panel section
+- **Report:** `tools/offline_math_model/own_dataset_report.py` writes the panel section
   from these saved files (`analysis\finetune_changes_20261119\` in the run).
 
 ### Version 3: formula crops from the M, T and W images (measured 2026-11-19)
@@ -177,7 +177,7 @@ output were not measured.
 Same eval, validation and adoption rule as above. **No model was put in the
 app.** Phone accuracy and the Braille effect were not measured.
 
-- **Crops** (`tools/dataset/crop_formulas.py`, the app's PP-DocLayoutV3 and
+- **Crops** (`tools/data_preparation/crop_formulas.py`, the app's PP-DocLayoutV3 and
   preprocessing): 4,937 M/T/W images, 19,843 crops (display 9,868, inline
   9,975); dropped boxes: 1,241 tiny, 118 duplicate, 90 cut off, 10 inside a
   display formula. 1,584 images gave no crop. Leak check against the 224
@@ -213,7 +213,7 @@ app.** Phone accuracy and the Braille effect were not measured.
 
 ### Text model (Track B v1): text lines from our own pages (measured 2026-11-20)
 
-PP-OCRv6 small rec, `tools/training/train_full.py`. **No model was put in the
+PP-OCRv6 small rec, `tools/offline_text_model/train_full.py`. **No model was put in the
 app.** Phone accuracy and the Braille effect were not measured.
 
 - **Lines** (`cut_text_lines.py`, the app's PP-OCRv6 tiny det and crop): 4,937
@@ -277,24 +277,24 @@ app.** Phone accuracy and the Braille effect were not measured.
    item (personal data, third-party pages, items already in an eval set).
    Tell me which flagged items may be used.
 3. Upload to Google Drive (for Track C):
-   `MyDrive/tactilelens/tools/training_vl/` (5 files, about 0.1 MB:
+   `MyDrive/tactilelens/tools/online_model/` (5 files, about 0.1 MB:
    `convert_to_sft.py`, `vl_common.py`, `config.json`, `evaluate_vl.py`,
    `local_vl_worker.py`) and `MyDrive/tactilelens/data/<split id>.zip`.
 
 **Me**
 
-1. `python tools\dataset\intake.py` and send you the report (counts per
+1. `python tools\data_preparation\intake.py` and send you the report (counts per
    topic x source x kind, errors, flags, duplicates).
-2. After your answers: `python tools\dataset\split_dataset.py --intake ...`
+2. After your answers: `python tools\data_preparation\split_dataset.py --intake ...`
    (add `--allow-flagged` only for items you cleared). Held-out eval comes
    mainly from labelled phone captures; this first split **creates the
    frozen eval registry** (`datasets\own\splits\frozen_eval.jsonl`), which keeps them
    out of training for good (see "Adoption rule for our own data").
 3. Zip `datasets\own\splits\<id>\images` + `labels.csv` for Drive and tell you its size.
 4. Baselines of today's models on the held-out eval (nothing trained yet):
-   - recognizer: `tools\training\evaluate.py --labels datasets\own\splits\<id>\rec_eval.txt`
-   - formula: `tools\model_prep\evaluate_formula.py --labels datasets\own\splits\<id>\formula_eval.txt`
-   - VL: `tools\training_vl\evaluate_vl.py --eval datasets\own\splits\<id>\sft --engine local`
+   - recognizer: `tools\offline_text_model\evaluate.py --labels datasets\own\splits\<id>\rec_eval.txt`
+   - formula: `tools\offline_math_model\evaluate_formula.py --labels datasets\own\splits\<id>\formula_eval.txt`
+   - VL: `tools\online_model\evaluate_vl.py --eval datasets\own\splits\<id>\sft --engine local`
      (PaddleOCR-VL-1.6 on the laptop; stop the AI service first)
 
 ## Day 2: training
@@ -302,7 +302,7 @@ app.** Phone accuracy and the Braille effect were not measured.
 **Track B (laptop).** I start it (or you, with the same command):
 
 ```
-cd C:\Projects\Capstone\TactileLens\tools\training
+cd C:\Projects\Capstone\TactileLens\tools\offline_text_model
 C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split C:\Projects\Capstone\tactilelens-training\datasets\own\splits\<id>
 ```
 
@@ -359,7 +359,7 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
 
 | what | size |
 |---|---|
-| `tools/training_vl/` | about 0.1 MB |
+| `tools/online_model/` | about 0.1 MB |
 | `data/<split id>.zip` (images + labels.csv) | depends on the delivery: about (number of images) x (average file size); e.g. 1,000 phone photos at 2 MB = about 2 GB. Not measured. |
 | `cache/PaddleOCR-VL/` (base 0.9B, downloaded by the notebook once) | 2.00 GiB (Hugging Face listing) |
 | `runs/<run id>/checkpoints/` (LoRA, 3 kept) | not measured |
@@ -387,7 +387,7 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
   only in JSON formatting).
 - **Preprocessing:** training eval uses `UniMERNetImgDecode` +
   `UniMERNetTestTransform` + `LatexImageFormat`, the transforms the app's
-  port follows (`tools/model_prep/test_formulanet.py`: crop margin, fit
+  port follows (`tools/offline_math_model/test_formulanet.py`: crop margin, fit
   384, black padding, gray, mean 0.7931 / std 0.1738).
 - **Dependencies** (from the doc and the code): `tokenizers==0.19.1`
   (2,168 KiB wheel), `ftfy` (44 KiB), `imagesize` (9 KiB), `Wand`
@@ -415,7 +415,7 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
    `31e8659f...`); the demo set `ocr_rec_latexocr_dataset_example.tar`
    (25,108,480, `6ed9bd71...`; 10,000 train / 500 val arXiv-style formulas)
    in `datasets\public\paddleocr_formula_demo\`.
-3. **The app's ONNX is this model** (`tools/model_prep/compare_onnx.py`):
+3. **The app's ONNX is this model** (`tools/offline_math_model/compare_onnx.py`):
    - official inference model -> `paddlex --paddle2onnx` vs the app's
      ONNX: all 836 weight tensors (57,916,120 values) identical, same 1,160
      operators including the decoding `Loop`, same inputs/outputs
@@ -428,13 +428,13 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
      nodes, and **identical token ids on 50 of 50 demo images**. So a
      model trained from this checkpoint can be exported to an ONNX the app
      can load (running it on the phone: not verified).
-   - Needed for that: `tools/model_prep/export_formula.py`. Paddle 3.2.1
+   - Needed for that: `tools/offline_math_model/export_formula.py`. Paddle 3.2.1
      records `masked_fill_` as its own operator, which paddle2onnx 2.0.2rc3
      cannot convert ("unsupported operators"); during export only it is
      written as `where(mask, full_like(x, value), x)` (the official model
      has `where` + `full_like` there), then PaddleOCR's
      `tools/export_model.py` runs unchanged.
-4. **Memory trial on the RTX 4050** (`tools/model_prep/formula_memory_trial.py`;
+4. **Memory trial on the RTX 4050** (`tools/offline_math_model/formula_memory_trial.py`;
    demo set, 30 steps per batch, fp32, Snow skipped, from the official
    checkpoint; `runs\20261108-161345_trackA_paddleocr-demo_memory-trial\`):
 
@@ -456,7 +456,7 @@ model (about 1.8 GiB; only if it beat the base model), and decide.
    longest 1,351); algebra-level formulas are shorter and should need less
    memory (not measured).
 
-**Preliminary run on im2latex (2026-11-09)**: `tools/model_prep/train_formula.py`
+**Preliminary run on im2latex (2026-11-09)**: `tools/offline_math_model/train_formula.py`
 trains from the official checkpoint (batch 4, shuffled, lr and warmup set
 explicitly because the config's warmup is 5,000 steps, validation on
 `val.txt` each epoch, early stopping), exports `best_accuracy` with
@@ -554,7 +554,7 @@ score**; the other was reported alongside. Since 2026-11-11
 (see "Adoption rule for our own data" and "Automatic check" there).
 
 **Synthetic pilot (built 2026-11-10, approved)**:
-`tools/dataset/make_synthetic_formulas.py`, output
+`tools/data_preparation/make_synthetic_formulas.py`, output
 `tactilelens-training\datasets\synthetic\formulas_pilot_20261109\` (2,400
 images, 122 MB; `train.txt` only, LF; `manifest.jsonl`; `report.md`).
 
@@ -626,7 +626,7 @@ the last run on im2latex: after this we wait for our own data).**
   scored) is 2.5 GB too.
 
 **What changed during fine-tuning (follow-up run, 2026-11-11, read-only).**
-`tools/model_prep/finetune_changes.py` (weights, confidence, report);
+`tools/offline_math_model/finetune_changes.py` (weights, confidence, report);
 no training, test split not scored again (saved predictions only).
 Output: the run's `analysis\finetune_changes_20261111\`; section on the
 panel page.
@@ -654,7 +654,7 @@ panel page.
 **Filtering report for the panel:** `tactilelens-training\reports\im2latex_filter\`
 (`report.md`, `chart_funnel.png`, `chart_topics.png`, `chart_looser.png`,
 `examples_kept.png`, `examples_rejected.png`, `examples\`), made by
-`tools/dataset/im2latex_filter_report.py`.
+`tools/data_preparation/im2latex_filter_report.py`.
 
 **Looser filters (counts only, before the leak guard):**
 
@@ -733,7 +733,7 @@ peak memory (nvidia-smi every 5 s and the trainer's log) and seconds per
 step. Decision: peak under about 5.5 GB -> train on the laptop; otherwise
 Colab.
 
-**Colab (free)**: `tools/training_vl/colab_lora_sft.ipynb` (never run).
+**Colab (free)**: `tools/online_model/colab_lora_sft.ipynb` (never run).
 Cell 1 checks the GPU and stops on a T4 unless `EXPERIMENTAL_T4 = True`
 (fp16, no flash attention, 20 steps). In that mode the run folder ends in
 `_EXPERIMENTAL_T4`, `run.json` is labelled **"EXPERIMENTAL, not the
@@ -749,11 +749,11 @@ with `evaluate_vl.py`, and leaves everything in `runs/<run id>/`. The older
 **The approved T4 test, step by step (you run every cell):**
 
 1. In Google Drive, create `MyDrive/tactilelens/` and upload into it the
-   two folders I prepared (about 0.3 MB): `tools/training_vl/` (5 files) and
+   two folders I prepared (about 0.3 MB): `tools/online_model/` (5 files) and
    `data/FAKE_split_T4_test.zip` (the FAKE dry-run split: 46 generated
    images, labelled FAKE; the test needs data only to run, not to learn).
 2. colab.research.google.com > File > Upload notebook >
-   `tools/training_vl/colab_lora_sft.ipynb`.
+   `tools/online_model/colab_lora_sft.ipynb`.
 3. Runtime > Change runtime type > **T4 GPU** > Save.
 4. In cell 1 set `EXPERIMENTAL_T4 = True`. In cell 2 set
    `SPLIT_ZIP = BASE / "data" / "FAKE_split_T4_test.zip"`.
@@ -801,7 +801,7 @@ frozen eval split). Public check: im2latex-100k's own **test** split,
 never trained on or used for model selection.
 
 **im2latex-100k filtered to expressions using general-algebra notation;
-the source formulas come from physics papers** (`tools/dataset/prepare_im2latex.py`,
+the source formulas come from physics papers** (`tools/data_preparation/prepare_im2latex.py`,
 2026-11-09): `tactilelens-training\datasets\public\im2latex-100k\filtered_general_algebra\` (7.9 MB).
 Not a worksheet algebra dataset. Panel page (filter rules, counts,
 examples, limits, both runs' charts, what changed during fine-tuning):
