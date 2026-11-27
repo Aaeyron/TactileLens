@@ -136,10 +136,10 @@ TactileLens/
 ├── ai_service/    reads pages and makes Braille
 ├── docs/          setup guide, how the parts connect, training notes
 └── tools/         tools for preparing data and training the models
-    ├── dataset/       get new photos ready: check, sort and split them
-    ├── model_prep/    train and test the offline math model
-    ├── training/      train and test the offline text model
-    └── training_vl/   test the online model and prepare its training data
+    ├── data_preparation/     get new photos ready: check, sort and split them
+    ├── offline_math_model/   train and test the offline math model
+    ├── offline_text_model/   train and test the offline text model
+    └── online_model/         test the online model and prepare its training data
 ```
 
 Want the technical details? See [docs/architecture.md](docs/architecture.md).
