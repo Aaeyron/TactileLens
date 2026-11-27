@@ -1,302 +1,189 @@
 # TactileLens
 
-TactileLens is an Android app that turns printed teaching material into
-Braille for **teachers of visually impaired students**. A teacher
-photographs a page (English text, algebra, tables) and gets Unified
-English Braille for the text and Nemeth Braille for the math, to check,
-copy and keep.
+TactileLens is an Android app that helps **teachers of visually impaired
+students** turn printed lessons into Braille. Take a photo of a page with
+English text, math or a table, and the app gives you:
 
-> **Status: capstone prototype.** The Braille output has **not been
-> validated by a Braille expert**. Check every result before giving it to
-> a student.
+- **English Braille (UEB)** for the words
+- **Nemeth Braille** for the math
 
-## Features
+You can check the result, copy it, and save it for later.
 
-- **Scan a page** with the camera or from the gallery, with an optional
-  crop.
-- **Automatic scan mode**: signed in, pages are scanned online
-  (PaddleOCR-VL on a server); as a guest, on the phone with bundled models.
-  Without a connection, a signed-in scan runs on the phone instead and the
-  result says "No connection: scanned on-device."
-- **Braille 2 or Braille 1** for text: contracted UEB (default) or
-  uncontracted (every letter spelled out). **Nemeth** for math and table
-  rows.
-- **Held for review**: formulas the Braille path cannot handle safely are
-  shown as text with a reason instead of possibly wrong Braille.
-- **History** of scans, each marked **Online** or **On this device**, and
-  **Materials** (folders of saved results and
-  uploaded PDF/JPG/PNG files).
-- **Guest mode**: no account; scans run on the device and everything stays
-  on the phone.
-- Accounts with email or Google sign-in, and password reset by email.
+> **Please note:** this is a school (capstone) project. The Braille has
+> **not yet been checked by a Braille expert**, so always review a result
+> before giving it to a student.
 
-## How it works
+## What the app can do
 
-```mermaid
-flowchart LR
-  App["Flutter app (Android)"] -- "HTTPS + JWT" --> Node["Node backend<br/>(Express)"]
-  Node --> DB[("PostgreSQL")]
-  Node -- "X-Service-Key" --> AI["Python AI service<br/>(FastAPI)"]
-  AI -- "PADDLEOCR_ENGINE=local" --> VL["PaddleOCR-VL 1.6<br/>on our GPU"]
-  AI -- "PADDLEOCR_ENGINE=official_api" --> Hosted["PaddleOCR hosted API<br/>(Baidu AI Studio)"]
-  AI --> LL1["Liblouis<br/>(lou_translate)"]
-  App -- "On-device" --> ONNX["ONNX models<br/>PP-DocLayoutV3, PP-OCRv6,<br/>PP-FormulaNet_plus-S"]
-  ONNX --> LL2["Liblouis (JNI)"]
-```
+- **Scan a page** with the camera or pick a photo from the gallery, and
+  crop it if needed.
+- **Choose the Braille style** for text: Braille 2 (contracted, the
+  default) or Braille 1 (every letter spelled out). Math always uses
+  Nemeth.
+- **Hold unsure math for review.** If the app is not sure it can turn a
+  formula into correct Braille, it shows the formula as text with the
+  reason, instead of guessing.
+- **Keep a History** of your scans and organize results and files
+  (PDF, JPG, PNG) in **Materials** folders.
+- **Use it without an account** (guest mode). Everything stays on your
+  phone.
+- **Sign in** with email or Google, and reset a forgotten password by
+  email.
 
-**Who can use which mode**
+## Online and offline scanning
 
-| | Online | On-device |
+| | Online | On this phone (offline) |
 |---|---|---|
-| Guest (**Continue without an account**) | not available | always |
-| Signed-in user | chosen before each scan (remembered) | chosen before each scan (remembered) |
+| Who can use it | signed-in users | everyone, including guests |
+| Where the page is read | on our server | on the phone itself |
+| Needs internet | yes | no |
+| Accuracy | better, especially for math | good, but weaker on harder math |
 
-- Signed-in users see a privacy notice before their first online scan and
-  can scan that page on the device instead.
-- Online scans go through the backend: 30 per hour and 100 per day per
-  user, one at a time.
-- No connection (no answer to an 8-second check before the upload, a
-  dropped connection, or no answer within the 3-minute scan timeout): the
-  page is scanned on the device automatically, so the scan is never lost.
-  An online scan is never retried. When the server refuses with a reason
-  (scan limit, daily quota), the app says why and offers the device.
-- The result screen says whether the page was processed online or on the
-  device.
+- Signed-in users choose online or offline before each scan; the app
+  remembers the choice.
+- If the internet drops during an online scan, the app scans the page on
+  the phone instead, so you never lose a scan.
+- Every result says whether it was scanned online or on the phone.
+- Online scans are limited to 30 per hour and 100 per day for each user.
 
-**Online**: the app sends the image once
-to the backend, which checks the login, size and per-user limits and
-forwards it to the AI service. The AI service prepares the image,
-recognises it with PaddleOCR-VL (on our own GPU, or through PaddleOCR's
-hosted API), orders the blocks, parses tables, checks formulas with the
-guard and translates with Liblouis. The backend saves the result to the
-user's history.
+## Keeping results safe
 
-**On-device**: layout,
-text-line and formula models run on the phone's CPU with ONNX Runtime;
-Liblouis is compiled into the app. Nothing leaves the phone.
+- **Unsure formulas are held.** Before making Braille, the app checks
+  every formula. If it contains something the Braille rules here cannot
+  handle yet, the app shows it as text with a short reason. A held
+  formula only means the teacher should check it; a wrong Braille
+  formula could mislead a student.
+- **Two readings must agree (offline).** On the phone, each formula is
+  read by two models. If they disagree, the formula is held for review.
+- **Square roots are always held** until a Braille expert confirms how
+  they should be written in Nemeth.
+- **Symbols the Braille tables don't know are held**, so they never
+  show up as strange Braille codes.
 
-What differs: online reads tables into rows; on-device reads tables as
-text and flags low-confidence blocks for a check. Both apply the same
-formula guard.
+## Privacy
 
-Details: [docs/architecture.md](docs/architecture.md).
+- **Guests:** scans, History and Materials stay on the phone.
+- **Online scans:** the photo is sent to our server. When the server uses
+  PaddleOCR's hosted service (by Baidu), **the photo is also sent to Baidu,
+  which keeps it**. Only scan material you are allowed to share.
 
-## Safety and honesty
+## Try it in 5 minutes
 
-- **Formula blocks held for review.** Before Braille, every formula is
-  checked, online (`ai_service/services/braille/formula_braille_guard.py`)
-  and on-device (`frontend/lib/services/braille/formula_braille_guard.dart`,
-  kept in sync with the same test cases). It is held, with no Braille and
-  a reason shown, when it has unsupported LaTeX, alignment or row markup,
-  English words mixed into the math, or a root; online also when markup is
-  left after normalisation. Unknown LaTeX would otherwise come out as
-  Braille that looks right but is wrong. A false hold only costs the
-  teacher a check.
-- **Unsupported symbols are held** (online and on-device, any block:
-  text, formula or table). Liblouis writes a symbol its tables don't
-  define, such as ∛ in UEB text, as an escape code in Braille cells; any
-  output with a dot-7 or dot-8 cell is held with the reason "contains a
-  symbol our Braille tables don't support". Braille 1 falls back to
-  Braille 2 if a line would contain one.
-- **Roots are always held** (online and on-device). The Liblouis Nemeth
-  table has no radical symbol, so a root would come out as an escape
-  code. They stay held until a Braille expert confirms the Nemeth
-  mapping.
-- **Not expert-validated.** UEB comes from Liblouis `en-ueb-g2.ctb`,
-  Nemeth from `en-us-mathtext.ctb` after our own LaTeX normalisation. No
-  output has been reviewed by a Braille expert yet.
-- **Scan limits** (online): images up to 20 MB, one scan at a time per
-  user, 30 per hour and 100 per day per user; with the hosted engine a
-  daily page cap kept below Baidu's 3,000 pages (default 2,500). Hosted
-  jobs are never resubmitted.
-- **Privacy.** Online images go to our backend and AI service. **With the
-  hosted engine they are also sent to Baidu, which stores them**, so only
-  use material you may share. Guests always scan on the device; their
-  scans, history and materials stay on the phone.
+You need an Android build of the app that includes the offline models.
+Steps 1 to 4 work without a server.
 
-## Getting started
+1. Open the app and tap **Continue without an account**.
+2. Scan a printed page with a short paragraph and an equation like
+   `x² + 3x − 5 = 0`.
+3. On the result, switch between **Braille 1** and **Braille 2** for the
+   text. The math stays in Nemeth.
+4. Scan `√(x + 9) = 5`. It is **held for review** with a reason instead
+   of being turned into Braille.
+5. With the server running, sign in, choose **Online**, scan again, then
+   open **History** and **Materials**.
 
-Short version (full steps, migrations and every variable:
-[docs/setup.md](docs/setup.md)):
+## Running it yourself
+
+The project has three parts that work together:
+
+1. **App:** the Android app (built with Flutter).
+2. **Backend:** handles accounts, History and Materials, and passes
+   online scans along (Node.js with a PostgreSQL database).
+3. **AI service:** reads the page and makes the Braille (Python).
+
+The step-by-step guide, including every setting, is in
+**[docs/setup.md](docs/setup.md)**. The short version:
 
 ```
 git submodule update --init --recursive
 
-# 1. Backend (needs PostgreSQL and backend/.env)
+# 1. Backend (needs PostgreSQL and a backend/.env file)
 cd backend && npm install && npm run dev
 
-# 2. AI service (variables come from the shell, not a file)
+# 2. AI service
 cd ai_service && pip install -r requirements.txt
-#    local engine: also paddlepaddle-gpu 3.2.1 (CUDA 12.6) and paddleocr[doc-parser] 3.7.0
-#    hosted engine: set PADDLEOCR_ENGINE=official_api and PADDLEOCR_ACCESS_TOKEN
 python -m uvicorn app:app --host 127.0.0.1 --port 8000
 
-# 3. App on a USB phone
+# 3. App on a phone connected by USB
 adb reverse tcp:5000 tcp:5000
 cd frontend && flutter run --dart-define=AI_BASE_URL=http://127.0.0.1:5000 --dart-define=BACKEND_BASE_URL=http://127.0.0.1:5000
 ```
 
-On-device scanning needs the ONNX models (about 390 MB, not in git) in
-`frontend/android/app/src/main/assets/paddle_onnx/`; see the setup guide.
+- Offline scanning needs the model files (about 390 MB). They are not in
+  this repository; [docs/setup.md](docs/setup.md) explains where they go.
+- The backend and AI service can be put online together with the included
+  `Dockerfile` and `render.yaml` (for Render).
+- Never put passwords, keys or tokens in the repository.
 
-Main variables (names only; never commit values):
+## Running the tests
 
-| Where | Name | What it does | Default |
-|---|---|---|---|
-| backend | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | PostgreSQL | none |
-| backend | `JWT_SECRET` | signs login tokens | none, required |
-| backend | `AI_SERVICE_URL` | AI service address | none, required for online scans |
-| backend + AI service | `AI_SERVICE_SECRET` | shared `X-Service-Key` | none (local development only) |
-| backend | `SCAN_LIMIT_PER_HOUR`, `SCAN_LIMIT_PER_DAY` | online scan limits | `30`, `100` |
-| AI service | `PADDLEOCR_ENGINE` | `local` or `official_api` | `local` |
-| AI service | `PADDLEOCR_ACCESS_TOKEN` | hosted API token | none |
-| AI service | `PADDLEOCR_DAILY_PAGE_CAP` | hosted pages per day (below 3000) | `2500` |
-| AI service | `LIBLOUIS_ROOT` | Liblouis folder | `ai_service/vendor/liblouis` |
-| app | `AI_BASE_URL`, `BACKEND_BASE_URL` | backend address | `http://10.0.2.2:5000` |
-| app | `AI_SCAN_MODE` | read by `AIService`, but the scan screen always uses `session` (guests on device, signed-in users by choice), so it has no effect on scans | `session` |
-| app | `GOOGLE_SERVER_CLIENT_ID` | Google sign-in | none |
+| Part | Command |
+|---|---|
+| App | `cd frontend && flutter test` |
+| Android (offline scanning) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` |
+| Backend | `cd backend && npm test` |
+| AI service | `cd ai_service && python -m unittest discover -s services -t . -p "test_*.py"` |
+| Training tools | see the README in each `tools/` folder |
 
-The full tables (email, password reset, timeouts, hosted API settings)
-are in [docs/setup.md](docs/setup.md#environment-variables).
+No test sends anything to Baidu's hosted service.
 
-## Testing
-
-| Part | Command | Result |
-|---|---|---|
-| AI service (Python) | `cd ai_service && python -m unittest discover -s services -t . -p "test_*.py"` | 147 passed, 1 skipped |
-| Backend (Node) | `cd backend && npm test` | 31 passed |
-| App (Flutter) | `cd frontend && flutter test` | 241 passed |
-| Android (Kotlin) | `cd frontend/android && ./gradlew :app:testDebugUnitTest` | 4 passed |
-| VL tools (Track C) | `cd tools/training_vl && python -m unittest discover -s tests -t .` | 20 passed (2026-11-19) |
-| Recognizer tools and workspace layout (Track B) | `cd tools/training && python -m unittest discover -s tests -t .` | 12 passed (2026-11-19) |
-| Dataset tools | `cd tools/dataset && python -m unittest discover -s tests -t .` | 33 passed (2026-11-19) |
-| Formula comparison, pseudo-labels and reports (Track A) | `cd tools/model_prep && python -m unittest test_compare_formula test_build_pseudo_labels test_finetune_changes test_own_dataset_report` (`paddle_onnx_env`) | 51 passed (2026-11-19) |
-
-Measured on 2026-10-26 at commit `73265e9` (Windows 11; Python 3.11.9
-with PaddleOCR 3.7.0, Node 22.18, Flutter 3.44.7). The skipped Python
-test only runs where PaddleOCR is not installed. No test sends anything
-to the hosted API.
-
-## Project structure
+## What's in this repository
 
 ```
 TactileLens/
-├── ai_service/                  Python AI service (FastAPI)
-│   ├── app.py                   endpoints: /health, /api/scan-document
-│   └── services/
-│       ├── ocr/                 scan pipeline, hosted API client, block order, normalisers, tables
-│       ├── braille/             Liblouis translation, LaTeX-to-Nemeth input, formula guard
-│       └── security/            X-Service-Key check
-├── backend/                     Node backend (Express, PostgreSQL)
-│   ├── src/                     routes, controllers, scan proxy and limits, migrations
-│   └── test/                    node:test tests
-├── frontend/                    Flutter app
-│   ├── lib/                     screens, services, models, widgets
-│   ├── android/                 Kotlin on-device pipeline, JNI bridges, ONNX assets (not in git)
-│   ├── test/                    Flutter tests
-│   └── third_party/             Liblouis and llama.cpp (git submodules)
-├── docs/                        architecture, setup, evaluation plan
-└── tools/
-    ├── dataset/                 datasets for all tracks: intake, split, public (im2latex) and synthetic formulas
-    ├── model_prep/              Track A: on-device formula model: ONNX checks, training, export, evaluation
-    ├── training/                Track B: on-device text-line recognizer; also the workspace layout (common.py)
-    └── training_vl/             Track C: PaddleOCR-VL: SFT data converter, evaluation harness, Colab notebooks
+├── frontend/      the Android app (Flutter), including offline scanning
+├── backend/       accounts, History, Materials and online scan limits
+├── ai_service/    reads pages and makes Braille
+├── docs/          setup guide, how the parts connect, training notes
+└── tools/         tools for preparing data and training the models
+    ├── dataset/       get new photos ready: check, sort and split them
+    ├── model_prep/    train and test the offline math model
+    ├── training/      train and test the offline text model
+    └── training_vl/   test the online model and prepare its training data
 ```
 
-## Evaluation and training status
+Want the technical details? See [docs/architecture.md](docs/architecture.md).
 
-All models in the app are **pretrained**; none has been replaced by one
-we trained.
+## Training status
 
-- **Offline recognizer baseline** (PP-OCRv6 small rec, on a 200-line
-  **synthetic** set of algebra lines with raised characters): 68.5%
-  exact lines, 59.7% exact on lines with superscripts, 11.1% on negative
-  exponents.
-- **First fine-tuning trial** of that recognizer, on synthetic lines
-  from the same generator: 99.0% exact and 98.7% on lines with
-  superscripts on the same synthetic set. **Synthetic only**: not tested
-  on real photos (none collected yet) and likely optimistic because train
-  and test come from the same generator. Not in the app. Tools:
-  [tools/training/](tools/training/README.md).
-- **Online model evaluation harness** ([tools/training_vl/](tools/training_vl/README.md)):
-  converts labelled images to ERNIEKit fine-tuning data with a guard
-  that keeps evaluation images out of training, and compares engines
-  (local PaddleOCR-VL, hosted API, a future fine-tuned model) on a
-  held-out set. It has only been run on generated test images; there
-  are no accuracy results on real material yet.
-- **The hosted API cannot be fine-tuned.** Only our own copy of the
-  open PaddleOCR-VL can, with ERNIEKit; its documented setup is an
-  80 GB GPU, and a fine-tuned model would need our own GPU hosting.
-  This is future work. A LoRA notebook for free Colab is prepared (never
-  run; a free T4 is not a documented setup).
-- **Ready for the dataset** (dry-run on fake data only, nothing trained on
-  real data): intake audit and split ([tools/dataset/](tools/dataset/README.md)),
-  a full recognizer run with real-photo validation, and the plan for days
-  1-3, Google Drive and the approvals needed:
-  [docs/training_runbook.md](docs/training_runbook.md).
-- The evaluation dataset is planned, not finished:
-  [docs/evaluation/DATASET_PLAN.md](docs/evaluation/DATASET_PLAN.md),
-  [dataset card](docs/evaluation/dataset_card.md),
-  [results template](docs/evaluation/RESULTS.md).
+- **Online reading** uses PaddleOCR-VL as it comes. It is not retrained
+  by us.
+- **Offline math:** the app uses PaddleOCR's formula model, plus a second
+  copy we trained on our own worksheets to double-check every formula.
+  Newer versions are being trained and tested; one only goes into the app
+  if it shows fewer wrong formulas than the current app.
+- **Offline text:** the app uses PaddleOCR's text model as it comes. A
+  version trained on our own pages was tested but is not in the app.
+- Results and decisions: [docs/training_runbook.md](docs/training_runbook.md).
 
-## Known limitations and roadmap
+## Known limitations
 
-- Roots are held (no Braille) until the Nemeth radical is confirmed by
-  the Braille expert.
-- Nemeth spacing and baseline questions, and the UEB handling of some
-  symbols, are waiting for the Braille expert.
-- Tables use Nemeth for every row, and on-device scans read tables as
-  plain text.
-- A scan cannot be cancelled once started (Back is disabled while it
-  runs).
-- Online scan limits are kept in memory and reset when the backend
-  restarts.
-- The app's Privacy screen does not yet mention that the hosted engine
-  sends images to Baidu.
-- No migration creates the `users` and `materials` tables; no
-  `backend/.env` template is committed.
-- On-device scanning and Braille 1 are Android only; iOS is untested.
-- The evaluation dataset of real worksheets is still being completed;
-  then: baseline on real photos, a decision on the recognizer, and
-  expert review of the Braille.
+- Square roots are held (no Braille) until a Braille expert checks the
+  Nemeth rules.
+- Some Nemeth spacing questions and a few UEB symbols are waiting for the
+  Braille expert.
+- Formulas written over several lines are often only partly read
+  offline.
+- Tables are written in Nemeth, and offline scans read tables as plain
+  text.
+- A scan cannot be cancelled once it starts.
+- Online scan limits reset when the backend restarts.
+- The app's Privacy screen does not yet mention that online photos may be
+  sent to Baidu.
+- Offline scanning and Braille 1 work on Android only; iPhone is untested.
 
 ## Credits and licenses
 
-| Component | Used for | License |
+| Part | Used for | License |
 |---|---|---|
-| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 3.7 / PaddleX, PaddleOCR-VL models | online recognition | Apache-2.0 |
-| [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) 3.2 | runs PaddleOCR-VL | Apache-2.0 |
-| PP-DocLayoutV3, PP-OCRv6, PP-FormulaNet_plus-S (PaddleOCR models, ONNX) | on-device recognition | Apache-2.0, as PaddleOCR (where the ONNX exports were obtained is not recorded in the repo) |
-| [ONNX Runtime](https://github.com/microsoft/onnxruntime) Android 1.21.1 | on-device inference | MIT |
-| [Liblouis](https://github.com/liblouis/liblouis) 3.38.0 | Braille translation | library LGPL-2.1-or-later; command-line tools (`lou_translate`, used by the AI service) GPL-3.0-or-later |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | on-device VL experiment: native code still built, not used by the app (its Dart benchmark was removed) | MIT |
+| [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) and its models (PaddleOCR-VL, PP-DocLayoutV3, PP-OCRv6, PP-FormulaNet_plus-S) | reading pages online and offline | Apache-2.0 |
+| [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) | runs PaddleOCR-VL | Apache-2.0 |
+| [ONNX Runtime](https://github.com/microsoft/onnxruntime) | runs the models on the phone | MIT |
+| [Liblouis](https://github.com/liblouis/liblouis) | turns text and math into Braille | library: LGPL-2.1-or-later; command-line tools (used by the AI service): GPL-3.0-or-later |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | an earlier offline experiment (still built, not used by the app) | MIT |
 
-Open fonts, used **only** by `tools/training` to draw synthetic training
-and test images (the app bundles no fonts): DejaVu (Bitstream Vera
-license + public domain), STIX and Liberation (SIL Open Font License
-1.1), TeX Gyre and Latin Modern (GUST Font License). The fonts and their
-license files live in the training data folder, outside git.
+The training tools use open fonts to draw practice images (DejaVu, STIX,
+Liberation, TeX Gyre, Latin Modern; each under its own open font
+license). The app itself includes no fonts.
 
-The PaddleOCR hosted API is a Baidu AI Studio service under its own
-terms.
-
-## For reviewers
-
-**Try it in 5 minutes** (an Android build with the ONNX models; steps 1–4
-need no server):
-1. Open the app and choose **Continue without an account** (guest mode):
-   everything runs on the phone.
-2. Scan a printed page with a short paragraph and an equation such as
-   `x² + 3x − 5 = 0`.
-3. On the result, switch **Braille 1 / Braille 2** for the text; the math
-   stays Nemeth.
-4. Scan `√(x + 9) = 5`: it is **held for review** with the reason, not
-   translated.
-5. With the backend and AI service running, sign in, choose **Online**,
-   scan again, then open **History** and **Materials**.
-
-**Where to look:** tests in the table above (Python tests sit next to the
-code in `ai_service/services/`); the formula guard in
-`ai_service/services/braille/formula_braille_guard.py`; evaluation tools
-and their result format in `tools/training/` and `tools/training_vl/`;
-the dataset plan in `docs/evaluation/`.
+PaddleOCR's hosted service is run by Baidu AI Studio under its own terms.
