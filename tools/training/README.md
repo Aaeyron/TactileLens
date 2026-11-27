@@ -1,200 +1,63 @@
-# Track B: on-device text-line recognizer (PP-OCRv6 small rec)
+# Offline text model tools
 
-Tools to build data for, and measure, the offline text recognizer
-(PP-OCRv6 small rec, `frontend/android/app/src/main/assets/paddle_onnx/PP-OCRv6-small-rec-onnx/`)
-on lines with raised characters (x², xⁿ, 10⁻³, ...). Nothing here changes
-the app. Data never goes into git.
+These tools train and test the model that reads **lines of text on the
+phone** (PaddleOCR's PP-OCRv6 small text model). They focus on lines with
+raised characters, such as x², xⁿ and 10⁻³.
 
-Python: `C:\Projects\Capstone\paddle_onnx_env` (onnxruntime, opencv,
-numpy, Pillow, PyYAML). Run the scripts from this folder.
+Nothing here changes the app. Photos and labels stay in the training
+folder (`C:\Projects\Capstone\tactilelens-training`) and never go into
+git.
 
-## Where things are
+**Python:** `C:\Projects\Capstone\paddle_onnx_env` (training uses
+`C:\Projects\Capstone\paddle_train_env`). Run the scripts from this
+folder. Every script explains its options with `--help`.
 
-Scripts (this folder): `common.py` (paths, charset, guard), `app_ocr.py`
-(the app's detector + recognizer, ported), `textgen.py` (topic templates),
-`render.py` (drawing + photo look), `generate_synthetic.py`, `evaluate.py`,
-`worksheets.py`, `pair_photos.py`, `verify_against_app.py`, `topics.csv`.
+## The usual steps
 
-Data root (default `C:\Projects\Capstone\tactilelens-training`, or
-`--root`, or `TL_TRAIN_ROOT`). ASCII names and relative paths only, so it
-can be copied to Google Drive / Colab as is.
-
-```
-fonts/                    open fonts + licences (FONTS.md)
-datasets/synthetic/text_lines/train_val/images/    train.txt  val.txt
-datasets/own/text_lines/train_val/images/         train.txt
-datasets/synthetic/text_lines/eval/images/    labels.txt        held out
-datasets/own/text_lines/eval/images/         labels.txt        held out, NEVER used for training
-worksheets/               W001.pdf/.png/.json ...
-datasets/own/photo_pairs_review/<sheet>/           crops that need a human (review.tsv)
-datasets/synthetic/text_lines/manifests/<set>.jsonl     one row per image
-evaluations/trackB_recognizer/<tag>/<date>_<model sha8>_<set>/   results.md results.csv predictions.tsv
-```
-
-## Formats
-
-Label files (PaddleOCR recognizer format): `images/<file><TAB><text>`,
-UTF-8, one line per image, paths relative to the label file's folder.
-Superscripts are written as Unicode characters.
-
-Manifest rows: `id, path, label, source (synthetic|real), set, topic,
-subcase, fixed_case, font, style (typeset|glyph), ...` plus the drawing
-and augmentation choices (synthetic) or the sheet, photo, reading and
-similarity (real).
-
-The guard (`common.check_no_eval_in_training`) runs in every script that
-writes or reads data: it stops if an eval image, or a worksheet used for
-eval, also appears in a training list.
-
-## Charset
-
-The recognizer's dictionary (`inference.yml`, parsed like the app's
-`ModelConfig.kt`, 18,709 entries with the trailing space) has
-⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹ ⁺ ⁻ ⁼ ⁽ ⁾ ⁿ and − √ ∛ ≤ ≥ ≠ ± × ÷ ·, but no other
-letter superscripts (no ⁱ ˣ ʸ ᵃ ...). Labels use only these; the
-dictionary is not changed.
-
-## Topics
-
-`topics.csv` lists topics × sub-cases with an example and target counts.
-Fill it in and extend it. A new row whose sub-case has no template in
-`textgen.py` is generated from its `example` as written (raised
-characters as Unicode superscripts).
-
-## Synthetic lines
+1. **Make practice lines:** `generate_synthetic.py` draws made-up text
+   lines with exponents, in many fonts, with a phone-photo look.
+2. **Add real lines:** print the worksheets in `worksheets/`, photograph
+   them, and run `pair_photos.py` to cut and label each line. Lines the
+   tool isn't sure about are set aside for a person to check.
+3. **Train:** `train_full.py` trains a new version and picks the best one
+   using real photos only.
+4. **Test:** `evaluate.py` and `compare_models.py` score models the same
+   way the app reads text.
 
 ```
-python generate_synthetic.py --set eval  --count 200     # seed 20261025
-python generate_synthetic.py --set train --count 20000   # seed 1
-python generate_synthetic.py --set val   --count 1000    # seed 2
-```
-
-Lines are generated text only (templates + random letters and numbers),
-never textbook or worksheet text. The eval set holds the seven fixed cases
-× 10 renderings, template lines and about 20% controls without
-superscripts.
-
-Two looks (`--profile`):
-- `v1` (eval, frozen): the original fonts and photo effects. Regenerating
-  the eval set gives the same files byte for byte.
-- `v2` (train/val, default): more faces, worksheet surroundings (lined,
-  grid, coloured paper, page edges, table borders, answer rules, slivers
-  of neighbouring lines, item labels such as "3." or "b)"), stronger photo
-  effects, and every minus drawn as a hyphen "-" or a true minus "−" (more
-  often "−" in math-typesetting faces), labelled as drawn. Controls
-  include hyphenated words, ranges and dates. At least 25% of train/val
-  lines have no superscript (`--min-plain`).
-
-## Baseline / comparing models
-
-```
-python evaluate.py --set synthetic-eval
+python generate_synthetic.py --set train --count 20000
 python evaluate.py --set real-eval
-python evaluate.py --set real-eval --rec C:\path\new_rec.onnx --tag retrained
+python compare_models.py --set real-eval --b <new model.onnx> --b-name new
 ```
 
-Preprocessing and decoding are the app's (see `app_ocr.py`).
+## Good to know
 
-Side by side (exact and exponent exact for ALL, controls, negative
-exponents, each topic and each photographed sheet):
+- **Test lines are kept apart.** Every script checks that no test line
+  is ever used for training, and stops if it finds one.
+- **Practice lines are made up.** They never copy text from textbooks or
+  other people's worksheets. Don't photograph those either.
+- `common.py` also defines where everything lives in the training folder,
+  and the other tool folders use it too.
 
-```
-python compare_models.py --set real-eval --b C:\path\trained.onnx --b-name trained
-```
+## Other tools
 
-## Full run (Track B)
-
-```
-C:\Projects\Capstone\paddle_train_env\Scripts\python train_full.py --split <root>\datasets\own\splits\<id>
-```
-
-Training lines from `datasets/synthetic/text_lines/train_val/train.txt`, `datasets/own/text_lines/train_val/train.txt` and
-the dataset split's `rec_train.txt` (`tools/dataset/`). The checkpoint is
-picked, and training stopped early (3 validations without improvement),
-on REAL validation lines only (`datasets/own/text_lines/train_val/val.txt`, the split's
-`rec_val.txt`); with none it stops. Batch 64, at most 8 epochs. The leak
-guard also compares bytes with every eval image (datasets/own/text_lines/eval,
-datasets/synthetic/text_lines/eval, the split's `rec_eval.txt`, the frozen eval registry).
-Full precision by default (AMP crashes with NumPy 2.4 here; see
-docs/training_runbook.md). Then export, ONNX with PaddleX paddle2onnx (opset 17), a check of the
-ONNX inputs/outputs and dictionary against the app's, and `evaluate.py`
-with the app's model and the new one on every eval set:
-`runs/<date>-<time>_trackB_<data>_full/comparison.md`. The app is not changed.
-
-`evaluate.py --labels <file>` scores any label file (e.g. a split's
-`rec_eval.txt`; topic from the file name).
-
-On Windows PaddleOCR skips the last batch of every validation pass
-(`tools/program.py`), so validation runs in batches of 8
-(`--eval-batch-size`) and the run refuses if fewer than 80% of the
-validation lines would be scored. If the GPU runs out of memory, the run
-retries at batch 48, then 32 (`--fallback-batch-sizes`; tests:
-`python -m unittest discover -s tests -t .`). If a run stops after training (or is
-interrupted), `train_full.py --continue-run <run folder>` skips training
-and continues with export, ONNX and evaluation from that run's
-checkpoint. Dry-run options (`--cpu`,
-`--allow-synthetic-val`, `--subset-train`, `--subset-val`) mark the run
-"DRY RUN (not a result)".
-
-## Text lines from our own pages
-
-Results and the checkpoint rule: docs/training_runbook.md, "Text model (Track B v1)".
-
-| step | tool |
+| Tool | What it's for |
 |---|---|
-| cut lines with the app's detector, skip formula boxes | `cut_text_lines.py --working <w>` |
-| choose the test images (by source image, per topic and ss/cap) | `pick_text_test_images.py` |
-| test candidates, PaddleOCR-VL jobs, suggested labels | `text_sets.py --working <w> select-test`, `finalize-test` |
-| training jobs (cap first), then the training list | `text_sets.py --working <w> select-train`, `build-train` |
-| apply the eval review, recheck leaks (eval frozen once) | `finalize_text_eval.py --working <w> --reviews <dir>` |
-| export and score each epoch on validation only | `score_epochs.py --run <run> --epochs 1 2 --val own=<val.txt> --val synthetic=<val.txt>` |
-| before vs after, adoption rule, Braille split | `compare_text.py --before <dir> --after <dir> --meta <rows.json>` |
+| `cut_text_lines.py` | cut text lines out of our own page photos, like the app does |
+| `text_sets.py`, `pick_text_test_images.py`, `finalize_text_eval.py` | choose and lock in the test and training lines |
+| `score_epochs.py` | score each saved version during training |
+| `compare_text.py` | compare an old and a new model, line by line |
+| `verify_against_app.py` | check that the PC copy reads a page exactly like the phone |
+| `worksheets.py` | make the printable practice worksheets |
+| `topics.csv` | the list of topics and examples for the practice lines |
 
-`compare_text.py` splits spacing/punctuation-only changes into "punctuation
-(changes the Braille)" (a mark differs with spaces removed, dashes and
-quotes not folded) and "spacing only".
-
-## Real photos
-
-Targets per topic (see `topics.csv`): about 10 held-out (eval) and 20
-training lines. The starter sheets do that:
-
-- Eval: W001-W010 (16 lines each, including the seven fixed cases).
-- Training: W101-W113 (16 lines each, template lines only).
-
-1. Print `datasets/synthetic/worksheets/Wxxx.pdf` on A4 at 100% (no "fit to page").
-2. Photograph each sheet with your phone, the whole page in view, roughly
-   flat, normal room light. Eval sheets: one photo each. Training sheets:
-   1-3 photos each in different light, angle or distance.
-3. Copy the photos to the PC, named `<sheet>_<anything>.jpg`, for
-   example `W001_a.jpg`, `W103_window.jpg`.
-4. Cut and label the lines:
-   ```
-   python pair_photos.py --sheet W001 C:\photos\W001_a.jpg
-   ```
-   Lines that match their known text clearly go to `datasets/own/text_lines/eval` (eval
-   sheets) or `datasets/own/text_lines/train_val` (training sheets). The rest go to
-   `datasets/own/photo_pairs_review/<sheet>/` with `review.tsv` (crop, what was read, best guess,
-   similarity): check them by hand; they are never added automatically.
-5. Real validation (to pick checkpoints during training, never eval):
-   pair the photos of a few training sheets (W111-W113) with `--val`.
-   They go to `datasets/own/text_lines/train_val/val.txt`, never into training or eval.
-
-Do not photograph textbook pages or worksheets made by others.
-
-## Checking the port against the phone
+## Tests
 
 ```
-python verify_against_app.py C:\...\W001.png app_log.txt
+python -m unittest discover -s tests -t .
 ```
 
-See the script's help: scan a PNG page on the phone (On-device, picked
-from the gallery, no selection box), save `adb logcat -d -s
-TactileLensPipeline`, and compare. "VERIFIED" means every line's text is
-identical and the boxes are within 2 px.
+Fonts and their licenses are listed in `resources/fonts/FONTS.md` inside
+the training folder.
 
-## Fonts
-
-See `<root>/resources/fonts/FONTS.md`: DejaVu (Bitstream Vera + public domain),
-STIX (SIL OFL 1.1), Liberation (SIL OFL 1.1), TeX Gyre and Latin Modern
-(GUST Font License), each with its licence file.
+Results and decisions: [docs/training_runbook.md](../../docs/training_runbook.md).
